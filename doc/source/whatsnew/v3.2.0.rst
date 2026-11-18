@@ -36,6 +36,7 @@ Other enhancements
 - :meth:`.DataFrameGroupBy.ohlc`, :meth:`.SeriesGroupBy.ohlc` and :meth:`.Resampler.ohlc` now accept a ``numeric_only`` argument (:issue:`56946`)
 - :meth:`.DataFrameGroupBy.plot` now titles each group's figure with its group key, unless ``title`` or ``ax`` is passed (:issue:`12452`)
 - :meth:`.DataFrameGroupBy.rank` and :meth:`.SeriesGroupBy.rank` now accept a ``numeric_only`` argument, matching :meth:`DataFrame.rank` (:issue:`44438`)
+- :meth:`.SeriesGroupBy.transform` now accepts a list of functions, returning a :class:`DataFrame` with one column per function as :meth:`.SeriesGroupBy.agg` does (:issue:`17309`)
 - :meth:`.Styler.to_latex` with ``clines="all;data"`` or ``"skip-last;data"`` now adds clines between the groups of a hidden index instead of none (:issue:`59877`)
 - :meth:`DataFrame.plot.area` and :meth:`Series.plot.area` now accept keyword arguments that only the lines or only the filled areas support, such as ``hatch``, ``edgecolor`` and ``marker``, instead of raising ``AttributeError``; ``hatch`` also accepts a list with one hatch per column (:issue:`12354`)
 - :meth:`DataFrame.to_csv` and other writers now accept an ``os.PathLike`` such as :class:`pathlib.Path` for the ``archive_name`` entry of a zip or tar ``compression`` dict (:issue:`31934`)

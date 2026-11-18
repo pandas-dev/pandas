@@ -1433,17 +1433,17 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             else:
                 raise TypeError(f"apply func should be callable, not '{func}'")
 
+        elif not callable(func):
+            raise TypeError(
+                f"apply func should be callable, not {type(func).__name__}. "
+                "To apply multiple functions, pass a list to agg or transform."
+            )
         elif args or kwargs:
-            if callable(func):
 
-                @wraps(func)
-                def f(g):
-                    return func(g, *args, **kwargs)
+            @wraps(func)
+            def f(g):
+                return func(g, *args, **kwargs)
 
-            else:
-                raise ValueError(
-                    "func must be a callable if args or kwargs are supplied"
-                )
         else:
             f = func
 

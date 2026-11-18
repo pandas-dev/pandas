@@ -324,3 +324,17 @@ def test_multilabel_udf_numba_vs_cython():
         lambda x: (x - x.min()) / (x.max() - x.min()), engine="cython"
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_series_groupby_list_of_funcs():
+    # GH#17309
+    def double(values, index):
+        return values * 2
+
+    def plus_one(values, index):
+        return values + 1
+
+    gb = pd.Series([1.0, 2.0, 3.0]).groupby([1, 1, 2])
+    result = gb.transform([double, plus_one], engine="numba")
+    expected = pd.DataFrame({"double": [2.0, 4.0, 6.0], "plus_one": [2.0, 3.0, 4.0]})
+    tm.assert_frame_equal(result, expected)

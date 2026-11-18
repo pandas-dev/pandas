@@ -4,7 +4,10 @@ import numpy as np
 import pytest
 
 from pandas._libs import lib
-from pandas.errors import Pandas4Warning
+from pandas.errors import (
+    Pandas4Warning,
+    SpecificationError,
+)
 
 from pandas.core.dtypes.common import ensure_platform_int
 
@@ -173,11 +176,89 @@ def test_transform_with_namedagg_plain_tuple():
     tm.assert_frame_equal(result, result2)
 
 
-def test_transform_series_groupby_list_raises():
-    # GH#58318 - SeriesGroupBy.transform with list not yet implemented
-    g = pd.DataFrame({"col": list("aaabbb"), "val": range(6)}).groupby("col")["val"]
-    with pytest.raises(NotImplementedError, match="SeriesGroupBy"):
-        g.transform(["sum", "min"])
+@pytest.mark.parametrize("box", [list, tuple, pd.Series])
+def test_transform_series_groupby_list_like(box):
+    # GH#17309
+    ser = pd.Series([1, 2, 3, 4], index=list("wxxy"), name="val")
+    gb = ser.groupby([1, 1, 2, 2])
+    result = gb.transform(box(["cumsum", "max"]))
+    expected = pd.DataFrame(
+        {"cumsum": [1, 3, 3, 7], "max": [2, 2, 4, 4]}, index=ser.index
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_transform_series_groupby_list_like_labels():
+    # GH#17309 - labels match SeriesGroupBy.agg with a list
+    ser = pd.Series([1, 2, 3, 4])
+    gb = ser.groupby([1, 1, 2, 2])
+    result = gb.transform([np.cumsum, lambda x: x * 2, lambda x: x - x.min()])
+    expected = pd.DataFrame(
+        {
+            "cumsum": [1, 3, 3, 7],
+            "<lambda_0>": [2, 4, 6, 8],
+            "<lambda_1>": [0, 1, 0, 1],
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+    result = gb.transform([("a", "max"), ("b", "min")])
+    expected = pd.DataFrame({"a": [2, 2, 4, 4], "b": [1, 1, 3, 3]})
+    tm.assert_frame_equal(result, expected)
+
+    gb = ser.rename("v").groupby([1, 1, 2, 2])
+    result = gb.transform([("a", ["max", "min"]), ("b", "sum")])
+    expected = pd.DataFrame(
+        {
+            ("a", "max"): [2, 2, 4, 4],
+            ("a", "min"): [1, 1, 3, 3],
+            ("b", "v"): [3, 3, 7, 7],
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_transform_series_groupby_list_like_args():
+    # GH#17309 - args/kwargs go to every function
+    gb = pd.Series([1, 2, 4, 8, 16]).groupby([1, 1, 1, 2, 2])
+    result = gb.transform(["shift", "diff"], periods=2)
+    expected = pd.DataFrame(
+        {
+            "shift": [np.nan, np.nan, 1, np.nan, np.nan],
+            "diff": [np.nan] * 2 + [3.0] + [np.nan] * 2,
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_transform_series_groupby_empty_list():
+    # GH#17309
+    ser = pd.Series([1, 2, 3], index=list("xyz"))
+    result = ser.groupby([1, 1, 2]).transform([])
+    expected = pd.DataFrame(index=ser.index, columns=pd.Index([], dtype=object))
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"func": [["max", "min"]]},
+        {"x": NamedAgg(column="val", aggfunc=["max", "min"])},
+        {"x": ("val", ["max", "min"])},
+    ],
+)
+def test_transform_frame_groupby_list_per_column_raises(kwargs):
+    # GH#17309 - a list of functions for one column is not supported yet
+    gb = pd.DataFrame({"col": list("aab"), "val": range(3)}).groupby("col")
+    with pytest.raises(NotImplementedError, match="single column"):
+        gb.transform(**kwargs)
+
+
+def test_transform_series_groupby_dict_raises():
+    # GH#17309 - matches SeriesGroupBy.agg
+    gb = pd.Series([1, 2, 3, 4]).groupby([1, 1, 2, 2])
+    with pytest.raises(SpecificationError, match="nested renamer is not supported"):
+        gb.transform({"a": "max"})
 
 
 def test_transform_fast():
