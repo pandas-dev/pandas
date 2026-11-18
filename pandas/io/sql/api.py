@@ -28,6 +28,7 @@ from pandas.core.api import (
 )
 
 from pandas.io.sql.adbc import ADBCDatabase
+from pandas.io.sql.dbapi2 import DBAPI2Database
 from pandas.io.sql.sqla import SQLDatabase
 from pandas.io.sql.sqlite import SQLiteDatabase
 
@@ -529,7 +530,7 @@ def read_sql(
     check_dtype_backend(dtype_backend)
 
     with pandasSQL_builder(con) as pandas_sql:
-        if isinstance(pandas_sql, SQLiteDatabase):
+        if isinstance(pandas_sql, DBAPI2Database):
             return pandas_sql.read_query(
                 sql,
                 index_col=index_col,
