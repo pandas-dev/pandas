@@ -4341,6 +4341,8 @@ def test_read_sql_binary_column(conn, request, dtype_backend):
             {"a": pd.array(values, dtype=pd.ArrowDtype(pa.binary()))}
         )
     else:
+        # psycopg2 returns bytea as memoryview, which is kept as is
+        result["a"] = result["a"].map(bytes, na_action="ignore")
         expected = pd.DataFrame({"a": values}, dtype=object)
     tm.assert_frame_equal(result, expected)
 
