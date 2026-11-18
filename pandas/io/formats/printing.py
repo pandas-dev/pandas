@@ -49,8 +49,8 @@ EscapeChars: TypeAlias = Mapping[str, str] | Iterable[str]
 _KT = TypeVar("_KT")
 _VT = TypeVar("_VT")
 
-# Containers whose __repr__ is one of these get pandas' element-wise formatting;
-# a subclass that overrides __repr__ is printed with str() instead, see GH#18843
+# Built-in containers are formatted element-wise (display.precision, max_seq_items,
+# numpy scalars); a subclass that overrides __repr__ is printed with str(), see GH#18843
 _CONTAINER_REPRS = frozenset(
     typ.__repr__
     for typ in (
