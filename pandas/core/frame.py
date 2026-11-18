@@ -5537,7 +5537,10 @@ class DataFrame(NDFrame, OpsMixin):
 
         Notes
         -----
-        * To select all *numeric* types, use ``np.number`` or ``'number'``
+        * To select all *numeric* types, use ``np.number`` or ``'number'``.
+          These, along with ``'integer'`` and ``'signedinteger'``, currently
+          also select timedelta64 columns; this is deprecated, pass
+          ``exclude='timedelta'`` to drop them
         * To select strings, use the builtin ``str``, which selects
           :class:`pandas.StringDtype` columns and :class:`pandas.ArrowDtype`
           ``string``/``large_string`` columns; the string spec ``'str'``
@@ -5650,13 +5653,21 @@ class DataFrame(NDFrame, OpsMixin):
             def matches_number(dtype_obj: DtypeObj) -> bool:
                 # All numeric dtypes, excluding bool dtypes
                 # GH#46870: BooleanDtype._is_numeric == True but should
-                # be excluded
-                return not is_bool_dtype(dtype_obj) and (
-                    (
-                        isinstance(dtype_obj, np.dtype)
-                        and issubclass(dtype_obj.type, np.number)
+                # be excluded. timedelta64 is matched only by the deprecated
+                # legacy path below (GH#27881).
+                return (
+                    dtype_obj.kind != "m"
+                    and not is_bool_dtype(dtype_obj)
+                    and (
+                        (
+                            isinstance(dtype_obj, np.dtype)
+                            and issubclass(dtype_obj.type, np.number)
+                        )
+                        or (
+                            isinstance(dtype_obj, ExtensionDtype)
+                            and dtype_obj._is_numeric
+                        )
                     )
-                    or (isinstance(dtype_obj, ExtensionDtype) and dtype_obj._is_numeric)
                 )
 
             def matches_type(
@@ -5664,6 +5675,17 @@ class DataFrame(NDFrame, OpsMixin):
             ) -> Callable[[DtypeObj], bool]:
                 def func(dtype_obj: DtypeObj) -> bool:
                     return issubclass(dtype_obj.type, dtype_type)
+
+                return func
+
+            def matches_integer(
+                dtype_type: type,
+            ) -> Callable[[DtypeObj], bool]:
+                # numpy makes timedelta64 a signedinteger; see matches_number
+                def func(dtype_obj: DtypeObj) -> bool:
+                    return dtype_obj.kind != "m" and issubclass(
+                        dtype_obj.type, dtype_type
+                    )
 
                 return func
 
@@ -5947,6 +5969,8 @@ class DataFrame(NDFrame, OpsMixin):
                     resolved.add(dtype_type)
                     if dtype_type is np.object_:
                         funcs.append(matches_object)
+                    elif dtype_type in (np.integer, np.signedinteger):
+                        funcs.append(matches_integer(dtype_type))
                     else:
                         funcs.append(matches_type(dtype_type))
 
@@ -6004,19 +6028,63 @@ class DataFrame(NDFrame, OpsMixin):
                 f"include and exclude overlap on {(include_set & exclude_set)}"
             )
 
-        def predicate(arr: ArrayLike) -> bool:
-            dtype = arr.dtype
+        # GH#27881: numpy makes timedelta64 a np.signedinteger, so these specs
+        # match timedelta64 columns, which is deprecated. The matchers above
+        # exclude them, and ``legacy`` adds them back.
+        td64_specs = {np.number, np.integer, np.signedinteger}
+        include_td64 = not include_set.isdisjoint(td64_specs)
+        exclude_td64 = not exclude_set.isdisjoint(td64_specs)
+
+        def selects(dtype: DtypeObj, legacy: bool) -> bool:
+            is_legacy_td64 = legacy and dtype.kind == "m"
             if include:
-                if not include_func(dtype):
+                if not (include_func(dtype) or (is_legacy_td64 and include_td64)):
                     return False
 
             if exclude:
-                if exclude_func(dtype):
+                if exclude_func(dtype) or (is_legacy_td64 and exclude_td64):
                     return False
 
             return True
 
+        def predicate(arr: ArrayLike) -> bool:
+            return selects(arr.dtype, legacy=True)
+
         blk_dtypes = self._blk_dtypes
+
+        if include_td64 or exclude_td64:
+            for dtype in blk_dtypes:
+                if dtype.kind != "m":
+                    continue
+                legacy_result = selects(dtype, legacy=True)
+                if legacy_result != selects(dtype, legacy=False):
+                    if legacy_result:
+                        msg = (
+                            "select_dtypes currently selects timedelta64 "
+                            "columns for 'number', 'integer' and "
+                            "'signedinteger' specs (and the numpy classes "
+                            "they name). This is deprecated; in a future "
+                            "version they will not. Pass "
+                            "'timedelta' to `include` to keep selecting them, "
+                            "or to `exclude` to drop them and silence this "
+                            "warning."
+                        )
+                    else:
+                        msg = (
+                            "select_dtypes currently drops timedelta64 "
+                            "columns for 'number', 'integer' and "
+                            "'signedinteger' specs in `exclude` (and the "
+                            "numpy classes they name). This is deprecated; in "
+                            "a future version it will not."
+                        )
+                        if np.timedelta64 not in include_set:
+                            # otherwise this advice raises the overlap error
+                            msg += (
+                                " Pass 'timedelta' to `exclude` to keep "
+                                "dropping them and silence this warning."
+                            )
+                    warnings.warn(msg, Pandas4Warning, stacklevel=find_stack_level())
+                    break
 
         def is_handled(dtype: StringDtype) -> bool:
             # A spec other than ``object`` that matches this column decides
