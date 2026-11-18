@@ -59,6 +59,7 @@ if TYPE_CHECKING:
 
     from pandas._typing import (
         Any,
+        Axes,
         Axis,
         AxisInt,
         ExcelWriterMergeCells,
@@ -535,7 +536,7 @@ class Styler(StylerRenderer):
         sheet_name: str = "Sheet1",
         na_rep: str = "",
         float_format: str | None = None,
-        columns: Sequence[Hashable] | None = None,
+        columns: Axes | None = None,
         header: Sequence[Hashable] | bool = True,
         index: bool = True,
         index_label: IndexLabel | None = None,
