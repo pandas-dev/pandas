@@ -1210,3 +1210,57 @@ def test_loc_list_of_partial_tuples_missing_raises():
         df.loc[[(3, "a")]]
     with pytest.raises(KeyError, match=r"\[\(3, 'a'\)\] not in index"):
         df.loc[[(1, "a"), (3, "a")]]
+
+
+def test_loc_list_like_categorical_level_subset_of_categories():
+    # GH#72206 level 0 values differ from its categories after observed=True
+    cats = ["a", "b", "c", "d"]
+    df = pd.DataFrame(
+        {
+            "p": pd.Categorical(cats, categories=cats),
+            "x": [1, 2, 3, 4],
+            "v": [1, 2, 3, 4],
+        }
+    )
+    ser = df.iloc[1:].groupby(["p", "x"], observed=True)["v"].max()
+    result = ser.loc[["c"]]
+    expected = ser.iloc[[1]]
+    tm.assert_series_equal(result, expected)
+
+    result = ser.loc[["d", "b"]]
+    expected = ser.iloc[[2, 0]]
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("ordered", [True, False])
+def test_loc_list_like_categorical_level_unsorted(ordered):
+    # GH#72206
+    cats = ["a", "b", "c", "d"]
+    mi = pd.MultiIndex(
+        levels=[
+            pd.CategoricalIndex(["d", "c"], categories=cats, ordered=ordered),
+            [1, 2],
+        ],
+        codes=[[0, 1], [0, 1]],
+    )
+    df = pd.DataFrame({"v": [10, 20]}, index=mi)
+    result = df.loc[["c"]]
+    expected = df.iloc[[1]]
+    tm.assert_frame_equal(result, expected)
+
+    # category that is not a level value is still missing
+    with pytest.raises(KeyError, match=r"\['a'\] not in index"):
+        df.loc[["c", "a"]]
+
+
+def test_loc_list_like_categorical_level_with_missing_code():
+    # GH#72206 -1 codes in level 0 must not be mapped to a category
+    cats = ["a", "b", "c", "d"]
+    mi = pd.MultiIndex(
+        levels=[pd.CategoricalIndex(["d", "c"], categories=cats), [1, 2, 3]],
+        codes=[[0, -1, 1], [0, 1, 2]],
+    )
+    df = pd.DataFrame({"v": [10, 20, 30]}, index=mi)
+    result = df.loc[["c", "d"]]
+    expected = df.iloc[[2, 0]]
+    tm.assert_frame_equal(result, expected)
