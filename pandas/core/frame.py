@@ -4797,6 +4797,14 @@ class DataFrame(NDFrame, OpsMixin):
                 "Must pass DataFrame or 2-d ndarray with boolean values only"
             )
 
+        if not key.size:
+            # an empty key may be object dtype, which the align below keeps
+            key = key.astype(bool)
+        # a label missing from key or an NA in it means "do not set" (GH#57083)
+        key = key.align(self, join="right", fill_value=False)[0]
+        if key._mgr.any_extension_types:
+            key = key.fillna(False)
+
         try:
             self._where(-key, value, inplace=True)
         except ValueError as err:

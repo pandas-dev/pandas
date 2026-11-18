@@ -175,7 +175,7 @@ class TestDataFrameIndexingWhere:
 
         def _check_set(df, cond, check_dtypes=True):
             dfi = df.copy()
-            econd = cond.reindex_like(df).fillna(True).infer_objects()
+            econd = cond.reindex_like(df).fillna(False).infer_objects()
             expected = dfi.mask(~econd)
 
             result = dfi.where(cond, np.nan, inplace=True)
@@ -1454,3 +1454,21 @@ def test_fillna_frame_other_categorical_other_categories():
 
     expected = pd.DataFrame({"a": pd.Categorical(["x", "x", "x"], dtype=dtype)})
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("inplace", [True, False])
+@pytest.mark.parametrize(
+    "method, expected", [("where", [0, 99, 99, 99]), ("mask", [99, 1, 99, 99])]
+)
+def test_where_mask_misaligned_cond_independent_of_inplace(
+    frame_or_series, method, expected, inplace
+):
+    # GH#57083 labels missing from cond get other, regardless of inplace
+    obj = frame_or_series(range(4))
+    expected = frame_or_series(expected)
+    cond = frame_or_series([True, False])
+
+    result = getattr(obj, method)(cond, 99, inplace=inplace)
+    if inplace:
+        result = obj
+    tm.assert_equal(result, expected)
