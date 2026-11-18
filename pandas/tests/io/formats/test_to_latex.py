@@ -1295,6 +1295,26 @@ class TestToLatexMultiindex:
         )
         assert result == expected
 
+    def test_to_latex_multirow_without_index(self, multicolumn_frame):
+        # GH#59877 index=False must not add the multirow clines
+        result = multicolumn_frame.T.to_latex(multirow=True, index=False)
+        expected = _dedent(
+            r"""
+            \begin{tabular}{rrrrr}
+            \toprule
+            0 & 1 & 2 & 3 & 4 \\
+            \midrule
+            0 & 1 & 2 & 3 & 4 \\
+            5 & 6 & 7 & 8 & 9 \\
+            0 & 1 & 2 & 3 & 4 \\
+            5 & 6 & 7 & 8 & 9 \\
+            0 & 1 & 2 & 3 & 4 \\
+            \bottomrule
+            \end{tabular}
+            """
+        )
+        assert result == expected
+
     def test_to_latex_multicolumnrow_with_multicol_format(self, multicolumn_frame):
         multicolumn_frame.index = multicolumn_frame.T.index
         result = multicolumn_frame.T.to_latex(

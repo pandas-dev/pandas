@@ -3742,7 +3742,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             "column_format": column_format,
             "clines": (
                 "skip-last;data"
-                if (multirow and isinstance(self.index, MultiIndex))
+                if (
+                    multirow
+                    and index is not False
+                    and isinstance(self.index, MultiIndex)
+                )
                 else None
             ),
             "bold_rows": bold_rows,
