@@ -183,6 +183,7 @@ if TYPE_CHECKING:
         Dtype,
         DtypeObj,
         FilePath,
+        FloatFormatType,
         Frequency,
         IgnoreRaise,
         IndexKeyFunc,
@@ -1662,7 +1663,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         buf: None = ...,
         *,
         na_rep: str | lib.NoDefault = ...,
-        float_format: str | None = ...,
+        float_format: FloatFormatType | None = ...,
         header: bool = ...,
         index: bool = ...,
         length: bool = ...,
@@ -1678,7 +1679,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         buf: FilePath | WriteBuffer[str],
         *,
         na_rep: str | lib.NoDefault = ...,
-        float_format: str | None = ...,
+        float_format: FloatFormatType | None = ...,
         header: bool = ...,
         index: bool = ...,
         length: bool = ...,
@@ -1693,7 +1694,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         self,
         buf: FilePath | WriteBuffer[str] | None = None,
         na_rep: str | lib.NoDefault = lib.no_default,
-        float_format: str | None = None,
+        float_format: FloatFormatType | None = None,
         header: bool = True,
         index: bool = True,
         length: bool = False,
@@ -1716,9 +1717,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         na_rep : str, optional
             String representation of missing values. By default ``NaN``,
             ``NaT``, ``None`` and ``NA`` are each shown as themselves.
-        float_format : one-parameter function, optional
-            Formatter function to apply to columns' elements if they are
-            floats, default None.
+        float_format : str or callable, optional
+            Format string such as ``"%.2f"``, or a function that takes a float
+            and returns a string. Applied to non-missing floating-point values.
         header : bool, default True
             Add the Series header (index name).
         index : bool, default True
