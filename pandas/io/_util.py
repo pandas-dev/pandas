@@ -182,6 +182,8 @@ def _post_convert_dtypes(
                 pd.Int32Dtype(),
                 pd.Int64Dtype(),
             }
+            # copy so the caller's mapping keeps only the user's keys
+            dtype = dict(dtype)
             for col in df.columns:
                 if col not in dtype and df[col].dtype in cmp_dtypes:
                     # Any key that the user didn't explicitly specify

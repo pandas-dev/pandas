@@ -538,3 +538,59 @@ b,2,y
         {"col1": pd.array(["a", "b"]), "col2": np.array([1, 2], dtype="uint8")}
     )
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("usecols", [[0, 2], {0, 2}])
+def test_usecols_header_none_keeps_file_positions(all_parsers, usecols):
+    # GH#67008 without a header, the selected columns are labelled by their
+    #  position in the file, not renumbered from 0
+    parser = all_parsers
+    data = "1,2,3\n4,5,6"
+
+    result = parser.read_csv(
+        StringIO(data), header=None, usecols=usecols, dtype={2: "float64"}
+    )
+
+    expected = pd.DataFrame({0: [1, 4], 2: [3.0, 6.0]})
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("dtype", [{1: "float64"}, {2: "float64"}])
+def test_usecols_header_none_index_col(all_parsers, dtype):
+    # GH#67008 index_col and a dtype for it, keyed by position among the selected
+    #  columns or by label, with the labels being file positions
+    parser = all_parsers
+    data = "1,2,3\n4,5,6"
+
+    result = parser.read_csv(
+        StringIO(data), header=None, usecols=[0, 2], index_col=1, dtype=dtype
+    )
+
+    expected = pd.DataFrame({0: [1, 4]}, index=pd.Index([3.0, 6.0], name=2))
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "dtype, expected",
+    [
+        (
+            {1: "float64"},
+            pd.DataFrame({1: [2.0, 5.0]}, index=pd.Index([3, 6], name=2)),
+        ),
+        (
+            {2: "float64"},
+            pd.DataFrame({1: [2, 5]}, index=pd.Index([3.0, 6.0], name=2)),
+        ),
+    ],
+)
+def test_usecols_header_none_index_col_dtype_key_is_label(all_parsers, dtype, expected):
+    # GH#67008 a dtype key that is a column label applies to that column, even
+    #  when it equals the index_col position
+    parser = all_parsers
+    data = "1,2,3\n4,5,6"
+
+    result = parser.read_csv(
+        StringIO(data), header=None, usecols=[1, 2], index_col=1, dtype=dtype
+    )
+
+    tm.assert_frame_equal(result, expected)
