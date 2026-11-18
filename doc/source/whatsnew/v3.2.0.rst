@@ -240,6 +240,7 @@ Datetimelike
 Timedelta
 ^^^^^^^^^
 - Bug in :class:`Timedelta` and :func:`to_timedelta` ignoring a decimal comma in a string, so ``"00:00:01,500"`` parsed as 25 minutes instead of 1.5 seconds (:issue:`71877`)
+- Bug in floor division (``//``), modulo (``%``) and ``divmod`` of :class:`TimedeltaIndex`, :class:`Series` and :class:`DataFrame` with ``timedelta64`` dtype by a numeric scalar or array, and of :class:`Timedelta` by a numeric array, rounding toward zero instead of flooring for negative results, inconsistent with :class:`Timedelta` divided by a numeric scalar (:issue:`71264`)
 -
 
 Timezones
