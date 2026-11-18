@@ -9,6 +9,7 @@ from datetime import (
 import functools
 from itertools import zip_longest
 import operator
+import reprlib
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -1491,6 +1492,7 @@ class Index(IndexOpsMixin, PandasObject):
     # Rendering Methods
 
     @final
+    @reprlib.recursive_repr("...")  # GH#25833
     def __repr__(self) -> str_t:
         """
         Return a string representation for this object.
