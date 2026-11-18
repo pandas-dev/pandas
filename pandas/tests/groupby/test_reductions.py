@@ -738,6 +738,25 @@ def test_sum_skipna_object(skipna):
     tm.assert_series_equal(result, expected)
 
 
+def test_groupby_sum_all_na_string_group(string_dtype_no_object):
+    # GH#53568
+    dtype = string_dtype_no_object
+    df = pd.DataFrame(
+        {
+            "A": [1, 1, 2, 2, 3, 3, 1, 4],
+            "B": pd.Series(["B", "B", pd.NA, pd.NA, "A", "A", "B", "C"], dtype=dtype),
+        }
+    )
+    result = df.groupby("A")["B"].sum()
+    expected = pd.Series(
+        ["BBB", "", "AA", "C"],
+        index=pd.Index([1, 2, 3, 4], name="A"),
+        name="B",
+        dtype=dtype,
+    )
+    tm.assert_series_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "func, values, dtype, result_dtype",
     [
