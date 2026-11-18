@@ -871,46 +871,22 @@ def test_unique_by_run_ends_declines_with_na(values):
     assert arr._unique_by_run_ends() is None
 
 
-def test_unique_by_run_ends_declines_without_comparison_kernel():
-    # GH#66498 the type can be run-end encoded but not compared
-    arr = ArrowExtensionArray(
-        pa.chunked_array(
-            [pa.array([(1, 1, 1), (2, 2, 2)], type=pa.month_day_nano_interval())]
-        )
-    )
-    encoded = pa.compute.run_end_encode(arr._pa_array.combine_chunks()).values
-    msg = "Function 'less' has no kernel matching input types"
-    with pytest.raises(pa.ArrowNotImplementedError, match=msg):
-        pa.compute.less(encoded[:-1], encoded[1:])
+@pytest.mark.parametrize(
+    "func, error",
+    [
+        ("less", pa.ArrowNotImplementedError),
+        ("run_end_encode", pa.ArrowNotImplementedError),
+        ("run_end_encode", pa.ArrowInvalid),
+    ],
+    ids=["no_comparison_kernel", "no_run_end_kernel", "run_end_overflow"],
+)
+def test_unique_by_run_ends_declines_when_kernel_raises(monkeypatch, func, error):
+    # GH#66498 simulated, as kernel coverage varies across pyarrow versions
+    def raises(*args, **kwargs):
+        raise error(func)
 
-    assert arr._unique_by_run_ends() is None
-
-
-def test_unique_by_run_ends_declines_without_kernel():
-    # GH#66498 dictionary has no run-end kernel
-    dtype = pa.dictionary(pa.int32(), pa.string())
-    arr = ArrowExtensionArray(
-        pa.chunked_array([pa.array(["a", "a", "b", "c"], type=dtype)])
-    )
-    msg = "Function 'run_end_encode' has no kernel matching input types"
-    with pytest.raises(pa.ArrowNotImplementedError, match=msg):
-        pa.compute.run_end_encode(arr._pa_array.combine_chunks())
-
-    assert arr._unique_by_run_ends() is None
-
-
-def test_unique_by_run_ends_declines_when_run_ends_overflow(monkeypatch):
-    # GH#66498 force a run end overflow with a narrow run end type
-    narrow = pa.compute.RunEndEncodeOptions(run_end_type=pa.int16())
-    encode = pa.compute.run_end_encode
-    monkeypatch.setattr(
-        pa.compute, "run_end_encode", lambda arr: encode(arr, options=narrow)
-    )
-    arr = ArrowExtensionArray(
-        pa.chunked_array([pa.array(np.arange(2**15 + 1), type=pa.int64())])
-    )
-    with pytest.raises(pa.ArrowInvalid, match="run end type"):
-        pa.compute.run_end_encode(arr._pa_array.combine_chunks())
+    monkeypatch.setattr(pa.compute, func, raises)
+    arr = pd.array([1, 1, 2], dtype="int64[pyarrow]")
 
     assert arr._unique_by_run_ends() is None
 

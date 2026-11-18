@@ -113,7 +113,7 @@ class IntersectionDedup:
         index = Index(values, dtype=dtype)
 
         if scenario == "chunked":
-            # mostly measures take() across chunks, not the dedup
+            # mostly measures combining the chunks, not the dedup
             parts = [Index(p, dtype=dtype) for p in np.array_split(values, 100)]
             self.left, self.right = parts[0].append(parts[1:]), index[:-1]
         elif scenario == "partial_overlap":

@@ -2796,20 +2796,24 @@ class ArrowExtensionArray(
         -------
         ArrowExtensionArray or None
         """
+
+        def strictly_increasing(arr: pa.Array) -> bool:
+            return pc.all(pc.less(arr[:-1], arr[1:])).as_py() is True
+
         pa_array = self._pa_array
         try:
-            combined = (
+            values = (
                 pa_array.chunk(0)
                 if pa_array.num_chunks == 1
                 else pa_array.combine_chunks()
             )
-            values = pc.run_end_encode(combined).values
-            if len(values) > 1 and (
-                # pc.all skips nulls, which could hide duplicates around them
-                values.null_count
-                or pc.all(pc.less(values[:-1], values[1:])).as_py() is not True
-            ):
-                return None
+            # pc.all skips nulls, which could hide duplicates around them
+            has_null = values.null_count > 0
+            # strictly increasing values are already unique
+            if has_null or not strictly_increasing(values):
+                values = pc.run_end_encode(values).values
+                if len(values) > 1 and (has_null or not strictly_increasing(values)):
+                    return None
         except (pa.ArrowNotImplementedError, pa.ArrowInvalid):
             # no kernel for this type, or offset / run end overflow
             return None

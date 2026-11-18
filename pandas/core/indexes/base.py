@@ -3529,10 +3529,16 @@ class Index(IndexOpsMixin, PandasObject):
                 pass
             else:
                 res: ArrayLike
-                if isinstance(self._values, ArrowExtensionArray):
-                    # merge output is sorted, so duplicates are adjacent. Take
-                    # from self: the join target is lossy for time64[ns]
-                    taken = self._values.take(indexer)
+                values = self._values
+                if isinstance(values, ArrowExtensionArray) and isinstance(
+                    res_indexer, ArrowExtensionArray
+                ):
+                    # merge output is sorted, so duplicates are adjacent
+                    if is_numeric_dtype(self.dtype):
+                        taken = res_indexer
+                    else:
+                        # the join target is lossy for time64[ns]
+                        taken = values.take(indexer)
                     fast = taken._unique_by_run_ends()
                     res = taken.unique() if fast is None else fast
                 # TODO: algos.unique1d should preserve DTA/TDA
