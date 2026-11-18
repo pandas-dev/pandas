@@ -2781,6 +2781,44 @@ class ArrowExtensionArray(
         pa_result = pc.unique(self._pa_array)
         return self._from_pyarrow_array(pa_result)
 
+    def _unique_by_run_ends(self) -> Self | None:
+        """
+        Compute the unique values by collapsing runs of equal adjacent values.
+
+        Faster than :meth:`unique` (no hash table), but only correct when
+        equal values are adjacent, e.g. for sorted input.
+
+        Returns None, so callers fall back to :meth:`unique`, if Arrow lacks a
+        kernel for the type, the values are too large, or the runs are not
+        strictly increasing (unsorted input, NA, or mixed -0.0 and 0.0).
+
+        Returns
+        -------
+        ArrowExtensionArray or None
+        """
+
+        def strictly_increasing(arr: pa.Array) -> bool:
+            return pc.all(pc.less(arr[:-1], arr[1:])).as_py() is True
+
+        pa_array = self._pa_array
+        try:
+            values = (
+                pa_array.chunk(0)
+                if pa_array.num_chunks == 1
+                else pa_array.combine_chunks()
+            )
+            # pc.all skips nulls, which could hide duplicates around them
+            has_null = values.null_count > 0
+            # strictly increasing values are already unique
+            if has_null or not strictly_increasing(values):
+                values = pc.run_end_encode(values).values
+                if len(values) > 1 and (has_null or not strictly_increasing(values)):
+                    return None
+        except (pa.ArrowNotImplementedError, pa.ArrowInvalid):
+            # no kernel for this type, or offset / run end overflow
+            return None
+        return self._from_pyarrow_array(values)
+
     def value_counts(self, dropna: bool = True) -> Series:
         """
         Return a Series containing counts of each unique value.

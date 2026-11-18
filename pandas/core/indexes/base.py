@@ -3528,8 +3528,21 @@ class Index(IndexOpsMixin, PandasObject):
                 # non-comparable; should only be for object dtype
                 pass
             else:
+                res: ArrayLike
+                values = self._values
+                if isinstance(values, ArrowExtensionArray) and isinstance(
+                    res_indexer, ArrowExtensionArray
+                ):
+                    # merge output is sorted, so duplicates are adjacent
+                    if is_numeric_dtype(self.dtype):
+                        taken = res_indexer
+                    else:
+                        # the join target is lossy for time64[ns]
+                        taken = values.take(indexer)
+                    fast = taken._unique_by_run_ends()
+                    res = taken.unique() if fast is None else fast
                 # TODO: algos.unique1d should preserve DTA/TDA
-                if is_numeric_dtype(self.dtype):
+                elif is_numeric_dtype(self.dtype):
                     # This is faster, because Index.unique() checks for uniqueness
                     # before calculating the unique values.
                     res = algos.unique1d(res_indexer)
