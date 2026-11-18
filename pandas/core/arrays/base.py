@@ -3007,7 +3007,13 @@ class ExtensionArray:
         fill_value = np.nan
 
         res_values = quantile_with_mask(arr, mask, fill_value, qs, interpolation)
-        return type(self)._from_sequence(res_values)
+        try:
+            return type(self)._from_sequence(res_values)
+        except (TypeError, ValueError):
+            if not isna(res_values).all():
+                raise
+            # No non-NA results to infer a dtype from; use self.dtype's NA, GH#45968
+            return self.take(np.full(len(qs), -1), allow_fill=True)
 
     def _mode(self, dropna: bool = True) -> Self:
         """
