@@ -887,6 +887,7 @@ class TestDataFrameShift:
             index=[values[2], values[1], values[3]],
         )
         tm.assert_frame_equal(result, expected)
+
     def test_shift_empty_multiple_periods(self):
         # GH#71507
         df = pd.DataFrame(
