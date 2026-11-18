@@ -4,8 +4,6 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
-from pandas.compat._optional import import_optional_dependency
-
 from pandas.core.arrays.boolean import BooleanDtype
 from pandas.core.arrays.floating import (
     Float32Dtype,
@@ -30,7 +28,8 @@ if TYPE_CHECKING:
 
 
 def _arrow_dtype_mapping() -> dict[pyarrow.DataType, BaseMaskedDtype | StringDtype]:
-    pa = import_optional_dependency("pyarrow")
+    import pyarrow as pa
+
     return {
         pa.int8(): Int8Dtype(),
         pa.int16(): Int16Dtype(),
