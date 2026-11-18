@@ -959,7 +959,7 @@ NVDA,20230301181139587,2023552585717889827,2023552585717263361"""
     [{"a": "category"}, {"a": "str"}, {"c": "float64"}, {"not_a_column": "int64"}],
 )
 def test_dict_dtype_unlisted_integer_column_with_na(all_parsers, dtype):
-    # an integer column that the dict dtype does not mention is read as if no
+    # GH#72219 an integer column that the dict dtype does not mention is read as if no
     #  dtype was given: float64 when it has missing values, int64 otherwise
     parser = all_parsers
     data = "a,b,c\nx,1,3\ny,,4"
