@@ -29,6 +29,7 @@ from pandas.core.dtypes.dtypes import BaseMaskedDtype
 from pandas.core.dtypes.missing import isna
 
 import pandas as pd
+from pandas.core.arrays.arrow.util import _arrow_dtype_mapping
 
 if TYPE_CHECKING:
     from collections.abc import (
@@ -69,26 +70,6 @@ def suppress_pyarrow_values_warning() -> Generator[None]:
             Pandas4Warning,
         )
         yield
-
-
-def _arrow_dtype_mapping() -> dict[pyarrow.DataType, Any]:
-    pa = import_optional_dependency("pyarrow")
-    return {
-        pa.int8(): pd.Int8Dtype(),
-        pa.int16(): pd.Int16Dtype(),
-        pa.int32(): pd.Int32Dtype(),
-        pa.int64(): pd.Int64Dtype(),
-        pa.uint8(): pd.UInt8Dtype(),
-        pa.uint16(): pd.UInt16Dtype(),
-        pa.uint32(): pd.UInt32Dtype(),
-        pa.uint64(): pd.UInt64Dtype(),
-        pa.bool_(): pd.BooleanDtype(),
-        pa.string(): pd.StringDtype(),
-        pa.float32(): pd.Float32Dtype(),
-        pa.float64(): pd.Float64Dtype(),
-        pa.string(): pd.StringDtype(),
-        pa.large_string(): pd.StringDtype(),
-    }
 
 
 def _arrow_string_types_mapper() -> Callable[[pyarrow.DataType], ExtensionDtype | None]:

@@ -73,6 +73,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.dtypes import (
     ArrowDtype,
+    BaseMaskedDtype,
     CategoricalDtype,
     DatetimeTZDtype,
 )
@@ -95,6 +96,7 @@ from pandas.core.array_algos.quantile import quantile_with_mask
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays._arrow_string_mixins import ArrowStringArrayMixin
 from pandas.core.arrays._utils import to_numpy_dtype_inference
+from pandas.core.arrays.arrow.util import _arrow_dtype_mapping
 from pandas.core.arrays.base import (
     ExtensionArray,
     ExtensionArrayNaResult,
@@ -112,7 +114,6 @@ from pandas.core.indexers import (
 from pandas.core.nanops import check_below_min_count
 from pandas.core.sorting import get_group_index_sorter
 
-from pandas.io._util import _arrow_dtype_mapping
 from pandas.tseries.frequencies import to_offset
 
 if HAS_PYARROW:
@@ -3942,6 +3943,7 @@ class ArrowExtensionArray(
             raise NotImplementedError
 
         dtype = _arrow_dtype_mapping()[pa_dtype]
+        assert isinstance(dtype, BaseMaskedDtype)
         mask = self.isna()
         arr = self.to_numpy(dtype=dtype.numpy_dtype, na_value=na_value)
         return dtype.construct_array_type()(arr, mask)
