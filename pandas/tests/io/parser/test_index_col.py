@@ -360,9 +360,9 @@ def test_specify_dtype_for_index_col(all_parsers, dtype, val):
 
 @pytest.mark.parametrize("index_col", ["a", 0, ["a", "b"], [0, "b"]])
 @pytest.mark.parametrize("index_dtype", [None, "int32[pyarrow]"])
-def test_dtype_dict_omits_index_col(pyarrow_parser_only, index_col, index_dtype):
+def test_dtype_dict_omits_index_col(all_parsers, index_col, index_dtype):
     # GH#68041
-    parser = pyarrow_parser_only
+    parser = all_parsers
     data = "a,b,c\n1,2,3\n4,5,6\n"
     dtype = {"c": "int32[pyarrow]"}
     if index_dtype is not None:
