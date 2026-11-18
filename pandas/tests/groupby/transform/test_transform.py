@@ -1305,6 +1305,22 @@ def test_transform_udf_reduction_keeps_column_dtypes(keys, expected_values):
     tm.assert_frame_equal(result, expected)
 
 
+def test_transform_udf_reduction_keeps_dtypes_beside_string_column():
+    # GH#41584 the string column must not make the other columns object
+    df = pd.DataFrame(
+        {
+            "x": list("abcd"),
+            "i": [5, 6, 7, 8],
+            "f": [5.5, 6.5, 7.5, 8.5],
+            "b": [True, False, True, False],
+            "g": [1, 2, 3, 3],
+        }
+    )
+    result = df.groupby("g").transform(lambda x: x.iloc[0])
+    expected = df.drop(columns="g").iloc[[0, 1, 2, 2]].reset_index(drop=True)
+    tm.assert_frame_equal(result, expected)
+
+
 def test_transform_udf_scalar_extension_dtype_column():
     # GH#42617 only a later group's results have mixed dtypes
     df = pd.DataFrame(
