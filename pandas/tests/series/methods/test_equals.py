@@ -1,4 +1,5 @@
 import copy
+import pickle
 
 import numpy as np
 import pytest
@@ -127,3 +128,13 @@ def test_equals_None_vs_float():
     assert not right.to_frame().equals(left.to_frame())
     assert not pd.Index(left, dtype="object").equals(pd.Index(right, dtype="object"))
     assert not pd.Index(right, dtype="object").equals(pd.Index(left, dtype="object"))
+
+
+def test_equals_tuple_with_nan_pickle_roundtrip():
+    # GH#45945 unpickling creates new NaN objects inside the tuple
+    ser = pd.Series([(0, 1), (np.nan, np.nan)])
+    result = pickle.loads(pickle.dumps(ser))
+
+    assert result.equals(ser)
+    assert result.to_frame().equals(ser.to_frame())
+    assert pd.Index(result, dtype=object).equals(pd.Index(ser, dtype=object))
