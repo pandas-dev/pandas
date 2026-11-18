@@ -1,3 +1,4 @@
+import inspect
 from textwrap import dedent
 
 import numpy as np
@@ -788,3 +789,59 @@ def test_groupby_resample_agg_dict_as_index_false():
     result = gb.agg({"b": "min"})
     expected = gb.min()
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("level", ["t", 1])
+def test_groupby_resample_level(level):
+    # GH#54961
+    mi = pd.MultiIndex.from_arrays(
+        [[0, 0, 1, 1], pd.to_datetime(["2000-01-01 00:00", "2000-01-01 00:02"] * 2)],
+        names=["g", "t"],
+    )
+    df = pd.DataFrame({"v": [1.0, 2.0, 3.0, 4.0]}, index=mi)
+    result = df.groupby("g").resample("2min", level=level).sum()
+    expected = df.reset_index("t").groupby("g").resample("2min", on="t").sum()
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"how": "max"},
+        {"fill_method": "ffill"},
+        {"limit": 1},
+        {"sort": True},
+        {"dropna": False},
+    ],
+)
+def test_groupby_resample_extra_kwargs_deprecated(kwargs):
+    # GH#54961
+    df = pd.DataFrame(
+        {"g": [0, 0, 1, 1], "v": [1.0, 2.0, 3.0, 4.0]},
+        index=date_range("2000-01-01", periods=4, freq="2min"),
+    )
+    gb = df.groupby("g")
+    msg = "Passing additional keyword arguments .* to DataFrameGroupBy.resample"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = gb.resample("1min", **kwargs).ffill()
+    expected = gb.resample("1min").ffill()
+    tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_resample_invalid_kwarg_raises_without_warning():
+    # GH#54961
+    df = pd.DataFrame(
+        {"g": [0, 1], "v": [1.0, 2.0]},
+        index=date_range("2000-01-01", periods=2, freq="min"),
+    )
+    with tm.assert_produces_warning(None):
+        with pytest.raises(TypeError, match="unexpected keyword argument 'bogus'"):
+            df.groupby("g").resample("1min", bogus=1)
+
+
+def test_groupby_resample_signature_matches_resample():
+    # GH#54961
+    groupby_params = inspect.signature(pd.core.groupby.GroupBy.resample).parameters
+    assert set(inspect.signature(pd.DataFrame.resample).parameters) <= set(
+        groupby_params
+    )

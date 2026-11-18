@@ -3604,6 +3604,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         offset: TimedeltaConvertibleTypes | None = None,
         group_keys: bool = False,
         *,
+        level: Level | None = None,
         include_groups: bool = False,
         **kwargs,
     ) -> Resampler:
@@ -3637,6 +3638,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         group_keys : bool, default False
             Whether to include the group keys in the result index when using
             ``.apply()`` on the resampled object.
+        level : str or int, optional
+            For a MultiIndex, level (name or number) to use for
+            resampling. Level must be datetime-like.
         include_groups : bool, default False
             When True, will attempt to include the groupings in the operation in
             the case that they are columns of the DataFrame. If this raises a
@@ -3650,8 +3654,12 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                The default was changed to False, and True is no longer allowed.
 
         **kwargs
-            Additional keyword arguments forwarded to the underlying
-            :class:`Grouper`.
+            Additional keyword arguments.
+
+            .. deprecated:: 3.2.0
+
+               Passing additional keyword arguments is deprecated and will
+               raise in a future version.
 
         Returns
         -------
@@ -3737,10 +3745,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         if include_groups:
             raise ValueError("include_groups=True is no longer allowed.")
 
-        return get_resampler_for_grouping(
+        result = get_resampler_for_grouping(
             self,
             rule,
             on=on,
+            level=level,
             closed=closed,
             label=label,
             convention=convention,
@@ -3749,6 +3758,16 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             group_keys=group_keys,
             **kwargs,
         )
+        if kwargs:
+            # GH#54961; warn after construction so keywords it rejects don't warn
+            warnings.warn(
+                f"Passing additional keyword arguments {sorted(kwargs)} to "
+                f"{type(self).__name__}.resample is deprecated and will raise "
+                "in a future version.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+        return result
 
     @final
     def rolling(
