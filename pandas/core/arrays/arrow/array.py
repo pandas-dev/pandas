@@ -73,6 +73,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.dtypes import (
     ArrowDtype,
+    BaseMaskedDtype,
     CategoricalDtype,
     DatetimeTZDtype,
 )
@@ -3904,6 +3905,7 @@ class ArrowExtensionArray(
             raise NotImplementedError
 
         dtype = _arrow_dtype_mapping()[pa_dtype]
+        assert isinstance(dtype, BaseMaskedDtype)
         mask = self.isna()
         arr = self.to_numpy(dtype=dtype.numpy_dtype, na_value=na_value)
         return dtype.construct_array_type()(arr, mask)

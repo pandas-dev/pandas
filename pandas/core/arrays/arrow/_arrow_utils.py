@@ -1,9 +1,6 @@
 from __future__ import annotations
 
-from typing import (
-    TYPE_CHECKING,
-    Any,
-)
+from typing import TYPE_CHECKING
 
 import numpy as np
 
@@ -29,8 +26,10 @@ from pandas.core.arrays.string_ import StringDtype
 if TYPE_CHECKING:
     import pyarrow
 
+    from pandas.core.dtypes.dtypes import BaseMaskedDtype
 
-def _arrow_dtype_mapping() -> dict[pyarrow.DataType, Any]:
+
+def _arrow_dtype_mapping() -> dict[pyarrow.DataType, BaseMaskedDtype | StringDtype]:
     pa = import_optional_dependency("pyarrow")
     return {
         pa.int8(): Int8Dtype(),
