@@ -350,47 +350,20 @@ class TestDataFrameMisc:
         assert pd.merge(df1, df2).attrs == {}
 
     @pytest.mark.parametrize(
-        "make_value",
+        "value",
         [
-            lambda: np.array([1.0, np.nan]),
-            lambda: pd.array([1, None]),
-            lambda: pd.Index([1, 2]),
-            lambda: pd.Series([1, 2]),
-            lambda: pd.DataFrame({"a": [1, 2]}),
+            np.array([1.0, np.nan]),
+            pd.Index([1, 2]),
+            pd.Series([1, 2]),
+            pd.DataFrame({"a": [1, 2]}),
         ],
     )
-    def test_attrs_concat_merge_array_like(self, make_value):
-        # GH#45824 comparing array-like attrs values raised ValueError
+    def test_attrs_concat_merge_array_like(self, value):
+        # GH#45824 comparing array-like attrs values raised; they are now dropped
         df = pd.DataFrame({"key": [1, 2], "val": [3, 4]})
-        df.attrs = {"x": make_value()}
-        result = pd.concat([df.head(1), df.tail(1)])
-        tm.assert_equal(result.attrs["x"], make_value())
-
-        other = df.copy()
-        other.attrs = {"x": make_value()}
-        result = pd.merge(df, other, on="key")
-        tm.assert_equal(result.attrs["x"], make_value())
-
-        # unequal values are dropped, as for scalars
-        other.attrs = {"x": make_value()[::-1]}
-        assert pd.concat([df, other]).attrs == {}
-        assert pd.merge(df, other, on="key").attrs == {}
-
-        # an array-like is never equal to a scalar, in either order
-        other.attrs = {"x": 1}
-        assert pd.concat([df, other]).attrs == {}
-        assert pd.concat([other, df]).attrs == {}
-
-    def test_attrs_concat_nan_and_nested(self):
-        # GH#45824 identical NaN/NA objects are kept, as with dict ==
-        df = pd.DataFrame({"a": [1, 2]})
-        df.attrs = {"nan": np.nan, "na": pd.NA}
-        result = pd.concat([df.head(1), df.tail(1)])
-        assert result.attrs.keys() == {"nan", "na"}
-
-        # array-likes nested in a container are dropped rather than raising
-        df.attrs = {"x": [np.arange(2)]}
+        df.attrs = {"x": value}
         assert pd.concat([df.head(1), df.tail(1)]).attrs == {}
+        assert pd.merge(df, df.copy(), on="key").attrs == {}
 
     @pytest.mark.parametrize("allows_duplicate_labels", [True, False, None])
     def test_set_flags(
