@@ -447,6 +447,7 @@ Plotting
 - Bug in :meth:`DataFrame.plot` and :meth:`Series.plot` ignoring the ``axes.grid.axis`` and ``axes.grid.which`` rcParams, e.g. from a style file, and drawing major gridlines on both axes (:issue:`17725`)
 - Bug in :meth:`DataFrame.plot` and :meth:`Series.plot` raising ``ValueError`` when plotting a single series or column with ``color`` as a tuple of three or four colors, instead of treating it like the equivalent list (:issue:`18449`)
 - Bug in :meth:`DataFrame.plot` and :meth:`Series.plot` redrawing time series that were removed with ``ax.clear()`` or ``line.remove()`` when a higher-frequency time series is later plotted on the same axes (:issue:`54485`)
+- Bug in :meth:`DataFrame.plot` and :meth:`Series.plot` with ``ax`` in a figure of shared axes hiding tick labels on the figure's other axes, undoing e.g. ``ax.tick_params(labelright=True)``; only the axes being plotted on are changed (:issue:`27052`)
 - Bug in :meth:`DataFrame.plot` and :meth:`Series.plot` with ``kind="bar"`` or ``kind="barh"`` raising ``TypeError`` on ``timedelta64`` data containing ``NaT`` (:issue:`39320`)
 - Bug in :meth:`DataFrame.plot` and :meth:`Series.plot` with ``style`` as a tuple, ``np.ndarray`` or :class:`Series` plotting the styles as data instead of applying them like the equivalent list (:issue:`46289`)
 - Bug in :meth:`DataFrame.plot` and :meth:`Series.plot` with a :class:`TimedeltaIndex` that has no regular frequency, or with ``x_compat=True``, plotting the points evenly spaced and leaving most x-axis ticks unlabeled (:issue:`19965`)
