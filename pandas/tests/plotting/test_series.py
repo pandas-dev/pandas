@@ -262,6 +262,17 @@ class TestSeriesPlots:
         ax = _check_plot_works(d.plot.area, stacked=False)
         tm.assert_numpy_array_equal(ax.lines[0].get_ydata(), expected)
 
+    @pytest.mark.parametrize("stacked", [True, False])
+    def test_area_timedelta(self, stacked):
+        # GH#52246
+        s = pd.Series(pd.timedelta_range("0h", periods=4, freq="h"))
+        s.iloc[2] = pd.NaT
+        ax = _check_plot_works(s.plot.area, stacked=stacked)
+        expected = s.fillna(pd.Timedelta(0)).astype(np.int64).to_numpy()
+        tm.assert_numpy_array_equal(
+            ax.lines[0].get_ydata(), expected, check_dtype=False
+        )
+
     def test_line_use_index_false(self):
         s = pd.Series([1, 2, 3], index=["a", "b", "c"])
         s.index.name = "The Index"

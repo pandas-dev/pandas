@@ -74,6 +74,7 @@ from pandas.core.construction import (
     array as pd_array,
     ensure_wrapped_if_datetimelike,
     extract_array,
+    validate_native_byteorder,
 )
 from pandas.core.indexers import validate_indices
 
@@ -134,6 +135,12 @@ def _ensure_data(values: ArrayLike) -> np.ndarray:
     if not isinstance(values, ABCMultiIndex):
         # extract_array would raise
         values = extract_array(values, extract_numpy=True)
+
+    if isinstance(values, np.ndarray) and not (
+        values.dtype.kind == "f" and values.dtype.itemsize in [2, 12, 16]
+    ):
+        # the float branch below converts these sizes to native float64
+        validate_native_byteorder(values)
 
     if is_object_dtype(values.dtype):
         return ensure_object(np.asarray(values))
@@ -1154,11 +1161,13 @@ def value_counts_arraylike(
     -------
     uniques : np.ndarray
     counts : np.ndarray[np.int64]
+    na_pos : int
+        Position of the masked NA entry in uniques, -1 if there is none.
     """
     original = values
     values = _ensure_data(values)
 
-    keys, counts, na_counter = htable.value_count(values, dropna, mask=mask)
+    keys, counts, na_pos = htable.value_count(values, dropna, mask=mask)
 
     if needs_i8_conversion(original.dtype):
         # datetime, timedelta, or period
@@ -1168,7 +1177,7 @@ def value_counts_arraylike(
             keys, counts = keys[mask], counts[mask]
 
     res_keys = _reconstruct_data(keys, original.dtype, original)
-    return res_keys, counts, na_counter
+    return res_keys, counts, na_pos
 
 
 def duplicated(

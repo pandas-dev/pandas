@@ -96,6 +96,7 @@ if TYPE_CHECKING:
 
     from pandas._typing import (
         ArrayLike,
+        DtypeBackend,
         DtypeObj,
         Manager,
         npt,
@@ -1094,7 +1095,7 @@ def _validate_or_indexify_columns(
 def convert_object_array(
     content: list[npt.NDArray[np.object_]],
     dtype: DtypeObj | None,
-    dtype_backend: str = "numpy",
+    dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
     coerce_float: bool = False,
 ) -> list[ArrayLike]:
     """
@@ -1117,7 +1118,9 @@ def convert_object_array(
         if dtype != np.dtype("O"):
             # e.g. if dtype is UInt32 then we want to cast Nones to NA instead of
             #  NaN in maybe_convert_objects.
-            to_nullable = dtype_backend != "numpy" or isinstance(dtype, BaseMaskedDtype)
+            to_nullable = dtype_backend is not lib.no_default or isinstance(
+                dtype, BaseMaskedDtype
+            )
             arr = lib.maybe_convert_objects(
                 arr,
                 try_float=coerce_float,
@@ -1133,7 +1136,7 @@ def convert_object_array(
             if dtype is None:
                 if arr.dtype == np.dtype("O"):
                     # i.e. maybe_convert_objects didn't convert
-                    convert_to_nullable_dtype = dtype_backend != "numpy"
+                    convert_to_nullable_dtype = dtype_backend is not lib.no_default
                     arr = lib.maybe_convert_objects(
                         arr,
                         # Here we do not convert numeric dtypes, as if we wanted that,
@@ -1147,7 +1150,9 @@ def convert_object_array(
                         new_dtype = StringDtype()
                         arr_cls = new_dtype.construct_array_type()
                         arr = arr_cls._from_sequence(arr, dtype=new_dtype)
-                elif dtype_backend != "numpy" and isinstance(arr, np.ndarray):
+                elif dtype_backend is not lib.no_default and isinstance(
+                    arr, np.ndarray
+                ):
                     if arr.dtype.kind in "iufb":
                         arr = pd_array(arr, copy=False)
 

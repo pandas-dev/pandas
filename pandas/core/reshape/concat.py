@@ -264,7 +264,7 @@ def concat(
 
     A walkthrough of how this method fits in with other tools for combining
     pandas objects can be found `here
-    <https://pandas.pydata.org/pandas-docs/stable/user_guide/merging.html>`__.
+    <https://pandas.pydata.org/docs/user_guide/merging.html>`__.
 
     It is not recommended to build DataFrames by adding single rows in a
     for loop. Build a list of rows and make a DataFrame in a single concat.
