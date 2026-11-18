@@ -106,6 +106,23 @@ static int apply_tzinfo_offset(PyObject *obj, npy_datetimestruct *out) {
   return 0;
 }
 
+/*
+ * Store obj.attr as a C long in *out. Returns -1 with an exception set on
+ * error, 0 on success.
+ */
+static int get_long_attr(PyObject *obj, const char *attr, long *out) {
+  PyObject *tmp = PyObject_GetAttrString(obj, attr);
+  if (tmp == NULL) {
+    return -1;
+  }
+  *out = PyLong_AsLong(tmp);
+  Py_DECREF(tmp);
+  if (*out == -1 && PyErr_Occurred()) {
+    return -1;
+  }
+  return 0;
+}
+
 static int convert_pydatetime_to_datetimestruct(PyObject *dtobj,
                                                 npy_datetimestruct *out) {
   // Assumes that obj is a valid datetime object
@@ -148,25 +165,17 @@ static int convert_pydatetime_to_datetimestruct(PyObject *dtobj,
   }
 
   /* Slow path: fall back to generic attribute lookups for duck-typed objects */
-  PyObject *tmp;
+  long value;
 
-  tmp = PyObject_GetAttrString(obj, "year");
-  if (tmp == NULL)
+  if (get_long_attr(obj, "year", &value) == -1)
     return -1;
-  out->year = PyLong_AsLong(tmp);
-  Py_DECREF(tmp);
-
-  tmp = PyObject_GetAttrString(obj, "month");
-  if (tmp == NULL)
+  out->year = value;
+  if (get_long_attr(obj, "month", &value) == -1)
     return -1;
-  out->month = PyLong_AsLong(tmp);
-  Py_DECREF(tmp);
-
-  tmp = PyObject_GetAttrString(obj, "day");
-  if (tmp == NULL)
+  out->month = value;
+  if (get_long_attr(obj, "day", &value) == -1)
     return -1;
-  out->day = PyLong_AsLong(tmp);
-  Py_DECREF(tmp);
+  out->day = value;
 
   /* Check for time attributes (if not there, return success as a date) */
   if (!PyObject_HasAttrString(obj, "hour") ||
@@ -176,37 +185,24 @@ static int convert_pydatetime_to_datetimestruct(PyObject *dtobj,
     return 0;
   }
 
-  tmp = PyObject_GetAttrString(obj, "hour");
-  if (tmp == NULL)
+  if (get_long_attr(obj, "hour", &value) == -1)
     return -1;
-  out->hour = PyLong_AsLong(tmp);
-  Py_DECREF(tmp);
-
-  tmp = PyObject_GetAttrString(obj, "minute");
-  if (tmp == NULL)
+  out->hour = value;
+  if (get_long_attr(obj, "minute", &value) == -1)
     return -1;
-  out->min = PyLong_AsLong(tmp);
-  Py_DECREF(tmp);
-
-  tmp = PyObject_GetAttrString(obj, "second");
-  if (tmp == NULL)
+  out->min = value;
+  if (get_long_attr(obj, "second", &value) == -1)
     return -1;
-  out->sec = PyLong_AsLong(tmp);
-  Py_DECREF(tmp);
-
-  tmp = PyObject_GetAttrString(obj, "microsecond");
-  if (tmp == NULL)
+  out->sec = value;
+  if (get_long_attr(obj, "microsecond", &value) == -1)
     return -1;
-  out->us = PyLong_AsLong(tmp);
-  Py_DECREF(tmp);
+  out->us = value;
 
   // pd.Timestamp carries sub-microsecond precision, GH#53473
   if (PyObject_HasAttrString(obj, "nanosecond")) {
-    tmp = PyObject_GetAttrString(obj, "nanosecond");
-    if (tmp == NULL)
+    if (get_long_attr(obj, "nanosecond", &value) == -1)
       return -1;
-    out->ps = PyLong_AsLong(tmp) * 1000;
-    Py_DECREF(tmp);
+    out->ps = value * 1000;
   }
 
   if (PyObject_HasAttrString(obj, "tzinfo")) {
@@ -236,6 +232,10 @@ static char *PyDateTimeToIso(PyObject *obj, NPY_DATETIMEUNIT base,
 
   *len = (size_t)get_datetime_iso_8601_strlen(0, base);
   char *result = PyObject_Malloc(*len);
+  if (result == NULL) {
+    PyErr_NoMemory();
+    return NULL;
+  }
   // Check to see if PyDateTime has a timezone.
   // Don't convert to UTC if it doesn't.
   int is_tz_aware = 0;

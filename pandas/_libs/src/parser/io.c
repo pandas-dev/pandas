@@ -60,28 +60,19 @@ char *buffer_rd_bytes(void *source, size_t nbytes, size_t *bytes_read,
   /* delete old object */
   Py_XDECREF(src->buffer);
   src->buffer = NULL;
-  PyObject *args = Py_BuildValue("(i)", nbytes);
+  PyObject *result =
+      PyObject_CallMethod(src->obj, "read", "n", (Py_ssize_t)nbytes);
 
-  PyObject *func = PyObject_GetAttrString(src->obj, "read");
-
-  /* Note: PyObject_CallObject requires the GIL */
-  PyObject *result = PyObject_CallObject(func, args);
-  Py_XDECREF(args);
-  Py_XDECREF(func);
-
+  if (result != NULL && !PyBytes_Check(result)) {
+    PyObject *tmp = PyUnicode_AsEncodedString(result, "utf-8", encoding_errors);
+    Py_DECREF(result);
+    result = tmp;
+  }
   if (result == NULL) {
     PyGILState_Release(state);
     *bytes_read = 0;
     *status = CALLING_READ_FAILED;
     return NULL;
-  } else if (!PyBytes_Check(result)) {
-    PyObject *tmp = PyUnicode_AsEncodedString(result, "utf-8", encoding_errors);
-    Py_DECREF(result);
-    if (tmp == NULL) {
-      PyGILState_Release(state);
-      return NULL;
-    }
-    result = tmp;
   }
 
   const size_t length = PyBytes_GET_SIZE(result);
