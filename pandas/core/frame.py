@@ -996,32 +996,14 @@ class DataFrame(NDFrame, OpsMixin):
             return f"<pre>{val}</pre>"
 
         if config["display"]["notebook_repr_html"]:
-            max_rows = config["display"]["max_rows"]
-            min_rows = config["display"]["min_rows"]
-            max_cols = config["display"]["max_columns"]
-            show_dimensions = config["display"]["show_dimensions"]
-            show_floats = config["display"]["float_format"]
-
-            formatter = fmt.DataFrameFormatter(
-                self,
-                columns=None,
-                col_space=None,
-                formatters=None,
-                float_format=show_floats,
-                sparsify=None,
-                justify=None,
-                index_names=True,
-                header=True,
-                index=True,
-                bold_rows=True,
-                escape=True,
-                max_rows=max_rows,
-                min_rows=min_rows,
-                max_cols=max_cols,
-                show_dimensions=show_dimensions,
-                decimal=".",
+            # go through to_html so subclass overrides apply here too, GH#30727
+            return self.to_html(
+                max_rows=config["display"]["max_rows"],
+                min_rows=config["display"]["min_rows"],
+                max_cols=config["display"]["max_columns"],
+                show_dimensions=config["display"]["show_dimensions"],
+                notebook=True,
             )
-            return fmt.DataFrameRenderer(formatter).to_html(notebook=True)
         else:
             return None
 
@@ -3177,6 +3159,7 @@ class DataFrame(NDFrame, OpsMixin):
         index_names: bool = ...,
         justify: str | None = ...,
         max_rows: int | None = ...,
+        min_rows: int | None = ...,
         max_cols: int | None = ...,
         show_dimensions: bool | str = ...,
         decimal: str = ...,
@@ -3206,6 +3189,7 @@ class DataFrame(NDFrame, OpsMixin):
         index_names: bool = ...,
         justify: str | None = ...,
         max_rows: int | None = ...,
+        min_rows: int | None = ...,
         max_cols: int | None = ...,
         show_dimensions: bool | str = ...,
         decimal: str = ...,
@@ -3234,6 +3218,7 @@ class DataFrame(NDFrame, OpsMixin):
         index_names: bool = True,
         justify: str | None = None,
         max_rows: int | None = None,
+        min_rows: int | None = None,
         max_cols: int | None = None,
         show_dimensions: bool | str = False,
         decimal: str = ".",
@@ -3302,6 +3287,11 @@ class DataFrame(NDFrame, OpsMixin):
             * unset.
         max_rows : int, optional
             Maximum number of rows to display in the console.
+        min_rows : int, optional
+            The number of rows to display in a truncated table (when number
+            of rows is above `max_rows`).
+
+            .. versionadded:: 3.2.0
         max_cols : int, optional
             Maximum number of columns to display in the console.
         show_dimensions : bool, default False
@@ -3429,6 +3419,7 @@ class DataFrame(NDFrame, OpsMixin):
             escape=escape,
             decimal=decimal,
             max_rows=max_rows,
+            min_rows=min_rows,
             max_cols=max_cols,
             show_dimensions=show_dimensions,
         )
