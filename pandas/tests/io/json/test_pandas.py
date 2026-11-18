@@ -373,6 +373,14 @@ class TestPandasContainer:
         with pytest.raises(ValueError, match=msg):
             pd.read_json(StringIO(data), orient=orient)
 
+    def test_frame_from_json_orient_index_scalar_then_list_like_deprecated(self):
+        # GH#31041
+        msg = "list-like value after a scalar value is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = pd.read_json(StringIO('{"a": 1, "b": [1, 2]}'), orient="index")
+        expected = pd.DataFrame({0: [1, [1, 2]]}, index=["a", "b"])
+        tm.assert_frame_equal(result, expected)
+
     @pytest.mark.parametrize("dtype", [True, False])
     @pytest.mark.parametrize("convert_axes", [True, False])
     def test_frame_from_json_missing_data(self, orient, convert_axes, dtype):
