@@ -510,9 +510,8 @@ through the ``str`` accessor will work the same:
    ``pd.Series(["ß"]).str.upper()`` returns ``"ẞ"`` with pyarrow storage but
    ``"SS"`` with python storage (which is also what earlier pandas versions
    return), and similar differences exist for related case-mapping characters
-   such as ``"İ"``. These differences can also change string lengths. The known
-   differences are being tracked in
-   https://github.com/pandas-dev/pandas/issues/63105.
+   such as ``"İ"``. These differences can also change string lengths. See
+   :ref:`text.storage_differences` for the known differences.
 
 .. note::
 

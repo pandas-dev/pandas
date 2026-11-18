@@ -5,7 +5,6 @@ import datetime as dt
 from typing import (
     TYPE_CHECKING,
     Any,
-    Literal,
     cast,
 )
 import warnings
@@ -30,6 +29,7 @@ from pandas.core.dtypes.dtypes import BaseMaskedDtype
 from pandas.core.dtypes.missing import isna
 
 import pandas as pd
+from pandas.core.arrays.arrow.util import _arrow_dtype_mapping
 
 if TYPE_CHECKING:
     from collections.abc import (
@@ -72,26 +72,6 @@ def suppress_pyarrow_values_warning() -> Generator[None]:
         yield
 
 
-def _arrow_dtype_mapping() -> dict[pyarrow.DataType, Any]:
-    pa = import_optional_dependency("pyarrow")
-    return {
-        pa.int8(): pd.Int8Dtype(),
-        pa.int16(): pd.Int16Dtype(),
-        pa.int32(): pd.Int32Dtype(),
-        pa.int64(): pd.Int64Dtype(),
-        pa.uint8(): pd.UInt8Dtype(),
-        pa.uint16(): pd.UInt16Dtype(),
-        pa.uint32(): pd.UInt32Dtype(),
-        pa.uint64(): pd.UInt64Dtype(),
-        pa.bool_(): pd.BooleanDtype(),
-        pa.string(): pd.StringDtype(),
-        pa.float32(): pd.Float32Dtype(),
-        pa.float64(): pd.Float64Dtype(),
-        pa.string(): pd.StringDtype(),
-        pa.large_string(): pd.StringDtype(),
-    }
-
-
 def _arrow_string_types_mapper() -> Callable[[pyarrow.DataType], ExtensionDtype | None]:
     pa = import_optional_dependency("pyarrow")
 
@@ -107,7 +87,7 @@ def _arrow_string_types_mapper() -> Callable[[pyarrow.DataType], ExtensionDtype 
 
 def arrow_table_to_pandas(
     table: pyarrow.Table,
-    dtype_backend: DtypeBackend | Literal["numpy"] | lib.NoDefault = lib.no_default,
+    dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
     null_to_int64: bool = False,
     to_pandas_kwargs: dict[str, Any] | None = None,
     dtype: DtypeArg | None = None,
@@ -143,7 +123,7 @@ def arrow_table_to_pandas(
             }.get
         else:
             types_mapper = None
-    elif dtype_backend is lib.no_default or dtype_backend == "numpy":
+    elif dtype_backend is lib.no_default:
         if dtype is not None:
             # GH#56136 Avoid lossy conversion to float64
             # We'll convert to numpy below if
@@ -166,13 +146,11 @@ def arrow_table_to_pandas(
 
 def _post_convert_dtypes(
     df: pd.DataFrame,
-    dtype_backend: DtypeBackend | Literal["numpy"] | lib.NoDefault,
+    dtype_backend: DtypeBackend | lib.NoDefault,
     dtype: DtypeArg | None,
     names: Sequence[Hashable] | None,
 ) -> pd.DataFrame:
-    if dtype is not None and (
-        dtype_backend is lib.no_default or dtype_backend == "numpy"
-    ):
+    if dtype is not None and dtype_backend is lib.no_default:
         # GH#56136 apply any user-provided dtype, and convert any IntegerDtype
         #  columns the user didn't explicitly ask for.
         if isinstance(dtype, dict):
@@ -254,11 +232,7 @@ def _post_convert_dtypes(
             )
             df.isetitem(i, df.iloc[:, i].astype(new_cat_dtype))
 
-    if (
-        not using_string_dtype()
-        and dtype != "str"
-        and (dtype_backend is lib.no_default or dtype_backend == "numpy")
-    ):
+    if not using_string_dtype() and dtype != "str" and dtype_backend is lib.no_default:
         # Convert any StringDtype columns back to object dtype (pyarrow always
         # uses string dtype even when the infer_string option is False)
         for i in range(len(df.columns)):

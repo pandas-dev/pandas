@@ -70,7 +70,10 @@ from pandas.util._validators import (
 )
 
 from pandas.core.dtypes.astype import astype_is_view
-from pandas.core.dtypes.cast import can_hold_element
+from pandas.core.dtypes.cast import (
+    can_hold_element,
+    maybe_unbox_numpy_scalar,
+)
 from pandas.core.dtypes.common import (
     ensure_object,
     ensure_platform_int,
@@ -2153,7 +2156,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         sheet_name: str = "Sheet1",
         na_rep: str = "",
         float_format: str | None = None,
-        columns: Sequence[Hashable] | None = None,
+        columns: Axes | None = None,
         header: Sequence[Hashable] | bool = True,
         index: bool = True,
         index_label: IndexLabel | None = None,
@@ -2253,6 +2256,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         pandas will check the number of rows, columns,
         and cell character count does not exceed Excel's limitations.
         All other limitations must be checked by the user.
+
+        .. warning::
+
+           Both ``openpyxl`` and ``xlsxwriter`` write strings starting with
+           ``=`` as formulas, which Excel evaluates when the file is opened.
+           Writing untrusted data this way can lead to formula injection, and
+           such strings do not round-trip through :func:`read_excel`.
+           ``xlsxwriter`` writes them as text when
+           ``engine_kwargs={"options": {"strings_to_formulas": False}}`` is
+           passed to :class:`ExcelWriter`, or to ``to_excel`` with a file path,
+           but still writes ``{=...}`` strings as array formulas; ``openpyxl``
+           has no equivalent option.
 
         Examples
         --------
@@ -2774,7 +2789,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             - If None, pd.get_option('io.hdf.default_format') is checked,
               followed by fallback to "fixed".
         index : bool, default True
-            Write DataFrame index as a column.
+            Create PyTables indexes on the stored index and data columns to
+            speed up queries (``format='table'`` only). The object's index is
+            written regardless.
         min_itemsize : dict or int, optional
             Map column names to minimum string sizes for columns.
         nan_rep : str, optional
@@ -3402,7 +3419,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self,
         buf: None = ...,
         *,
-        columns: Sequence[Hashable] | None = ...,
+        columns: Axes | None = ...,
         header: bool | SequenceNotStr[str] = ...,
         index: bool = ...,
         na_rep: str = ...,
@@ -3429,7 +3446,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self,
         buf: FilePath | WriteBuffer[str],
         *,
-        columns: Sequence[Hashable] | None = ...,
+        columns: Axes | None = ...,
         header: bool | SequenceNotStr[str] = ...,
         index: bool = ...,
         na_rep: str = ...,
@@ -3456,7 +3473,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self,
         buf: FilePath | WriteBuffer[str] | None = None,
         *,
-        columns: Sequence[Hashable] | None = None,
+        columns: Axes | None = None,
         header: bool | SequenceNotStr[str] = True,
         index: bool = True,
         na_rep: str = "NaN",
@@ -3691,13 +3708,16 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         # Deal with hiding indexes and relabelling column names
         hide_: list[dict[str, Any]] = []
         relabel_index_: list[dict[str, Any]] = []
-        if columns:
-            hide_.append(
-                {
-                    "subset": [c for c in self.columns if c not in columns],
-                    "axis": "columns",
-                }
-            )
+        if columns is not None and len(columns):
+            if isinstance(columns, str):
+                # a str is matched by substring, as before; changing that needs a
+                # deprecation
+                hidden = [c for c in self.columns if c not in columns]
+            else:
+                # MultiIndex.isin raises on a mix of tuples and scalars
+                labels = self.columns.to_flat_index()
+                hidden = list(self.columns[~labels.isin(columns)])
+            hide_.append({"subset": hidden, "axis": "columns"})
         if header is False:
             hide_.append({"axis": "columns"})
         elif isinstance(header, (list, tuple)):
@@ -3725,7 +3745,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             "column_format": column_format,
             "clines": (
                 "skip-last;data"
-                if (multirow and isinstance(self.index, MultiIndex))
+                if (
+                    multirow
+                    and index is not False
+                    and isinstance(self.index, MultiIndex)
+                )
                 else None
             ),
             "bold_rows": bold_rows,
@@ -3824,7 +3848,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         sep: str = ...,
         na_rep: str = ...,
         float_format: str | Callable[..., Any] | None = ...,
-        columns: Sequence[Hashable] | None = ...,
+        columns: Axes | None = ...,
         header: bool | list[str] = ...,
         index: bool = ...,
         index_label: IndexLabel | None = ...,
@@ -3851,7 +3875,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         sep: str = ...,
         na_rep: str = ...,
         float_format: str | Callable[..., Any] | None = ...,
-        columns: Sequence[Hashable] | None = ...,
+        columns: Axes | None = ...,
         header: bool | list[str] = ...,
         index: bool = ...,
         index_label: IndexLabel | None = ...,
@@ -3878,7 +3902,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         sep: str = ",",
         na_rep: str = "",
         float_format: str | Callable[..., Any] | None = None,
-        columns: Sequence[Hashable] | None = None,
+        columns: Axes | None = None,
         header: bool | list[str] = True,
         index: bool = True,
         index_label: IndexLabel | None = None,
@@ -8526,7 +8550,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         dtype: float64
 
         >>> s.asof(20)
-        np.float64(2.0)
+        2.0
 
         For a sequence `where`, a Series is returned. The first value is
         NaN, because the first element of `where` is before the first
@@ -8541,7 +8565,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         NaN, even though NaN is at the index location for ``30``.
 
         >>> s.asof(30)
-        np.float64(2.0)
+        2.0
 
         Take all columns into consideration
 
@@ -8618,7 +8642,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 values = self._values
                 while loc > 0 and isna(values[loc]):
                     loc -= 1
-                return values[loc]
+                return maybe_unbox_numpy_scalar(values[loc], object_with_dtype=values)
 
         if not isinstance(where, Index):
             where = Index(where) if is_list else Index([where])

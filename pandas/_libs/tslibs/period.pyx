@@ -2471,9 +2471,13 @@ cdef class _Period(PeriodMixin):
 
         Parameters
         ----------
-        freq : str or DateOffset
-            Target frequency. Default is 'D' if self._freq is week or
-            longer and 'S' otherwise.
+        freq : str or DateOffset, optional
+            Target frequency. By default the result is exactly the start (or end)
+            of each period. With ``how="start"``, the result is the start of
+            ``asfreq(freq, how="start")``, except that a ``freq`` coarser than
+            daily gives midnight on that period's last day, so
+            ``to_timestamp("M")`` gives month-end dates. With ``how="end"``,
+            ``freq`` only affects the resolution ('ns' gives nanosecond unit).
         how : {'start', 'end', 's', 'e'}, default 'start'
             Whether to use the start or end of the period. Case-insensitive.
 
@@ -2493,6 +2497,11 @@ cdef class _Period(PeriodMixin):
         >>> timestamp = period.to_timestamp()
         >>> timestamp
         Timestamp('2023-01-01 00:00:00')
+
+        A ``freq`` coarser than daily gives the last day of the period:
+
+        >>> pd.Period("2023-01", freq="M").to_timestamp("M")
+        Timestamp('2023-01-31 00:00:00')
         """
         how = validate_end_alias(how)
 

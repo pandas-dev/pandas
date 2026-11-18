@@ -400,7 +400,8 @@ cdef class {{name}}HashTable(HashTable):
     def __cinit__(self, int64_t size_hint=1, bint uses_mask=False):
         self.table = kh_init_{{dtype}}()
         size_hint = min(kh_needed_n_buckets(size_hint), SIZE_HINT_LIMIT)
-        kh_resize_{{dtype}}(self.table, size_hint)
+        if kh_resize_{{dtype}}(self.table, size_hint) < 0:
+            raise MemoryError()
 
         self.uses_mask = uses_mask
         self.na_position = -1
@@ -495,6 +496,8 @@ cdef class {{name}}HashTable(HashTable):
 
         ckey = {{to_c_type}}(key)
         k = kh_put_{{dtype}}(self.table, ckey, &ret)
+        if ret < 0:
+            raise MemoryError()
         if kh_exist_{{dtype}}(self.table, k):
             self.table.vals[k] = val
         else:
@@ -530,6 +533,8 @@ cdef class {{name}}HashTable(HashTable):
             for i in range(n):
                 key = {{to_c_type}}(keys[i])
                 k = kh_put_{{dtype}}(self.table, key, &ret)
+                if ret < 0:
+                    raise MemoryError()
                 self.table.vals[k] = <Py_ssize_t>values[i]
     {{endif}}
 
@@ -555,11 +560,15 @@ cdef class {{name}}HashTable(HashTable):
                     else:
                         val= {{to_c_type}}(values[i])
                         k = kh_put_{{dtype}}(self.table, val, &ret)
+                        if ret < 0:
+                            raise MemoryError()
                         self.table.vals[k] = i
             else:
                 for i in range(n):
                     val= {{to_c_type}}(values[i])
                     k = kh_put_{{dtype}}(self.table, val, &ret)
+                    if ret < 0:
+                        raise MemoryError()
                     self.table.vals[k] = i
         self.na_position = na_position
 
@@ -767,6 +776,8 @@ cdef class {{name}}HashTable(HashTable):
                 if k == self.table.n_buckets:
                     # k hasn't been seen yet
                     k = kh_put_{{dtype}}(self.table, val, &ret)
+                    if ret < 0:
+                        raise MemoryError()
 
                     if needs_resize(ud.size, ud.capacity):
                         with gil:
@@ -910,6 +921,8 @@ cdef class {{name}}HashTable(HashTable):
                     labels[i] = idx
                 else:
                     k = kh_put_{{dtype}}(self.table, val, &ret)
+                    if ret < 0:
+                        raise MemoryError()
                     self.table.vals[k] = count
 
                     if needs_resize(ud.size, ud.capacity):
@@ -981,7 +994,8 @@ cdef class StringHashTable(HashTable):
     def __init__(self, int64_t size_hint=1):
         self.table = kh_init_str()
         size_hint = min(kh_needed_n_buckets(size_hint), SIZE_HINT_LIMIT)
-        kh_resize_str(self.table, size_hint)
+        if kh_resize_str(self.table, size_hint) < 0:
+            raise MemoryError()
 
     def __dealloc__(self):
         if self.table is not NULL:
@@ -1034,6 +1048,8 @@ cdef class StringHashTable(HashTable):
         v = kh_strview(ptr, length)
 
         k = kh_put_str(self.table, v, &ret)
+        if ret < 0:
+            raise MemoryError()
         if kh_exist_str(self.table, k):
             self.table.vals[k] = val
         else:
@@ -1148,6 +1164,9 @@ cdef class StringHashTable(HashTable):
             for i in range(n):
                 v = vecs[i]
                 k = kh_put_str(self.table, v, &ret)
+                if ret < 0:
+                    free(vecs)
+                    raise MemoryError()
                 self.table.vals[k] = i
         free(vecs)
 
@@ -1255,6 +1274,9 @@ cdef class StringHashTable(HashTable):
                 if k == self.table.n_buckets:
                     # k hasn't been seen yet
                     k = kh_put_str(self.table, v, &ret)
+                    if ret < 0:
+                        free(vecs)
+                        raise MemoryError()
                     uindexer[count] = i
                     if return_inverse:
                         self.table.vals[k] = count
@@ -1351,7 +1373,8 @@ cdef class PyObjectHashTable(HashTable):
     def __init__(self, int64_t size_hint=1):
         self.table = kh_init_pymap()
         size_hint = min(kh_needed_n_buckets(size_hint), SIZE_HINT_LIMIT)
-        kh_resize_pymap(self.table, size_hint)
+        if kh_resize_pymap(self.table, size_hint) < 0:
+            raise MemoryError()
 
     def __dealloc__(self):
         cdef khiter_t index
@@ -1414,6 +1437,8 @@ cdef class PyObjectHashTable(HashTable):
         # noexcept: a key inserted by a call that raised still has to be
         # INCREF'ed before the exception propagates, see khash.pxd
         k = kh_put_pymap_noexcept(self.table, <PyObject*>key, &ret)
+        if ret < 0:
+            raise MemoryError()
         if ret != 0:
             Py_INCREF(key)
         if kh_exist_pymap(self.table, k):
@@ -1438,6 +1463,8 @@ cdef class PyObjectHashTable(HashTable):
 
             # noexcept, see set_item
             k = kh_put_pymap_noexcept(self.table, <PyObject*>val, &ret)
+            if ret < 0:
+                raise MemoryError()
             if ret != 0:
                 Py_INCREF(val)
             self.table.vals[k] = i
@@ -1542,6 +1569,8 @@ cdef class PyObjectHashTable(HashTable):
                 # k hasn't been seen yet
                 # noexcept, see set_item
                 k = kh_put_pymap_noexcept(self.table, <PyObject*>val, &ret)
+                if ret < 0:
+                    raise MemoryError()
                 Py_INCREF(val)
                 raise_if_errors()
                 uniques.append(val)
