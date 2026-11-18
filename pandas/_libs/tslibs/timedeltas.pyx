@@ -1373,9 +1373,6 @@ cdef int64_t parse_iso_format_string(
         frac = groups[3 * i + 3]
         if frac is not None:
             have_frac = True
-            if i == 4 and len(frac) > 9:
-                # more digits than nanosecond precision
-                raise ValueError(err_msg)
             # exact integer arithmetic, rounded to the nearest nanosecond
             den = (<object>10) ** len(frac)
             value += (2 * int(frac) * unit_ns + den) // (2 * den)
@@ -1384,7 +1381,7 @@ cdef int64_t parse_iso_format_string(
         result += value
 
     if last == -1:
-        # no components, e.g. "P" or "PT"
+        # no components, i.e. "P" or "-P"
         raise ValueError(err_msg)
 
     if groups[0] is not None:

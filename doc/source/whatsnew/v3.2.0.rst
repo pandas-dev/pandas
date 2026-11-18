@@ -235,7 +235,7 @@ Datetimelike
 Timedelta
 ^^^^^^^^^
 - Bug in :class:`Timedelta` and :func:`to_timedelta` ignoring a decimal comma in a string, so ``"00:00:01,500"`` parsed as 25 minutes instead of 1.5 seconds (:issue:`71877`)
-- Bug in :class:`Timedelta` and :func:`to_timedelta` mis-parsing ISO 8601 duration strings: fractions on components other than seconds gave wrong values, ``"P1M"`` was read as one minute, and a decimal comma or hours or minutes above 99 raised; malformed strings such as ``"P1H"`` or ``"PT1M1H"`` now raise (:issue:`48122`, :issue:`51882`)
+- Bug in :class:`Timedelta` and :func:`to_timedelta` parsing ISO 8601 duration strings: fractional components other than seconds gave wrong values, ``"P1M"`` was read as one minute, and malformed strings such as ``"PT1M1H"`` were accepted (:issue:`48122`, :issue:`51882`)
 
 Timezones
 ^^^^^^^^^

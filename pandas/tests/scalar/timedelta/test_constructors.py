@@ -726,6 +726,9 @@ def test_construction_out_of_bounds_td64s(val, unit):
         # 0.72ns rounds to 1ns
         ("PT0.0000000000002H", pd.Timedelta(nanoseconds=1)),
         ("-PT0.0000000000002H", pd.Timedelta(nanoseconds=-1)),
+        # more than nanosecond precision rounds, as for "1.0000000005s"
+        ("PT1.0000000005S", pd.Timedelta(seconds=1, nanoseconds=1)),
+        ("P1DT0H0M0.0000000000000S", pd.Timedelta(days=1)),
     ],
 )
 def test_iso_constructor(fmt, exp):
@@ -737,7 +740,6 @@ def test_iso_constructor(fmt, exp):
     [
         "PPPPPPPPPPPP",
         "PDTHMS",
-        "P1DT0H0M0.0000000000000S",
         "P1DT0H0M0.S",
         "P",
         "-P",
