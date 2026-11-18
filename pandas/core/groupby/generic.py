@@ -1218,11 +1218,15 @@ class SeriesGroupBy(GroupBy[Series]):
 
         if normalize:
             out = out.astype("float")
-            # NA values stay in the denominator to match Series.value_counts
             d = np.diff(np.r_[idx, len(ids)])
-            acc = rep(d)
             if dropna:
-                acc = acc[mask]
+                # exclude missing values, but not values outside the bins,
+                # from the denominator to match Series.value_counts (GH 44946)
+                gpos = np.repeat(np.arange(len(d)), d)
+                d -= np.bincount(gpos[isna(val)[sorter]], minlength=len(d))
+                acc = rep(d)[mask]
+            else:
+                acc = rep(d)
             out /= acc
 
         # for compat. with libgroupby.value_counts need to ensure every
