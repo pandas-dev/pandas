@@ -92,7 +92,7 @@ def test_value_counts_with_bins_dropna_false():
 
 @pytest.mark.parametrize("kwarg", ["as_index", "group_keys"])
 def test_value_counts_scalar_bins_as_index_group_keys_false(kwarg):
-    # GH#72209
+    # GH#72220
     df = pd.DataFrame({"key": [0, 0, 1, 1], "score": [0, 3, 1, 9]})
     expected = df.groupby("key")["score"].value_counts(bins=2)
     result = df.groupby("key", **{kwarg: False})["score"].value_counts(bins=2)
