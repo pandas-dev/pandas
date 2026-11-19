@@ -175,7 +175,7 @@ class TestDataFrameIndexingWhere:
 
         def _check_set(df, cond, check_dtypes=True):
             dfi = df.copy()
-            econd = cond.reindex_like(df).fillna(True).infer_objects()
+            econd = cond.reindex_like(df).fillna(False).infer_objects()
             expected = dfi.mask(~econd)
 
             result = dfi.where(cond, np.nan, inplace=True)
@@ -1352,6 +1352,139 @@ def test_where_mask_nullable_bool_cond_na_frame(method, inplace, cond_dtype):
         expected = pd.DataFrame({"a": [-9, 2, 3], "b": [-9, 5, 6]})
 
     result = getattr(df, method)(cond, -9, inplace=inplace)
+    if inplace:
+        result = df
+    tm.assert_frame_equal(result, expected)
+
+
+def _where_test_array(values, dtype):
+    if dtype == "string[pyarrow]":
+        values = [None if v is None else str(v) for v in values]
+    elif dtype == "boolean":
+        values = [None if v is None else v > 5 for v in values]
+    elif dtype == "category":
+        dtype = pd.CategoricalDtype([1, 2, 3, 10, 30])
+    elif dtype == "interval":
+        values = [None if v is None else pd.Interval(v, v + 1) for v in values]
+        dtype = None
+    return pd.array(values, dtype=dtype)
+
+
+@pytest.mark.parametrize("inplace", [False, True])
+@pytest.mark.parametrize("method", ["where", "mask"])
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        pytest.param("string[pyarrow]", marks=td.skip_if_no("pyarrow")),
+        pytest.param("int64[pyarrow]", marks=td.skip_if_no("pyarrow")),
+        "Int64",
+        "boolean",
+        "category",
+        "interval",
+    ],
+)
+def test_where_mask_frame_other_same_ea_dtype_matches_series(method, inplace, dtype):
+    # result matches Series.where/mask column by column
+    df = pd.DataFrame(
+        {
+            "a": _where_test_array([1, 2, None, 3], dtype),
+            "b": np.arange(4),
+            "c": _where_test_array([3, None, 2, 1], dtype),
+        }
+    )
+    other = pd.DataFrame(
+        {
+            "a": _where_test_array([10, None, 30, 10], dtype),
+            "b": np.arange(4) * 10,
+            "c": _where_test_array([None, 30, 10, 30], dtype),
+        }
+    )
+    cond = pd.DataFrame(
+        {
+            "a": pd.array([True, False, True, None], dtype="boolean"),
+            "b": [True, False, True, False],
+            "c": [False, True, False, True],
+        }
+    )
+
+    expected = pd.DataFrame(
+        {col: getattr(df[col], method)(cond[col], other[col]) for col in df.columns}
+    )
+    result = df.copy()
+    res = getattr(result, method)(cond, other, inplace=inplace)
+    if not inplace:
+        result = res
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "other_categories", [["z", "y", "x"], ["x", "y"]], ids=["reordered", "subset"]
+)
+@pytest.mark.parametrize("op", ["where", "mask", "where_inplace", "setitem"])
+def test_where_mask_frame_other_categorical_other_categories(op, other_categories):
+    # other's values are all categories of self
+    dtype = pd.CategoricalDtype(["x", "y", "z"])
+    df = pd.DataFrame({"a": pd.Categorical(["x", "y", "x"], dtype=dtype)})
+    other = pd.DataFrame(
+        {"a": pd.Categorical(["y", "x", "y"], categories=other_categories)}
+    )
+    cond = pd.DataFrame({"a": [True, False, True]})
+
+    if op == "where":
+        result = df.where(cond, other)
+    elif op == "mask":
+        result = df.mask(~cond, other)
+    elif op == "where_inplace":
+        result = df.copy()
+        result.where(cond, other, inplace=True)
+    else:
+        result = df.copy()
+        result[~cond] = other
+
+    expected = pd.DataFrame({"a": pd.Categorical(["x", "x", "x"], dtype=dtype)})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_fillna_frame_other_categorical_other_categories():
+    dtype = pd.CategoricalDtype(["x", "y", "z"])
+    df = pd.DataFrame({"a": pd.Categorical(["x", None, "x"], dtype=dtype)})
+    other = pd.DataFrame({"a": pd.Categorical(["y", "x", "y"], categories=["x", "y"])})
+
+    result = df.fillna(other)
+
+    expected = pd.DataFrame({"a": pd.Categorical(["x", "x", "x"], dtype=dtype)})
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("cond_dtype", ["bool", "boolean"])
+@pytest.mark.parametrize("inplace", [True, False])
+@pytest.mark.parametrize(
+    "method, expected", [("where", [0, 99, 99, 99]), ("mask", [99, 1, 99, 99])]
+)
+def test_where_mask_misaligned_cond_independent_of_inplace(
+    frame_or_series, method, expected, inplace, cond_dtype
+):
+    # GH#57083 labels missing from cond get other, regardless of inplace
+    obj = frame_or_series(range(4))
+    expected = frame_or_series(expected)
+    cond = frame_or_series([True, False], dtype=cond_dtype)
+
+    result = getattr(obj, method)(cond, 99, inplace=inplace)
+    if inplace:
+        result = obj
+    tm.assert_equal(result, expected)
+
+
+@pytest.mark.parametrize("inplace", [True, False])
+def test_where_object_cond_with_na_independent_of_inplace(inplace):
+    # GH#57083 NA in an object-dtype cond is treated as False
+    df = pd.DataFrame({"a": [1, -2, 3], "b": [-4, 5, -6]})
+    cond = pd.DataFrame(
+        {"a": [True, None, False], "b": [True, True, None]}, dtype=object
+    )
+    expected = pd.DataFrame({"a": [1, 99, 99], "b": [-4, 5, 99]})
+
+    result = df.where(cond, 99, inplace=inplace)
     if inplace:
         result = df
     tm.assert_frame_equal(result, expected)
