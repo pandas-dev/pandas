@@ -83,11 +83,24 @@ def test_value_counts_with_bins_dropna_false():
     result = gb2.value_counts(bins=[0, 2, 4], dropna=False, sort=False)
     tm.assert_frame_equal(result, expected.reset_index())
 
+    # as in Series.value_counts, a group with no NAs gets no NaN row
+    result = (
+        df.iloc[:-1]
+        .groupby("key")["score"]
+        .value_counts(bins=[0, 2, 4], dropna=False, sort=False)
+    )
+    tm.assert_series_equal(result, expected.iloc[:-1])
+
     # scalar bins are computed per group, so the out-of-range 9 is binned
     result = gb.value_counts(bins=2, dropna=False, sort=False)
-    assert result.tolist() == [1, 1, 1, 1, 1]
-    is_nan = result.index.get_level_values("score").isna()
-    assert is_nan.tolist() == [False, False, True, False, False]
+    expected = pd.concat(
+        {
+            key: group.value_counts(bins=2, dropna=False, sort=False)
+            for key, group in gb
+        },
+        names=["key", "score"],
+    )
+    tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize("kwarg", ["as_index", "group_keys"])
