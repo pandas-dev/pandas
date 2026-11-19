@@ -1399,6 +1399,49 @@ You can use keyword arguments supported by either ``BusinessHour`` and ``CustomB
     # Monday is skipped because it's a holiday, business hour starts from 10:00
     dt + bhour_mon * 2
 
+.. _timeseries.custom_offsets:
+
+Writing your own offset
+~~~~~~~~~~~~~~~~~~~~~~~
+
+When none of the built-in offsets fits, you can subclass
+:class:`~pandas.tseries.offsets.BaseOffset` and define:
+
+* ``_add_datetime(self, other)``, which receives a :class:`Timestamp` and returns the
+  :class:`Timestamp` ``self.n`` steps away. For ``n <= 0``, rolling back onto the offset
+  counts as the first step, as in the built-in offsets.
+  This implements ``+`` and ``-`` and is used by :func:`date_range`.
+* ``is_on_offset(self, dt)``, which ``rollback``, ``rollforward`` and :func:`date_range`
+  use to tell whether ``dt`` already falls on the offset.
+* ``_prefix``, the name shown in the offset's ``freqstr``.
+
+For example, an offset stepping through dekads, the periods starting on the 1st, 11th
+and 21st of each month:
+
+.. ipython:: python
+
+   class Dekad(pd.offsets.BaseOffset):
+       _prefix = "DEKAD"
+       def _add_datetime(self, other):
+           slot = min((other.day - 1) // 10, 2)
+           n = self.n
+           if n <= 0 and other.day != 1 + 10 * slot:
+               n += 1
+           months, slot = divmod(slot + n, 3)
+           result = other.replace(day=1) + pd.DateOffset(months=months)
+           return result.replace(day=1 + 10 * slot)
+       def is_on_offset(self, dt):
+           return dt.day in (1, 11, 21)
+
+   ts = pd.Timestamp("2024-01-25")
+   ts + Dekad()
+   ts - Dekad()
+   Dekad().rollback(ts)
+   pd.date_range("2024-01-05", periods=4, freq=Dekad())
+
+Adding a custom offset to a :class:`Series` or :class:`DatetimeIndex` applies it one
+element at a time and emits a :class:`~pandas.errors.PerformanceWarning`.
+
 .. _timeseries.offset_aliases:
 
 Offset aliases

@@ -888,6 +888,49 @@ def test_baseoffset_check_no_warning():
         assert issubclass(BDay, BaseOffset)
 
 
+class Dekad(BaseOffset):
+    # the example from the "Writing your own offset" section of the user guide
+    _prefix = "DEKAD"
+
+    def _add_datetime(self, other):
+        slot = min((other.day - 1) // 10, 2)
+        n = self.n
+        if n <= 0 and other.day != 1 + 10 * slot:
+            # rolling back to the start of the current dekad is the first step
+            n += 1
+        months, slot = divmod(slot + n, 3)
+        result = other.replace(day=1) + DateOffset(months=months)
+        return result.replace(day=1 + 10 * slot)
+
+    def is_on_offset(self, dt):
+        return dt.day in (1, 11, 21)
+
+
+def test_custom_baseoffset_subclass(performance_warning):
+    # GH#35569 the subclass hooks documented in the user guide
+    ts = Timestamp("2024-01-25 05:00")
+
+    assert ts + Dekad() == Timestamp("2024-02-01 05:00")
+    assert ts + Dekad(4) == Timestamp("2024-03-01 05:00")
+    assert ts - Dekad() == Timestamp("2024-01-21 05:00")
+    assert Dekad().rollback(ts) == Timestamp("2024-01-21 05:00")
+    assert Dekad().rollforward(ts) == Timestamp("2024-02-01 05:00")
+    assert Dekad(3).freqstr == "3DEKAD"
+
+    result = pd.date_range("2024-01-05", periods=4, freq=Dekad())
+    expected = pd.DatetimeIndex(
+        ["2024-01-11", "2024-01-21", "2024-02-01", "2024-02-11"], freq=Dekad()
+    )
+    tm.assert_index_equal(result, expected)
+
+    ser = pd.Series(pd.to_datetime(["2024-01-05", "2024-02-28"]))
+    msg = "Non-vectorized DateOffset"
+    with tm.assert_produces_warning(performance_warning, match=msg):
+        result = ser + Dekad()
+    expected = pd.Series(pd.to_datetime(["2024-01-11", "2024-03-01"]))
+    tm.assert_series_equal(result, expected)
+
+
 class TestOffsetNames:
     def test_get_offset_name(self):
         assert BDay().freqstr == "B"
