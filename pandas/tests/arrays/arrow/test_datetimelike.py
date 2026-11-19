@@ -286,14 +286,26 @@ def test_dt_tz(tz):
     assert result == timezones.maybe_get_tz(tz)
 
 
-def test_dt_isocalendar():
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        ArrowDtype(pa.timestamp("ns")),
+        ArrowDtype(pa.timestamp("us")),
+        ArrowDtype(pa.timestamp("ns", tz="UTC")),
+        ArrowDtype(pa.timestamp("us", tz="America/Los_Angeles")),
+        ArrowDtype(pa.date32()),
+    ],
+    ids=str,
+)
+def test_dt_isocalendar(dtype):
+    # GH#72217 missing values must stay missing (not 0)
     ser = pd.Series(
         [datetime(year=2023, month=1, day=2, hour=3), None],
-        dtype=ArrowDtype(pa.timestamp("ns")),
+        dtype=dtype,
     )
     result = ser.dt.isocalendar()
     expected = pd.DataFrame(
-        [[2023, 1, 1], [0, 0, 0]],
+        [[2023, 1, 1], [None, None, None]],
         columns=["year", "week", "day"],
         dtype="int64[pyarrow]",
     )
@@ -309,7 +321,7 @@ def test_dt_isocalendar_preserves_index():
     )
     result = ser.dt.isocalendar()
     expected = pd.DataFrame(
-        [[2023, 1, 1], [0, 0, 0]],
+        [[2023, 1, 1], [None, None, None]],
         columns=["year", "week", "day"],
         index=["a", "b"],
         dtype="int64[pyarrow]",
