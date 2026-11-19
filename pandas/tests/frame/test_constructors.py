@@ -2645,19 +2645,25 @@ class TestDataFrameConstructors:
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             pd.DataFrame([first_row, str_row])
 
+    @pytest.mark.parametrize("first_row", [[1, 2], np.array([1, 2]), {1, 2}], ids=type)
     @pytest.mark.parametrize(
-        "first_row", [[1, 2], (1, 2), np.array([1, 2]), {1, 2}], ids=type
-    )
-    @pytest.mark.parametrize(
-        "row", [3, np.int64(3), np.nan, None, pd.Timestamp("2020-01-01")]
+        "row",
+        [3, np.int64(3), np.array(3), np.nan, None, pd.Timestamp("2020-01-01")],
     )
     def test_construct_listlike_then_scalar_row_raises(self, first_row, row):
         # GH#29213
-        if isinstance(first_row, tuple) and pd.isna(row):
-            pytest.skip("see test_construct_tuple_then_null_row_padded")
         msg = "the row at position 2 has type"
         with pytest.raises(TypeError, match=msg):
             pd.DataFrame([first_row, first_row, row])
+
+    @pytest.mark.parametrize(
+        "row", [3, np.int64(3), np.array(3), pd.Timestamp("2020-01-01")]
+    )
+    def test_construct_tuple_then_scalar_row_raises(self, row):
+        # GH#29213 null rows are padded, see test_construct_tuple_then_null_row_padded
+        msg = "the row at position 2 has type"
+        with pytest.raises(TypeError, match=msg):
+            pd.DataFrame([(1, 2), (1, 2), row])
 
     @pytest.mark.parametrize("row", [np.nan, None])
     def test_construct_tuple_then_null_row_padded(self, row):

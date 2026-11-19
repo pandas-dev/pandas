@@ -907,8 +907,7 @@ def _list_to_arrays(
     else:
         if _warn_if_str_rows(row_types):
             check_ragged = False
-        if not all(hasattr(typ, "__len__") for typ in row_types):
-            _validate_scalar_rows(data)
+        _validate_scalar_rows(data)
         lengths = {1 if is_scalar(row) and isna(row) else len(row) for row in data}
     if check_ragged and len(lengths) > 1:
         warnings.warn(
