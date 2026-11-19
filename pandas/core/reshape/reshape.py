@@ -739,8 +739,7 @@ def stack(
 
     new_values: ArrayLike
     if not frame.empty and frame._is_homogeneous_type:
-        # For homogeneous EAs, frame._values will coerce to object. So
-        # we concatenate instead.
+        # frame._values would lose the extension dtype, so concatenate instead
         dtypes = list(frame.dtypes._values)
         dtype = dtypes[0]
 
