@@ -59,6 +59,7 @@ if TYPE_CHECKING:
 
     from pandas._typing import (
         Any,
+        Axes,
         Axis,
         AxisInt,
         ExcelWriterMergeCells,
@@ -535,7 +536,7 @@ class Styler(StylerRenderer):
         sheet_name: str = "Sheet1",
         na_rep: str = "",
         float_format: str | None = None,
-        columns: Sequence[Hashable] | None = None,
+        columns: Axes | None = None,
         header: Sequence[Hashable] | bool = True,
         index: bool = True,
         index_label: IndexLabel | None = None,
@@ -838,6 +839,12 @@ class Styler(StylerRenderer):
               table.
             - `"skip-last;index"`: as above with lines extending only the width of the
               index entries.
+
+            If the whole index is hidden, the `"data"` options still add clines
+            between its groups, spanning the data columns.
+
+            .. versionchanged:: 3.2.0
+                Clines are added when the whole index is hidden.
 
         label : str, optional
             The LaTeX label included as: \\label{<label>}.

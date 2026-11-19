@@ -576,16 +576,25 @@ class TestTSPlot:
         # weekend gaps that would appear if raw date2num floats were used).
         assert len(diffs) == 1, f"Expected uniform spacing, got distinct diffs: {diffs}"
 
-    def test_freq_with_no_period_alias(self):
+    @pytest.mark.parametrize(
+        "freq",
+        [
+            WeekOfMonth(),
+            # GH#26921 offsets without a rule_code
+            pd.DateOffset(days=1),
+            pd.DateOffset(months=1),
+            pd.offsets.Easter(),
+        ],
+    )
+    def test_freq_with_no_period_alias(self, freq, frame_or_series):
         # GH34487
-        freq = WeekOfMonth()
-        bts = pd.Series(
-            np.arange(10, dtype=np.float64), index=date_range("2020-01-01", periods=10)
-        ).asfreq(freq)
+        index = date_range("2020-01-01", periods=10, freq=freq)
+        obj = frame_or_series(np.arange(10, dtype=np.float64), index=index)
         _, ax = mpl.pyplot.subplots()
-        bts.plot(ax=ax)
+        obj.plot(ax=ax)
 
         idx = ax.get_lines()[0].get_xdata()
+        tm.assert_index_equal(DatetimeIndex(idx), index, check_freq=False)
         msg = "freq not specified and cannot be inferred"
         with pytest.raises(ValueError, match=msg):
             PeriodIndex(data=idx)

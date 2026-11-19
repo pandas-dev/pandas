@@ -215,3 +215,15 @@ class TestSeriesDescribe:
             result = ser.describe(**kwargs)
         expected = ser.describe()
         tm.assert_series_equal(result, expected)
+
+
+def test_describe_sparse_timedelta():
+    # GH#61707 statistics that can't be cast to float are returned as object
+    td = pd.to_timedelta([1, 2, 3], unit="s")
+    result = pd.Series(pd.arrays.SparseArray(td)).describe()
+    expected = pd.Series(
+        [3, *pd.to_timedelta([2, 1, 1, 1.5, 2, 2.5, 3], unit="s")],
+        index=["count", "mean", "std", "min", "25%", "50%", "75%", "max"],
+        dtype=object,
+    )
+    tm.assert_series_equal(result, expected)

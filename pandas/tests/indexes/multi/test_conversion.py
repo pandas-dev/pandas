@@ -41,6 +41,19 @@ def test_array_interface(idx):
         np.array(idx, copy=False)
 
 
+def test_to_list():
+    mi = pd.MultiIndex.from_tuples([("a", 1), ("b", 2)])
+    expected = [("a", 1), ("b", 2)]
+
+    assert mi.to_list() == expected
+    assert mi.tolist() == expected
+    assert isinstance(mi.to_list(), list)
+
+    empty = pd.MultiIndex.from_product([[], [1]])
+    assert empty.to_list() == []
+    assert empty.tolist() == []
+
+
 def test_to_frame():
     tuples = [(1, "one"), (1, "two"), (2, "one"), (2, "two")]
 
