@@ -78,6 +78,11 @@ cnp.import_array()
 from pandas._libs.interval import Interval
 
 
+cdef extern from "Python.h":
+    int Py_EnterRecursiveCall(const char *where) except -1
+    void Py_LeaveRecursiveCall()
+
+
 cdef extern from "pandas/parser/pd_parser.h":
     int floatify(object, float64_t *result, int *maybe_int) except -1
     void PandasParser_IMPORT()
@@ -729,11 +734,15 @@ cdef bint _sequences_equivalent(object x, object y):
         # assign elementwise so nested sequences are stored as objects
         left[i] = x[i]
         right[i] = y[i]
+    # raise RecursionError instead of crashing on self-referential sequences
+    Py_EnterRecursiveCall(" in array_equivalent_object")
     try:
         return array_equivalent_object(left, right, strict_nan=True)
     except (ValueError, TypeError):
         # x == y already returned False; don't raise on a pair it never reached
         return False
+    finally:
+        Py_LeaveRecursiveCall()
 
 
 @cython.wraparound(False)
