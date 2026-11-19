@@ -32,7 +32,7 @@ VERSIONS = {
     "lxml.etree": "6.0.0",
     "matplotlib": "3.10.5",
     "numba": "0.61.2",
-    "numexpr": "2.11.0",
+    "numexpr": "2.14.2",
     "odfpy": "1.4.1",
     "openpyxl": "3.1.5",
     "psycopg2": "2.9.10",  # (dt dec pq3 ext lo64)

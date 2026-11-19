@@ -4,13 +4,10 @@ import re
 import numpy as np
 import pytest
 
-from pandas.compat._optional import import_optional_dependency
-
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.api import DataFrame
 from pandas.core.computation import expressions as expr
-from pandas.util.version import Version
 
 
 @pytest.fixture
@@ -320,10 +317,8 @@ class TestExpressions:
         with pytest.raises(NotImplementedError, match=err_msg):
             f(df, True)
 
-    @pytest.mark.parametrize(
-        "op_str,opname", [("+", "add"), ("*", "mul"), ("-", "sub")]
-    )
-    def test_bool_ops_warn_on_arithmetic(self, op_str, opname, monkeypatch):
+    @pytest.mark.parametrize("opname, logical", [("add", "or_"), ("mul", "and_")])
+    def test_bool_arithmetic_matches_logical_ops(self, opname, logical, monkeypatch):
         n = 10
         df = DataFrame(
             {
@@ -332,54 +327,38 @@ class TestExpressions:
             }
         )
 
-        subs = {"+": "|", "*": "&", "-": "^"}
-        sub_funcs = {"|": "or_", "&": "and_", "^": "xor"}
-
         f = getattr(operator, opname)
-        fe = getattr(operator, sub_funcs[subs[op_str]])
+        fe = getattr(operator, logical)
 
-        if op_str == "-":
-            # raises TypeError
-            return
-
-        msg = "operator is not supported by numexpr"
-        ne = import_optional_dependency("numexpr", errors="ignore")
-        warning = (
-            UserWarning
-            if ne
-            and op_str in {"+", "*"}
-            and Version(ne.__version__) < Version("2.13.1")
-            else None
-        )
         with monkeypatch.context() as m:
             m.setattr(expr, "_MIN_ELEMENTS", 5)
             with pd.option_context("compute.use_numexpr", True):
-                with tm.assert_produces_warning(warning, match=msg):
+                with tm.assert_produces_warning(None):
                     r = f(df, df)
                     e = fe(df, df)
                     tm.assert_frame_equal(r, e)
 
-                with tm.assert_produces_warning(warning, match=msg):
+                with tm.assert_produces_warning(None):
                     r = f(df.a, df.b)
                     e = fe(df.a, df.b)
                     tm.assert_series_equal(r, e)
 
-                with tm.assert_produces_warning(warning, match=msg):
+                with tm.assert_produces_warning(None):
                     r = f(df.a, True)
                     e = fe(df.a, True)
                     tm.assert_series_equal(r, e)
 
-                with tm.assert_produces_warning(warning, match=msg):
+                with tm.assert_produces_warning(None):
                     r = f(False, df.a)
                     e = fe(False, df.a)
                     tm.assert_series_equal(r, e)
 
-                with tm.assert_produces_warning(warning, match=msg):
+                with tm.assert_produces_warning(None):
                     r = f(False, df)
                     e = fe(False, df)
                     tm.assert_frame_equal(r, e)
 
-                with tm.assert_produces_warning(warning, match=msg):
+                with tm.assert_produces_warning(None):
                     r = f(df, True)
                     e = fe(df, True)
                     tm.assert_frame_equal(r, e)

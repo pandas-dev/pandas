@@ -10,7 +10,6 @@ from pandas.compat import (
     PY312,
     PY314,
 )
-from pandas.compat._optional import import_optional_dependency
 from pandas.errors import (
     NumExprClobberingError,
     Pandas4Warning,
@@ -52,9 +51,6 @@ from pandas.core.computation.ops import (
     _unary_math_ops,
 )
 from pandas.core.computation.scope import DEFAULT_GLOBALS
-from pandas.util.version import Version
-
-numexpr = import_optional_dependency("numexpr", errors="ignore")
 
 skip_if_no_numexpr = pytest.mark.skipif(
     not NUMEXPR_INSTALLED, reason="numexpr not installed or an unsupported version"
@@ -327,24 +323,9 @@ class TestEval:
     def test_floor_division(self, lhs, rhs, engine, parser):
         ex = "lhs // rhs"
 
-        if engine == "python" or (
-            engine == "numexpr" and Version(numexpr.__version__) >= Version("2.13.0")
-        ):
-            res = pd.eval(ex, engine=engine, parser=parser)
-            expected = lhs // rhs
-            tm.assert_equal(res, expected)
-        else:
-            msg = (
-                r"unsupported operand type\(s\) for //: 'VariableNode' and "
-                "'VariableNode'"
-            )
-            with pytest.raises(TypeError, match=msg):
-                pd.eval(
-                    ex,
-                    local_dict={"lhs": lhs, "rhs": rhs},
-                    engine=engine,
-                    parser=parser,
-                )
+        res = pd.eval(ex, engine=engine, parser=parser)
+        expected = lhs // rhs
+        tm.assert_equal(res, expected)
 
     @td.skip_if_windows
     def test_pow(self, lhs, rhs, engine, parser):
@@ -398,16 +379,11 @@ class TestEval:
             with pytest.raises(TypeError, match=msg):
                 pd.eval(expr, engine=engine, parser=parser)
 
-        # int raises on numexpr
+        # int
         lhs = pd.DataFrame(np.random.default_rng(2).integers(5, size=(5, 2)))
-        if engine == "numexpr" and Version(numexpr.__version__) < Version("2.13.0"):
-            msg = "couldn't find matching opcode for 'invert"
-            with pytest.raises(NotImplementedError, match=msg):
-                pd.eval(expr, engine=engine, parser=parser)
-        else:
-            expect = ~lhs
-            result = pd.eval(expr, engine=engine, parser=parser)
-            tm.assert_frame_equal(expect, result)
+        expect = ~lhs
+        result = pd.eval(expr, engine=engine, parser=parser)
+        tm.assert_frame_equal(expect, result)
 
         # bool always works
         lhs = pd.DataFrame(np.random.default_rng(2).standard_normal((5, 2)) > 0.5)
@@ -439,16 +415,11 @@ class TestEval:
             with pytest.raises(TypeError, match=msg):
                 pd.eval(expr, engine=engine, parser=parser)
 
-        # int raises on numexpr
+        # int
         lhs = pd.Series(np.random.default_rng(2).integers(5, size=5))
-        if engine == "numexpr" and Version(numexpr.__version__) < Version("2.13.0"):
-            msg = "couldn't find matching opcode for 'invert"
-            with pytest.raises(NotImplementedError, match=msg):
-                pd.eval(expr, engine=engine, parser=parser)
-        else:
-            expect = ~lhs
-            result = pd.eval(expr, engine=engine, parser=parser)
-            tm.assert_series_equal(expect, result)
+        expect = ~lhs
+        result = pd.eval(expr, engine=engine, parser=parser)
+        tm.assert_series_equal(expect, result)
 
         # bool
         lhs = pd.Series(np.random.default_rng(2).standard_normal(5) > 0.5)

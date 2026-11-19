@@ -191,7 +191,7 @@ _op_str_mapping = {
     roperator.rsub: "-",
     operator.truediv: "/",
     roperator.rtruediv: "/",
-    # floordiv not supported by numexpr 2.x
+    # numexpr's floordiv disagrees with numpy on inf, e.g. inf // 2.0
     operator.floordiv: None,
     roperator.rfloordiv: None,
     # we require Python semantics for mod of negative for backwards compatibility
@@ -258,7 +258,7 @@ def _has_bool_dtype(x):
         return isinstance(x, (bool, np.bool_))
 
 
-_BOOL_OP_UNSUPPORTED = {"+": "|", "*": "&", "-": "^"}
+_BOOL_OP_UNSUPPORTED = {"-": "^"}
 
 
 def _bool_arith_fallback(op_str, left_op, right_op) -> bool:

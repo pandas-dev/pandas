@@ -67,6 +67,7 @@ def _check_engine(engine: str | None) -> str:
     from pandas.core.computation.check import (
         NUMEXPR_BLOCKED_VERSION,
         NUMEXPR_INSTALLED,
+        NUMEXPR_MIN_VERSION,
         warn_numexpr_blocked,
     )
     from pandas.core.computation.expressions import USE_NUMEXPR
@@ -92,15 +93,12 @@ def _check_engine(engine: str | None) -> str:
         if NUMEXPR_BLOCKED_VERSION is not None:
             # the deferred warning does not fire here, so the raise names the version
             msg = (
-                f"numexpr {NUMEXPR_BLOCKED_VERSION} is installed, but can silently "
-                "return incorrect results, so pandas does not use it. Install "
-                "numexpr 2.14.2 or newer to use engine='numexpr'."
+                f"numexpr {NUMEXPR_BLOCKED_VERSION} is installed, but is older than "
+                f"the minimum supported version {NUMEXPR_MIN_VERSION}. Upgrade "
+                "numexpr to use engine='numexpr'."
             )
         else:
-            msg = (
-                "'numexpr' is not installed or an unsupported version. Cannot use "
-                "engine='numexpr' for query/eval if 'numexpr' is not installed"
-            )
+            msg = "'numexpr' is not installed. Cannot use engine='numexpr'."
         raise ImportError(msg)
 
     return engine
