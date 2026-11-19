@@ -116,7 +116,6 @@ from pandas.core.dtypes.dtypes import (
     ExtensionDtype,
     IntervalDtype,
     NumpyEADtype,
-    SparseDtype,
 )
 from pandas.core.dtypes.generic import (
     ABCIndex,
@@ -904,6 +903,18 @@ class DataFrame(NDFrame, OpsMixin):
         # more generally, whatever we allow in NDArrayBackedExtensionBlock
         arr = cast("np.ndarray | DatetimeArray | TimedeltaArray | PeriodArray", arr)
         return arr.T
+
+    @property
+    def _values_ea_as_object(
+        self,
+    ) -> np.ndarray | DatetimeArray | TimedeltaArray | PeriodArray:
+        """
+        ``_values``, but object dtype where ``_values`` would interleave several
+        columns via their own ``to_numpy``, which can lose NAs and precision.
+        """
+        if self._mgr._interleaves_by_column():
+            return self._mgr.as_array(dtype=np.dtype(object))
+        return self._values
 
     # ----------------------------------------------------------------------
     # Rendering Methods
@@ -4194,11 +4205,7 @@ class DataFrame(NDFrame, OpsMixin):
             else:
                 # We have other EAs with the same dtype. We preserve dtype in transpose.
                 arr_typ = first_dtype.construct_array_type()
-                if isinstance(first_dtype, SparseDtype):
-                    values = self.values
-                else:
-                    # GH#22791 the default values can be lossy
-                    values = self.to_numpy(dtype=object)
+                values = self._values_ea_as_object
                 new_values = [
                     arr_typ._from_sequence(row, dtype=first_dtype) for row in values
                 ]

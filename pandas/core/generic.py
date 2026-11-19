@@ -93,7 +93,6 @@ from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype,
     ExtensionDtype,
     PeriodDtype,
-    SparseDtype,
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -10028,17 +10027,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         else:
             # axis=1 needs all of a row's entries in one dtype, so it cannot go
             #  block by block
-            if data.ndim == 1:
-                values = data._values
-            elif any(
-                isinstance(dtype, ExtensionDtype)
-                and not isinstance(dtype, SparseDtype)
-                for dtype in data.dtypes
-            ):
-                # GH#22791 the default values can be lossy
-                values = data.to_numpy(dtype=object)
+            if data.ndim == 2:
+                values = np.asarray(data._values_ea_as_object)
             else:
-                values = data.values
+                values = data._values
             ranks_obj = self._constructor(
                 rank_values(values, axis_int), **data._construct_axes_dict()
             )
