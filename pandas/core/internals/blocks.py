@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 import inspect
 import re
 from typing import (
@@ -108,6 +109,7 @@ from pandas.core.computation import expressions
 from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
     extract_array,
+    warn_non_native_byteorder,
 )
 from pandas.core.indexers import (
     check_setitem_lengths,
@@ -121,7 +123,6 @@ if TYPE_CHECKING:
         Callable,
         Generator,
         Iterable,
-        Sequence,
     )
 
     from pandas._typing import (
@@ -1886,6 +1887,16 @@ class EABackedBlock(Block):
 
         if other is lib.no_default:
             other = self.fill_value
+        elif (
+            arr.ndim == 2
+            and is_list_like(other)
+            and isinstance(other, Sequence)
+            and not isinstance(other, tuple)
+            and len(other) == len(arr)
+        ):
+            # GH#70533 line up a list against the rows, as for a Series, rather
+            #  than letting it broadcast across the columns
+            other = construct_1d_object_array_from_listlike(other).reshape(-1, 1)
 
         icond, noop = validate_putmask(arr, ~cond)
         if noop:
@@ -2454,6 +2465,8 @@ def maybe_coerce_values(values: ArrayLike) -> ArrayLike:
 
         if issubclass(values.dtype.type, str):
             values = np.array(values, dtype=object)
+        elif isinstance(values, np.ndarray):
+            warn_non_native_byteorder(values)
 
     return values
 

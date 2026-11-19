@@ -1,6 +1,12 @@
 # pyright: reportPropertyTypeMismatch=false
 from __future__ import annotations
 
+__lazy_modules__ = (
+    "json",
+    "pandas.core.window",
+    "pandas.core.methods.describe",
+)
+
 import collections
 from copy import deepcopy
 import datetime as dt
@@ -63,7 +69,10 @@ from pandas.util._validators import (
 )
 
 from pandas.core.dtypes.astype import astype_is_view
-from pandas.core.dtypes.cast import can_hold_element
+from pandas.core.dtypes.cast import (
+    can_hold_element,
+    maybe_unbox_numpy_scalar,
+)
 from pandas.core.dtypes.common import (
     ensure_object,
     ensure_platform_int,
@@ -105,6 +114,7 @@ from pandas.core import (
     indexing,
     missing,
     nanops,
+    ops,
     sample,
 )
 from pandas.core.array_algos.replace import should_use_regex
@@ -1393,10 +1403,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 # "_SupportsInversion[ndarray[Any, dtype[bool_]]]"
                 return operator.inv(values)  # type: ignore[arg-type]
             else:
-                # error: Argument 1 to "neg" has incompatible type "Union
-                # [ExtensionArray, ndarray[Any, Any]]"; expected
-                # "_SupportsNeg[ndarray[Any, dtype[Any]]]"
-                return operator.neg(values)  # type: ignore[arg-type]
+                return ops.unary_op(values, operator.neg)
 
         new_data = self._mgr.apply(blk_func)
         res = self._constructor_from_mgr(new_data, axes=new_data.axes)
@@ -1408,10 +1415,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if is_bool_dtype(values.dtype):
                 return values.copy()
             else:
-                # error: Argument 1 to "pos" has incompatible type "Union
-                # [ExtensionArray, ndarray[Any, Any]]"; expected
-                # "_SupportsPos[ndarray[Any, dtype[Any]]]"
-                return operator.pos(values)  # type: ignore[arg-type]
+                return ops.unary_op(values, operator.pos)
 
         new_data = self._mgr.apply(blk_func)
         res = self._constructor_from_mgr(new_data, axes=new_data.axes)
@@ -1547,7 +1551,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         2    6   30  -30
         3    7   40  -50
         """
-        res_mgr = self._mgr.apply(np.abs)
+        res_mgr = self._mgr.apply(ops.unary_op, op=np.abs)
         return self._constructor_from_mgr(res_mgr, axes=res_mgr.axes).__finalize__(
             self, name="abs"
         )
@@ -2151,7 +2155,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         sheet_name: str = "Sheet1",
         na_rep: str = "",
         float_format: str | None = None,
-        columns: Sequence[Hashable] | None = None,
+        columns: Axes | None = None,
         header: Sequence[Hashable] | bool = True,
         index: bool = True,
         index_label: IndexLabel | None = None,
@@ -2251,6 +2255,18 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         pandas will check the number of rows, columns,
         and cell character count does not exceed Excel's limitations.
         All other limitations must be checked by the user.
+
+        .. warning::
+
+           Both ``openpyxl`` and ``xlsxwriter`` write strings starting with
+           ``=`` as formulas, which Excel evaluates when the file is opened.
+           Writing untrusted data this way can lead to formula injection, and
+           such strings do not round-trip through :func:`read_excel`.
+           ``xlsxwriter`` writes them as text when
+           ``engine_kwargs={"options": {"strings_to_formulas": False}}`` is
+           passed to :class:`ExcelWriter`, or to ``to_excel`` with a file path,
+           but still writes ``{=...}`` strings as array formulas; ``openpyxl``
+           has no equivalent option.
 
         Examples
         --------
@@ -2772,7 +2788,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             - If None, pd.get_option('io.hdf.default_format') is checked,
               followed by fallback to "fixed".
         index : bool, default True
-            Write DataFrame index as a column.
+            Create PyTables indexes on the stored index and data columns to
+            speed up queries (``format='table'`` only). The object's index is
+            written regardless.
         min_itemsize : dict or int, optional
             Map column names to minimum string sizes for columns.
         nan_rep : str, optional
@@ -3400,7 +3418,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self,
         buf: None = ...,
         *,
-        columns: Sequence[Hashable] | None = ...,
+        columns: Axes | None = ...,
         header: bool | SequenceNotStr[str] = ...,
         index: bool = ...,
         na_rep: str = ...,
@@ -3427,7 +3445,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self,
         buf: FilePath | WriteBuffer[str],
         *,
-        columns: Sequence[Hashable] | None = ...,
+        columns: Axes | None = ...,
         header: bool | SequenceNotStr[str] = ...,
         index: bool = ...,
         na_rep: str = ...,
@@ -3454,7 +3472,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         self,
         buf: FilePath | WriteBuffer[str] | None = None,
         *,
-        columns: Sequence[Hashable] | None = None,
+        columns: Axes | None = None,
         header: bool | SequenceNotStr[str] = True,
         index: bool = True,
         na_rep: str = "NaN",
@@ -3689,13 +3707,16 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         # Deal with hiding indexes and relabelling column names
         hide_: list[dict[str, Any]] = []
         relabel_index_: list[dict[str, Any]] = []
-        if columns:
-            hide_.append(
-                {
-                    "subset": [c for c in self.columns if c not in columns],
-                    "axis": "columns",
-                }
-            )
+        if columns is not None and len(columns):
+            if isinstance(columns, str):
+                # a str is matched by substring, as before; changing that needs a
+                # deprecation
+                hidden = [c for c in self.columns if c not in columns]
+            else:
+                # MultiIndex.isin raises on a mix of tuples and scalars
+                labels = self.columns.to_flat_index()
+                hidden = list(self.columns[~labels.isin(columns)])
+            hide_.append({"subset": hidden, "axis": "columns"})
         if header is False:
             hide_.append({"axis": "columns"})
         elif isinstance(header, (list, tuple)):
@@ -3723,7 +3744,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             "column_format": column_format,
             "clines": (
                 "skip-last;data"
-                if (multirow and isinstance(self.index, MultiIndex))
+                if (
+                    multirow
+                    and index is not False
+                    and isinstance(self.index, MultiIndex)
+                )
                 else None
             ),
             "bold_rows": bold_rows,
@@ -3822,7 +3847,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         sep: str = ...,
         na_rep: str = ...,
         float_format: str | Callable[..., Any] | None = ...,
-        columns: Sequence[Hashable] | None = ...,
+        columns: Axes | None = ...,
         header: bool | list[str] = ...,
         index: bool = ...,
         index_label: IndexLabel | None = ...,
@@ -3849,7 +3874,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         sep: str = ...,
         na_rep: str = ...,
         float_format: str | Callable[..., Any] | None = ...,
-        columns: Sequence[Hashable] | None = ...,
+        columns: Axes | None = ...,
         header: bool | list[str] = ...,
         index: bool = ...,
         index_label: IndexLabel | None = ...,
@@ -3876,7 +3901,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         sep: str = ",",
         na_rep: str = "",
         float_format: str | Callable[..., Any] | None = None,
-        columns: Sequence[Hashable] | None = None,
+        columns: Axes | None = None,
         header: bool | list[str] = True,
         index: bool = True,
         index_label: IndexLabel | None = None,
@@ -8554,7 +8579,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         dtype: float64
 
         >>> s.asof(20)
-        np.float64(2.0)
+        2.0
 
         For a sequence `where`, a Series is returned. The first value is
         NaN, because the first element of `where` is before the first
@@ -8569,7 +8594,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         NaN, even though NaN is at the index location for ``30``.
 
         >>> s.asof(30)
-        np.float64(2.0)
+        2.0
 
         Take all columns into consideration
 
@@ -8646,7 +8671,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 values = self._values
                 while loc > 0 and isna(values[loc]):
                     loc -= 1
-                return values[loc]
+                return maybe_unbox_numpy_scalar(values[loc], object_with_dtype=values)
 
         if not isinstance(where, Index):
             where = Index(where) if is_list else Index([where])
@@ -9568,11 +9593,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         Notes
         -----
         See the `user guide
-        <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#resampling>`__
+        <https://pandas.pydata.org/docs/user_guide/timeseries.html#resampling>`__
         for more.
 
         To learn more about the offset strings, please see `this link
-        <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html#dateoffset-objects>`__.
+        <https://pandas.pydata.org/docs/user_guide/timeseries.html#dateoffset-objects>`__.
 
         Examples
         --------
@@ -9986,34 +10011,23 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             msg = "na_option must be one of 'keep', 'top', or 'bottom'"
             raise ValueError(msg)
 
-        def ranker(data):
-            if data.ndim == 2:
-                # i.e. DataFrame, we cast to ndarray
-                values = data.values
-            else:
-                # i.e. Series, can dispatch to EA
-                values = data._values
-
-            if isinstance(values, ExtensionArray):
-                ranks = values._rank(
-                    axis=axis_int,
+        def rank_values(values: ArrayLike, values_axis: AxisInt) -> ArrayLike:
+            if isinstance(values, ExtensionArray) and values.ndim == 1:
+                return values._rank(
+                    axis=values_axis,
                     method=method,
                     ascending=ascending,
                     na_option=na_option,
                     pct=pct,
                 )
-            else:
-                ranks = algos.rank(
-                    values,
-                    axis=axis_int,
-                    method=method,
-                    ascending=ascending,
-                    na_option=na_option,
-                    pct=pct,
-                )
-
-            ranks_obj = self._constructor(ranks, **data._construct_axes_dict())
-            return ranks_obj.__finalize__(self, method="rank")
+            return algos.rank(
+                values,
+                axis=values_axis,
+                method=method,
+                ascending=ascending,
+                na_option=na_option,
+                pct=pct,
+            )
 
         if numeric_only:
             if self.ndim == 1 and not is_numeric_dtype(self.dtype):
@@ -10026,7 +10040,21 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         else:
             data = self
 
-        return ranker(data)
+        if data.ndim == 2 and axis_int == 0:
+            # GH#52829 ranking block by block retains extension dtypes; blocks
+            #  are transposed, so frame axis 0 is the block's last axis
+            res_mgr = data._mgr.apply(
+                lambda values: rank_values(values, values.ndim - 1)
+            )
+            ranks_obj = data._constructor_from_mgr(res_mgr, axes=res_mgr.axes)
+        else:
+            # axis=1 needs all of a row's entries in one dtype, so it cannot go
+            #  block by block
+            values = data.values if data.ndim == 2 else data._values
+            ranks_obj = self._constructor(
+                rank_values(values, axis_int), **data._construct_axes_dict()
+            )
+        return ranks_obj.__finalize__(self, method="rank")
 
     def compare(
         self,

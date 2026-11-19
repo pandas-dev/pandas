@@ -88,6 +88,8 @@ def test_ewma_halflife_without_times(halflife_with_times):
 )
 @pytest.mark.parametrize("min_periods", [0, 2])
 def test_ewma_with_times_equal_spacing(halflife_with_times, times, min_periods):
+    # Not parametrized over adjust: with adjust=False and ignore_na=False the
+    # times path weights NaN gaps differently, see GH#66523
     halflife = halflife_with_times
     data = np.arange(10.0)
     data[::2] = np.nan
@@ -430,6 +432,18 @@ def test_ewma_nan_handling_cases(s, adjust, ignore_na, w):
         # check that ignore_na defaults to False
         result = s.ewm(com=2.0, adjust=adjust).mean()
         tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "kwargs", [{"com": 1}, {"span": 3}, {"alpha": 0.5}, {"halflife": 1}]
+)
+def test_ewma_nan_handling_adjust_false_com1(kwargs):
+    # GH#31178
+    ser = pd.Series([1.0, np.nan, 5.0])
+    result = ser.ewm(adjust=False, ignore_na=False, **kwargs).mean()
+    # alpha = 0.5, so y[2] = (0.5**2 * 1 + 0.5 * 5) / (0.5**2 + 0.5)
+    expected = pd.Series([1.0, 1.0, 11 / 3])
+    tm.assert_series_equal(result, expected)
 
 
 def test_ewm_alpha():

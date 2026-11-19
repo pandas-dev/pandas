@@ -59,6 +59,7 @@ if TYPE_CHECKING:
 
     from pandas._typing import (
         Any,
+        Axes,
         Axis,
         AxisInt,
         ExcelWriterMergeCells,
@@ -172,6 +173,11 @@ class Styler(StylerRenderer):
     return values with strings containing CSS ``'attr: value'`` that will
     be applied to the indicated cells.
 
+    Styling methods such as ``Styler.map`` and ``Styler.format`` modify the
+    ``Styler`` in place and return it, to allow method chaining. Style functions
+    are evaluated lazily at render time, so a faulty one stays queued until
+    ``Styler.clear`` resets the Styler.
+
     If using in the Jupyter notebook, Styler has defined a ``_repr_html_``
     to automatically render itself. Otherwise call Styler.to_html to get
     the generated HTML.
@@ -276,7 +282,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
-            Instance of class with specified Styler appended.
+            This Styler, with specified Styler appended.
 
         See Also
         --------
@@ -430,7 +436,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
-            Instance of class with DataFrame set for strings on ``Styler``
+            This Styler, with DataFrame set for strings on ``Styler``
                 generating ``:hover`` tooltips.
 
         See Also
@@ -530,7 +536,7 @@ class Styler(StylerRenderer):
         sheet_name: str = "Sheet1",
         na_rep: str = "",
         float_format: str | None = None,
-        columns: Sequence[Hashable] | None = None,
+        columns: Axes | None = None,
         header: Sequence[Hashable] | bool = True,
         index: bool = True,
         index_label: IndexLabel | None = None,
@@ -642,6 +648,12 @@ class Styler(StylerRenderer):
         values are displayed in Excel, set an Excel format code with the
         ``number-format`` property, writing ``§`` in place of Excel's ``;`` section
         separator.
+
+        .. warning::
+
+           Strings starting with ``=`` may be written as formulas; see
+           :meth:`pandas.DataFrame.to_excel`. Any workaround options must be
+           passed to :class:`pandas.ExcelWriter`.
 
         Examples
         --------
@@ -827,6 +839,12 @@ class Styler(StylerRenderer):
               table.
             - `"skip-last;index"`: as above with lines extending only the width of the
               index entries.
+
+            If the whole index is hidden, the `"data"` options still add clines
+            between its groups, spanning the data columns.
+
+            .. versionchanged:: 3.2.0
+                Clines are added when the whole index is hidden.
 
         label : str, optional
             The LaTeX label included as: \\label{<label>}.
@@ -1737,7 +1755,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
-            Instance of class with ``class`` attribute set for ``<td>``
+            This Styler, with ``class`` attribute set for ``<td>``
                 HTML elements.
 
         See Also
@@ -2070,7 +2088,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
-            Instance of class with CSS applied to its HTML representation.
+            This Styler, with CSS applied to its HTML representation.
 
         See Also
         --------
@@ -2177,7 +2195,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
-            Instance of class with CSS applied to its HTML representation.
+            This Styler, with CSS applied to its HTML representation.
 
         See Also
         --------
@@ -2254,7 +2272,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
-            Instance of class with CSS applied to its HTML representation.
+            This Styler, with CSS applied to its HTML representation.
 
         See Also
         --------
@@ -2334,7 +2352,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
-            Instance of class with CSS-styling function applied elementwise.
+            This Styler, with CSS-styling function applied elementwise.
 
         See Also
         --------
@@ -2390,7 +2408,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
-            Instance of class with specified table attributes set.
+            This Styler, with specified table attributes set.
 
         See Also
         --------
@@ -2494,7 +2512,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
-            Instance of class with defined styler attributes added.
+            This Styler, with defined styler attributes added.
 
         See Also
         --------
@@ -2551,7 +2569,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
-            Instance of class with specified uuid for `id` attributes set.
+            This Styler, with specified uuid for `id` attributes set.
 
         See Also
         --------
@@ -2604,7 +2622,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
-            Instance of class with text set for ``<caption>`` HTML element.
+            This Styler, with text set for ``<caption>`` HTML element.
 
         See Also
         --------
@@ -2663,7 +2681,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
-            Instance of class with CSS set for permanently displaying headers
+            This Styler, with CSS set for permanently displaying headers
                 in scrolling frame.
 
         See Also
@@ -2828,7 +2846,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
-            Instance of class with specified table styles set.
+            This Styler, with specified table styles set.
 
         See Also
         --------
@@ -2968,7 +2986,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
-            Instance of class with specified headers/rows/columns hidden from display.
+            This Styler, with specified headers/rows/columns hidden from display.
 
         See Also
         --------
@@ -3205,7 +3223,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
-            Instance of class with background colored in gradient style.
+            This Styler, with background colored in gradient style.
 
         See Also
         --------
@@ -3358,7 +3376,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
-            Instance of class with background colored in gradient style.
+            This Styler, with text colored in gradient style.
 
         See Also
         --------
@@ -3471,7 +3489,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
-            Instance of class with CSS-properties set for each ``<td>`` HTML element
+            This Styler, with CSS-properties set for each ``<td>`` HTML element
                 in the given subset
 
         See Also
@@ -3571,7 +3589,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
-            Contains list-like attribute with bar chart data as formatted CSS.
+            This Styler, with bar chart CSS applied.
 
         See Also
         --------
@@ -3654,7 +3672,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
-            Instance of class where null values are highlighted with given style.
+            This Styler, where null values are highlighted with given style.
 
         See Also
         --------
@@ -3711,7 +3729,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
-            Instance of class where max value is highlighted in given style.
+            This Styler, where max value is highlighted in given style.
 
         See Also
         --------
@@ -3770,7 +3788,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
-            Instance of class where min value is highlighted in given style.
+            This Styler, where min value is highlighted in given style.
 
         See Also
         --------
@@ -3837,7 +3855,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
-            Instance of class with range highlighted in given style.
+            This Styler, with range highlighted in given style.
 
         See Also
         --------
@@ -3961,7 +3979,7 @@ class Styler(StylerRenderer):
         Returns
         -------
         Styler
-            Instance of class where values in quantile highlighted with given style.
+            This Styler, where values in quantile highlighted with given style.
 
         See Also
         --------

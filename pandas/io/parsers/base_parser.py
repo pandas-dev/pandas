@@ -615,7 +615,7 @@ class ParserBase:
                 result = BooleanArray(result, bool_mask)
             elif result.dtype == np.object_ and non_default_dtype_backend:
                 # read_excel sends array of datetime objects
-                if not lib.is_datetime_array(result, skipna=True):
+                if lib.is_string_array(values, skipna=True):
                     dtype = StringDtype()
                     cls = dtype.construct_array_type()
                     result = cls._from_sequence(values, dtype=dtype)
@@ -623,7 +623,12 @@ class ParserBase:
         if dtype_backend == "pyarrow":
             pa = import_optional_dependency("pyarrow")
             if isinstance(result, np.ndarray):
-                result = ArrowExtensionArray(pa.array(result, from_pandas=True))
+                # GH#63830: only skip Arrow conversion for genuinely mixed columns
+                if lib.infer_dtype(result, skipna=True) not in (
+                    "mixed",
+                    "mixed-integer",
+                ):
+                    result = ArrowExtensionArray(pa.array(result, from_pandas=True))
             elif isinstance(result, BaseMaskedArray):
                 if result._mask.all():
                     # We want an arrow null array here

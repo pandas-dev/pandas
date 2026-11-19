@@ -33,10 +33,7 @@ from pandas.io.common import (
 from pandas.io.parsers import TextParser
 
 if TYPE_CHECKING:
-    from collections.abc import (
-        Callable,
-        Sequence,
-    )
+    from collections.abc import Callable
     from typing import IO
     from xml.etree.ElementTree import Element
 
@@ -50,6 +47,7 @@ if TYPE_CHECKING:
         FilePath,
         ParseDatesArg,
         ReadBuffer,
+        SequenceNotStr,
         StorageOptions,
         XMLParsers,
     )
@@ -161,7 +159,7 @@ class _XMLFrameParser:
         namespaces: dict[str, str] | None,
         elems_only: bool,
         attrs_only: bool,
-        names: Sequence[str] | None,
+        names: SequenceNotStr[str] | None,
         dtype: DtypeArg | None,
         converters: ConvertersArg | None,
         parse_dates: ParseDatesArg | None,
@@ -782,7 +780,7 @@ def _parse(
     namespaces: dict[str, str] | None,
     elems_only: bool,
     attrs_only: bool,
-    names: Sequence[str] | None,
+    names: SequenceNotStr[str] | None,
     dtype: DtypeArg | None,
     converters: ConvertersArg | None,
     parse_dates: ParseDatesArg | None,
@@ -875,7 +873,7 @@ def read_xml(
     namespaces: dict[str, str] | None = None,
     elems_only: bool = False,
     attrs_only: bool = False,
-    names: Sequence[str] | None = None,
+    names: SequenceNotStr[str] | None = None,
     dtype: DtypeArg | None = None,
     converters: ConvertersArg | None = None,
     parse_dates: ParseDatesArg | None = None,

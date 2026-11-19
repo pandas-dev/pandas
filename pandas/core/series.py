@@ -4,6 +4,8 @@ Data structure for 1-dimensional cross-sectional and time series data
 
 from __future__ import annotations
 
+__lazy_modules__ = ("pandas.io.formats.info",)
+
 from collections.abc import (
     Callable,
     Hashable,
@@ -118,6 +120,7 @@ from pandas.core.arrays.arrow import (
     StructAccessor,
 )
 from pandas.core.arrays.categorical import CategoricalAccessor
+from pandas.core.arrays.interval import IntervalAccessor
 from pandas.core.arrays.sparse import SparseAccessor
 from pandas.core.construction import (
     array as pd_array,
@@ -2181,7 +2184,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             will be used to determine the groups (the Series' values are first
             aligned; see ``.align()`` method). If a list or ndarray of the
             same length as the Series is passed (see the `groupby user guide
-            <https://pandas.pydata.org/pandas-docs/stable/user_guide/groupby.html#splitting-an-object-into-groups>`_),
+            <https://pandas.pydata.org/docs/user_guide/groupby.html#splitting-an-object-into-groups>`_),
             the values are used as-is to determine the groups. An index level
             name may also be passed to group by a level of the Series' index.
             Notice that a tuple is interpreted as a (single) key.
@@ -4293,7 +4296,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             return result
 
         result = self._constructor(
-            self._values[sorted_index], index=self.index[sorted_index], copy=False
+            self._values[sorted_index],
+            index=self.index[sorted_index],
+            dtype=self.dtype,
+            copy=False,
         )
 
         if ignore_index:
@@ -7221,14 +7227,19 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         copy: bool | lib.NoDefault = lib.no_default,
     ) -> Series:
         """
-        Cast to DatetimeIndex of Timestamps, at *beginning* of period.
+        Cast to DatetimeIndex of Timestamps, by default at *beginning* of period.
 
         This can be changed to the *end* of the period, by specifying `how="e"`.
 
         Parameters
         ----------
-        freq : str, default frequency of PeriodIndex
-            Desired frequency.
+        freq : str or DateOffset, optional
+            Target frequency. By default the result is exactly the start (or end)
+            of each period. With ``how="start"``, the result is the start of
+            ``asfreq(freq, how="start")``, except that a ``freq`` coarser than
+            daily gives midnight on that period's last day, so
+            ``to_timestamp("M")`` gives month-end dates. With ``how="end"``,
+            ``freq`` only affects the resolution ('ns' gives nanosecond unit).
         how : {'start', 'end', 's', 'e'}, default 'start'
             Convention for converting period to timestamp; start of period
             vs. end. Case-insensitive.
@@ -7274,7 +7285,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         2025-01-01    3
         Freq: YS-JAN, dtype: int64
 
-        Using `freq` which is the offset that the Timestamps will have
+        With ``freq="M"``, each timestamp is the last day of the period's first
+        month
 
         >>> s2 = pd.Series([1, 2, 3], index=idx)
         >>> s2 = s2.to_timestamp(freq="M")
@@ -7415,6 +7427,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     cat = Accessor("cat", CategoricalAccessor)
     plot = Accessor("plot", pandas.plotting.PlotAccessor)
     sparse = Accessor("sparse", SparseAccessor)
+    # not in _accessors, so a label "interval" on a non-interval Series stays
+    #  reachable as an attribute
+    interval = Accessor("interval", IntervalAccessor)
     struct = Accessor("struct", StructAccessor)
     list = Accessor("list", ListAccessor)
 

@@ -374,6 +374,10 @@ columns:
     df = pd.read_csv(StringIO(data), dtype={"b": object, "c": np.float64, "d": "Int64"})
     df.dtypes
 
+Complex numbers are not inferred and are read as strings by default. To parse
+them, pass a complex dtype, e.g. ``dtype={"a": "complex128"}``; both the ``(1+2j)``
+form written by :meth:`DataFrame.to_csv` and bare ``1+2j`` are accepted.
+
 Fortunately, pandas offers more than one way to ensure that your column(s)
 contain only one ``dtype``. If you're unfamiliar with these concepts, you can
 see :ref:`here<basics.dtypes>` to learn more about dtypes, and
@@ -1209,7 +1213,7 @@ after a delimiter:
 The parsers make every attempt to "do the right thing" and not be fragile. Type
 inference is a pretty big deal. If a column can be coerced to integer dtype
 without altering the contents, the parser will do so. Any non-numeric
-columns will come through as object dtype as with the rest of pandas objects.
+columns will come through as strings.
 
 .. _io.quoting:
 
@@ -2223,6 +2227,7 @@ pandas type     Table Schema type
 =============== =================
 int64           integer
 float64         number
+complex128      object
 bool            boolean
 datetime64[ns]  datetime
 timedelta64[ns] duration
@@ -2344,7 +2349,8 @@ for extension types (e.g. ``read_json(df.to_json(orient="table"), orient="table"
 
 The ``extDtype`` key carries the name of the extension, if you have properly registered
 the ``ExtensionDtype``, pandas will use said name to perform a lookup into the registry
-and re-convert the serialized data into your custom dtype.
+and re-convert the serialized data into your custom dtype. Complex columns also use
+this key, with the name of their NumPy dtype.
 
 .. _Table Schema: https://specs.frictionlessdata.io/table-schema/
 
@@ -3718,6 +3724,25 @@ engine. For this, it is important to know which function pandas is using interna
 * For the engine xlsxwriter, pandas is using :func:`xlsxwriter.Workbook` to write to (``.xlsx``) files.
 
 * For the engine odf, pandas is using :func:`odf.opendocument.OpenDocumentSpreadsheet` to write to (``.ods``) files.
+
+.. warning::
+
+   The openpyxl and xlsxwriter engines write strings starting with ``=`` as
+   formulas, which Excel evaluates when the file is opened. Writing untrusted
+   data this way can lead to formula injection, and such strings do not
+   round-trip through :func:`read_excel`. xlsxwriter can write them as text
+   instead (openpyxl has no equivalent option), though it still writes
+   ``{=...}`` strings as array formulas; pass the option where the writer is
+   created:
+
+   .. code-block:: python
+
+      with pd.ExcelWriter(
+          "path_to_file.xlsx",
+          engine="xlsxwriter",
+          engine_kwargs={"options": {"strings_to_formulas": False}},
+      ) as writer:
+          df.to_excel(writer)
 
 Writing Excel files to memory
 +++++++++++++++++++++++++++++

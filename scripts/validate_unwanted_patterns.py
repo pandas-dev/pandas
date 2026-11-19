@@ -24,7 +24,6 @@ PRIVATE_IMPORTS_TO_IGNORE: set[str] = {
     "__main__",
     "_get_plot_backend",
     "_matplotlib",
-    "_arrow_utils",
     "_registry",
     "_test_parse_iso8601",
     "_testing",
