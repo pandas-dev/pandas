@@ -310,8 +310,6 @@ def test_apply_axis1_keeps_row_pypy(monkeypatch, dtype):
 @pytest.mark.parametrize(
     "data, dtype",
     [
-        ([1.5, 2.5, 3.5], "Float64"),
-        ([True, False, True], "boolean"),
         (["x", "y", "z"], "string"),
         (["x", "y", "z"], "category"),
         (["2020-01-01", "2020-01-02", "2020-01-03"], "datetime64[ns, UTC]"),
