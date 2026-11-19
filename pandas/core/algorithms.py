@@ -1630,7 +1630,9 @@ def searchsorted_na_last(
     value = extract_array(value, extract_numpy=True)
     if not isinstance(value, (np.ndarray, ABCExtensionArray)):
         # a list holding pd.NA, None or NaT infers object
-        value = np.asarray(value)
+        arr = np.asarray(value)
+        # numpy turns NaN into "nan" when it infers a str dtype
+        value = np.asarray(value, dtype=object) if arr.dtype.kind == "U" else arr
     if isinstance(value, np.ndarray) and value.dtype != object:
         # leave NaN and NaT in a non-object ndarray to search
         return search(value)

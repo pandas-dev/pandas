@@ -185,8 +185,13 @@ class TestSeriesSearchSorted:
         na_value = string_dtype_no_object.na_value
         assert ser.searchsorted(na_value) == 3
 
+        expected = np.array([1, 3], dtype=np.intp)
         result = ser.searchsorted(pd.array(["b", na_value], dtype=ser.dtype))
-        tm.assert_numpy_array_equal(result, np.array([1, 3], dtype=np.intp))
+        tm.assert_numpy_array_equal(result, expected)
+        result = ser.searchsorted(["b", na_value])
+        tm.assert_numpy_array_equal(result, expected)
+        result = ser.searchsorted(["b", np.nan])
+        tm.assert_numpy_array_equal(result, expected)
 
     def test_searchsorted_nullable_value_beyond_float_precision(self):
         # GH#63938 the non-missing values are not cast to float
