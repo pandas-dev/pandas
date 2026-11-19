@@ -3175,3 +3175,22 @@ def test_stack_extension_big_ints_with_na(dtype):
         index=pd.MultiIndex.from_product([range(3), ["a", "b"]]),
     )
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.filterwarnings("ignore:The previous implementation of stack is deprecated")
+def test_stack_differing_extension_dtypes(future_stack):
+    # GH#22791 values that collide as float64 keep their identity
+    df = pd.DataFrame(
+        {
+            "a": pd.array([2**60 + 1, None], dtype="Int64"),
+            "b": pd.array([1, 2], dtype="Int32"),
+        }
+    )
+    kwargs = {} if future_stack else {"dropna": False}
+    result = df.stack(future_stack=future_stack, **kwargs)
+    expected = pd.Series(
+        [2**60 + 1, 1, pd.NA, 2],
+        index=pd.MultiIndex.from_product([range(2), ["a", "b"]]),
+        dtype=object,
+    )
+    tm.assert_series_equal(result, expected)

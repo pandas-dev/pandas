@@ -456,7 +456,8 @@ class BaseBlockManager(PandasObject):
                             if col.dtype == b.dtype:
                                 kwargs[k] = col
                                 continue
-                        kwargs[k] = obj.iloc[:, b.mgr_locs.indexer]._values
+                        sliced = obj.iloc[:, b.mgr_locs.indexer]
+                        kwargs[k] = sliced._values_ea_as_object
                     else:
                         # otherwise we have an ndarray
                         kwargs[k] = obj[b.mgr_locs.indexer]
@@ -1968,8 +1969,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                 dtype,  # type: ignore[arg-type]
             )
 
-            if isinstance(dtype, ExtensionDtype) and not isinstance(dtype, SparseDtype):
-                # GH#22791
+            if self._interleaves_by_column():
                 result = self._interleave_by_column(na_value)
                 if result is not None:
                     return result
@@ -2013,13 +2013,23 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 
         return result
 
+    def _interleaves_by_column(self) -> bool:
+        """
+        Whether ``as_array`` without a dtype tries converting each column with
+        its own ``to_numpy``, which can lose NAs and precision (GH#22791).
+        """
+        if len(self.blocks) < 2:
+            return False
+        dtype = self._get_interleaved_dtype()
+        return isinstance(dtype, ExtensionDtype) and not isinstance(dtype, SparseDtype)
+
     def _interleave_by_column(self, na_value: object) -> np.ndarray | None:
         """
         Interleave using the dtype each column gets from its own ``to_numpy``.
 
-        Returns None if the result would be object, or would need ``na_value``
-        filled in and is not a float array that can hold it; the caller then
-        falls back to an object result.
+        Returns None if the result would be object, would mix datetimelike
+        units, or would need ``na_value`` filled in and is not a float array
+        that can hold it; the caller then falls back to an object result.
         """
         arrays: list[np.ndarray] = []
         for blk in self.blocks:
@@ -2035,6 +2045,9 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         np_dtype = find_common_type([arr.dtype for arr in arrays])
         if np_dtype == object:
             # defer to the object fallback so object results are unchanged
+            return None
+        if np_dtype.kind in "mM" and any(arr.dtype != np_dtype for arr in arrays):
+            # casting to a finer unit can overflow
             return None
         result = np.empty(self.shape, dtype=np_dtype)
         for blk, arr in zip(self.blocks, arrays, strict=True):

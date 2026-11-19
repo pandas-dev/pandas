@@ -110,6 +110,21 @@ class TestToNumpy:
         )
         tm.assert_numpy_array_equal(df.to_numpy(), expected)
 
+    @pytest.mark.parametrize("kind", ["timestamp", "duration"])
+    def test_to_numpy_extension_columns_mixed_datetime_units(self, kind):
+        # GH#22791 casting to the finer unit would overflow
+        pa = pytest.importorskip("pyarrow")
+        pa_type = getattr(pa, kind)
+        df = pd.DataFrame(
+            {
+                "a": pd.array([10**11], dtype=pd.ArrowDtype(pa_type("s"))),
+                "b": pd.array([0], dtype=pd.ArrowDtype(pa_type("ns"))),
+            }
+        )
+        box = pd.Timestamp if kind == "timestamp" else pd.Timedelta
+        expected = np.array([[box(10**11, unit="s"), box(0)]], dtype=object)
+        tm.assert_numpy_array_equal(df.to_numpy(), expected)
+
     def test_to_numpy_copy(self):
         arr = np.random.default_rng(2).standard_normal((4, 3))
         df = pd.DataFrame(arr)
