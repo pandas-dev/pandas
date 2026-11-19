@@ -1320,7 +1320,7 @@ class TestLocBaseIndependent:
 
     @pytest.mark.parametrize("dtype", [object, "int64", "Int64"])
     @pytest.mark.parametrize("method, key", [("loc", "x"), ("iloc", 0)])
-    @pytest.mark.parametrize("box", [list, np.array])
+    @pytest.mark.parametrize("box", [list, tuple, np.array, pd.Series])
     def test_setitem_empty_append_expands_rows_length_one(
         self, dtype, method, key, box
     ):
