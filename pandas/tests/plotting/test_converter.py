@@ -300,6 +300,23 @@ class TestPeriodConverter:
             assert pc.convert(value, None, axis) == expected
             assert pc.convert([value], None, axis)[0] == expected
 
+    @pytest.mark.parametrize("freq", ["D", "2h", "15min", "ms"])
+    @pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+    @pytest.mark.parametrize("tz", [None, "US/Eastern"])
+    def test_convert_datetimeindex_matches_scalar(self, pc, axis, freq, unit, tz):
+        # GH#18467 the vectorized DatetimeIndex path matches the scalar path
+        dti = pd.DatetimeIndex(
+            ["1960-01-02 03:04:05.006007", pd.NaT, "2012-06-07 08:09:10.011012"]
+        ).as_unit(unit)
+        if tz is not None:
+            dti = dti.tz_localize(tz)
+        axis.freq = freq
+        result = np.asarray(pc.convert(dti, None, axis))
+        expected = np.array(
+            [pc.convert(val, None, axis) for val in dti], dtype=np.float64
+        )
+        tm.assert_numpy_array_equal(result, expected)
+
     def test_conversion(self, pc, axis):
         rs = pc.convert(["2012-1-1"], None, axis)[0]
         xp = pd.Period("2012-1-1").ordinal

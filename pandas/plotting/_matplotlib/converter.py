@@ -323,6 +323,19 @@ class PeriodConverter(mdates.DateConverter):
                 # Return ordinals directly; asfreq would create Period[B].
                 return values.asi8
             return values.asfreq(freq).asi8
+        elif (
+            isinstance(values, DatetimeIndex)
+            and FreqGroup.from_period_dtype_code(dtype_code).value
+            >= FreqGroup.FR_DAY.value
+            and freq.base.nanos % Timedelta(1, unit=values.unit).value == 0
+        ):
+            # vectorized _get_datevalue, with the same float arithmetic
+            base = freq.base.nanos // Timedelta(1, unit=values.unit).value
+            i8values = values.tz_localize(None).asi8
+            ordinals = i8values // base
+            result = ordinals + (i8values - ordinals * base) / base
+            result[values.isna()] = np.nan
+            return result
         elif isinstance(values, Index):
             return values.map(lambda x: _get_datevalue(x, freq))
         elif isinstance(values, np.ndarray) and values.dtype.kind in "iuf":
