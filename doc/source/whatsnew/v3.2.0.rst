@@ -420,7 +420,7 @@ I/O
 - Bug in :meth:`HDFStore.select` and :meth:`HDFStore.select_as_multiple` returning the wrong rows when combining ``where`` with ``start`` or ``stop`` and ``chunksize`` or ``iterator`` (:issue:`71278`)
 - Bug in :meth:`Series.to_json` with ``orient="table"`` writing a falsy :class:`Series` name such as ``0``, ``False`` or ``""`` as ``"values"`` (:issue:`19129`)
 - Bug where the pickled bytes (e.g. for ``joblib.hash``) of a :class:`Series`, :class:`DataFrame` or :class:`Index` with datetimelike or extension-dtype data depended on which operations had previously been run on it (:issue:`49170`)
-- Fixed :meth:`DataFrame.to_json` and :meth:`Series.to_json` silently writing ``-1`` for a field of a ``datetime`` subclass whose ``year``, ``hour`` or other field is not an integer; this now raises ``TypeError`` (:issue:`49756`)
+- Fixed :meth:`DataFrame.to_json` and :meth:`Series.to_json` silently writing ``-1`` for a non-integer field of a ``datetime`` subclass; this now raises ``TypeError`` (:issue:`49756`)
 - Fixed a segfault in :func:`read_csv` with the C engine when looking up the ``read`` method of a file-like object raises (:issue:`49756`)
 - Fixed a segfault in :meth:`DataFrame.to_json` and :meth:`Series.to_json` with ``date_format="iso"`` when datetime conversion raises an exception (:issue:`69461`)
 - Fixed a segfault in :meth:`DataFrame.to_json` when getting a column's values raises (:issue:`49756`)
