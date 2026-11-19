@@ -16,6 +16,7 @@ from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.common import (
+    is_bool,
     is_bool_dtype,
     is_list_like,
 )
@@ -307,7 +308,7 @@ class _BaseXMLFormatter:
                     val = d[col]
                     elem_row.attrib[attr_name] = (
                         ("true" if val else "false")
-                        if col in self._bool_cols
+                        if col in self._bool_cols and is_bool(val)
                         else str(val)
                     )
             except KeyError as err:
@@ -347,7 +348,7 @@ class _BaseXMLFormatter:
             try:
                 if isna(d[col]) or d[col] == "":
                     val = None
-                elif col in self._bool_cols:
+                elif col in self._bool_cols and is_bool(d[col]):
                     val = "true" if d[col] else "false"
                 else:
                     val = str(d[col])
