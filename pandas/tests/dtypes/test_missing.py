@@ -741,7 +741,9 @@ def test_array_equivalent_nan_in_sequence_self_referential(strict_nan):
     left_list.append(left_list)
     right_list = [float("nan")]
     right_list.append(right_list)
-    with pytest.raises(RecursionError, match="maximum recursion depth"):
+    with pytest.raises(
+        RecursionError, match="(maximum recursion depth|Stack overflow)"
+    ):
         array_equivalent(
             _nest_object(left_list), _nest_object(right_list), strict_nan=strict_nan
         )
