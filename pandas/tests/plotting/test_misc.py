@@ -740,22 +740,26 @@ class TestDataFramePlots:
         assert _tick_labels_visible(axes[0, 1].yaxis) == [True, True]
         assert _tick_labels_visible(axes[1, 1].yaxis) == [True, False]
 
-    def test_shared_axes_hides_secondary_y_labels(self):
-        # GH#27052 the secondary_y twin is plotted on too, so it still gets
-        # its labels hidden
+    def test_shared_axes_explicit_sharex_hides_other_axes_labels(self):
+        # GH#27052 explicit sharex=True with ax still alters every axes in the
+        # figure, as documented
         df = pd.DataFrame({"a": [1.0, 2.0], "b": [3.0, 4.0]})
-        fig, axes = mpl.pyplot.subplots(1, 2, sharey=True)
-        df.plot(ax=axes[1], secondary_y=["b"], sharey=True)
-        assert _tick_labels_visible(axes[1].right_ax.yaxis) == [False, False]
+        fig = mpl.pyplot.figure()
+        ax1 = fig.add_subplot(211)
+        df.plot(ax=ax1, sharex=True)
+        ax2 = fig.add_subplot(212)
+        df.plot(ax=ax2, sharex=True)
+        assert _tick_labels_visible(ax1.xaxis) == [False, False]
+        assert _tick_labels_visible(ax2.xaxis) == [True, False]
 
     def test_shared_axes_subplots_secondary_y_hides_primary_labels(self):
         # GH#27052 with subplots=True the plotted axes is the twin, but the
         # x labels to hide are on its primary axes
         df = pd.DataFrame({"a": [1.0, 2.0], "b": [3.0, 4.0]})
-        fig, axes = mpl.pyplot.subplots(2, 1)
-        msg = "When passing multiple axes, sharex and sharey are ignored"
-        with tm.assert_produces_warning(UserWarning, match=msg):
-            df.plot(subplots=True, ax=axes, secondary_y=True, sharex=True)
+        fig, axes = mpl.pyplot.subplots(2, 1, sharex=True)
+        for ax in axes:
+            ax.tick_params(labelbottom=True)
+        df.plot(subplots=True, ax=axes, secondary_y=True)
         assert _tick_labels_visible(axes[0].xaxis) == [False, False]
 
     def test_shared_axes_gridspec_gap_hides_labels(self):

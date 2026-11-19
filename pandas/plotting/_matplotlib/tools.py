@@ -432,9 +432,8 @@ def handle_shared_axes(
             except IndexError:
                 # if gridspec is used, ax.rowNum and ax.colNum may different
                 # from layout shape. in this case, use last_row logic
-                interior = [
-                    ax for ax in axarr if not ax.get_subplotspec().is_last_row()
-                ]
+                is_last_row = lambda x: x.get_subplotspec().is_last_row()
+                interior = [ax for ax in axarr if not is_last_row(ax)]
 
             for ax in targets:
                 if ax in interior and (sharex or _has_externally_shared_axis(ax, "x")):
