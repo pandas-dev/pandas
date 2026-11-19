@@ -1408,12 +1408,16 @@ When none of the built-in offsets fits, you can subclass
 :class:`~pandas.tseries.offsets.BaseOffset` and define:
 
 * ``_add_datetime(self, other)``, which receives a :class:`Timestamp` and returns the
-  :class:`Timestamp` ``self.n`` steps away. For ``n <= 0``, rolling back onto the offset
-  counts as the first step, as in the built-in offsets.
+  :class:`Timestamp` ``self.n`` steps away. As in the built-in offsets, for ``n < 0``
+  rolling back onto the offset counts as the first step, and ``n == 0`` rolls forward.
   This implements ``+`` and ``-`` and is used by :func:`date_range`.
 * ``is_on_offset(self, dt)``, which ``rollback``, ``rollforward`` and :func:`date_range`
   use to tell whether ``dt`` already falls on the offset.
-* ``_prefix``, the name shown in the offset's ``freqstr``.
+* ``_prefix``, the name shown in the offset's ``freqstr``. It is not registered as a
+  frequency string, so pass the offset object itself as ``freq``.
+
+``+`` and ``-`` honor ``normalize=True`` only if ``_add_datetime`` checks
+``self.normalize``; the example below does not.
 
 For example, an offset stepping through dekads, the periods starting on the 1st, 11th
 and 21st of each month:

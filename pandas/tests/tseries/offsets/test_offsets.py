@@ -896,7 +896,7 @@ class Dekad(BaseOffset):
         slot = min((other.day - 1) // 10, 2)
         n = self.n
         if n <= 0 and other.day != 1 + 10 * slot:
-            # rolling back to the start of the current dekad is the first step
+            # off the offset, rolling back (n < 0) or forward (n == 0) is step one
             n += 1
         months, slot = divmod(slot + n, 3)
         result = other.replace(day=1) + DateOffset(months=months)
@@ -913,9 +913,13 @@ def test_custom_baseoffset_subclass(performance_warning):
     assert ts + Dekad() == Timestamp("2024-02-01 05:00")
     assert ts + Dekad(4) == Timestamp("2024-03-01 05:00")
     assert ts - Dekad() == Timestamp("2024-01-21 05:00")
+    assert ts + Dekad(0) == Timestamp("2024-02-01 05:00")
+    assert Timestamp("2024-01-21 05:00") + Dekad(0) == Timestamp("2024-01-21 05:00")
     assert Dekad().rollback(ts) == Timestamp("2024-01-21 05:00")
     assert Dekad().rollforward(ts) == Timestamp("2024-02-01 05:00")
     assert Dekad(3).freqstr == "3DEKAD"
+    with pytest.raises(ValueError, match="Invalid frequency: DEKAD"):
+        to_offset("DEKAD")
 
     result = pd.date_range("2024-01-05", periods=4, freq=Dekad())
     expected = pd.DatetimeIndex(
