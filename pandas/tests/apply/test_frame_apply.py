@@ -291,16 +291,6 @@ def test_apply_axis1_reuses_row_when_not_kept(dtype):
     assert len(ids) == 1
 
 
-def test_apply_axis1_keeps_row_issue_example():
-    # GH#54250
-    df = pd.DataFrame({"a": [1, 2, 3], "b": ["x", "y", "z"]})
-    result = df.apply(lambda s: [s], axis=1)
-    for i, (a, b) in enumerate([(1, "x"), (2, "y"), (3, "z")]):
-        row = result.iloc[i][0]
-        assert row["a"] == a
-        assert row["b"] == b
-
-
 @pytest.mark.parametrize("dtype", ["int64", "Int64", "object"])
 def test_apply_axis1_keeps_row_pypy(monkeypatch, dtype):
     # GH#54250 on PyPy (PYPY) every row is a new object

@@ -989,9 +989,7 @@ class NDFrameApply(Apply):
 class FrameApply(NDFrameApply):
     obj: DataFrame
 
-    # Set by apply_series_generator after each call to func: True when func kept a
-    # reference to the row it was given (GH#54250), so FrameColumnApply's
-    # series_generator must not overwrite that row in place.
+    # Whether func kept the last row it was given; see apply_series_generator
     _row_leaked: bool = False
 
     def __init__(
@@ -1663,8 +1661,7 @@ class FrameColumnApply(FrameApply):
                 yield ser
 
     def _new_row(self, mgr: SingleBlockManager) -> tuple[Series, SingleBlockManager]:
-        # GH#54250 func kept the previous row; give the next rows a new Series
-        # (new manager and block) so the kept one is never overwritten
+        # new Series (new manager and block) so a row func kept isn't overwritten
         ser = self.obj._constructor_sliced_from_mgr(
             mgr.copy(deep=False), axes=mgr.axes
         ).__finalize__(self.obj)
