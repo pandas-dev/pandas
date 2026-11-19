@@ -3508,7 +3508,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             left = self.reindex(index=common)
             right = other.reindex(index=common)
             lvals = left.values
-            rvals = right.values
+            if isinstance(right, ABCDataFrame):
+                rvals = np.asarray(right._values_ea_as_object)
+            else:
+                rvals = right.values
         else:
             lvals = self.values
             rvals = np.asarray(other)

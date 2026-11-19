@@ -75,7 +75,7 @@ def table(
     if colLabels is None:
         colLabels = data.columns
 
-    cellText = data.values
+    cellText = np.asarray(data._values_ea_as_object)
 
     # error: Argument "cellText" to "table" has incompatible type "ndarray[Any,
     # Any]"; expected "Sequence[Sequence[str]] | None"
