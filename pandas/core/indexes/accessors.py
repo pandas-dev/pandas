@@ -319,9 +319,13 @@ class ArrowTemporalProperties(PandasDelegate, PandasObject, NoNewAttributesMixin
             ._dt_isocalendar()
             ._pa_array.combine_chunks()
         )
+        # GH#72217: flatten() applies the struct array's null bitmap to
+        # the child arrays, while field(i) returns the raw child values
+        # with 0 in place of missing values.
+        flattened = result.flatten()
         iso_calendar_df = DataFrame(
             {
-                col: type(self._parent.array)(result.field(i))  # type: ignore[call-arg]
+                col: type(self._parent.array)(flattened[i])  # type: ignore[call-arg]
                 for i, col in enumerate(["year", "week", "day"])
             },
             index=self._parent.index,
