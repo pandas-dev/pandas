@@ -898,6 +898,24 @@ class TestReprHTML:
             result = df._repr_html_()
         assert result == expected
 
+        # GH#30727 to_html accepts min_rows directly
+        result = df.to_html(
+            max_rows=max_rows,
+            min_rows=min_rows,
+            show_dimensions="truncate",
+            notebook=True,
+        )
+        assert result == expected
+
+    def test_repr_html_uses_to_html(self):
+        # GH#30727 overriding to_html also changes the notebook repr
+        class SubclassedDataFrame(pd.DataFrame):
+            def to_html(self, **kwargs):
+                return f"custom {kwargs['notebook']}"
+
+        df = SubclassedDataFrame({"a": [1, 2]})
+        assert df._repr_html_() == "custom True"
+
     def test_repr_html_ipython_config(self, ip):
         code = textwrap.dedent(
             """\
