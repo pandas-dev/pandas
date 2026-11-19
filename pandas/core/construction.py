@@ -96,8 +96,9 @@ def array(
     ----------
     data : Sequence of objects
         The scalars inside `data` should be instances of the
-        scalar type for `dtype`. It's expected that `data`
-        represents a 1-dimensional array of data.
+        scalar type for `dtype`. `data` is generally expected to
+        represent a 1-dimensional array, although some explicitly specified
+        NumPy dtypes may preserve the input's multidimensional shape.
 
         When `data` is an Index or Series, the underlying array
         will be extracted from `data`.
@@ -153,7 +154,8 @@ def array(
     Raises
     ------
     ValueError
-        When `data` is not 1-dimensional.
+        When `data` is not 1-dimensional and the selected dtype does not support
+        multidimensional data.
 
     See Also
     --------
@@ -195,6 +197,17 @@ def array(
     <NumpyExtensionArray>
     ['a', 'b']
     Length: 2, dtype: str32
+
+    An explicitly specified NumPy dtype can result in a multidimensional
+    :class:`arrays.NumpyExtensionArray` when `data` is multidimensional.
+
+    >>> pd.array([[1, 2], [3, 4]], dtype=np.dtype("int64"))
+    <NumpyExtensionArray>
+    [
+    [1, 2],
+    [3, 4]
+    ]
+    Shape: (2, 2), dtype: int64
 
     pandas converts entries of a multidimensional sequence (excluding NumPy arrays)
     to its string representation if the ``dtype`` is a string data type.
@@ -447,12 +460,7 @@ def array(
             r"'s', 'ms', 'us', and 'ns' are no longer supported."
         )
 
-    result = NumpyExtensionArray._from_sequence(data, dtype=dtype, copy=copy)
-    if result.ndim > 1:
-        # GH#64280 pandas.array is documented to be 1-dimensional; an explicit
-        #  NumPy dtype otherwise silently produced a 2-D NumpyExtensionArray.
-        raise ValueError("'pandas.array' does not support multidimensional data")
-    return result
+    return NumpyExtensionArray._from_sequence(data, dtype=dtype, copy=copy)
 
 
 _typs = frozenset(
