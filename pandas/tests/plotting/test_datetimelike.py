@@ -41,6 +41,14 @@ plt = pytest.importorskip("matplotlib.pyplot")
 import pandas.plotting._matplotlib.converter as conv
 
 
+def _exact_x(dti, freq):
+    # Position of wall-clock timestamps on a daily-or-finer period axis, whose
+    #  ordinals count `freq` units since the epoch.
+    return (
+        (dti.tz_localize(None) - pd.Timestamp(0)) / pd.Timedelta(1, freq)
+    ).to_numpy()
+
+
 class TestTSPlot:
     def test_ts_plot_with_tz(self, tz_aware_fixture):
         # GH2877, GH17173, GH31205, GH31580
@@ -272,6 +280,63 @@ class TestTSPlot:
         assert [label.get_text() for label in ax.get_xticklabels()] == expected
         # pandas' minor labels ("Feb", "Mar", ...) no longer show between them
         assert not any(label.get_text() for label in ax.get_xticklabels(minor=True))
+
+    @pytest.mark.parametrize(
+        "freq, tick, expected",
+        [
+            ("h", "2015-01-01 03:20", "2015-01-01 03:20:00"),
+            ("D", "2015-01-02 12:00", "2015-01-02 12:00:00"),
+            ("ms", "2015-01-01 00:00:00.0045", "2015-01-01 00:00:00.004500"),
+            # before the epoch, ordinals are negative
+            ("D", "1960-01-02 12:00", "1960-01-02 12:00:00"),
+        ],
+    )
+    @pytest.mark.parametrize("via_kwarg", [True, False])
+    def test_user_set_xticks_between_periods_labeled(
+        self, freq, tick, expected, via_kwarg
+    ):
+        # GH#18467 a user's tick between periods is placed at its own time, and
+        #  labeled with it
+        ticks = [pd.Timestamp(tick)]
+        idx = date_range(ticks[0].floor("D"), periods=10, freq=freq)
+        ser = pd.Series(range(10), index=idx)
+        if via_kwarg:
+            ax = ser.plot(xticks=ticks)
+        else:
+            ax = ser.plot()
+            ax.set_xticks(ticks)
+        ax.get_figure().canvas.draw()
+
+        assert [label.get_text() for label in ax.get_xticklabels()] == [expected]
+
+    def test_user_set_major_locator_between_periods_unlabeled_intraday(self):
+        # GH#18467 only ticks placed by the user are labeled with their own time
+        idx = date_range("2015-01-01", periods=10, freq="h")
+        ax = pd.Series(range(10), index=idx).plot()
+        ax.xaxis.set_major_locator(mpl.ticker.MultipleLocator(0.5))
+        start = Period("2015-01-01 01:00", "h").ordinal
+        ax.set_xlim(start, start + 1)
+        ax.get_figure().canvas.draw()
+
+        labels = {
+            float(tick): label.get_text()
+            for tick, label in zip(ax.get_xticks(), ax.get_xticklabels(), strict=True)
+            if start <= tick <= start + 1
+        }
+        assert labels == {
+            start: "2015-01-01 01:00",
+            start + 0.5: "",
+            start + 1: "2015-01-01 02:00",
+        }
+
+    def test_user_set_xticks_numeric_between_periods_coarse_unlabeled(self):
+        # GH#18467 a coarse axis has no time between periods to label
+        idx = date_range("2015-01-01", periods=10, freq="MS")
+        ax = pd.Series(range(10), index=idx).plot()
+        ax.set_xticks([541.5])
+        ax.get_figure().canvas.draw()
+
+        assert [label.get_text() for label in ax.get_xticklabels()] == [""]
 
     def test_user_set_xticks_labeled_period_index(self):
         # GH#18881
@@ -1028,7 +1093,7 @@ class TestTSPlot:
         s2.plot(ax=ax, style="o")
         ax.plot(irreg_idx.to_pydatetime(), [1.0, 2.0, 3.0])
 
-        expected = irreg_idx.to_period(freq).asi8.astype(np.float64)
+        expected = _exact_x(irreg_idx, freq)
         lines = ax.get_lines()
         tm.assert_numpy_array_equal(lines[1].get_xdata(orig=False), expected)
         tm.assert_numpy_array_equal(lines[2].get_xdata(orig=False), expected)
@@ -1491,7 +1556,7 @@ class TestTSPlot:
     @pytest.mark.parametrize("layout", ["sharex", "twinx", "secondary_y"])
     def test_shared_ax_misaligned_freq_second(self, layout, tz):
         # GH#40470 timestamps off the daily grid are plotted as datetimes, which
-        # must land at the hourly ordinals already on the shared x-axis
+        # must land on the shared x-axis of hourly ordinals
         s1 = pd.Series(
             range(48), date_range("2020-11-08 09:00", periods=48, freq="h", tz=tz)
         )
@@ -1510,7 +1575,7 @@ class TestTSPlot:
         else:
             s2.plot(ax=ax2)
 
-        expected = s2.index.tz_localize(None).to_period("h").asi8.astype(np.float64)
+        expected = _exact_x(s2.index, "h")
         tm.assert_numpy_array_equal(ax2.lines[0].get_xdata(orig=False), expected)
 
     @pytest.mark.parametrize("layout", ["sharex", "twinx", "secondary_y"])
@@ -1545,7 +1610,7 @@ class TestTSPlot:
         s1.plot(ax=ax1)
         df.plot.scatter(x="x", y="y", ax=ax2)
 
-        expected = dti.to_period("h").asi8.astype(np.float64)
+        expected = _exact_x(dti, "h")
         offsets = np.asarray(ax2.collections[0].get_offsets())
         tm.assert_numpy_array_equal(offsets[:, 0], expected)
 
@@ -1563,8 +1628,7 @@ class TestTSPlot:
         s1.plot(ax=ax1)
         s2.plot(ax=ax2)
 
-        expected = dti.to_period("h").asi8.astype(np.float64)
-        expected[1] = np.nan
+        expected = _exact_x(dti, "h")
         tm.assert_numpy_array_equal(ax2.lines[-1].get_xdata(orig=False), expected)
 
     @pytest.mark.parametrize("cleared", ["source", "target"])
@@ -2883,10 +2947,35 @@ def test_ts_plot_tz_aware_off_grid_onto_regular(freq):
 
     result = ax.get_lines()[1].get_xdata(orig=False)
     if freq == "B":
-        expected = conv.bday_count_array(off_grid.values)
+        expected = conv.bday_count_array(off_grid.values).astype(np.float64)
     else:
-        expected = off_grid.to_period(freq).asi8
-    tm.assert_numpy_array_equal(result, expected.astype(np.float64))
+        expected = _exact_x(off_grid, freq)
+    tm.assert_numpy_array_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "freq, shifted",
+    [
+        # GH#18467: regular but off the axis grid, e.g. resample with offset labels
+        ("h", date_range("2017-06-06 00:30", periods=10, freq="h")),
+        ("D", date_range("2017-06-06 12:00", periods=10, freq="D")),
+        # irregular
+        (
+            "h",
+            DatetimeIndex(["2017-06-06 01:10", "2017-06-06 02:00", "2017-06-06 05:45"]),
+        ),
+        ("D", DatetimeIndex(["2017-06-07 06:00", "2017-06-08", "2017-06-10 18:00"])),
+    ],
+)
+def test_ts_plot_off_grid_onto_regular_exact(freq, shifted):
+    # GH#18467 off-grid points were floored onto the period of the first line
+    index = date_range("2017-06-06", periods=10, freq=freq)
+    _, ax = mpl.pyplot.subplots()
+    pd.Series(np.arange(10.0), index=index).plot(ax=ax)
+    pd.Series(np.arange(len(shifted), dtype=np.float64), index=shifted).plot(ax=ax)
+
+    result = ax.get_lines()[1].get_xdata(orig=False)
+    tm.assert_numpy_array_equal(result, _exact_x(shifted, freq))
 
 
 @pytest.mark.parametrize("arrow", [False, True])
