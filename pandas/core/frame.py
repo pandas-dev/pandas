@@ -116,6 +116,7 @@ from pandas.core.dtypes.dtypes import (
     ExtensionDtype,
     IntervalDtype,
     NumpyEADtype,
+    SparseDtype,
 )
 from pandas.core.dtypes.generic import (
     ABCIndex,
@@ -4193,7 +4194,11 @@ class DataFrame(NDFrame, OpsMixin):
             else:
                 # We have other EAs with the same dtype. We preserve dtype in transpose.
                 arr_typ = first_dtype.construct_array_type()
-                values = self.values
+                if isinstance(first_dtype, SparseDtype):
+                    values = self.values
+                else:
+                    # GH#22791 the default values can be lossy
+                    values = self.to_numpy(dtype=object)
                 new_values = [
                     arr_typ._from_sequence(row, dtype=first_dtype) for row in values
                 ]

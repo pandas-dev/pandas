@@ -31,7 +31,10 @@ from pandas.core.dtypes.common import (
     is_integer,
     needs_i8_conversion,
 )
-from pandas.core.dtypes.dtypes import ExtensionDtype
+from pandas.core.dtypes.dtypes import (
+    ExtensionDtype,
+    SparseDtype,
+)
 from pandas.core.dtypes.missing import (
     isna,
     notna,
@@ -1022,9 +1025,17 @@ def stack_v3(frame: DataFrame, level: list[int]) -> Series | DataFrame:
             dtype = frame._mgr.blocks[0].dtype
         else:
             dtype = None
-        result = frame._constructor_sliced(
-            frame._values.reshape(-1, order="F"), dtype=dtype
-        )
+        if (
+            isinstance(dtype, ExtensionDtype)
+            and not isinstance(dtype, SparseDtype)
+            and len(frame._mgr.blocks) > 1
+        ):
+            # GH#22791 the default values can be lossy; a single 2D block's
+            #  values are exact and much faster to stack
+            values = frame.to_numpy(dtype=object)
+        else:
+            values = frame._values
+        result = frame._constructor_sliced(values.reshape(-1, order="F"), dtype=dtype)
     else:
         result = stack_reshape(frame, level, set_levels, stack_cols)
 

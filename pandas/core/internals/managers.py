@@ -29,6 +29,7 @@ from pandas._libs.internals import (
 from pandas._libs.tslibs import Timestamp
 from pandas.errors import (
     AbstractMethodError,
+    LossySetitemError,
     PerformanceWarning,
 )
 from pandas.util._decorators import cache_readonly
@@ -132,8 +133,6 @@ def interleaved_dtype(dtypes: list[DtypeObj]) -> DtypeObj | None:
 
 
 def ensure_np_dtype(dtype: DtypeObj) -> np.dtype:
-    # TODO: https://github.com/pandas-dev/pandas/issues/22791
-    # Give EAs some input on what happens here. Sparse needs this.
     if isinstance(dtype, SparseDtype):
         dtype = dtype.subtype
         dtype = cast("np.dtype", dtype)
@@ -1969,6 +1968,12 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                 dtype,  # type: ignore[arg-type]
             )
 
+            if isinstance(dtype, ExtensionDtype) and not isinstance(dtype, SparseDtype):
+                # GH#22791
+                result = self._interleave_by_column(na_value)
+                if result is not None:
+                    return result
+
         # error: Argument 1 to "ensure_np_dtype" has incompatible type
         # "Optional[dtype[Any]]"; expected "Union[dtype[Any], ExtensionDtype]"
         dtype = ensure_np_dtype(dtype)  # type: ignore[arg-type]
@@ -2006,6 +2011,43 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         if not itemmask.all():
             raise AssertionError("Some items were not contained in blocks")
 
+        return result
+
+    def _interleave_by_column(self, na_value: object) -> np.ndarray | None:
+        """
+        Interleave using the dtype each column gets from its own ``to_numpy``.
+
+        Returns None if the result would be object, or would need ``na_value``
+        filled in and is not a float array that can hold it; the caller then
+        falls back to an object result.
+        """
+        arrays: list[np.ndarray] = []
+        for blk in self.blocks:
+            if blk.is_extension:
+                arr = blk.values.to_numpy()  # type: ignore[union-attr]
+            else:
+                arr = blk.values
+            if arr.dtype == object:
+                # the result would be object; skip converting the other columns
+                return None
+            arrays.append(arr)
+
+        np_dtype = find_common_type([arr.dtype for arr in arrays])
+        if np_dtype == object:
+            # defer to the object fallback so object results are unchanged
+            return None
+        result = np.empty(self.shape, dtype=np_dtype)
+        for blk, arr in zip(self.blocks, arrays, strict=True):
+            result[blk.mgr_locs.indexer] = arr
+
+        if na_value is not lib.no_default and isna(result).any():
+            # as_array fills in na_value afterwards
+            if result.dtype.kind != "f":
+                return None
+            try:
+                np_can_hold_element(result.dtype, na_value)
+            except LossySetitemError:
+                return None
         return result
 
     # ----------------------------------------------------------------
