@@ -5,6 +5,7 @@ from collections import defaultdict
 import functools
 from functools import partial
 import inspect
+import sys
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -98,6 +99,7 @@ if TYPE_CHECKING:
     )
     from pandas.core.groupby import GroupBy
     from pandas.core.groupby.groupby import BaseGroupBy
+    from pandas.core.internals import SingleBlockManager
     from pandas.core.resample import Resampler
     from pandas.core.window.rolling import BaseWindow
 
@@ -986,6 +988,11 @@ class NDFrameApply(Apply):
 class FrameApply(NDFrameApply):
     obj: DataFrame
 
+    # Set by apply_series_generator after each call to func: True when func kept a
+    # reference to the row it was given (GH#54250), so FrameColumnApply's
+    # series_generator must not overwrite that row in place.
+    _row_leaked: bool = False
+
     def __init__(
         self,
         obj: AggObjType,
@@ -1379,12 +1386,20 @@ class FrameApply(NDFrameApply):
 
         results = {}
 
+        # GH#54250: series_generator reuses one row object; compare refcounts
+        # (same frame, so interpreter-internal references cancel out) to see
+        # whether func kept the row. Without refcounts (PyPy) assume it did.
+        has_refcount = hasattr(sys, "getrefcount")
+        refcount = 0
         for i, v in enumerate(series_gen):
+            if has_refcount:
+                refcount = sys.getrefcount(v)
             results[i] = self.func(v, *self.args, **self.kwargs)
             if isinstance(results[i], ABCSeries):
                 # If we have a view on v, we need to make a copy because
                 #  series_generator will swap out the underlying data
                 results[i] = results[i].copy(deep=False)
+            self._row_leaked = not has_refcount or sys.getrefcount(v) > refcount
 
         return results, res_index
 
@@ -1612,6 +1627,11 @@ class FrameColumnApply(FrameApply):
 
             blk = mgr.blocks[0]
             for row_idx in range(len(obj)):
+                if self._row_leaked:
+                    ser, mgr = self._new_row(mgr)
+                    blk = mgr.blocks[0]
+                    # a new block has no cache yet; create it for the pop below
+                    blk._cache = {}
                 ser._mgr = mgr
                 mgr.set_values(build_row(row_idx))
                 # EABackedBlock.array_values is @cache_readonly;
@@ -1626,6 +1646,8 @@ class FrameColumnApply(FrameApply):
             values = ensure_wrapped_if_datetimelike(values)
 
             for arr, name in zip(values, self.index, strict=True):
+                if self._row_leaked:
+                    ser, mgr = self._new_row(mgr)
                 # GH#35462 re-pin mgr in case setitem changed it
                 ser._mgr = mgr
                 mgr.set_values(arr)
@@ -1639,6 +1661,14 @@ class FrameColumnApply(FrameApply):
                     # applied function (https://github.com/pandas-dev/pandas/pull/56212)
                     mgr.blocks[0].refs = BlockValuesRefs(mgr.blocks[0])
                 yield ser
+
+    def _new_row(self, mgr: SingleBlockManager) -> tuple[Series, SingleBlockManager]:
+        # GH#54250 func kept the previous row; give the next rows a new Series
+        # (new manager and block) so the kept one is never overwritten
+        ser = self.obj._constructor_sliced_from_mgr(
+            mgr.copy(deep=False), axes=mgr.axes
+        ).__finalize__(self.obj)
+        return ser, ser._mgr
 
     @staticmethod
     def _make_ea_row_builder(

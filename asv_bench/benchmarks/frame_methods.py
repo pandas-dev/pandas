@@ -529,6 +529,9 @@ class Apply:
     def time_apply_axis_1(self):
         self.df.apply(lambda x: x + 1, axis=1)
 
+    def time_apply_axis_1_keep_row(self):
+        self.df.apply(lambda x: [x], axis=1)
+
     def time_apply_lambda_mean(self):
         self.df.apply(lambda x: x.mean())
 
