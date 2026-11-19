@@ -22,6 +22,7 @@ import functools
 from io import StringIO
 import itertools
 import operator
+import reprlib
 import sys
 from typing import (
     TYPE_CHECKING,
@@ -969,6 +970,7 @@ class DataFrame(NDFrame, OpsMixin):
             self._repr_fits_horizontal_() and self._repr_fits_vertical_()
         )
 
+    @reprlib.recursive_repr("...")  # GH#25833
     def __repr__(self) -> str:
         """
         Return a string representation for a particular DataFrame.
