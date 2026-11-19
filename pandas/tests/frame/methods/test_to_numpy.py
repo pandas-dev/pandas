@@ -34,6 +34,82 @@ class TestToNumpy:
         expected = df.to_numpy()
         tm.assert_numpy_array_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "dtype, expected_dtype",
+        [
+            ("Int64", "int64"),
+            ("Float64", "float64"),
+            ("boolean", "bool"),
+            ("category", "int64"),
+            ("int64[pyarrow]", "int64"),
+        ],
+    )
+    def test_to_numpy_multiple_extension_columns(self, dtype, expected_dtype):
+        # GH#22791 match the dtype a single column converts to
+        if "pyarrow" in dtype:
+            pytest.importorskip("pyarrow")
+        df = pd.DataFrame({"a": [1, 0], "b": [0, 1]}, dtype=dtype)
+        expected = np.array([[1, 0], [0, 1]], dtype=expected_dtype)
+        tm.assert_numpy_array_equal(df.to_numpy(), expected)
+        tm.assert_numpy_array_equal(df.values, expected)
+        tm.assert_numpy_array_equal(np.asarray(df), expected)
+        tm.assert_numpy_array_equal(df.to_numpy(na_value=np.nan), expected)
+
+    def test_to_numpy_extension_columns_with_na(self):
+        # GH#22791
+        df = pd.DataFrame(
+            {
+                "a": pd.array([1, None], dtype="Int64"),
+                "b": pd.array([3, 4], dtype="Int32"),
+                "c": [5.5, 6.5],
+            }
+        )
+        expected = np.array([[1, 3, 5.5], [np.nan, 4, 6.5]])
+        tm.assert_numpy_array_equal(df.to_numpy(), expected)
+
+        expected = np.array([[1, 3, 5.5], [-1, 4, 6.5]])
+        tm.assert_numpy_array_equal(df.to_numpy(na_value=-1), expected)
+
+        # None does not fit in float64, so fall back to object
+        expected = np.array([[1, 3, 5.5], [None, 4, 6.5]], dtype=object)
+        tm.assert_numpy_array_equal(df.to_numpy(na_value=None), expected)
+
+        # converted per column, not via float64
+        expected = np.array([[1, 3, 5.5], [pd.NA, 4, 6.5]], dtype=object)
+        tm.assert_numpy_array_equal(np.asarray(df, dtype=object), expected)
+
+        expected = np.array([["1", "3", "5.5"], ["<NA>", "4", "6.5"]], dtype="U4")
+        tm.assert_numpy_array_equal(np.asarray(df, dtype="U4"), expected)
+
+        # like a Series, raise instead of filling in the NA
+        for dtype in ["int64", "bool"]:
+            msg = f"cannot convert to '{dtype}'-dtype NumPy array with missing values"
+            with pytest.raises(ValueError, match=msg):
+                np.asarray(df, dtype=dtype)
+
+    def test_to_numpy_extension_columns_datetime_na_value(self):
+        # GH#22791 na_value is only filled into a float result
+        cat = pd.Categorical(pd.to_datetime(["2020-01-01", None]))
+        df = pd.DataFrame({"a": cat, "b": cat})
+        ts = pd.Timestamp("2020-01-01")
+        expected = np.array([[ts, ts], [pd.NaT, pd.NaT]], dtype=object)
+        tm.assert_numpy_array_equal(df.to_numpy(na_value=pd.NaT), expected)
+
+    def test_to_numpy_extension_columns_object_result(self):
+        # GH#22791 object results keep the boxing of the object conversion
+        pa = pytest.importorskip("pyarrow")
+        ts = pd.array(
+            [pd.Timestamp("2020-01-01"), None], dtype="timestamp[ns][pyarrow]"
+        )
+        dates = pd.array(
+            pa.array([1, None], type=pa.date32()), dtype=pd.ArrowDtype(pa.date32())
+        )
+        df = pd.DataFrame({"a": ts, "b": dates})
+        expected = np.array(
+            [[pd.Timestamp("2020-01-01"), dates[0]], [pd.NA, pd.NA]], dtype=object
+        )
+        tm.assert_numpy_array_equal(df.to_numpy(), expected)
+
     def test_to_numpy_copy(self):
         arr = np.random.default_rng(2).standard_normal((4, 3))
         df = pd.DataFrame(arr)

@@ -1337,7 +1337,16 @@ class FrameApply(NDFrameApply):
     def apply_broadcast(self, target: DataFrame) -> DataFrame:
         assert callable(self.func)
 
-        result_values = np.empty_like(target.values)
+        blocks = target._mgr.blocks
+        common = (
+            find_common_type([blk.dtype for blk in blocks]) if len(blocks) > 1 else None
+        )
+        if isinstance(common, ExtensionDtype) and not isinstance(common, SparseDtype):
+            # GH#22791 these frames' default values are no longer object, and
+            #  their dtype may not hold the results
+            result_values = np.empty(target.shape, dtype=object)
+        else:
+            result_values = np.empty_like(target.values)
 
         # axis which we want to compare compliance
         result_compare = target.shape[0]
