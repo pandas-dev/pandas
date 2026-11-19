@@ -335,3 +335,19 @@ class TestDataFrameGroupByPlots:
         df = pd.DataFrame({"x": [1.0, 3, 2, 5], "y": [4.0, 1, 3, 2], "g": [1, 1, 2, 2]})
         for axes in call(df.groupby("g")):
             assert len(axes) == 3
+
+    @pytest.mark.parametrize("kwarg", ["positions", "widths"])
+    def test_groupby_plot_box_per_column_args_include_grouping_column(self, kwarg):
+        # GH#22069
+        df = pd.DataFrame({"x": [1.0, 3, 2, 5], "y": [4.0, 1, 3, 2], "g": [1, 1, 2, 2]})
+        res = df.groupby("g").plot.box(**{kwarg: [0.1, 0.2, 0.3]})
+        for ax in res:
+            labels = [label.get_text() for label in ax.get_xticklabels()]
+            assert labels == ["x", "y", "g"]
+
+    @pytest.mark.parametrize("method", ["plot", "hist"])
+    def test_groupby_plot_only_grouping_columns(self, method):
+        # GH#22069 with nothing else to plot, the grouping columns are kept
+        df = pd.DataFrame({"g": [1, 1, 2, 2], "h": [1, 2, 1, 2]})
+        res = getattr(df.groupby(["g", "h"]), method)()
+        assert len(res) == 4

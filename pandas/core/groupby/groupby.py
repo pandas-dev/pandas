@@ -172,7 +172,8 @@ def _plot_refers_to_columns(args: tuple[Any, ...], kwargs: dict[str, Any]) -> bo
             return True
     # a list or dict here is matched to columns by position or label
     return any(
-        is_list_like(kwargs.get(name)) for name in ["ax", "title", "style", "color"]
+        is_list_like(kwargs.get(name))
+        for name in ["ax", "title", "style", "color", "positions", "widths"]
     )
 
 
@@ -1521,15 +1522,16 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         labels the group explicitly rather than relying on the name attribute
         being pinned to the group key as a side effect (GH#41090).
 
-        Grouping columns are left out of each group, as in apply, unless the
-        call refers to columns: a label or position there is resolved against
-        the full group, and dropping columns could change what it points to
-        (GH#22069).
+        Grouping columns are left out of each group, as in apply, unless they
+        are the only columns or the call refers to columns: a label or position
+        there is resolved against the full group, and dropping columns could
+        change what it points to (GH#22069).
         """
-        if _plot_refers_to_columns(args, kwargs):
+        data = self._obj_with_exclusions
+        if (data.ndim == 2 and len(data.columns) == 0) or _plot_refers_to_columns(
+            args, kwargs
+        ):
             data = self._selected_obj
-        else:
-            data = self._obj_with_exclusions
         values = []
         for key, group in self._grouper.get_iterator(data):
             if group.ndim == 1:
