@@ -1392,6 +1392,7 @@ def test_dti_constructor_float_out_of_bounds(value, unit):
     with pytest.raises(OutOfBoundsTimedelta, match=msg):
         pd.TimedeltaIndex(arr, dtype=f"m8[{unit}]")
 
+
 @pytest.mark.parametrize("timestamp", ["10000-03-05T12:00", "10001-03-05T12:00"])
 def test_dti_constructor_tz_aware_out_of_pydatetime_range(timestamp):
     # GH#71371 the year is lost when the value round-trips through the py

@@ -640,7 +640,11 @@ cdef _TSObject convert_datetime_to_tsobject(
 
     obj.creso = reso
     obj.fold = ts.fold
-    if isinstance(ts, _Timestamp) and not nanos and (ts.tzinfo is not None or tz is None):
+    if (
+        isinstance(ts, _Timestamp)
+        and not nanos
+        and (ts.tzinfo is not None or tz is None)
+    ):
         # GH#71371 pydatetime_to_dtstruct reads the py datetime fields, whose
         #  year is a placeholder for years outside 1-9999. _value is already
         #  UTC in the Timestamp's own resolution, so no field round trip and no
