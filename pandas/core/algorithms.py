@@ -1628,19 +1628,19 @@ def searchsorted_na_last(
         return search(value)
 
     value = extract_array(value, extract_numpy=True)
+    if not isinstance(value, (np.ndarray, ABCExtensionArray)):
+        # a list holding pd.NA, None or NaT infers object
+        value = np.asarray(value)
     if isinstance(value, np.ndarray) and value.dtype != object:
         # leave NaN and NaT in a non-object ndarray to search
         return search(value)
-    arr = value
-    if not isinstance(arr, (np.ndarray, ABCExtensionArray)):
-        arr = np.asarray(arr, dtype=object)
-    mask = np.asarray(isna(arr), dtype=bool)
+    mask = np.asarray(isna(value), dtype=bool)
     if mask.any():
-        mask[mask] = [is_missing(obj) for obj in arr[mask]]
+        mask[mask] = [is_missing(obj) for obj in value[mask]]
     if not mask.any():
         return search(value)
 
-    rest = arr[~mask]
+    rest = value[~mask]
     if rest.dtype == object:
         # comparing e.g. floats as objects misplaces them around NaN
         rest = lib.maybe_convert_objects(rest)
