@@ -437,10 +437,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
                     raise ValueError(msg) from err
 
             converters = (get_converter(s) for s in index_sample)
-            # GH#44517 leave NA components as np.nan to match the keys in indices
-            name = tuple(
-                n if isna(n) else f(n) for f, n in zip(converters, name, strict=True)
-            )
+            name = tuple(f(n) for f, n in zip(converters, name, strict=True))
         else:
             converter = get_converter(index_sample)
             name = converter(name)
@@ -1714,11 +1711,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     # Utilities
 
     @final
-    def _apply_filter(self, indices, dropna):
-        if len(indices) == 0:
-            indices = np.array([], dtype="int64")
-        else:
-            indices = np.sort(np.concatenate(indices))
+    def _apply_filter(self, group_positions: list[int], dropna: bool):
+        # GH#44517 select rows by group position rather than looking up each
+        # group by its label, which can miss groups whose key is NA
+        indices = np.flatnonzero(np.isin(self._grouper.ids, group_positions))
         if dropna:
             filtered = self._selected_obj.take(indices, axis=0)
         else:
