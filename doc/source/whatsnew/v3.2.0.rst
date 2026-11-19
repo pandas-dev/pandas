@@ -454,6 +454,7 @@ Plotting
 - Bug in :meth:`DataFrame.plot` and :meth:`Series.plot` drawing data indexed by period-end timestamps (e.g. ``freq="ME"`` or ``"W"``) at the start of each period when combined with a higher-frequency series on the same or shared axes (:issue:`11574`)
 - Bug in :meth:`DataFrame.plot` and :meth:`Series.plot` ignoring ``style`` when ``xerr`` or ``yerr`` is passed (:issue:`7023`)
 - Bug in :meth:`DataFrame.plot` and :meth:`Series.plot` ignoring the ``axes.grid.axis`` and ``axes.grid.which`` rcParams, e.g. from a style file, and drawing major gridlines on both axes (:issue:`17725`)
+- Bug in :meth:`DataFrame.plot` and :meth:`Series.plot` raising ``NotImplementedError`` when the index's ``freq`` is a :class:`DateOffset` such as ``pd.DateOffset(days=1)`` or an :class:`~pandas.tseries.offsets.Easter` offset (:issue:`26921`)
 - Bug in :meth:`DataFrame.plot` and :meth:`Series.plot` raising ``ValueError`` when plotting a single series or column with ``color`` as a tuple of three or four colors, instead of treating it like the equivalent list (:issue:`18449`)
 - Bug in :meth:`DataFrame.plot` and :meth:`Series.plot` redrawing time series that were removed with ``ax.clear()`` or ``line.remove()`` when a higher-frequency time series is later plotted on the same axes (:issue:`54485`)
 - Bug in :meth:`DataFrame.plot` and :meth:`Series.plot` with ``kind="bar"`` or ``kind="barh"`` raising ``TypeError`` on ``timedelta64`` data containing ``NaT`` (:issue:`39320`)
