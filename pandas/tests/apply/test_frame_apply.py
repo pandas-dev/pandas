@@ -1,12 +1,14 @@
 from datetime import datetime
 from itertools import pairwise
-import sys
 import warnings
 
 import numpy as np
 import pytest
 
-from pandas.compat import is_platform_arm
+from pandas.compat import (
+    PYPY,
+    is_platform_arm,
+)
 from pandas.errors import Pandas4Warning
 
 from pandas.core.dtypes.dtypes import CategoricalDtype
@@ -279,6 +281,7 @@ def test_apply_axis1_keeps_row_after_setitem():
     tm.assert_frame_equal(df, df_orig)
 
 
+@pytest.mark.skipif(PYPY, reason="row reuse relies on CPython refcounting")
 @pytest.mark.parametrize("dtype", ["int64", "Int64"])
 def test_apply_axis1_reuses_row_when_not_kept(dtype):
     # GH#54250 if func keeps nothing, one row object is still reused for all rows
@@ -299,9 +302,9 @@ def test_apply_axis1_keeps_row_issue_example():
 
 
 @pytest.mark.parametrize("dtype", ["int64", "Int64", "object"])
-def test_apply_axis1_keeps_row_without_refcount(monkeypatch, dtype):
-    # GH#54250 without sys.getrefcount (e.g. PyPy) every row is a new object
-    monkeypatch.delattr(sys, "getrefcount")
+def test_apply_axis1_keeps_row_pypy(monkeypatch, dtype):
+    # GH#54250 on PyPy (PYPY) every row is a new object
+    monkeypatch.setattr("pandas.core.apply.PYPY", True)
     df = _keep_row_frame(dtype)
     result = df.apply(lambda row: [row], axis=1)
     for i in range(len(df)):

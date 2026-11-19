@@ -19,6 +19,7 @@ import numpy as np
 
 from pandas._libs import lib
 from pandas._libs.internals import BlockValuesRefs
+from pandas.compat import PYPY
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import (
     Pandas4Warning,
@@ -1388,18 +1389,17 @@ class FrameApply(NDFrameApply):
 
         # GH#54250: series_generator reuses one row object; compare refcounts
         # (same frame, so interpreter-internal references cancel out) to see
-        # whether func kept the row. Without refcounts (PyPy) assume it did.
-        has_refcount = hasattr(sys, "getrefcount")
+        # whether func kept the row. On PyPy (no refcounting) assume it did.
         refcount = 0
         for i, v in enumerate(series_gen):
-            if has_refcount:
+            if not PYPY:
                 refcount = sys.getrefcount(v)
             results[i] = self.func(v, *self.args, **self.kwargs)
             if isinstance(results[i], ABCSeries):
                 # If we have a view on v, we need to make a copy because
                 #  series_generator will swap out the underlying data
                 results[i] = results[i].copy(deep=False)
-            self._row_leaked = not has_refcount or sys.getrefcount(v) > refcount
+            self._row_leaked = PYPY or sys.getrefcount(v) > refcount
 
         return results, res_index
 
