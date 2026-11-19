@@ -317,6 +317,30 @@ def test_apply_axis1_keeps_row_without_refcount(monkeypatch, dtype):
 @pytest.mark.parametrize(
     "data, dtype",
     [
+        ([1.5, 2.5, 3.5], "Float64"),
+        ([True, False, True], "boolean"),
+        (["x", "y", "z"], "string"),
+        (["x", "y", "z"], "category"),
+        (["2020-01-01", "2020-01-02", "2020-01-03"], "datetime64[ns, UTC]"),
+        (["2020-01-01", "2020-01-02", "2020-01-03"], "period[D]"),
+        ([1, 2, 3], "int64[pyarrow]"),
+    ],
+)
+def test_apply_axis1_keeps_row_ea_dtypes(data, dtype):
+    # GH#54250 other extension dtypes go through the same EA row path
+    if "pyarrow" in dtype:
+        pytest.importorskip("pyarrow")
+    df = pd.DataFrame({"a": data, "b": data[::-1]}, index=[10, 11, 12], dtype=dtype)
+    kept = []
+    result = df.apply(lambda row: kept.append(row) or [row], axis=1)
+    for i in range(len(df)):
+        tm.assert_series_equal(result.iloc[i][0], df.iloc[i])
+        tm.assert_series_equal(kept[i], df.iloc[i])
+
+
+@pytest.mark.parametrize(
+    "data, dtype",
+    [
         (1, None),
         (1, CategoricalDtype([1])),
         (pd.Timestamp("2013-01-01", tz="UTC"), None),
