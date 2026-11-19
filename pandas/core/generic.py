@@ -65,7 +65,6 @@ from pandas.util._validators import (
     check_dtype_backend,
     validate_ascending,
     validate_bool_kwarg,
-    validate_inclusive,
     validate_min_count,
 )
 
@@ -9465,13 +9464,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if not isinstance(index, DatetimeIndex):
             raise TypeError("Index must be DatetimeIndex")
 
-        left_inclusive, right_inclusive = validate_inclusive(inclusive)
-        indexer = index.indexer_between_time(
-            start_time,
-            end_time,
-            include_start=left_inclusive,
-            include_end=right_inclusive,
-        )
+        indexer = index.indexer_between_time(start_time, end_time, inclusive=inclusive)
         return self.take(indexer, axis=axis)
 
     @final
