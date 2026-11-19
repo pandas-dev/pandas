@@ -889,7 +889,7 @@ def test_baseoffset_check_no_warning():
 
 
 class Dekad(BaseOffset):
-    # the example from the "Writing your own offset" section of the user guide
+    # the example from the BaseOffset docstring
     _prefix = "DEKAD"
 
     def _add_datetime(self, other):
@@ -907,7 +907,7 @@ class Dekad(BaseOffset):
 
 
 def test_custom_baseoffset_subclass(performance_warning):
-    # GH#35569 the subclass hooks documented in the user guide
+    # GH#35569 the subclass hooks documented in the BaseOffset docstring
     ts = Timestamp("2024-01-25 05:00")
 
     assert ts + Dekad() == Timestamp("2024-02-01 05:00")

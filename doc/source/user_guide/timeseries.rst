@@ -1404,47 +1404,9 @@ You can use keyword arguments supported by either ``BusinessHour`` and ``CustomB
 Writing your own offset
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-When none of the built-in offsets fits, you can subclass
-:class:`~pandas.tseries.offsets.BaseOffset` and define:
-
-* ``_add_datetime(self, other)``, which receives a :class:`Timestamp` and returns the
-  :class:`Timestamp` ``self.n`` steps away. As in the built-in offsets, for ``n < 0``
-  rolling back onto the offset counts as the first step, and ``n == 0`` rolls forward.
-  This implements ``+`` and ``-`` and is used by :func:`date_range`.
-* ``is_on_offset(self, dt)``, which ``rollback``, ``rollforward`` and :func:`date_range`
-  use to tell whether ``dt`` already falls on the offset.
-* ``_prefix``, the name shown in the offset's ``freqstr``. It is not registered as a
-  frequency string, so pass the offset object itself as ``freq``.
-
-``+`` and ``-`` honor ``normalize=True`` only if ``_add_datetime`` checks
-``self.normalize``; the example below does not.
-
-For example, an offset stepping through dekads, the periods starting on the 1st, 11th
-and 21st of each month:
-
-.. ipython:: python
-
-   class Dekad(pd.offsets.BaseOffset):
-       _prefix = "DEKAD"
-       def _add_datetime(self, other):
-           slot = min((other.day - 1) // 10, 2)
-           n = self.n
-           if n <= 0 and other.day != 1 + 10 * slot:
-               n += 1
-           months, slot = divmod(slot + n, 3)
-           result = other.replace(day=1) + pd.DateOffset(months=months)
-           return result.replace(day=1 + 10 * slot)
-       def is_on_offset(self, dt):
-           return dt.day in (1, 11, 21)
-
-   ts = pd.Timestamp("2024-01-25")
-   ts + Dekad()
-   ts - Dekad()
-   Dekad().rollback(ts)
-   pd.date_range("2024-01-05", periods=4, freq=Dekad())
-
-Adding a custom offset to a :class:`Series` or :class:`DatetimeIndex` applies it one
-element at a time and emits a :class:`~pandas.errors.PerformanceWarning`.
+To define an offset none of the built-in ones cover, subclass
+:class:`~pandas.tseries.offsets.BaseOffset`. Its docstring lists the methods to
+override and gives an example.
 
 .. _timeseries.offset_aliases:
 
