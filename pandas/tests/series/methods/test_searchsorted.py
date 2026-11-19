@@ -192,6 +192,8 @@ class TestSeriesSearchSorted:
         tm.assert_numpy_array_equal(result, expected)
         result = ser.searchsorted(["b", np.nan])
         tm.assert_numpy_array_equal(result, expected)
+        result = ser.searchsorted([np.nan])
+        tm.assert_numpy_array_equal(result, np.array([3], dtype=np.intp))
 
     def test_searchsorted_nullable_value_beyond_float_precision(self):
         # GH#63938 the non-missing values are not cast to float

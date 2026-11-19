@@ -52,6 +52,7 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_object_dtype,
     is_signed_integer_dtype,
+    is_string_dtype,
     needs_i8_conversion,
 )
 from pandas.core.dtypes.concat import concat_compat
@@ -1629,10 +1630,8 @@ def searchsorted_na_last(
 
     value = extract_array(value, extract_numpy=True)
     if not isinstance(value, (np.ndarray, ABCExtensionArray)):
-        # a list holding pd.NA, None or NaT infers object
-        arr = np.asarray(value)
-        # numpy turns NaN into "nan" when it infers a str dtype
-        value = np.asarray(value, dtype=object) if arr.dtype.kind == "U" else arr
+        # numpy would turn NaN into "nan" or infer float64 for a string dtype
+        value = np.asarray(value, dtype=object if is_string_dtype(dtype) else None)
     if isinstance(value, np.ndarray) and value.dtype != object:
         # leave NaN and NaT in a non-object ndarray to search
         return search(value)
