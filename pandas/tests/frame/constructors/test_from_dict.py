@@ -287,6 +287,21 @@ class TestFromDict:
             result = pd.DataFrame.from_dict({"b": 5, "a": later}, orient="index")
         assert result.shape == (2, 1)
 
+    @pytest.mark.parametrize("dtype", ["string", "arrow_list"])
+    def test_from_dict_orient_index_scalar_then_list_like_dtype(self, dtype):
+        # GH#31041 warns even when dtype gives a non-object column
+        if dtype == "string":
+            dtype = pd.StringDtype(na_value=np.nan)
+        else:
+            pa = pytest.importorskip("pyarrow")
+            dtype = pd.ArrowDtype(pa.list_(pa.int64()))
+        data = {"b": None, "a": [1, 2]}
+        msg = "list-like value after a scalar value is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = pd.DataFrame.from_dict(data, orient="index", dtype=dtype)
+        expected = pd.Series(data, dtype=dtype).to_frame()
+        tm.assert_frame_equal(result, expected)
+
     def test_from_dict_orient_invalid(self):
         msg = (
             "Expected 'index', 'columns' or 'tight' for orient parameter. "
