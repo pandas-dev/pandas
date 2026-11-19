@@ -24,6 +24,8 @@ import warnings
 
 import numpy as np
 
+from pandas._config import is_nan_na
+
 from pandas._libs import (
     algos as libalgos,
     groupby as libgroupby,
@@ -2396,7 +2398,7 @@ class ExtensionArray:
         return self
 
     @classmethod
-    def _concat_same_type(cls, to_concat: Sequence[Self]) -> Self:
+    def _concat_same_type(cls, to_concat: Sequence[Self], axis: AxisInt = 0) -> Self:
         """
         Concatenate multiple arrays of this dtype.
 
@@ -2408,6 +2410,9 @@ class ExtensionArray:
         ----------
         to_concat : sequence of this type
             An array of the same dtype to concatenate.
+        axis : int, default 0
+            Axis along which to concatenate. pandas only passes the axis
+            keyword for dtypes that support 2D (``dtype._supports_2d``).
 
         Returns
         -------
@@ -3002,7 +3007,13 @@ class ExtensionArray:
         fill_value = np.nan
 
         res_values = quantile_with_mask(arr, mask, fill_value, qs, interpolation)
-        return type(self)._from_sequence(res_values)
+        try:
+            return type(self)._from_sequence(res_values)
+        except (TypeError, ValueError):
+            if not isna(res_values).all():
+                raise
+            # No non-NA results to infer a dtype from; use self.dtype's NA, GH#45968
+            return self.take(np.full(len(qs), -1), allow_fill=True)
 
     def _mode(self, dropna: bool = True) -> Self:
         """
@@ -3108,6 +3119,12 @@ class ExtensionArray:
             _IN_ARRAY_FUNCTION.reset(token)
 
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
+        result = arraylike.dispatch_where_only_ufunc(
+            self, ufunc, method, *inputs, **kwargs
+        )
+        if result is not NotImplemented:
+            return result
+
         # the fallback at the end of this method np.asarray()s the values: M8/m8
         #  survive to be truth-tested, the rest flatten to object
         ops.disallow_datetimelike_logical_ufunc(ufunc, inputs)
@@ -3175,7 +3192,9 @@ class ExtensionArray:
         [10, 20, <NA>]
         Length: 3, dtype: Int64
         """
-        result = map_array(self, mapper, na_action=na_action)
+        # Under future.distinguish_nan_and_na, inference would turn None
+        #  into NaN, which _cast_pointwise_result then keeps as a value.
+        result = map_array(self, mapper, na_action=na_action, convert=is_nan_na())
         if isinstance(result, np.ndarray):
             return self._cast_pointwise_result(result)
         return result
@@ -3241,7 +3260,6 @@ class ExtensionArray:
                 "prod",
                 "mean",
                 "median",
-                "cumsum",
                 "cumprod",
                 "std",
                 "sem",

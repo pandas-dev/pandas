@@ -139,10 +139,9 @@ class TestMultiIndexSetItem:
         df.loc[["bar"]] *= 2
         tm.assert_frame_equal(df.loc[["bar"]], expected)
 
-        # raise because these have differing levels
-        msg = "cannot align on a multi-index with out specifying the join levels"
-        with pytest.raises(TypeError, match=msg):
-            df.loc["bar"] *= 2
+        # GH#43719 the levels dropped by the partial key are restored to align
+        df.loc["bar"] *= 2
+        tm.assert_frame_equal(df.loc[["bar"]], expected * 2)
 
     def test_multiindex_setitem2(self):
         # from SO
@@ -728,3 +727,163 @@ def test_iloc_setitem_unique_key_on_duplicated_multiindex_columns(
     df.iloc[:, 0] = value
     expected = pd.DataFrame(expected_values, columns=columns)
     tm.assert_frame_equal(df, expected)
+
+
+@pytest.mark.parametrize("rows", [slice(None), [0, 1], np.array([True, False])])
+@pytest.mark.parametrize("key", ["a", ("a",)])
+@pytest.mark.parametrize("dtype", ["float32", "int64", "Int64"])
+def test_loc_setitem_partial_column_key_frame_value(rows, key, dtype):
+    # GH#43719 the value's columns lack the level matched by the partial key
+    mi = pd.MultiIndex.from_tuples([("a", "x"), ("a", "y"), ("b", "x")])
+    df = pd.DataFrame([[1, 2, 3], [4, 5, 6]], columns=mi, dtype=dtype)
+    expected = df.copy()
+    expected.loc[rows, ("a", slice(None))] = df.loc[:, ("a", slice(None))] * 10
+
+    df.loc[rows, key] = df.loc[:, key] * 10
+    tm.assert_frame_equal(df, expected)
+
+
+def test_loc_setitem_partial_column_key_frame_value_aligns():
+    # GH#43719 the value is aligned by label, not position
+    mi = pd.MultiIndex.from_tuples([("a", "x"), ("a", "y"), ("b", "x")])
+    df = pd.DataFrame([[1.0, 2.0, 3.0]], columns=mi)
+    df.loc[:, "a"] = df.loc[:, "a"][["y", "x"]] * 10
+    expected = pd.DataFrame([[10.0, 20.0, 3.0]], columns=mi)
+    tm.assert_frame_equal(df, expected)
+
+
+@pytest.mark.parametrize("key", ["a", ("a", "b")])
+def test_loc_setitem_partial_column_key_three_levels(key):
+    # GH#43719
+    mi = pd.MultiIndex.from_tuples(
+        [("a", "b", "x"), ("a", "b", "y"), ("a", "c", "x"), ("d", "b", "x")]
+    )
+    df = pd.DataFrame([[1.0, 2.0, 3.0, 4.0]], columns=mi)
+    expected = df.copy()
+    expected[key] = df[key] * 10
+
+    df.loc[:, key] = df.loc[:, key] * 10
+    tm.assert_frame_equal(df, expected)
+
+
+def test_loc_setitem_partial_row_key_value():
+    # GH#43719 same for the rows of a DataFrame or Series
+    mi = pd.MultiIndex.from_tuples([("a", "x"), ("a", "y"), ("b", "x")])
+    df = pd.DataFrame({"A": [1.0, 2.0, 3.0], "B": [4.0, 5.0, 6.0]}, index=mi)
+    expected = pd.DataFrame({"A": [10.0, 20.0, 3.0], "B": [4.0, 5.0, 6.0]}, index=mi)
+
+    result = df.copy()
+    result.loc["a"] = result.loc["a"] * [10, 1]
+    tm.assert_frame_equal(result, expected)
+
+    result = df.copy()
+    result.loc["a", "A"] = result.loc["a", "A"] * 10
+    tm.assert_frame_equal(result, expected)
+
+    for key in ["a", ("a", slice(None))]:
+        ser = df["A"].copy()
+        ser.loc[key] = ser.loc[key] * 10
+        tm.assert_series_equal(ser, expected["A"])
+
+
+def test_loc_setitem_partial_row_key_value_from_other_key():
+    # GH#10440 the value is aligned on the levels not matched by the key
+    mi = pd.MultiIndex.from_product([["p", "q"], ["x", "y"]])
+    df = pd.DataFrame({"A": [1.0, 2.0, 3.0, 4.0]}, index=mi)
+    df.loc["q", "A"] = df.loc["p", "A"][["y", "x"]]
+    expected = pd.DataFrame({"A": [1.0, 2.0, 1.0, 2.0]}, index=mi)
+    tm.assert_frame_equal(df, expected)
+
+
+def test_loc_setitem_partial_column_key_series_value():
+    # GH#43719 a Series value aligned along the columns
+    mi = pd.MultiIndex.from_tuples([("a", "x"), ("a", "y"), ("b", "x")])
+    df = pd.DataFrame([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]], columns=mi)
+    df.loc[0, "a"] = df.loc[0, "a"] * 10
+    expected = pd.DataFrame([[10.0, 20.0, 3.0], [4.0, 5.0, 6.0]], columns=mi)
+    tm.assert_frame_equal(df, expected)
+
+
+def test_loc_setitem_scalar_and_list_column_key_series_value():
+    # GH#15310
+    mi = pd.MultiIndex.from_product([["a", "b"], ["x", "y"]])
+    df = pd.DataFrame(np.zeros((2, 4)), columns=mi)
+    df.loc[0, ("a", ["y", "x"])] = pd.Series({"x": 1.0, "y": 2.0})
+    expected = pd.DataFrame([[1.0, 2.0, 0.0, 0.0], [0.0, 0.0, 0.0, 0.0]], columns=mi)
+    tm.assert_frame_equal(df, expected)
+
+
+@pytest.mark.parametrize("dtype", ["string", "Int64", "datetime64[ns, UTC]"])
+def test_loc_setitem_partial_column_key_frame_value_missing_labels(dtype):
+    # GH#43719 labels missing from the value are filled with the dtype's NA
+    mi = pd.MultiIndex.from_tuples([("a", "x"), ("a", "y"), ("b", "x")])
+    df = pd.DataFrame([[1, 2, 3], [4, 5, 6]], columns=mi).astype(dtype)
+    expected = df.copy()
+    expected.loc[:, ("a", slice(None))] = df.loc[:, [("a", "x")]]
+
+    df.loc[:, "a"] = df.loc[:, "a"][["x"]]
+    tm.assert_frame_equal(df, expected)
+
+
+def test_loc_setitem_partial_row_key_value_not_relabeled():
+    # GH#43719 a value whose labels are not the remaining levels is left alone
+    mi = pd.MultiIndex.from_tuples(
+        [("a", "b", "x"), ("a", "b", "y"), ("a", "c", "x"), ("d", "b", "x")]
+    )
+    ser = pd.Series([1.0, 2.0, 3.0, 4.0], index=mi)
+    value = pd.Series([10.0, 20.0], index=mi[[0, 2]].droplevel(2))
+    ser.loc["a"] = value
+    expected = pd.Series([10.0, 10.0, 20.0, 4.0], index=mi)
+    tm.assert_series_equal(ser, expected)
+
+    ser = pd.Series([1.0, 2.0, 3.0], index=mi[[0, 1, 3]].droplevel(1))
+    value = ser.loc[["a"]] * 10
+    value.index = value.index.to_flat_index()
+    ser.loc["a"] = value
+    expected = pd.Series([10.0, 20.0, 3.0], index=ser.index)
+    tm.assert_series_equal(ser, expected)
+
+
+@pytest.mark.parametrize("rows", [slice(None), [True, True]])
+def test_loc_setitem_non_partial_key_value_not_relabeled(rows):
+    # GH#43719 only the levels matched by a partial key are restored, so the
+    #  value is not aligned on "x"/"y" even though every row is under "g"
+    mi = pd.MultiIndex.from_product([["g"], ["x", "y"]])
+    ser = pd.Series([1.0, 2.0], index=mi)
+    ser.loc[rows] = pd.Series([10.0, 20.0], index=["x", "y"])
+    expected = pd.Series([np.nan, np.nan], index=mi)
+    tm.assert_series_equal(ser, expected)
+
+
+def test_loc_setitem_partial_column_key_with_enlargement():
+    # GH#43719
+    mi = pd.MultiIndex.from_tuples([("a", "x"), ("a", "y"), ("b", "x")])
+    df = pd.DataFrame([[1.0, 2.0, 3.0]], columns=mi)
+    df.loc[1, "a"] = df.loc[0, "a"] * 10
+    expected = pd.DataFrame([[1.0, 2.0, 3.0], [10.0, 20.0, np.nan]], columns=mi)
+    tm.assert_frame_equal(df, expected)
+
+
+def test_loc_setitem_partial_row_key_value_extra_labels():
+    # GH#43719 value labels not under the key are ignored
+    mi = pd.MultiIndex.from_tuples([("a", "x"), ("a", "y"), ("b", "x")])
+    ser = pd.Series([1.0, 2.0, 3.0], index=mi)
+    ser.loc["a"] = pd.Series({"x": 10.0, "z": 30.0})
+    expected = pd.Series([10.0, np.nan, 3.0], index=mi)
+    tm.assert_series_equal(ser, expected)
+
+
+@pytest.mark.parametrize(
+    "first_level, key",
+    [
+        (pd.to_datetime(["2020-01-01", "2020-01-02", "2021-01-01"]), "2020"),
+        (pd.IntervalIndex.from_tuples([(0, 2), (1, 3), (4, 5)]), 1.5),
+    ],
+)
+def test_loc_setitem_partial_key_matching_several_labels(first_level, key):
+    # GH#43719 the value is broadcast to each first-level label the key matches
+    mi = pd.MultiIndex.from_product([first_level, ["x", "y"]])
+    ser = pd.Series(np.arange(6.0), index=mi)
+    ser.loc[key] = pd.Series({"x": 10.0, "y": 20.0})
+    expected = pd.Series([10.0, 20.0, 10.0, 20.0, 4.0, 5.0], index=mi)
+    tm.assert_series_equal(ser, expected)

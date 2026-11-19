@@ -429,7 +429,7 @@ def test_styler_to_excel_hidden_rows_and_columns(cols, header):
     styler = df.style.hide(["y"]).hide(["B"], axis=1)
     result = _styled_cells(styler, cols=cols)
     body = df.loc[["x", "z"], header]
-    grid = [[None, *header]] + [[label, *row] for label, row in body.iterrows()]
+    grid = [[None, *header]] + [list(row) for row in body.itertuples()]
     assert result == _expected_cells(grid)
 
 

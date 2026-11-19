@@ -217,6 +217,7 @@ def generate_bins_dt64(
 def array_equivalent_object(
     left: npt.NDArray[np.object_],
     right: npt.NDArray[np.object_],
+    strict_nan: bool = ...,
 ) -> bool: ...
 def has_infs(arr: np.ndarray) -> bool: ...  # const floating[:]
 def has_nans(arr: np.ndarray) -> bool: ...  # const floating[:]

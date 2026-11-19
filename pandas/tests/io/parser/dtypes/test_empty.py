@@ -14,7 +14,6 @@ import pandas._testing as tm
 skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
 
 
-@skip_pyarrow  # CSV parse error: Empty CSV file or block
 def test_dtype_all_columns_empty(all_parsers):
     # see gh-12048
     parser = all_parsers
@@ -69,7 +68,6 @@ def test_empty_with_multi_index_pass_dtype(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@skip_pyarrow  # CSV parse error: Empty CSV file or block
 def test_empty_with_mangled_column_pass_dtype_by_names(all_parsers):
     parser = all_parsers
 
