@@ -10027,6 +10027,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         else:
             # axis=1 needs all of a row's entries in one dtype, so it cannot go
             #  block by block
+            values: ArrayLike
             if data.ndim == 2:
                 values = np.asarray(data._values_ea_as_object)
             else:

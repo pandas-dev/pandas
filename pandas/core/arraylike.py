@@ -21,6 +21,7 @@ from pandas._libs.ops_dispatch import maybe_dispatch_ufunc_to_dunder_op
 from pandas.core.dtypes.cast import maybe_unbox_numpy_scalar
 from pandas.core.dtypes.common import is_bool_dtype
 from pandas.core.dtypes.generic import (
+    ABCDataFrame,
     ABCExtensionArray,
     ABCIndex,
     ABCNDFrame,
@@ -452,7 +453,12 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
         #   aligned blocks / dtypes.
 
         # e.g. my_ufunc, modf, logaddexp, heaviside, subtract, add
-        inputs = tuple(np.asarray(x) for x in inputs)
+        inputs = tuple(
+            np.asarray(x._values_ea_as_object)
+            if isinstance(x, ABCDataFrame)
+            else np.asarray(x)
+            for x in inputs
+        )
         # Note: we can't use default_array_ufunc here bc reindexing means
         #  that `self` may not be among `inputs`
         result = getattr(ufunc, method)(*inputs, **kwargs)

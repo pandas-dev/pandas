@@ -6,6 +6,7 @@ import pytest
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.api.types import is_extension_array_dtype
 
 dtypes = [
     "int64",
@@ -27,8 +28,15 @@ def test_unary_unary(dtype):
 
 
 @pytest.mark.parametrize("dtype", dtypes)
-def test_unary_binary(dtype):
+def test_unary_binary(request, dtype):
     # unary input, binary output
+    if is_extension_array_dtype(dtype) or isinstance(dtype, dict):
+        request.applymarker(
+            pytest.mark.xfail(
+                reason="Extension / mixed with multiple outputs not implemented."
+            )
+        )
+
     values = np.array([[-1, -1], [1, 1]], dtype="int64")
     df = pd.DataFrame(values, columns=["A", "B"], index=["a", "b"]).astype(dtype=dtype)
     result_pandas = np.modf(df)
@@ -133,10 +141,22 @@ def test_ufunc_where_pandas_object(dtype):
 
 @pytest.mark.parametrize("dtype_a", dtypes)
 @pytest.mark.parametrize("dtype_b", dtypes)
-def test_binary_input_aligns_columns(dtype_a, dtype_b):
+def test_binary_input_aligns_columns(request, dtype_a, dtype_b):
+    if (
+        is_extension_array_dtype(dtype_a)
+        or isinstance(dtype_a, dict)
+        or is_extension_array_dtype(dtype_b)
+        or isinstance(dtype_b, dict)
+    ):
+        request.applymarker(
+            pytest.mark.xfail(
+                reason="Extension / mixed with multiple inputs not implemented."
+            )
+        )
+
     df1 = pd.DataFrame({"A": [1, 2], "B": [3, 4]}).astype(dtype_a)
 
-    if isinstance(dtype_b, dict):
+    if isinstance(dtype_a, dict) and isinstance(dtype_b, dict):
         dtype_b = dtype_b.copy()
         dtype_b["C"] = dtype_b.pop("B")
     df2 = pd.DataFrame({"A": [1, 2], "C": [3, 4]}).astype(dtype_b)
@@ -155,7 +175,13 @@ def test_binary_input_aligns_columns(dtype_a, dtype_b):
 
 
 @pytest.mark.parametrize("dtype", dtypes)
-def test_binary_input_aligns_index(dtype):
+def test_binary_input_aligns_index(request, dtype):
+    if is_extension_array_dtype(dtype) or isinstance(dtype, dict):
+        request.applymarker(
+            pytest.mark.xfail(
+                reason="Extension / mixed with multiple inputs not implemented."
+            )
+        )
     df1 = pd.DataFrame({"A": [1, 2], "B": [3, 4]}, index=["a", "b"]).astype(dtype)
     df2 = pd.DataFrame({"A": [1, 2], "B": [3, 4]}, index=["a", "c"]).astype(dtype)
     result = np.heaviside(df1, df2)
@@ -172,6 +198,18 @@ def test_binary_input_aligns_index(dtype):
         [[1.0, 1.0], [1.0, 1.0]], columns=["A", "B"], index=["a", "b"]
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_binary_input_differing_extension_dtypes():
+    # GH#22791 values that collide as float64 keep their identity
+    df = pd.DataFrame(
+        {
+            "a": pd.array([2**60 + 1, 1], dtype="Int64"),
+            "b": pd.array([1, 2], dtype="Int32"),
+        }
+    )
+    result = np.maximum(df, df)
+    tm.assert_frame_equal(result, df.astype(object))
 
 
 def test_binary_input_aligns_duplicate_labels():
