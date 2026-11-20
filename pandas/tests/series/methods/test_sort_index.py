@@ -350,6 +350,40 @@ class TestSeriesSortIndexKey:
         tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize("level", [[], ()])
+@pytest.mark.parametrize("sort_remaining", [True, False])
+def test_sort_index_empty_level(level, sort_remaining, ascending):
+    # GH#25831
+    ser = pd.Series(
+        [0, 0, 1],
+        index=pd.MultiIndex.from_tuples([(0, 3), (2, 0), (1, 2)], names=["a", "b"]),
+    )
+    if sort_remaining:
+        positions = [0, 2, 1] if ascending else [1, 2, 0]
+        expected = ser.iloc[positions]
+    else:
+        expected = ser.copy()
+
+    result = ser.sort_index(
+        level=level, ascending=ascending, sort_remaining=sort_remaining
+    )
+    tm.assert_series_equal(result, expected)
+
+
+def test_sort_index_empty_level_not_level_zero():
+    # GH#25831: level=0 is falsy but still selects the first level.
+    ser = pd.Series(
+        [1, 2, 3],
+        index=pd.MultiIndex.from_tuples([(1, 2), (1, 0), (0, 1)], names=["a", "b"]),
+    )
+    result = ser.sort_index(level=0, sort_remaining=False)
+    expected = ser.iloc[[2, 0, 1]]
+    tm.assert_series_equal(result, expected)
+
+    result = ser.sort_index(level=[], sort_remaining=False)
+    tm.assert_series_equal(result, ser)
+
+
 def test_sort_index_inplace_depr():
     msg = "The inplace keyword in Series.sort_index is deprecated"
 
