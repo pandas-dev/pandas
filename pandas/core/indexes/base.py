@@ -7943,8 +7943,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        bool or array-like (if axis is specified)
-            A single element array-like may be converted to bool.
+        bool
+            The value may be a python ``bool`` or a ``numpy.bool_`` depending
+            on the underlying dtype.
 
         See Also
         --------
@@ -7959,11 +7960,11 @@ class Index(IndexOpsMixin, PandasObject):
         Examples
         --------
         >>> index = pd.Index([0, 1, 2])
-        >>> index.any()
+        >>> bool(index.any())
         True
 
         >>> index = pd.Index([0, 0, 0])
-        >>> index.any()
+        >>> bool(index.any())
         False
         """
         nv.validate_any(args, kwargs)
@@ -7990,8 +7991,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        bool or array-like (if axis is specified)
-            A single element array-like may be converted to bool.
+        bool
+            The value may be a Python ``bool`` or a
+            ``numpy.bool_`` depending on the underlying dtype.
 
         See Also
         --------
@@ -8008,12 +8010,12 @@ class Index(IndexOpsMixin, PandasObject):
         --------
         True, because nonzero integers are considered True.
 
-        >>> pd.Index([1, 2, 3]).all()
+        >>> bool(pd.Index([1, 2, 3]).all())
         True
 
         False, because ``0`` is considered False.
 
-        >>> pd.Index([0, 1, 2]).all()
+        >>> bool(pd.Index([0, 1, 2]).all())
         False
         """
         nv.validate_all(args, kwargs)
