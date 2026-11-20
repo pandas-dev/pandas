@@ -41,7 +41,7 @@ behavior at the cost of reintroducing the ``dropna=False`` bug.
 .. code-block:: ipython
 
    In [3]: # Correct behavior, NA values are not dropped
-           df.groupby("x", observed=True, dropna=False).sum()
+      ...: df.groupby("x", observed=True, dropna=False).sum()
    Out[3]:
         y
    x
@@ -50,7 +50,7 @@ behavior at the cost of reintroducing the ``dropna=False`` bug.
 
 
    In [4]: # Incorrect behavior, only observed categories present
-           df.groupby("x", observed=False, dropna=False).sum()
+      ...: df.groupby("x", observed=False, dropna=False).sum()
    Out[4]:
         y
    x

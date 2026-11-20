@@ -2901,7 +2901,7 @@ Biomedical and Life Science Journals:
    >>> df = pd.read_xml(
    ...    "s3://pmc-oa-opendata/oa_comm/xml/all/PMC1236943.xml",
    ...    xpath=".//journal-meta",
-   ...)
+   ... )
    >>> df
          journal-id  journal-title  issn  publisher
    0 Cardiovasc Ultrasound Cardiovascular Ultrasound 1476-7120 NaN
@@ -3153,7 +3153,7 @@ of reading in Wikipedia's very large (12 GB+) latest article data dump.
     ...         "/path/to/downloaded/enwikisource-latest-pages-articles.xml",
     ...         iterparse = {"page": ["title", "ns", "id"]}
     ...     )
-    ...     df
+    In [2]: df
     Out[2]:
                                                          title   ns        id
     0                                       Gettysburg Address    0     21450
