@@ -230,6 +230,21 @@ def test_arrowparquet_options(fsspectest):
     assert fsspectest.test[0] == "parquet_read"
 
 
+@pytest.mark.parametrize("pyarrow_fs", [False, True])
+def test_arrowparquet_chunksize_directory(cleared_fs, pyarrow_fs):
+    # GH#55973 a directory is detected on the given filesystem, not locally
+    pa_fs = pytest.importorskip("pyarrow.fs")
+    df = pd.DataFrame({"a": range(4), "part": ["x", "x", "y", "y"]})
+    df.to_parquet("memory://test/dir", engine="pyarrow", partition_cols=["part"])
+    fs = cleared_fs
+    if pyarrow_fs:
+        fs = pa_fs.PyFileSystem(pa_fs.FSSpecHandler(cleared_fs))
+
+    reader = pd.read_parquet("/test/dir", engine="pyarrow", filesystem=fs, chunksize=2)
+    expected = pd.read_parquet("/test/dir", engine="pyarrow", filesystem=fs)
+    tm.assert_frame_equal(pd.concat(reader), expected)
+
+
 def test_arrowparquet_falls_back_to_fsspec(cleared_fs, df1, monkeypatch):
     # GH#58078 pyarrow cannot build a filesystem for "hdfs:///" but fsspec can
     pytest.importorskip("pyarrow")
