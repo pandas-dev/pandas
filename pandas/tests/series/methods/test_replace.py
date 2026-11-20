@@ -1,5 +1,6 @@
 from datetime import datetime
 import re
+import time
 
 import numpy as np
 import pytest
@@ -909,3 +910,157 @@ def test_replace_regex_non_string_arrow_dtype(compile_pattern):
     )
     expected = pd.DataFrame({"a": ser, "b": pd.Series(["x", 0], dtype=object)})
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "dtype", ["int64", "int32", "uint64", "float64", "float32", "bool", object]
+)
+def test_replace_many_keys_bulk_matches_per_pair(dtype, monkeypatch):
+    # GH#6697 a large mapping used one full-length mask per key, so the cost
+    #  grew with n_keys * len(ser).  The bulk path must agree with that loop.
+    from pandas.core.internals import blocks as blocks_module
+
+    values = np.arange(400)
+    ser = pd.Series(values.astype(dtype))
+    mapping = {i: i + 1000 for i in range(0, 400, 2)}
+
+    monkeypatch.setattr(blocks_module, "_BULK_REPLACE_MIN_PAIRS", 10**9)
+    expected = ser.replace(mapping)
+
+    monkeypatch.setattr(blocks_module, "_BULK_REPLACE_MIN_PAIRS", 1)
+    result = ser.replace(mapping)
+
+    tm.assert_series_equal(result, expected)
+
+
+def test_replace_many_keys_bulk_object_dtype_not_accelerated():
+    # GH#6697 an object block compares with ==, which neither a dict lookup
+    #  nor a binary search reproduces for keys and values of differing numpy
+    #  widths, so object blocks keep the per-pair loop
+    ser = pd.Series([1, 2, 3], dtype=object)
+    assert ser._mgr.blocks[0]._replace_list_bulk([(1, 2)] * 8, inplace=False) is None
+
+    # a bool key does match an object block, because 1 == True
+    mapping = {True: 99, 2: 77, 3: 66, 4: 55, 5: 44, 6: 33, 7: 22, 8: 11}
+    tm.assert_series_equal(ser.replace(mapping), pd.Series([99, 77, 66], dtype=object))
+
+    # a numpy float32 in an object block equals the python float 0.1, even
+    #  though the two do not hash alike
+    ser = pd.Series([np.float32(0.1), np.float32(0.2)] * 50, dtype=object)
+    mapping = {0.1 + i * 0.1: i for i in range(8)}
+    tm.assert_series_equal(ser.replace(mapping), pd.Series([0, 1] * 50, dtype=object))
+
+
+def test_replace_many_keys_bulk_falls_back_for_no_match():
+    # GH#6697 every key being skipped means nothing can match, so the fast path
+    #  is skipped and the per-pair loop runs unchanged
+    ser = pd.Series([True, False, True])
+    pairs = [(0, 1)] * 8  # GH#62048: an int key never matches a bool block
+    assert ser._mgr.blocks[0]._replace_list_bulk(pairs, inplace=False) is None
+
+
+def test_replace_many_keys_bulk_is_taken():
+    # GH#6697 a result equal to the per-pair loop says nothing on its own: the
+    #  whole point of the change is that the fast path keeps working, so assert
+    #  the mechanism.  Disabling it here must turn this test red.
+    ser = pd.Series(np.arange(400, dtype=np.int64))
+    pairs = [(i, i + 1) for i in range(0, 400, 2)]
+    assert ser._mgr.blocks[0]._replace_list_bulk(pairs, inplace=False) is not None
+    # 2D values go through the same single pass
+    df = pd.DataFrame({"a": np.arange(400), "b": np.arange(400) * 2})
+    assert df._mgr.blocks[0]._replace_list_bulk(pairs, inplace=False) is not None
+
+
+def test_replace_many_keys_bulk_scales_with_values_not_keys(monkeypatch):
+    # GH#6697 the per-pair loop builds one full-length boolean mask per key, so
+    #  its work grows with n_keys * n_values.  The single pass builds one
+    #  sorted array of keys and one output array, so it does not.  This is the
+    #  complexity claim the issue is about, so assert it directly rather than
+    #  only checking the result.
+    #
+    #  The count is taken by wrapping ``mask_missing``, which is the per-key
+    #  mask builder the fast path avoids calling.  Counting keeps this
+    #  deterministic: a wall-clock ratio between two timings is not enough,
+    #  because at a few thousand keys the fast path is dominated by fixed
+    #  overhead and the ratio straddles any reasonable bound.
+    from pandas.core.internals import blocks as blocks_module
+    from pandas.core.internals.blocks import missing
+
+    n = 10**4
+    rng = np.random.default_rng(0)
+    ser = pd.Series(rng.integers(0, 4, size=n, dtype=np.int64))
+
+    def mask_missing_calls(n_keys, min_pairs):
+        """How many per-key masks replace(mapping) builds."""
+        monkeypatch.setattr(blocks_module, "_BULK_REPLACE_MIN_PAIRS", min_pairs)
+        counter = [0]
+        real = missing.mask_missing
+
+        def counting(arr, value):
+            counter[0] += 1
+            return real(arr, value)
+
+        monkeypatch.setattr(missing, "mask_missing", counting)
+        try:
+            ser.replace({i: i + 1 for i in range(n_keys)})
+        finally:
+            monkeypatch.setattr(missing, "mask_missing", real)
+        return counter[0]
+
+    n_keys = 2000
+    per_pair = mask_missing_calls(n_keys, 10**9)
+    bulk = mask_missing_calls(n_keys, 1)
+
+    # the per-pair loop builds one full-length mask per key
+    assert per_pair == n_keys
+    # the single pass builds none
+    assert bulk == 0
+
+
+@pytest.mark.slow
+def test_replace_many_keys_bulk_issue_shape():
+    # GH#6697 the shape the issue reports: 974757 rows and 70k keys.  This is
+    #  the test that fails on the per-pair loop and passes here, so it is what
+    #  proves the optimisation is real rather than the result merely being
+    #  right.
+    n = 974_757
+    n_keys = 70_000
+    rng = np.random.default_rng(0)
+    ser = pd.Series(rng.integers(0, n_keys * 4, size=n, dtype=np.int64))
+    mapping = {i: i + 1 for i in range(n_keys)}
+
+    tic = time.perf_counter()
+    result = ser.replace(mapping)
+    elapsed = time.perf_counter() - tic
+
+    # a value the mapping does not cover is left alone
+    assert result.iloc[0] == mapping.get(int(ser.iloc[0]), int(ser.iloc[0]))
+    assert result.dtype == np.dtype("int64")
+    assert (result.to_numpy() != ser.to_numpy()).sum() > 0
+
+    # The per-pair loop needs one full-length mask per key, so at this shape it
+    # takes minutes; the single pass does not.  The bound is the issue's own
+    # scale rather than a microbenchmark, and it is what turns this test red if
+    # the fast path ever stops being taken.
+    assert elapsed < 10
+
+
+def test_replace_many_keys_bulk_inplace(monkeypatch):
+    # GH#6697 inplace must keep the same result and the same array identity
+    from pandas.core.internals import blocks as blocks_module
+
+    ser = pd.Series(np.arange(400, dtype=np.int64))
+    mapping = {i: i + 1000 for i in range(0, 400, 2)}
+
+    monkeypatch.setattr(blocks_module, "_BULK_REPLACE_MIN_PAIRS", 10**9)
+    expected = ser.copy()
+    expected.replace(mapping, inplace=True)
+
+    monkeypatch.setattr(blocks_module, "_BULK_REPLACE_MIN_PAIRS", 1)
+    result = ser.copy()
+    values = result._mgr.blocks[0].values
+    result.replace(mapping, inplace=True)
+
+    tm.assert_series_equal(result, expected)
+    # inplace replaces the values in place rather than swapping the array
+    assert result._mgr.blocks[0].values is values

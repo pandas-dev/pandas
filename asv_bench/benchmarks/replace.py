@@ -77,4 +77,20 @@ class Convert:
         self.data.replace(self.to_replace)
 
 
+class ReplaceManyKeys:
+    """
+    GH#6697: a large mapping used to cost one full-length mask per key, so the
+    time grew with n_keys * len(data).
+    """
+
+    def setup(self):
+        N = 10**5
+        rng = np.random.default_rng(0)
+        self.ser = pd.Series(rng.integers(0, 10**6, size=N))
+        self.mapping = {i: i + 1 for i in range(10**4)}
+
+    def time_replace_many_keys(self):
+        self.ser.replace(self.mapping)
+
+
 from .pandas_vb_common import setup  # noqa: F401 isort:skip
