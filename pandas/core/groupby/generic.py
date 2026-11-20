@@ -906,15 +906,17 @@ class SeriesGroupBy(GroupBy[Series]):
             return notna(b) and b
 
         try:
-            indices = [
-                self._get_index(name)
-                for name, group in self._grouper.get_iterator(self._obj_with_exclusions)
+            group_positions = [
+                i
+                for i, (_, group) in enumerate(
+                    self._grouper.get_iterator(self._obj_with_exclusions)
+                )
                 if true_and_notna(group)
             ]
         except (ValueError, TypeError) as err:
             raise TypeError("the filter must return a boolean result") from err
 
-        filtered = self._apply_filter(indices, dropna)
+        filtered = self._apply_filter(group_positions, dropna)
         return filtered
 
     def nunique(self, dropna: bool = True) -> Series | DataFrame:
@@ -3045,12 +3047,12 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         3  bar  4  1.0
         5  bar  6  9.0
         """
-        indices = []
+        group_positions = []
 
         obj = self._selected_obj
         gen = self._grouper.get_iterator(obj)
 
-        for name, group in gen:
+        for i, (name, group) in enumerate(gen):
             # 2023-02-27 no tests are broken this pinning, but it is documented in the
             #  docstring above.
             object.__setattr__(group, "name", name)
@@ -3065,7 +3067,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
             # interpret the result of the filter
             if is_bool(res) or (is_scalar(res) and isna(res)):
                 if notna(res) and res:
-                    indices.append(self._get_index(name))
+                    group_positions.append(i)
             else:
                 # non scalars aren't allowed
                 raise TypeError(
@@ -3073,7 +3075,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                     "but expected a scalar bool"
                 )
 
-        return self._apply_filter(indices, dropna)
+        return self._apply_filter(group_positions, dropna)
 
     def __getitem__(self, key) -> DataFrameGroupBy | SeriesGroupBy:
         # per GH 23566

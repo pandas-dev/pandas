@@ -641,3 +641,39 @@ def test_filter_with_non_values_multi_index():
 
     result = df.groupby(["a", "b"], dropna=False).filter(lambda x: True)
     tm.assert_frame_equal(result, df)
+
+
+_dates = pd.to_datetime(["2020-01-01", "2020-01-01", None, None, "2020-01-03"])
+
+
+@pytest.mark.parametrize("observed", [True, False])
+@pytest.mark.parametrize("keys", ["b", ["a", "b"]])
+@pytest.mark.parametrize(
+    "b",
+    [
+        [2, 2, np.nan, np.nan, 3],
+        _dates,
+        _dates.tz_localize("UTC"),
+        pd.Categorical(["x", "x", None, None, "y"]),
+        pd.Categorical(_dates),
+    ],
+)
+def test_filter_dropna_false_keeps_nan_group(keys, b, observed):
+    # GH#44517 a group with NaN in its key stays when the filter keeps it
+    df = pd.DataFrame({"a": [1, 1, 2, 2, 3], "b": b, "c": [1, 2, 3, 4, 5]})
+    gb = df.groupby(keys, dropna=False, observed=observed)
+    result = gb.filter(lambda x: len(x) > 1)
+    expected = df.iloc[:4]
+    tm.assert_frame_equal(result, expected)
+
+    result = gb["c"].filter(lambda x: len(x) > 1)
+    tm.assert_series_equal(result, expected["c"])
+
+
+def test_filter_dropna_false_keeps_nan_group_index_level():
+    # GH#44517
+    df = pd.DataFrame(
+        {"c": [1, 2, 3]}, index=pd.CategoricalIndex(["x", None, None], name="b")
+    )
+    result = df.groupby(level="b", dropna=False, observed=True).filter(lambda x: True)
+    tm.assert_frame_equal(result, df)

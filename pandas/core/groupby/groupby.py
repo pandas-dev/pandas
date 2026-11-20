@@ -1740,11 +1740,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
     # Utilities
 
     @final
-    def _apply_filter(self, indices, dropna):
-        if len(indices) == 0:
-            indices = np.array([], dtype="int64")
-        else:
-            indices = np.sort(np.concatenate(indices))
+    def _apply_filter(self, group_positions: list[int], dropna: bool):
+        # GH#44517 select rows by group position rather than looking up each
+        # group by its label, which can miss groups whose key is NA
+        indices = np.flatnonzero(np.isin(self._grouper.ids, group_positions))
         if dropna:
             filtered = self._selected_obj.take(indices, axis=0)
         else:
