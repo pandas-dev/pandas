@@ -1478,3 +1478,92 @@ class TestDataFrameToCSV:
         ]
         expected = tm.convert_rows_list_to_csv_str(expected_rows)
         assert result == expected
+
+    def test_to_csv_chunksize_datetime_format(self):
+        # GH#55481: to_csv with chunksize should produce consistent datetime
+        # formatting across all chunks, not per-chunk formatting.
+        # The issue's own example: every row must carry the time component,
+        # even the midnight ones, once any row in the column has a time.
+        dti = pd.date_range("2016-01-01", periods=3, freq="D")
+        df_issue = pd.DataFrame({"A": dti})
+        df_issue.iloc[-1, -1] += pd.Timedelta(minutes=1)
+        expected_issue = tm.convert_rows_list_to_csv_str(
+            [
+                ",A",
+                "0,2016-01-01 00:00:00",
+                "1,2016-01-02 00:00:00",
+                "2,2016-01-03 00:01:00",
+            ]
+        )
+        assert df_issue.to_csv(chunksize=1) == expected_issue
+        assert df_issue.to_csv() == expected_issue
+
+        # Use a column where the full column is NOT dates-only (has a non-midnight
+        # value) but individual chunks may be dates-only.
+        df = pd.DataFrame(
+            {
+                "dt": pd.to_datetime(
+                    [
+                        "2023-01-01 00:00:00",
+                        "2023-01-02 00:00:00",
+                        "2023-01-03 12:00:00",
+                        "2023-01-04 00:00:00",
+                        "2023-01-05 00:00:00",
+                    ]
+                )
+            }
+        )
+        # Without chunksize: full column is not dates-only, so no special format
+        result_no_chunks = df.to_csv()
+        # With chunksize=2: should produce the same output
+        result_with_chunks = df.to_csv(chunksize=2)
+        assert result_no_chunks == result_with_chunks
+
+        # Also test with timedelta
+        df_td = pd.DataFrame(
+            {
+                "td": pd.to_timedelta(
+                    [
+                        "1 days 00:00:00",
+                        "2 days 00:00:00",
+                        "3 days 12:00:00",
+                        "4 days 00:00:00",
+                        "5 days 00:00:00",
+                    ]
+                )
+            }
+        )
+        result_no_chunks_td = df_td.to_csv()
+        result_with_chunks_td = df_td.to_csv(chunksize=2)
+        assert result_no_chunks_td == result_with_chunks_td
+
+        # Per-column tracking must be positional: a column label may be
+        # duplicated or NaN, and then a label lookup picks the wrong column
+        # (or never matches, since NaN != NaN).
+        df_dup = pd.concat(
+            [
+                pd.DataFrame({"a": pd.to_datetime(["2023-01-01", "2023-01-02"])}),
+                pd.DataFrame(
+                    {"a": pd.to_datetime(["2023-01-01 00:00", "2023-01-01 12:00"])}
+                ),
+            ],
+            axis=1,
+        )
+        assert df_dup.to_csv() == df_dup.to_csv(chunksize=1)
+
+        df_nan_col = pd.DataFrame(
+            {
+                np.nan: pd.to_datetime(
+                    ["2023-01-01 00:00", "2023-01-02 00:00", "2023-01-03 12:00"]
+                )
+            }
+        )
+        assert df_nan_col.to_csv() == df_nan_col.to_csv(chunksize=2)
+
+        df_nan_mixed = pd.DataFrame(
+            {
+                np.nan: pd.to_datetime(["2023-01-01", "2023-01-02"]),
+                "b": [1, 2],
+            }
+        )
+        assert df_nan_mixed.to_csv() == df_nan_mixed.to_csv(chunksize=1)
