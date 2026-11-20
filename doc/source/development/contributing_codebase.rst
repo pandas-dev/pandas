@@ -786,7 +786,10 @@ speed by skipping some tests using the ``-m`` mark flag:
 - network: tests requiring network connectivity
 - db: tests requiring a database (mysql or postgres); these skip themselves if
   no database is running, so ``-m "not db"`` is only needed to avoid the cost
-  of checking for one
+  of checking for one. The databases are looked for at
+  ``mysql://root@localhost:3306/pandas`` and
+  ``postgresql://postgres:postgres@localhost:5432/pandas``; set
+  ``PANDAS_MYSQL_URL`` or ``PANDAS_POSTGRESQL_URL`` to use another location
 - single_cpu: tests that should run on a single cpu only
 
 Tests marked ``high_memory`` need >5GB of memory, so they are skipped unless you

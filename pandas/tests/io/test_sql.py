@@ -591,6 +591,14 @@ def drop_view(
                 con.execute(stmt)  # type: ignore[union-attr]
 
 
+# Where the test databases are. The defaults are the services CI starts; set the
+# variables to use a database on another host or port.
+MYSQL_URL = os.environ.get("PANDAS_MYSQL_URL", "mysql://root@localhost:3306/pandas")
+POSTGRESQL_URL = os.environ.get(
+    "PANDAS_POSTGRESQL_URL", "postgresql://postgres:postgres@localhost:5432/pandas"
+)
+
+
 def skip_if_no_db(name: str, connect) -> None:
     """
     Skip the test if the database `name` is not reachable.
@@ -619,7 +627,7 @@ def _mysql_pymysql_engine():
     sqlalchemy = pytest.importorskip("sqlalchemy")
     pymysql = pytest.importorskip("pymysql")
     engine = sqlalchemy.create_engine(
-        "mysql+pymysql://root@localhost:3306/pandas",
+        sqlalchemy.make_url(MYSQL_URL).set(drivername="mysql+pymysql"),
         connect_args={"client_flag": pymysql.constants.CLIENT.MULTI_STATEMENTS},
         poolclass=sqlalchemy.pool.NullPool,
     )
@@ -673,7 +681,7 @@ def _postgresql_psycopg2_engine():
     sqlalchemy = pytest.importorskip("sqlalchemy")
     pytest.importorskip("psycopg2")
     engine = sqlalchemy.create_engine(
-        "postgresql+psycopg2://postgres:postgres@localhost:5432/pandas",
+        sqlalchemy.make_url(POSTGRESQL_URL).set(drivername="postgresql+psycopg2"),
         poolclass=sqlalchemy.pool.NullPool,
     )
     skip_if_no_db("postgresql", engine.connect)
@@ -715,9 +723,8 @@ def _postgresql_adbc_uri():
     pytest.importorskip("adbc_driver_postgresql")
     from adbc_driver_postgresql import dbapi
 
-    uri = "postgresql://postgres:postgres@localhost:5432/pandas"
-    skip_if_no_db("postgresql (adbc)", lambda: dbapi.connect(uri))
-    return uri
+    skip_if_no_db("postgresql (adbc)", lambda: dbapi.connect(POSTGRESQL_URL))
+    return POSTGRESQL_URL
 
 
 @pytest.fixture
