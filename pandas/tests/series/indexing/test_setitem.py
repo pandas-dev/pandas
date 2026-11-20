@@ -737,6 +737,39 @@ class TestSetitemCasting:
         with pytest.raises(TypeError, match="Invalid value"):
             ser[1:] = arr[1:]  # has an NA -> cast to boolean dtype
 
+    def test_setitem_iloc_rhs_series_non_default_index_with_na(self):
+        # GH#62473: positional, not label-based, lookup of the RHS
+        ser = pd.Series(
+            [4, 6, 9, None, 10, 13, 15],
+            index=[6, 1, 5, 0, 3, 2, 4],
+            dtype="Int64",
+        )
+        indices = pd.Series([6, 1, 5, 0, 3, 2, 4], dtype="int64")
+        values = pd.Series(
+            [4, 6, 9, None, 10, 13, 15],
+            index=[4, 1, 2, 6, 0, 5, 3],
+            dtype="Int64",
+        )
+
+        result = ser.copy()
+        result.iloc[indices] = values
+
+        assert result.dtype == "Int64"
+        # The outcome is positional: the RHS index labels must not matter.
+        expected = ser.copy()
+        expected.iloc[indices] = pd.Series([4, 6, 9, None, 10, 13, 15], dtype="Int64")
+        tm.assert_series_equal(result, expected)
+
+    def test_setitem_iloc_rhs_series_non_default_index(self):
+        # GH#62473: values differ from the original so a failed assignment
+        # is not masked
+        ser = pd.Series([1, 2], dtype="Int64")
+        result = ser.copy()
+        result.iloc[[0, 1]] = pd.Series([5.0, 4.0], index=["a", "b"])
+        expected = ser.copy()
+        expected.iloc[[0, 1]] = pd.Series([5, 4])
+        tm.assert_series_equal(result, expected)
+
 
 class SetitemCastingEquivalents:
     """
