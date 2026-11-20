@@ -242,8 +242,8 @@ def test_from_sequence_of_strings_duration_sliced(chunked, pa_type):
 def test_from_sequence_of_strings_duration_non_varbinary(pa_type):
     # GH#64320: only the four affected layouts may route through
     # replace_with_mask. Diverting the rest is at best pointless and at worst
-    # wrong: it aborts on the null type, and its numpy fallback drops nulls for
-    # dictionary. int64 is unharmed, and is here to pin that it stays that way.
+    # wrong: it aborts on the null type. dictionary and int64 are unharmed, and
+    # are here to pin that it stays that way.
     if pa.types.is_null(pa_type):
         values, expected_seconds = [None, None, None], [None, None, None]
     elif pa.types.is_integer(pa_type):
