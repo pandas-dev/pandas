@@ -53,6 +53,7 @@ cdef extern from "pandas/skiplist.h":
     int skiplist_insert(skiplist_t*, double) nogil
     int skiplist_remove(skiplist_t*, double) nogil
     int skiplist_min_rank(skiplist_t*, double) nogil
+    int skiplist_max_rank(skiplist_t*, double) nogil
 
 cdef:
     float64_t NaN = <float64_t>np.nan
@@ -1728,15 +1729,19 @@ rolling_rank_tiebreakers = {
 
 def roll_rank(const float64_t[:] values, ndarray[int64_t] start,
               ndarray[int64_t] end, int64_t minp, bint percentile,
-              str method, bint ascending) -> np.ndarray:
+              str method, bint ascending, int64_t step=0) -> np.ndarray:
     """
     O(N log(window)) implementation using skip list
 
     derived from roll_quantile
+
+    By default the last row of each window is ranked. If ``step`` is positive,
+    window ``i`` instead ranks row ``i * step``, the row the window belongs to,
+    whenever that row lies inside the window.
     """
     cdef:
-        Py_ssize_t i, j, s, e, N = len(start)
-        float64_t rank_min = 0, rank = 0
+        Py_ssize_t i, j, s, e, target, N = len(start)
+        float64_t rank_min = 0, rank_max = 0, rank = 0
         int64_t nobs = 0, win
         float64_t val
         skiplist_t *skiplist
@@ -1778,26 +1783,8 @@ def roll_rank(const float64_t[:] values, ndarray[int64_t] start,
                     val = values[j] if ascending else -values[j]
                     if val == val:
                         nobs += 1
-                        rank = skiplist_insert(skiplist, val)
-                        if rank == -1:
+                        if skiplist_insert(skiplist, val) == -1:
                             raise MemoryError("skiplist_insert failed")
-                        if rank_type == TiebreakEnumType.TIEBREAK_AVERAGE:
-                            # The average rank of `val` is the sum of the ranks of all
-                            # instances of `val` in the skip list divided by the number
-                            # of instances. The sum of consecutive integers from 1 to N
-                            # is N * (N + 1) / 2.
-                            # The sum of the ranks is the sum of integers from the
-                            # lowest rank to the highest rank, which is the sum of
-                            # integers from 1 to the highest rank minus the sum of
-                            # integers from 1 to one less than the lowest rank.
-                            rank_min = skiplist_min_rank(skiplist, val)
-                            rank = (((rank * (rank + 1) / 2)
-                                    - ((rank_min - 1) * rank_min / 2))
-                                    / (rank - rank_min + 1))
-                        elif rank_type == TiebreakEnumType.TIEBREAK_MIN:
-                            rank = skiplist_min_rank(skiplist, val)
-                    else:
-                        rank = NaN
 
             else:
                 # calculate deletes
@@ -1812,19 +1799,31 @@ def roll_rank(const float64_t[:] values, ndarray[int64_t] start,
                     val = values[j] if ascending else -values[j]
                     if val == val:
                         nobs += 1
-                        rank = skiplist_insert(skiplist, val)
-                        if rank == -1:
+                        if skiplist_insert(skiplist, val) == -1:
                             raise MemoryError("skiplist_insert failed")
-                        if rank_type == TiebreakEnumType.TIEBREAK_AVERAGE:
-                            rank_min = skiplist_min_rank(skiplist, val)
-                            rank = (((rank * (rank + 1) / 2)
-                                    - ((rank_min - 1) * rank_min / 2))
-                                    / (rank - rank_min + 1))
-                        elif rank_type == TiebreakEnumType.TIEBREAK_MIN:
-                            rank = skiplist_min_rank(skiplist, val)
-                    else:
-                        rank = NaN
-            if nobs >= minp:
+
+            # Forward-looking and centered windows do not end at the row they
+            # belong to, so ranking the last row is wrong for them (GH#50315).
+            # Rows excluded from their own window (e.g. closed="left") keep
+            # ranking the last row.
+            target = i * step
+            if step <= 0 or not s <= target < e:
+                target = e - 1
+            if nobs >= minp and s < e:
+                val = values[target] if ascending else -values[target]
+            else:
+                val = NaN
+
+            if val == val:
+                rank_max = skiplist_max_rank(skiplist, val)
+                if rank_type == TiebreakEnumType.TIEBREAK_AVERAGE:
+                    # The average of the consecutive ranks rank_min..rank_max
+                    rank_min = skiplist_min_rank(skiplist, val)
+                    rank = (rank_min + rank_max) / 2
+                elif rank_type == TiebreakEnumType.TIEBREAK_MIN:
+                    rank = skiplist_min_rank(skiplist, val)
+                else:
+                    rank = rank_max
                 output[i] = rank / nobs if percentile else rank
             else:
                 output[i] = NaN

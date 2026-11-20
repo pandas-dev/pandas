@@ -13,7 +13,10 @@ from pandas.errors import Pandas4Warning
 
 import pandas as pd
 import pandas._testing as tm
-from pandas.api.indexers import BaseIndexer
+from pandas.api.indexers import (
+    BaseIndexer,
+    FixedForwardWindowIndexer,
+)
 from pandas.core.indexers.objects import VariableOffsetWindowIndexer
 
 from pandas.tseries.offsets import BusinessDay
@@ -1689,6 +1692,57 @@ def test_rank(window, method, pct, ascending, test_data):
     )
     result = ser.rolling(window).rank(method=method, pct=pct, ascending=ascending)
 
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("method", ["min", "max", "average"])
+@pytest.mark.parametrize("pct", [True, False])
+@pytest.mark.parametrize("test_data", ["default", "duplicates", "nans"])
+@pytest.mark.parametrize("window_type", ["forward", "center"])
+def test_rank_window_not_ending_at_row(method, pct, ascending, test_data, window_type):
+    # GH#50315
+    length = 20
+    if test_data == "default":
+        ser = pd.Series(data=np.random.default_rng(2).random(length))
+    elif test_data == "duplicates":
+        ser = pd.Series(data=np.random.default_rng(2).choice(3, length))
+    elif test_data == "nans":
+        ser = pd.Series(
+            data=np.random.default_rng(2).choice(
+                [1.0, 0.25, 0.75, np.nan, np.inf, -np.inf], length
+            )
+        )
+
+    if window_type == "forward":
+        rolling = ser.rolling(FixedForwardWindowIndexer(window_size=3), min_periods=1)
+        position = 0
+    else:
+        rolling = ser.rolling(3, center=True)
+        position = 1
+
+    expected = rolling.apply(
+        lambda x: x.rank(method=method, pct=pct, ascending=ascending).iloc[position]
+    )
+    result = rolling.rank(method=method, pct=pct, ascending=ascending)
+
+    tm.assert_series_equal(result, expected)
+
+
+def test_rank_forward_window_indexer():
+    # GH#50315
+    ser = pd.Series([3, 1, 4, 1, 5, 9, 2, 6])
+    indexer = FixedForwardWindowIndexer(window_size=3)
+    result = ser.rolling(indexer, min_periods=1).rank()
+    expected = pd.Series([2.0, 1.5, 2.0, 1.0, 2.0, 3.0, 1.0, 1.0])
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("step", [2, 3])
+def test_rank_center_with_step(step):
+    # GH#50315
+    ser = pd.Series(np.random.default_rng(2).random(20))
+    result = ser.rolling(3, center=True, step=step).rank()
+    expected = ser.rolling(3, center=True).rank()[::step]
     tm.assert_series_equal(result, expected)
 
 
