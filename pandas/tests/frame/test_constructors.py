@@ -1,6 +1,9 @@
 import array
+import builtins
 from collections import (
+    ChainMap,
     OrderedDict,
+    UserDict,
     UserList,
     abc,
     defaultdict,
@@ -18,6 +21,7 @@ from datetime import (
 )
 import functools
 import re
+from types import MappingProxyType
 import zoneinfo
 
 import numpy as np
@@ -61,6 +65,13 @@ MIXED_INT_DTYPES = [
     "int32",
     "int64",
 ]
+
+
+@pytest.fixture
+def frozendict_type():
+    if not hasattr(builtins, "frozendict"):
+        pytest.skip("builtin frozendict is not available")
+    return builtins.frozendict
 
 
 class TestDataFrameConstructors:
@@ -808,6 +819,123 @@ class TestDataFrameConstructors:
         data = dict_subclass(data.items())
         df = pd.DataFrame(data)
         tm.assert_frame_equal(refdf, df)
+
+    @pytest.mark.parametrize("mapping_cls", [MappingProxyType, UserDict, ChainMap])
+    def test_constructor_non_dict_mapping_preserved(self, mapping_cls):
+        # GH#71853: non-dict mappings continue to follow the list-like path
+        # iterating over keys, preserving existing behavior until a deprecation cycle.
+        data = {"a": [1, 2], "b": [3, 4]}
+        mapping = mapping_cls(data)
+        result = pd.DataFrame(mapping)
+        expected = pd.DataFrame(list(data.keys()))
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "data, kwargs",
+        [
+            ({"b": [3, 4], "a": [1, 2]}, {}),
+            ({}, {}),
+            ({}, {"index": ["x"], "columns": ["a"]}),
+            ({"b": 3, "a": 1}, {"index": ["x", "y"]}),
+            (
+                {"b": [3, 4], "unused": [5, 6], "a": [1, 2]},
+                {"columns": ["a", "missing", "b", "a"]},
+            ),
+            ({("b", 1): [3, 4], ("a", 2): [1, 2]}, {}),
+        ],
+    )
+    def test_constructor_frozendict(self, frozendict_type, data, kwargs):
+        # GH#71853
+        mapping = frozendict_type(data)
+        result = pd.DataFrame(mapping, **kwargs)
+        expected = pd.DataFrame(data, **kwargs)
+        tm.assert_frame_equal(result, expected)
+        assert list(mapping) == list(data)
+        for key in data:
+            assert mapping[key] is data[key]
+
+    @pytest.mark.parametrize("values_type", ["dict", "series", "frozendict"])
+    @pytest.mark.parametrize("outer_mapping", [False, True])
+    @pytest.mark.parametrize("index", [None, ["z", "x", "missing"]])
+    def test_constructor_frozendict_alignment(
+        self, frozendict_type, values_type, outer_mapping, index
+    ):
+        # GH#71853
+        data = {"b": {"y": 3, "x": 4}, "a": {"z": 1, "y": 2}}
+        constructor = {
+            "dict": dict,
+            "series": pd.Series,
+            "frozendict": frozendict_type,
+        }[values_type]
+        mappings = {key: constructor(value) for key, value in data.items()}
+        if outer_mapping:
+            mappings = frozendict_type(mappings)
+        result = pd.DataFrame(mappings, index=index)
+        if values_type == "series":
+            data = {key: pd.Series(value) for key, value in data.items()}
+        expected = pd.DataFrame(data, index=index)
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "index",
+        [
+            pd.date_range("2020-01-01", periods=2),
+            pd.timedelta_range("0 days", periods=2),
+            pd.Index([np.nan, "x"]),
+            pd.MultiIndex.from_tuples([("a", 1), ("b", 2)]),
+        ],
+    )
+    def test_constructor_frozendict_index(self, frozendict_type, index):
+        # GH#71853: keep dict key conversion and missing-key alignment.
+        values = dict(zip(index, [1, 2], strict=True))
+        result = pd.DataFrame({"a": frozendict_type(values)}, index=index[::-1])
+        expected = pd.DataFrame({"a": values}, index=index[::-1])
+        tm.assert_frame_equal(result, expected)
+
+    def test_constructor_frozendict_mixed_array(self, frozendict_type):
+        # GH#71853: preserve the error for ambiguous mapping/array ordering.
+        data = {"a": frozendict_type({"x": 1}), "b": [2]}
+        msg = "Mixing dicts with non-Series may lead to ambiguous ordering"
+        with pytest.raises(ValueError, match=msg):
+            pd.DataFrame(data)
+
+    @pytest.mark.parametrize("dtype", [None, "float64", "Int64"])
+    def test_constructor_frozendict_dtype(self, frozendict_type, dtype):
+        # GH#71853
+        data = {"b": pd.Series([3, None], dtype="Int64"), "a": [1, 2]}
+        result = pd.DataFrame(frozendict_type(data), dtype=dtype)
+        expected = pd.DataFrame(data, dtype=dtype)
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("copy", [None, True, False])
+    def test_constructor_frozendict_copy(self, frozendict_type, copy):
+        # GH#71853
+        array = np.array([1, 2])
+        series = pd.Series([3, 4])
+        extension = pd.array([5, None], dtype="Int64")
+        data = {"array": array, "series": series, "extension": extension}
+        result = pd.DataFrame(frozendict_type(data), copy=copy)
+        expected = pd.DataFrame(data, copy=copy)
+        tm.assert_frame_equal(result, expected)
+        assert np.shares_memory(result["array"].to_numpy(), array) is (copy is False)
+        assert np.shares_memory(result["series"].to_numpy(), series.to_numpy()) is (
+            copy is False
+        )
+        assert (result["extension"].array is extension) is (copy is False)
+        result.iloc[0, 1] = 99
+        assert series.iloc[0] == 3
+
+    @pytest.mark.parametrize(
+        "data, msg",
+        [
+            ({"a": 1}, "If using all scalar values, you must pass an index"),
+            ({"a": [1], "b": [2, 3]}, "All arrays must be of the same length"),
+        ],
+    )
+    def test_constructor_frozendict_invalid(self, frozendict_type, data, msg):
+        # GH#71853
+        with pytest.raises(ValueError, match=msg):
+            pd.DataFrame(frozendict_type(data))
 
     def test_constructor_defaultdict(self, float_frame):
         # try with defaultdict
