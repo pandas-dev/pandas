@@ -3345,6 +3345,18 @@ def test_merge_arrow_string_index(any_string_dtype):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("how, sort", [("outer", False), ("right", True)])
+@pytest.mark.parametrize("dtype", ["str", "string[pyarrow]", "int64[pyarrow]"])
+def test_merge_empty_arrow_multiindex(dtype, how, sort):
+    # GH#72160 empty arrow-backed index levels can have no chunks
+    pytest.importorskip("pyarrow")
+    df = pd.DataFrame(
+        {"a": pd.array([], dtype=dtype), "b": pd.array([], dtype=dtype)}
+    ).set_index(["a", "b"])
+    result = merge(df, df, how=how, on=["a", "b"], sort=sort)
+    tm.assert_frame_equal(result, df)
+
+
 @pytest.mark.parametrize("left_empty", [True, False])
 @pytest.mark.parametrize("right_empty", [True, False])
 def test_merge_empty_frames_column_order(left_empty, right_empty):
