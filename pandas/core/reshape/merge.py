@@ -24,6 +24,7 @@ from pandas._libs import (
     lib,
 )
 from pandas._libs.lib import is_range_indexer
+from pandas._libs.tslibs import timezones
 from pandas.errors import (
     MergeError,
     Pandas4Warning,
@@ -2558,6 +2559,16 @@ class _AsOfMerge(_OrderedMerge):
 
         def _check_dtype_match(left: ArrayLike, right: ArrayLike, i: int) -> None:
             if left.dtype != right.dtype:
+                if (
+                    lib.is_np_dtype(left.dtype, "M")
+                    and lib.is_np_dtype(right.dtype, "M")
+                ) or (
+                    isinstance(left.dtype, DatetimeTZDtype)
+                    and isinstance(right.dtype, DatetimeTZDtype)
+                    and timezones.tz_compare(left.dtype.tz, right.dtype.tz)
+                ):
+                    # GH#72010 resolutions are matched in _get_join_indexers
+                    return
                 if isinstance(left.dtype, CategoricalDtype) and isinstance(
                     right.dtype, CategoricalDtype
                 ):
@@ -2670,7 +2681,12 @@ class _AsOfMerge(_OrderedMerge):
             self.right.index._values if self.right_index else self.right_join_keys[-1]
         )
 
-        # _maybe_require_matching_dtypes already checked for dtype matching
+        # _maybe_require_matching_dtypes already checked for dtype matching,
+        #  apart from datetime resolution
+        if left_values.dtype != right_values.dtype:
+            left_values, right_values = ensure_wrapped_if_datetimelike(
+                left_values
+            )._ensure_matching_resos(ensure_wrapped_if_datetimelike(right_values))
         assert left_values.dtype == right_values.dtype
 
         tolerance = self.tolerance
@@ -2712,17 +2728,23 @@ class _AsOfMerge(_OrderedMerge):
             if len(left_join_keys) == 1:
                 lby = left_join_keys[0]
                 rby = right_join_keys[0]
-                if isinstance(lby, np.ndarray) and lby.dtype.kind in "biumM":
+                if (
+                    isinstance(lby, np.ndarray)
+                    and lby.dtype.kind in "biumM"
+                    and lby.dtype == rby.dtype
+                ):
                     # Matching dtypes are enforced in
-                    #  _maybe_require_matching_dtypes, and the int64
-                    #  representation preserves equality, so these values
-                    #  can be used as group keys directly without
-                    #  factorizing.
+                    #  _maybe_require_matching_dtypes (apart from datetime
+                    #  resolution), and the int64 representation preserves
+                    #  equality, so these values can be used as group keys
+                    #  directly without factorizing.
                     left_by_values = lby.astype(np.int64, copy=False)
                     right_by_values = rby.astype(np.int64, copy=False)
                 else:
                     left_by_values, right_by_values, _ = _factorize_keys(
-                        lby, rby, sort=False
+                        ensure_wrapped_if_datetimelike(lby),
+                        ensure_wrapped_if_datetimelike(rby),
+                        sort=False,
                     )
             else:
                 mapped = [
