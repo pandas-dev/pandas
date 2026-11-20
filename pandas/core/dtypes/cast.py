@@ -94,6 +94,8 @@ if TYPE_CHECKING:
         Sequence,
     )
 
+    import pyarrow as pa
+
     from pandas._typing import (
         ArrayLike,
         Dtype,
@@ -1074,6 +1076,25 @@ def convert_dtypes(
                 import pyarrow as pa
 
                 pa_type = pa.null()
+            elif (
+                isinstance(base_dtype, np.dtype)
+                and base_dtype.kind == "O"
+                and (non_na := input_array[~isna(input_array)]).size > 0
+                and all(isinstance(v, (list, dict)) for v in non_na)
+            ):
+                # GH#65034
+                import pyarrow as pa
+
+                try:
+                    pa_type = pa.array(non_na).type
+                except (pa.ArrowInvalid, TypeError, OverflowError):
+                    pa_type = to_pyarrow_type(base_dtype)
+                else:
+                    # pyarrow infers nested timestamps and durations at the
+                    # first value's tz and at microsecond resolution, dropping
+                    # other tzs and truncating nanoseconds
+                    if _contains_timestamp_or_duration(pa_type):
+                        pa_type = to_pyarrow_type(base_dtype)
             else:
                 pa_type = to_pyarrow_type(base_dtype)
             if pa_type is not None:
@@ -1086,6 +1107,17 @@ def convert_dtypes(
 
     assert not isinstance(inferred_dtype, str)
     return inferred_dtype
+
+
+def _contains_timestamp_or_duration(pa_type: pa.DataType) -> bool:
+    import pyarrow as pa
+
+    if pa.types.is_timestamp(pa_type) or pa.types.is_duration(pa_type):
+        return True
+    return any(
+        _contains_timestamp_or_duration(pa_type.field(i).type)
+        for i in range(pa_type.num_fields)
+    )
 
 
 def maybe_cast_to_datetime(
