@@ -395,7 +395,9 @@ class SQLTable(PandasObject):
             elif ser.dtype.kind == "m":
                 vals = ser._values
                 if isinstance(vals, ArrowExtensionArray):
-                    vals = vals.to_numpy(dtype=np.dtype("m8[ns]"))
+                    vals = vals.to_numpy(
+                        dtype=np.dtype(f"m8[{timedelta_write_unit(ser)}]")
+                    )
                 # store as integers, see GH#6921, GH#7076
                 d = vals.view("i8").astype(object)
             else:

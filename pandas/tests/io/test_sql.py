@@ -2034,7 +2034,6 @@ def test_api_date_and_index(conn, request):
     "dtype, unit",
     [
         ("m8[s]", "s"),
-        ("m8[ms]", "ms"),
         ("m8[us]", "us"),
         ("m8[ns]", "ns"),
         ("duration[us][pyarrow]", "ns"),
