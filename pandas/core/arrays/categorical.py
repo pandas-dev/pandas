@@ -78,6 +78,7 @@ from pandas.core.algorithms import (
     factorize,
     take_nd,
 )
+from pandas.core.array_algos.quantile import quantile_with_mask
 from pandas.core.arrays._mixins import (
     NDArrayBackedExtensionArray,
     ravel_compat,
@@ -557,6 +558,35 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         #  the correct dtype back from _quantile in the all-NA case
         dtype = self._ndarray.dtype
         return dtype.type(-1)
+
+    def _quantile(
+        self,
+        qs: npt.NDArray[np.float64],
+        interpolation: str,
+    ) -> Self:
+        # The quantile is computed on the codes. A non-integer result points
+        #  between two categories, which do not have a value in between.
+        codes = self._ndarray
+        mask = np.asarray(self.isna())
+        res_codes = quantile_with_mask(
+            codes, mask, self._internal_fill_value, qs, interpolation
+        )
+        if res_codes.dtype != codes.dtype:
+            res_mask = np.isnan(res_codes)
+            rounded = np.round(res_codes)
+            # allow for float noise, e.g. q=13/99 with 100 categories gives
+            #  13.000000000000002 instead of 13
+            if not np.allclose(
+                res_codes[~res_mask], rounded[~res_mask], rtol=1e-12, atol=1e-12
+            ):
+                raise TypeError(
+                    "Cannot interpolate between categories with "
+                    f"interpolation='{interpolation}'. Use 'lower', 'higher' "
+                    "or 'nearest' instead."
+                )
+            rounded[res_mask] = -1
+            res_codes = rounded.astype(codes.dtype, copy=False)
+        return self._from_backing_data(res_codes)
 
     @classmethod
     def _from_sequence(

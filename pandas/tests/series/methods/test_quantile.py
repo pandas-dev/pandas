@@ -345,3 +345,68 @@ def test_quantile_dt64tz_endpoints_exact():
     result = ser.quantile([0, 1])
     expected = pd.Series(dti, index=[0.0, 1.0])
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "nulls", [[], [None], [np.nan], [pd.NA]], ids=["no-na", "None", "nan", "NA"]
+)
+@pytest.mark.parametrize(
+    "categories",
+    [
+        list("abcd"),
+        [10, 20, 30, 40],
+        pd.date_range("2020-01-01", periods=4),
+    ],
+)
+def test_quantile_categorical(categories, nulls):
+    # GH#52099 result should be a category, with or without missing values
+    dtype = pd.CategoricalDtype(categories, ordered=True)
+    values = [*nulls, *(categories[i] for i in [0, 1, 2, 3, 3])]
+    ser = pd.Series(values, dtype=dtype)
+
+    result = ser.quantile(0.5)
+    assert result == categories[2]
+
+    result = ser.quantile([0, 0.5, 1])
+    expected = pd.Series(
+        [categories[0], categories[2], categories[3]], dtype=dtype, index=[0, 0.5, 1]
+    )
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("interpolation", ["linear", "midpoint"])
+@pytest.mark.parametrize("with_na", [True, False])
+def test_quantile_categorical_between_categories_raises(interpolation, with_na):
+    # GH#52099 there is no category between 'b' and 'c'
+    values = ["a", "b", "c", "d"]
+    if with_na:
+        values = [np.nan, *values]
+    ser = pd.Series(values, dtype=pd.CategoricalDtype(list("abcd"), ordered=True))
+    msg = "Cannot interpolate between categories"
+    with pytest.raises(TypeError, match=msg):
+        ser.quantile(0.5, interpolation=interpolation)
+
+
+@pytest.mark.parametrize(
+    "interpolation, expected",
+    [("lower", "b"), ("higher", "c"), ("nearest", "c")],
+)
+def test_quantile_categorical_between_categories_no_interpolation(
+    interpolation, expected
+):
+    # GH#52099
+    ser = pd.Series(list("abcd"), dtype=pd.CategoricalDtype(list("abcd"), ordered=True))
+    result = ser.quantile(0.5, interpolation=interpolation)
+    assert result == expected
+
+
+@pytest.mark.parametrize("nulls", [[], [np.nan]], ids=["no-na", "nan"])
+def test_quantile_categorical_inexact_q(nulls):
+    # GH#52099 q=k/99 is not exact in float, but still points at category k
+    categories = list(range(100))
+    dtype = pd.CategoricalDtype(categories, ordered=True)
+    ser = pd.Series([*nulls, *categories], dtype=dtype)
+    qs = [k / 99 for k in categories]
+    result = ser.quantile(qs)
+    expected = pd.Series(categories, dtype=dtype, index=qs)
+    tm.assert_series_equal(result, expected)
