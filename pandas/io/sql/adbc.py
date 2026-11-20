@@ -411,7 +411,7 @@ class ADBCDatabase(PandasSQL):
 
         with self.con.cursor() as cur:
             try:
-                total_inserted = cur.adbc_ingest(
+                total_inserted: int = cur.adbc_ingest(
                     table_name=name, data=tbl, mode=mode, db_schema_name=schema
                 )
             except Error as exc:
@@ -420,6 +420,9 @@ class ADBCDatabase(PandasSQL):
                 ) from exc
 
         self.con.commit()
+        # adbc_ingest returns -1 when the driver can't count the rows
+        if total_inserted < 0:
+            return None
         return total_inserted
 
     def has_table(self, name: str, schema: str | None = None) -> bool:
