@@ -859,6 +859,7 @@ then call :func:`to_datetime` with ``utc=True``.
 
 
 .. _io.dayfirst:
+.. _io.infer_datetime_format:
 
 
 Inferring datetime format
