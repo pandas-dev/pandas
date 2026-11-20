@@ -793,6 +793,7 @@ class ParserBase:
         self, columns: Sequence[HashableT], dtype: DtypeArg | None = None
     ) -> tuple[Index, list[HashableT], dict[HashableT, Series]]:
         columns = list(columns)
+        names = columns.copy()
 
         index_col = self.index_col
         index_names = self.index_names
@@ -825,9 +826,21 @@ class ParserBase:
             index = default_index(0)
         else:
             # TODO: We could return default_index(0) if dtype_dict[name] is None
-            data = [
-                Index([], name=name, dtype=dtype_dict[name]) for name in index_names
-            ]
+            data = []
+            for i, name in enumerate(index_names):
+                level = Index([], name=name, dtype=dtype_dict[name])
+                if self._should_parse_dates(i):
+                    level = Index(
+                        date_converter(
+                            level,
+                            col=name,
+                            dayfirst=self.dayfirst,
+                            cache_dates=self.cache_dates,
+                            date_format=self.date_format,
+                        ),
+                        name=name,
+                    )
+                data.append(level)
             if len(data) == 1:
                 index = data[0]
             else:
@@ -837,9 +850,9 @@ class ParserBase:
             for i, n in enumerate(index_col):
                 columns.pop(n - i)
 
-        col_dict = {
-            col_name: Series([], dtype=dtype_dict[col_name]) for col_name in columns
-        }
+        col_dict = {name: Series([], dtype=dtype_dict[name]) for name in names}
+        self._do_date_conversions(names, col_dict)  # type: ignore[arg-type]
+        col_dict = {col_name: col_dict[col_name] for col_name in columns}
 
         return index, columns, col_dict
 

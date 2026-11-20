@@ -342,6 +342,52 @@ def test_parse_dates_empty_string(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "data, kwargs, expected",
+    [
+        (
+            "date\n",
+            {"parse_dates": ["date"]},
+            pd.DataFrame({"date": pd.Series(dtype="M8[s]")}),
+        ),
+        (
+            "d1,d2\n",
+            {"index_col": 0, "parse_dates": [0, 1]},
+            pd.DataFrame(
+                {"d2": pd.Series(dtype="M8[s]")},
+                index=pd.DatetimeIndex([], dtype="M8[s]", name="d1"),
+            ),
+        ),
+        (
+            "idx,d1,d2\n",
+            {"index_col": [0, 1], "parse_dates": [1, 2], "dtype": {"idx": object}},
+            pd.DataFrame(
+                {"d2": pd.Series(dtype="M8[s]")},
+                index=pd.MultiIndex.from_arrays(
+                    [
+                        pd.Index([], dtype=object, name="idx"),
+                        pd.DatetimeIndex([], dtype="M8[s]", name="d1"),
+                    ]
+                ),
+            ),
+        ),
+        (
+            ",date\n",
+            {"index_col": 0, "parse_dates": [0, 1]},
+            pd.DataFrame(
+                {"date": pd.Series(dtype="M8[s]")},
+                index=pd.DatetimeIndex([], dtype="M8[s]"),
+            ),
+        ),
+    ],
+)
+def test_parse_dates_no_data_rows(all_parsers, data, kwargs, expected):
+    # GH#15524
+    parser = all_parsers
+    result = parser.read_csv(StringIO(data), **kwargs)
+    tm.assert_frame_equal(result, expected)
+
+
 def test_parse_dates_missing_value(all_parsers):
     # GH#47950 a missing value in a parse_dates column should become NaT,
     # not be left as the string "None" (which the pyarrow engine used to do)
