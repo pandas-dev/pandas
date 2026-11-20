@@ -1763,6 +1763,11 @@ class DataFrame(NDFrame, OpsMixin):
         row_1  3  2  1  0
         row_2  a  b  c  d
 
+        When using ``orient-index``, combining list-like and scalar values 
+        may produce different DataFrame structures depending on the order of 
+        dictionary entries. For consistent results, use values with 
+        compatible structures instead of mixing lists and scalars. 
+
         Specify ``orient='tight'`` to create the DataFrame using a 'tight'
         format:
 
