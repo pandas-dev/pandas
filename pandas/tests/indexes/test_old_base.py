@@ -19,7 +19,10 @@ from pandas.core.dtypes.dtypes import CategoricalDtype
 import pandas as pd
 import pandas._testing as tm
 import pandas.core.algorithms as algos
-from pandas.core.arrays import BaseMaskedArray
+from pandas.core.arrays import (
+    ArrowExtensionArray,
+    BaseMaskedArray,
+)
 
 
 class TestBase:
@@ -345,9 +348,12 @@ class TestBase:
 
         res_with_engine = index.memory_usage()
 
-        # the empty engine doesn't affect the result even when initialized with values,
-        # because engine.sizeof() doesn't consider the content of engine.values
-        assert res_with_engine == res_without_engine
+        expected = res_without_engine
+        if isinstance(index._values, ArrowExtensionArray):
+            values = index._engine.values
+            if values.dtype == object:
+                expected += values.nbytes
+        assert res_with_engine == expected
 
         if len(index) == 0:
             assert res_without_engine == 0
