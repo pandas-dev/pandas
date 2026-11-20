@@ -230,6 +230,15 @@ def wrap_result(
     return frame
 
 
+def timedelta_write_unit(col: Index | Series) -> str:
+    """
+    Return the unit of the integers that a ``timedelta64`` column is written as.
+    """
+    if isinstance(col.dtype, np.dtype) and col.dtype.kind == "m":
+        return np.datetime_data(col.dtype)[0]
+    return "ns"
+
+
 def get_unicode_name(name: object) -> str:
     try:
         uname = str(name).encode("utf-8", "strict").decode("utf-8")
@@ -387,8 +396,6 @@ class SQLTable(PandasObject):
                 vals = ser._values
                 if isinstance(vals, ArrowExtensionArray):
                     vals = vals.to_numpy(dtype=np.dtype("m8[ns]"))
-                else:
-                    vals = vals.as_unit("ns")
                 # store as integers, see GH#6921, GH#7076
                 d = vals.view("i8").astype(object)
             else:
@@ -719,8 +726,9 @@ class SQLTable(PandasObject):
             return DateTime().with_variant(mysql.DATETIME(fsp=6), *mysql_dialects)
         if col_type == "timedelta64":
             warnings.warn(
-                "the 'timedelta' type is not supported, and will be "
-                "written as integer values (ns frequency) to the database.",
+                "the 'timedelta' type is not supported, and will be written as "
+                f"integer values ({timedelta_write_unit(col)} frequency) to the "
+                "database.",
                 UserWarning,
                 stacklevel=find_stack_level(),
             )

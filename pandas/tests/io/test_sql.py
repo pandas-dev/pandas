@@ -2030,9 +2030,21 @@ def test_api_date_and_index(conn, request):
 
 
 @pytest.mark.parametrize("conn", all_connectable)
-@pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
-def test_api_timedelta(conn, request, unit):
-    # see #6921, GH#71941: timedeltas are stored as nanoseconds whatever their unit
+@pytest.mark.parametrize(
+    "dtype, unit",
+    [
+        ("m8[s]", "s"),
+        ("m8[ms]", "ms"),
+        ("m8[us]", "us"),
+        ("m8[ns]", "ns"),
+        ("duration[us][pyarrow]", "ns"),
+    ],
+)
+def test_api_timedelta(conn, request, dtype, unit):
+    # see #6921, GH#71941: timedeltas are stored as integers in the unit the
+    # warning names
+    if "pyarrow" in dtype:
+        pytest.importorskip("pyarrow")
     conn_name = conn
     conn = request.getfixturevalue(conn)
     if sql.has_table("test_timedelta", conn):
@@ -2041,7 +2053,7 @@ def test_api_timedelta(conn, request, unit):
 
     df = (
         pd.to_timedelta(pd.Series(["00:00:01", "00:00:03"], name="foo"))
-        .astype(f"m8[{unit}]")
+        .astype(dtype)
         .to_frame()
     )
 
@@ -2057,7 +2069,10 @@ def test_api_timedelta(conn, request, unit):
     else:
         exp_warning = UserWarning
 
-    msg = "the 'timedelta' type is not supported"
+    msg = (
+        "the 'timedelta' type is not supported, and will be written as integer "
+        rf"values \({unit} frequency\) to the database"
+    )
     with tm.assert_produces_warning(exp_warning, check_stacklevel=False, match=msg):
         result_count = df.to_sql(name="test_timedelta", con=conn)
     assert result_count == 2
@@ -2079,7 +2094,8 @@ def test_api_timedelta(conn, request, unit):
             ]
         expected = pd.Series(offsets, name="foo")
     else:
-        expected = pd.Series([1_000_000_000, 3_000_000_000], name="foo")
+        per_second = {"s": 1, "ms": 1_000, "us": 1_000_000, "ns": 1_000_000_000}[unit]
+        expected = pd.Series([per_second, 3 * per_second], name="foo")
     tm.assert_series_equal(result["foo"], expected)
 
 

@@ -5922,7 +5922,9 @@ default ``Text`` type for string columns:
 
     Due to the limited support for timedelta's in the different database
     flavors, columns with type ``timedelta64`` will be written as integer
-    values as nanoseconds to the database and a warning will be raised. The only
+    values in the unit of the column, such as microseconds for ``timedelta64[us]``,
+    to the database and a warning naming that unit will be raised. Columns with a
+    pyarrow ``duration`` type are written as nanoseconds. The only
     exception to this is when using the ADBC PostgreSQL driver in which case a
     timedelta will be written to the database as an ``INTERVAL``
 
