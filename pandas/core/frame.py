@@ -14950,9 +14950,11 @@ class DataFrame(NDFrame, OpsMixin):
                 # in the periods == 0 case, this is equivalent diff of 0 periods
                 #  along axis=0, and the Manager method may be somewhat more
                 #  performant, so we dispatch in that case.
-                if (self.dtypes == np.bool_).all():
+                blocks = self._mgr.blocks
+                if blocks and all(blk.dtype == np.bool_ for blk in blocks):
                     # GH#52579 bool data has no subtraction; use xor like
-                    #  diff along axis=0 does
+                    #  diff along axis=0 does. Checking the blocks rather than
+                    #  self.dtypes keeps wide non-bool frames as fast as before.
                     return self._diff_axis1_bool(periods)
                 return self - self.shift(periods, axis=axis)
             # With periods=0 this is equivalent to a diff with axis=0
