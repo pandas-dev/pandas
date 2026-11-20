@@ -1369,6 +1369,72 @@ def test_ea_dtypes(any_numeric_ea_dtype, parser):
     assert equalize_decl(result).strip() == expected
 
 
+def test_bool_dtype(parser):
+    # GH#68026
+    df = pd.DataFrame({"a": [True, False]})
+    result = df.to_xml(parser=parser, index=False)
+    expected = """<?xml version='1.0' encoding='utf-8'?>
+<data>
+  <row>
+    <a>true</a>
+  </row>
+  <row>
+    <a>false</a>
+  </row>
+</data>"""
+    assert equalize_decl(result).strip() == expected
+
+    result_attr = df.to_xml(parser=parser, index=False, attr_cols=["a"])
+    expected_attr = """<?xml version='1.0' encoding='utf-8'?>
+<data>
+  <row a="true"/>
+  <row a="false"/>
+</data>"""
+    assert equalize_decl(result_attr).strip() == expected_attr
+
+    df_nullable = pd.DataFrame({"a": pd.Series([True, False, None], dtype="boolean")})
+    result_nullable = df_nullable.to_xml(parser=parser, index=False)
+    expected_nullable = """<?xml version='1.0' encoding='utf-8'?>
+<data>
+  <row>
+    <a>true</a>
+  </row>
+  <row>
+    <a>false</a>
+  </row>
+  <row>
+    <a/>
+  </row>
+</data>"""
+    assert equalize_decl(result_nullable).strip() == expected_nullable
+
+    result_na_rep = df_nullable.to_xml(parser=parser, index=False, na_rep="foo")
+    expected_na_rep = """<?xml version='1.0' encoding='utf-8'?>
+<data>
+  <row>
+    <a>true</a>
+  </row>
+  <row>
+    <a>false</a>
+  </row>
+  <row>
+    <a>foo</a>
+  </row>
+</data>"""
+    assert equalize_decl(result_na_rep).strip() == expected_na_rep
+
+    result_attr_na_rep = df_nullable.to_xml(
+        parser=parser, index=False, attr_cols=["a"], na_rep="foo"
+    )
+    expected_attr_na_rep = """<?xml version='1.0' encoding='utf-8'?>
+<data>
+  <row a="true"/>
+  <row a="false"/>
+  <row a="foo"/>
+</data>"""
+    assert equalize_decl(result_attr_na_rep).strip() == expected_attr_na_rep
+
+
 def test_unsupported_compression(parser, geom_df, temp_file):
     with pytest.raises(ValueError, match="Unrecognized compression type"):
         path = temp_file
