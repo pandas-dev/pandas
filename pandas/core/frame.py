@@ -7637,7 +7637,7 @@ class DataFrame(NDFrame, OpsMixin):
                 "Passing a 'freq' together with a 'fill_value' is not allowed."
             )
 
-        if self.empty and freq is None:
+        if self.empty and freq is None and not is_list_like(periods):
             return self.copy()
 
         axis = self._get_axis_number(axis)
