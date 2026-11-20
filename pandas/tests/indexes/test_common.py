@@ -129,6 +129,22 @@ class TestCommon:
             # should still fail even if it would be the right length
             index_flat.set_names("a")
 
+    @pytest.mark.parametrize(
+        "name", [(1, 2, 3), ("a",), frozenset([1, 2, 3]), range(3)]
+    )
+    def test_set_names_hashable_iterable_name(self, index_flat, name):
+        # GH#66656
+        result = index_flat.set_names(name)
+        assert result.name == name
+
+    def test_set_names_with_index_names_roundtrip(self, index_flat):
+        # GH#66656: an Index's own .names (a FrozenList) must still be
+        # treated as a sequence of per-level names, not a scalar, even
+        # though FrozenList happens to be hashable
+        index = index_flat.rename("some_name")
+        result = index.set_names(index.names)
+        assert result.name == "some_name"
+
     def test_copy_and_deepcopy(self, index_flat):
         index = index_flat
 
