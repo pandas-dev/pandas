@@ -263,24 +263,18 @@ def test_groupby_resample_on_multikey_dropna_false():
         .resample("1min", on="time")["value"]
         .sum()
     )
-    exp_mi = pd.MultiIndex.from_arrays(
-        [
-            ["x", "x", "x", np.nan, np.nan],
-            [1, 1, 2, 1, 1],
-            pd.to_datetime(
-                [
-                    "2024-01-01 00:00",
-                    "2024-01-01 00:01",
-                    "2024-01-01 00:00",
-                    "2024-01-01 00:00",
-                    "2024-01-01 00:01",
-                ]
-            ),
-        ],
-        names=["k1", "k2", "time"],
+    expected = (
+        df.reset_index(drop=True)
+        .groupby(["k1", "k2"], dropna=False)
+        .resample("1min", on="time")["value"]
+        .sum()
     )
-    expected = pd.Series([8, 1, 2, 4, 16], index=exp_mi, name="value")
     tm.assert_series_equal(result, expected)
+
+    # x/1: 00:00 -> 8, 00:01 -> 1; x/2: 00:00 -> 2; NaN/1: 00:00 -> 4, 00:01 -> 16
+    assert result.tolist() == [8, 1, 2, 4, 16]
+    k1 = result.index.get_level_values("k1")
+    assert k1.isna().tolist() == [False, False, False, True, True]
 
 
 def test_groupby_with_origin():
