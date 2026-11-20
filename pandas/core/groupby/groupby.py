@@ -37,6 +37,8 @@ import warnings
 
 import numpy as np
 
+from pandas._config import get_option
+
 from pandas._libs import (
     Timestamp,
     lib,
@@ -175,17 +177,42 @@ class GroupByPlot(PandasObject):
         if group.ndim == 2 and kwargs.get("ax") is None:
             kwargs.setdefault("title", pprint_thing(key))
 
+    def _get_group_colors(self, kwargs: dict[str, Any]) -> list | None:
+        # GH#56697: each group is plotted separately, so a colormap would give
+        #  every group its first color. Pick one color per group instead.
+        colormap = kwargs.get("colormap")
+        if colormap is None or kwargs.get("color") is not None:
+            return None
+        backend = kwargs.get("backend") or get_option("plotting.backend")
+        if backend != "matplotlib":
+            return None
+        if self._groupby._selected_obj.ndim != 1:
+            # TODO: DataFrameGroupBy, pending discussion on GH#56697
+            return None
+        if kwargs.get("kind", "line") == "pie":
+            return None
+
+        from pandas.plotting._matplotlib.style import get_standard_colors
+
+        return get_standard_colors(num_colors=self._groupby.ngroups, colormap=colormap)
+
     def __call__(self, *args, **kwargs):
-        def f(self, key):
+        colors = self._get_group_colors(kwargs)
+        color_iter = iter(colors) if colors is not None else None
+
+        def plot_group(group, key):
             local_kwargs = kwargs.copy()
             # ax and title can also be passed positionally after x, y, kind
             if len(args) <= 3:
-                GroupByPlot._set_default_title(local_kwargs, self, key)
-            return self.plot(*args, **local_kwargs)
+                GroupByPlot._set_default_title(local_kwargs, group, key)
+            if color_iter is not None:
+                local_kwargs["color"] = next(color_iter)
+                local_kwargs.pop("colormap")
+            return group.plot(*args, **local_kwargs)
 
-        f.__name__ = "plot"
+        plot_group.__name__ = "plot"
 
-        return self._groupby._python_apply_plot(f)
+        return self._groupby._python_apply_plot(plot_group)
 
     def __getattr__(self, name: str):
         def attr(*args, **kwargs):
