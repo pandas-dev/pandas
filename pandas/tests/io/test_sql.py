@@ -20,6 +20,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
 )
+from urllib.parse import urlsplit
 import uuid
 
 import numpy as np
@@ -591,13 +592,25 @@ def drop_view(
                 con.execute(stmt)  # type: ignore[union-attr]
 
 
-# Where the test databases are. The defaults are the services CI starts; set the
-# variables to use a database on another host or port. Every test drops all the
-# tables and views of the database, so it must not hold anything worth keeping.
-MYSQL_URL = os.environ.get("PANDAS_MYSQL_URL") or "mysql://root@localhost:3306/pandas"
-POSTGRESQL_URL = (
-    os.environ.get("PANDAS_POSTGRESQL_URL")
-    or "postgresql://postgres:postgres@localhost:5432/pandas"
+def database_url(variable: str, default: str) -> str:
+    """
+    URL of a test database: `variable` from the environment, else `default`.
+
+    The defaults are the services CI starts; set the variable to use a database
+    on another host or port. Every test drops all the tables and views of the
+    database, so it must not hold anything worth keeping.
+    """
+    url = os.environ.get(variable) or default
+    parts = urlsplit(url)
+    if not (parts.scheme and parts.netloc):
+        # without the value, which can hold a password
+        raise ValueError(f"{variable} must be a URL like {default}")
+    return url
+
+
+MYSQL_URL = database_url("PANDAS_MYSQL_URL", "mysql://root@localhost:3306/pandas")
+POSTGRESQL_URL = database_url(
+    "PANDAS_POSTGRESQL_URL", "postgresql://postgres:postgres@localhost:5432/pandas"
 )
 
 
@@ -726,7 +739,7 @@ def _postgresql_adbc_uri():
     from adbc_driver_postgresql import dbapi
 
     # libpq does not take a SQLAlchemy driver such as postgresql+psycopg2://
-    uri = "postgresql://" + POSTGRESQL_URL.split("://", maxsplit=1)[1]
+    uri = urlsplit(POSTGRESQL_URL)._replace(scheme="postgresql").geturl()
     skip_if_no_db("postgresql (adbc)", lambda: dbapi.connect(uri))
     return uri
 
