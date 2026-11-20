@@ -16,6 +16,7 @@ from datetime import (
     datetime,
     timedelta,
 )
+import enum
 import functools
 import re
 import zoneinfo
@@ -3186,6 +3187,20 @@ class TestDataFrameConstructors:
         df = pd.DataFrame(dummy)
         expected = pd.DataFrame(np.eye(3))
         tm.assert_frame_equal(df, expected)
+
+    def test_constructor_columns_enum_class(self):
+        # GH#54386
+        class Color(enum.IntEnum):
+            RED = 1
+            BLUE = 2
+
+        result = pd.DataFrame(columns=Color)
+        expected = pd.DataFrame(columns=list(Color))
+        tm.assert_frame_equal(result, expected)
+
+        result = pd.DataFrame([[1, 2]], columns=Color)
+        expected = pd.DataFrame([[1, 2]], columns=list(Color))
+        tm.assert_frame_equal(result, expected)
 
 
 class TestDataFrameConstructorIndexInference:
