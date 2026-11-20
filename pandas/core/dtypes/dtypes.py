@@ -1474,34 +1474,31 @@ class IntervalDtype(PandasExtensionDtype):
         Construct IntervalArray from pyarrow Array/ChunkedArray.
         """
         import pyarrow
+        import pyarrow.compute as pc
 
         from pandas.core.arrays import IntervalArray
 
-        if isinstance(array, pyarrow.Array):
-            chunks = [array]
-        else:
-            chunks = array.chunks
+        if isinstance(array.type, pyarrow.BaseExtensionType):
+            # struct_field has no kernel for extension types
+            if isinstance(array, pyarrow.Array):
+                array = array.storage
+            else:
+                array = pyarrow.chunked_array(
+                    [chunk.storage for chunk in array.chunks],
+                    type=array.type.storage_type,
+                )
 
         # np.asarray can't take an ExtensionDtype, e.g. DatetimeTZDtype
         subtype_is_numpy = isinstance(self.subtype, np.dtype)
 
-        def _convert(values: pyarrow.Array):
+        def _convert(values: pyarrow.Array | pyarrow.ChunkedArray):
             if subtype_is_numpy:
                 return np.asarray(values, dtype=self.subtype)
             return self.subtype.__from_arrow__(values)
 
-        results = []
-        for arr in chunks:
-            if isinstance(arr, pyarrow.ExtensionArray):
-                arr = arr.storage
-            left = _convert(arr.field("left"))
-            right = _convert(arr.field("right"))
-            iarr = IntervalArray.from_arrays(left, right, closed=self.closed)
-            results.append(iarr)
-
-        if not results:
-            return IntervalArray._from_sequence([], dtype=self)
-        return IntervalArray._concat_same_type(results)
+        left = _convert(pc.struct_field(array, "left"))
+        right = _convert(pc.struct_field(array, "right"))
+        return IntervalArray.from_arrays(left, right, closed=self.closed)
 
     def _get_common_dtype(self, dtypes: list[DtypeObj]) -> DtypeObj | None:
         if not all(isinstance(x, IntervalDtype) for x in dtypes):
