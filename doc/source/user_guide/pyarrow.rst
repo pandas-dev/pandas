@@ -152,6 +152,13 @@ The following are just some examples of operations that are accelerated by nativ
    ser_dt = pd.Series([datetime(2022, 1, 1), None], dtype=pa_type)
    ser_dt.dt.strftime("%Y-%m")
 
+.. note::
+
+   On Windows, PyArrow versions earlier than 24.0 require an IANA time zone database for certain
+   datetime operations, such as :meth:`Series.dt.strftime`. See the
+   `PyArrow installation documentation <https://arrow.apache.org/docs/python/install.html#tzdata-on-windows>`__
+   for installation instructions.
+
 I/O Reading
 -----------
 
