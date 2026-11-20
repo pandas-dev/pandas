@@ -592,10 +592,12 @@ def drop_view(
 
 
 # Where the test databases are. The defaults are the services CI starts; set the
-# variables to use a database on another host or port.
-MYSQL_URL = os.environ.get("PANDAS_MYSQL_URL", "mysql://root@localhost:3306/pandas")
-POSTGRESQL_URL = os.environ.get(
-    "PANDAS_POSTGRESQL_URL", "postgresql://postgres:postgres@localhost:5432/pandas"
+# variables to use a database on another host or port. Every test drops all the
+# tables and views of the database, so it must not hold anything worth keeping.
+MYSQL_URL = os.environ.get("PANDAS_MYSQL_URL") or "mysql://root@localhost:3306/pandas"
+POSTGRESQL_URL = (
+    os.environ.get("PANDAS_POSTGRESQL_URL")
+    or "postgresql://postgres:postgres@localhost:5432/pandas"
 )
 
 
@@ -723,8 +725,10 @@ def _postgresql_adbc_uri():
     pytest.importorskip("adbc_driver_postgresql")
     from adbc_driver_postgresql import dbapi
 
-    skip_if_no_db("postgresql (adbc)", lambda: dbapi.connect(POSTGRESQL_URL))
-    return POSTGRESQL_URL
+    # libpq does not take a SQLAlchemy driver such as postgresql+psycopg2://
+    uri = "postgresql://" + POSTGRESQL_URL.split("://", maxsplit=1)[1]
+    skip_if_no_db("postgresql (adbc)", lambda: dbapi.connect(uri))
+    return uri
 
 
 @pytest.fixture

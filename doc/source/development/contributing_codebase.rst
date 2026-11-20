@@ -789,7 +789,9 @@ speed by skipping some tests using the ``-m`` mark flag:
   of checking for one. The databases are looked for at
   ``mysql://root@localhost:3306/pandas`` and
   ``postgresql://postgres:postgres@localhost:5432/pandas``; set
-  ``PANDAS_MYSQL_URL`` or ``PANDAS_POSTGRESQL_URL`` to use another location
+  ``PANDAS_MYSQL_URL`` or ``PANDAS_POSTGRESQL_URL`` to use another location.
+  The tests drop every table and view of the database they are given, so use
+  one that holds nothing else
 - single_cpu: tests that should run on a single cpu only
 
 Tests marked ``high_memory`` need >5GB of memory, so they are skipped unless you
