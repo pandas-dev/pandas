@@ -196,6 +196,7 @@ def pytest_collection_modifyitems(items, config) -> None:
             "Properties.freq",
             "A future version of pandas will return a BaseOffset",
         ),
+        ("DataFrame.iterrows", "DataFrame.iterrows is deprecated"),
     ]
 
     if is_doctest:

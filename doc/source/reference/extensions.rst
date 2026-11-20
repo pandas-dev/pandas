@@ -22,6 +22,7 @@ objects.
    :toctree: api/
    :template: autosummary/class_without_autosummary.rst
 
+   api.extensions.Accessor
    api.extensions.ExtensionDtype
    api.extensions.ExtensionArray
    arrays.NumpyExtensionArray

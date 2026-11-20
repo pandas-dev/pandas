@@ -23,11 +23,11 @@ dtypes = [('Complex128', 'complex128', 'complex128',
           ('Int16', 'int16', 'int16', 'int16_t', '', 'set_int16'),
           ('Int8', 'int8', 'int8', 'int8_t', '', 'set_int8')]
 
-# Primitive set types used by ismember. Declared here (not via cimport) so
+# Primitive set types. Declared here (not via cimport) so
 # that their companion functions (kh_init_*, kh_put_*, etc.) are also in
 # scope. kh_pyset_t (object) is handled via khash.pxd / hashtable.pxd.
 # name, c_type
-primitive_set_types_for_ismember = [
+primitive_set_types = [
     ('set_complex128', 'khcomplex128_t'),
     ('set_complex64', 'khcomplex64_t'),
     ('set_float64', 'float64_t'),
@@ -44,7 +44,7 @@ primitive_set_types_for_ismember = [
 
 }}
 
-{{for set_name, set_c_type in primitive_set_types_for_ismember}}
+{{for set_name, set_c_type in primitive_set_types}}
 cdef extern from "pandas/vendored/klib/khash_python.h":
     ctypedef struct kh_{{set_name}}_t:
         uint32_t n_buckets, size, n_occupied, upper_bound
@@ -55,7 +55,7 @@ cdef extern from "pandas/vendored/klib/khash_python.h":
     kh_{{set_name}}_t* kh_init_{{set_name}}() nogil
     void kh_destroy_{{set_name}}(kh_{{set_name}}_t*) nogil
     uint32_t kh_get_{{set_name}}(kh_{{set_name}}_t*, {{set_c_type}}) nogil
-    void kh_resize_{{set_name}}(kh_{{set_name}}_t*, uint32_t) nogil
+    int kh_resize_{{set_name}}(kh_{{set_name}}_t*, uint32_t) nogil
     uint32_t kh_put_{{set_name}}(kh_{{set_name}}_t*, {{set_c_type}}, int*) nogil
 
 {{endfor}}
@@ -75,7 +75,7 @@ cdef extern from "pandas/vendored/klib/khash_python.h":
     kh_pyset_t* kh_init_pyset()
     void kh_destroy_pyset(kh_pyset_t*)
     uint32_t kh_get_pyset(kh_pyset_t*, PyObject*) except *
-    void kh_resize_pyset(kh_pyset_t*, uint32_t) except *
+    int kh_resize_pyset(kh_pyset_t*, uint32_t) except *
     uint32_t kh_put_pyset(kh_pyset_t*, PyObject*, int*) except *
 
 {{for name, dtype, ttype, c_type, to_c_type, set_ttype in dtypes}}
@@ -89,7 +89,7 @@ cdef value_count_{{dtype}}(ndarray[{{dtype}}] values, bint dropna, const uint8_t
 cdef value_count_{{dtype}}(const {{dtype}}_t[:] values, bint dropna, const uint8_t[:] mask=None):
 {{endif}}
     cdef:
-        Py_ssize_t i = 0, na_counter = 0, na_add = 0
+        Py_ssize_t i = 0, na_counter = 0, na_add = 0, na_pos = -1
         Py_ssize_t n = len(values)
         kh_{{ttype}}_t *table
 
@@ -116,7 +116,8 @@ cdef value_count_{{dtype}}(const {{dtype}}_t[:] values, bint dropna, const uint8
         if uses_mask:
             raise NotImplementedError("uses_mask not implemented with object dtype")
 
-        kh_resize_{{ttype}}(table, n // 10)
+        if kh_resize_{{ttype}}(table, n // 10) < 0:
+            raise MemoryError()
 
         for i in range(n):
             val = values[i]
@@ -126,10 +127,13 @@ cdef value_count_{{dtype}}(const {{dtype}}_t[:] values, bint dropna, const uint8
                     table.vals[k] += 1
                 else:
                     k = kh_put_{{ttype}}(table, {{to_c_type}}val, &ret)
+                    if ret < 0:
+                        raise MemoryError()
                     table.vals[k] = 1
                     result_keys.append(val)
         {{else}}
-        kh_resize_{{ttype}}(table, n)
+        if kh_resize_{{ttype}}(table, n) < 0:
+            raise MemoryError()
 
         for i in range(n):
             val = {{to_c_type}}(values[i])
@@ -143,6 +147,10 @@ cdef value_count_{{dtype}}(const {{dtype}}_t[:] values, bint dropna, const uint8
 
             if not dropna or not isna_entry:
                 if uses_mask and isna_entry:
+                    if na_counter == 0:
+                        # placeholder key, marking where NA was first seen
+                        na_pos = table.size
+                        result_keys.append(val)
                     na_counter += 1
                 else:
                     k = kh_get_{{ttype}}(table, val)
@@ -150,6 +158,8 @@ cdef value_count_{{dtype}}(const {{dtype}}_t[:] values, bint dropna, const uint8
                         table.vals[k] += 1
                     else:
                         k = kh_put_{{ttype}}(table, val, &ret)
+                        if ret < 0:
+                            raise MemoryError()
                         table.vals[k] = 1
                         result_keys.append(val)
         {{endif}}
@@ -160,7 +170,10 @@ cdef value_count_{{dtype}}(const {{dtype}}_t[:] values, bint dropna, const uint8
 
         result_counts = np.empty(table.size + na_add, dtype=np.int64)
 
-        for i in range(table.size):
+        for i in range(table.size + na_add):
+            if i == na_pos:
+                result_counts[i] = na_counter
+                continue
             {{if dtype == 'object'}}
             k = kh_get_{{ttype}}(table, result_keys.data[i])
             {{else}}
@@ -168,11 +181,7 @@ cdef value_count_{{dtype}}(const {{dtype}}_t[:] values, bint dropna, const uint8
             {{endif}}
             result_counts[i] = table.vals[k]
 
-        if na_counter > 0:
-            result_counts[table.size] = na_counter
-            result_keys.append(val)
-
-        return result_keys.to_array(), result_counts.base, na_counter
+        return result_keys.to_array(), result_counts.base, na_pos
 
     finally:
         kh_destroy_{{ttype}}(table)
@@ -194,20 +203,23 @@ cdef duplicated_{{dtype}}(const {{dtype}}_t[:] values, object keep='first', cons
         {{endif}}
         Py_ssize_t i, n = len(values), first_na = -1
         khiter_t k
-        kh_{{ttype}}_t *table
+        # keep="first"/"last" only test membership; keep=False stores each
+        # value's first position in a map
+        kh_{{set_ttype}}_t *seen = NULL
+        kh_{{ttype}}_t *table = NULL
         ndarray[uint8_t, ndim=1, cast=True] out = np.empty(n, dtype='bool')
         bint seen_na = False, uses_mask = mask is not None
         bint seen_multiple_na = False
 
-    table = kh_init_{{ttype}}()
     try:
-        kh_resize_{{ttype}}(table, min(kh_needed_n_buckets(n), SIZE_HINT_LIMIT))
-
         if keep not in ('last', 'first', False):
             raise ValueError('keep must be either "first", "last" or False')
 
         {{for cond, keep in [('if', '"last"'), ('elif', '"first"')]}}
         {{cond}} keep == {{keep}}:
+            seen = kh_init_{{set_ttype}}()
+            if kh_resize_{{set_ttype}}(seen, min(kh_needed_n_buckets(n), SIZE_HINT_LIMIT)) < 0:
+                raise MemoryError()
             {{if dtype == 'object'}}
             if True:
             {{else}}
@@ -226,11 +238,16 @@ cdef duplicated_{{dtype}}(const {{dtype}}_t[:] values, object keep='first', cons
                             seen_na = True
                     else:
                         value = {{to_c_type}}(values[i])
-                        kh_put_{{ttype}}(table, value, &ret)
+                        kh_put_{{set_ttype}}(seen, value, &ret)
+                        if ret < 0:
+                            raise MemoryError()
                         out[i] = ret == 0
         {{endfor}}
 
         else:
+            table = kh_init_{{ttype}}()
+            if kh_resize_{{ttype}}(table, min(kh_needed_n_buckets(n), SIZE_HINT_LIMIT)) < 0:
+                raise MemoryError()
             {{if dtype == 'object'}}
             if True:
             {{else}}
@@ -257,12 +274,15 @@ cdef duplicated_{{dtype}}(const {{dtype}}_t[:] values, object keep='first', cons
                             out[i] = 1
                         else:
                             k = kh_put_{{ttype}}(table, value, &ret)
+                            if ret < 0:
+                                raise MemoryError()
                             table.vals[k] = i
                             out[i] = 0
 
         return out
 
     finally:
+        kh_destroy_{{set_ttype}}(seen)
         kh_destroy_{{ttype}}(table)
 
 
@@ -309,7 +329,8 @@ cdef ismember_{{dtype}}(const {{dtype}}_t[:] arr, const {{dtype}}_t[:] values):
     try:
         # construct the table
         n = len(values)
-        kh_resize_{{set_ttype}}(table, n)
+        if kh_resize_{{set_ttype}}(table, n) < 0:
+            raise MemoryError()
 
         {{if dtype == 'object'}}
         if True:
@@ -319,6 +340,8 @@ cdef ismember_{{dtype}}(const {{dtype}}_t[:] arr, const {{dtype}}_t[:] values):
             for i in range(n):
                 val = {{to_c_type}}(values[i])
                 kh_put_{{set_ttype}}(table, val, &ret)
+                if ret < 0:
+                    raise MemoryError()
 
         # test membership
         n = len(arr)
@@ -388,11 +411,16 @@ cdef get_indexer_non_unique_{{dtype}}(
 
     # map each unique target value to a dense id in [0, n_unique)
     table = kh_init_{{ttype}}()
-    kh_resize_{{ttype}}(table, min(kh_needed_n_buckets(n_t), SIZE_HINT_LIMIT))
+    if kh_resize_{{ttype}}(table, min(kh_needed_n_buckets(n_t), SIZE_HINT_LIMIT)) < 0:
+        kh_destroy_{{ttype}}(table)
+        raise MemoryError()
     uniques = np.empty(n_t, dtype=targets.dtype)
     target_ids = np.empty(n_t, dtype=np.intp)
     for j in range(n_t):
         khi = kh_put_{{ttype}}(table, targets[j], &ret)
+        if ret < 0:
+            kh_destroy_{{ttype}}(table)
+            raise MemoryError()
         if ret != 0:
             table.vals[khi] = <size_t>n_unique
             uniques[n_unique] = targets[j]
@@ -657,9 +685,9 @@ def mode(ndarray[htfunc_t] values, bint dropna, const uint8_t[:] mask=None):
 
         int64_t[::1] counts
         int64_t count, _, max_count = -1
-        Py_ssize_t nkeys, k, na_counter, j = 0
+        Py_ssize_t nkeys, k, na_pos, na_j = -1, j = 0
 
-    keys, counts, na_counter = value_count(values, dropna, mask=mask)
+    keys, counts, na_pos = value_count(values, dropna, mask=mask)
     nkeys = len(keys)
 
     modes = np.empty(nkeys, dtype=values.dtype)
@@ -672,14 +700,18 @@ def mode(ndarray[htfunc_t] values, bint dropna, const uint8_t[:] mask=None):
             elif count > max_count:
                 max_count = count
                 j = 0
+                na_j = -1
             else:
                 continue
 
             modes[j] = keys[k]
+            if k == na_pos:
+                na_j = j
 
-    if na_counter > 0:
+    if na_pos != -1:
         res_mask = np.zeros(j+1, dtype=np.bool_)
-        res_mask[j] = (na_counter == max_count)
+        if na_j != -1:
+            res_mask[na_j] = True
     return modes[:j + 1], res_mask
 
 
@@ -710,11 +742,16 @@ def _unique_label_indices_{{dtype}}(const {{c_type}}[:] labels) -> ndarray:
         ndarray[{{c_type}}, ndim=1] arr
         {{name}}VectorData *ud = &idx.data
 
-    kh_resize_{{ttype}}(table, min(kh_needed_n_buckets(n), SIZE_HINT_LIMIT))
+    if kh_resize_{{ttype}}(table, min(kh_needed_n_buckets(n), SIZE_HINT_LIMIT)) < 0:
+        kh_destroy_{{ttype}}(table)
+        raise MemoryError()
 
     with nogil:
         for i in range(n):
             kh_put_{{ttype}}(table, labels[i], &ret)
+            if ret < 0:
+                kh_destroy_{{ttype}}(table)
+                raise MemoryError()
             if ret != 0:
                 if needs_resize(ud.size, ud.capacity):
                     with gil:

@@ -159,6 +159,35 @@ def test_add_overflowsafe_rejects_int64_overflow(size):
         add_overflowsafe(left, right)
 
 
+@pytest.mark.parametrize(
+    "left_shape, right_shape",
+    [
+        ((1,), (3,)),
+        ((1,), (0,)),
+        ((3,), (2,)),
+        ((3,), (3, 1)),
+        ((3,), (1, 3)),
+        ((LARGE,), (LARGE, 1)),
+        ((LARGE,), (1, LARGE)),
+    ],
+)
+def test_add_overflowsafe_rejects_shape_change(left_shape, right_shape):
+    # GH#23853 the result has the shape of left, so right must broadcast to it
+    left = np.ones(left_shape, dtype="i8")
+    right = np.ones(right_shape, dtype="i8")
+
+    with pytest.raises(ValueError, match="shape mismatch"):
+        add_overflowsafe(left, right)
+
+
+@pytest.mark.parametrize("size", [3, LARGE])
+def test_add_overflowsafe_broadcasts_length_one_right(size):
+    # GH#23853 the shape check must not reject a right that broadcasts to left
+    left = np.arange(size, dtype="i8")
+    result = add_overflowsafe(left, np.ones(1, dtype="i8"))
+    tm.assert_numpy_array_equal(result, left + 1)
+
+
 @pytest.mark.parametrize("size", [1, LARGE])
 def test_add_overflowsafe_rejects_nat_sentinel_result(size):
     # GH#66552 a sum landing on iNaT is indistinguishable from a missing value

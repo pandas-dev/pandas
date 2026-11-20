@@ -40,15 +40,15 @@ programming language.
         New to *pandas*? Check out the getting started guides. They contain an
         introduction to *pandas'* main concepts and links to additional tutorials.
 
-        +++
+        .. card-footer::
 
-        .. button-ref:: getting_started
-            :ref-type: ref
-            :click-parent:
-            :color: secondary
-            :expand:
+            .. button-ref:: getting_started
+                :ref-type: ref
+                :click-parent:
+                :color: secondary
+                :expand:
 
-            To the getting started guides
+                To the getting started guides
 
     .. grid-item-card::  User guide
         :img-top: _static/index_user_guide.svg
@@ -58,15 +58,15 @@ programming language.
         The user guide provides in-depth information on the
         key concepts of pandas with useful background information and explanation.
 
-        +++
+        .. card-footer::
 
-        .. button-ref:: user_guide
-            :ref-type: ref
-            :click-parent:
-            :color: secondary
-            :expand:
+            .. button-ref:: user_guide
+                :ref-type: ref
+                :click-parent:
+                :color: secondary
+                :expand:
 
-            To the user guide
+                To the user guide
 
     .. grid-item-card::  API reference
         :img-top: _static/index_api.svg
@@ -77,15 +77,15 @@ programming language.
         the pandas API. The reference describes how the methods work and which parameters can
         be used. It assumes that you have an understanding of the key concepts.
 
-        +++
+        .. card-footer::
 
-        .. button-ref:: api
-            :ref-type: ref
-            :click-parent:
-            :color: secondary
-            :expand:
+            .. button-ref:: api
+                :ref-type: ref
+                :click-parent:
+                :color: secondary
+                :expand:
 
-            To the reference guide
+                To the reference guide
 
     .. grid-item-card::  Developer guide
         :img-top: _static/index_contribute.svg
@@ -96,15 +96,15 @@ programming language.
         existing functionalities? The contributing guidelines will guide
         you through the process of improving pandas.
 
-        +++
+        .. card-footer::
 
-        .. button-ref:: development
-            :ref-type: ref
-            :click-parent:
-            :color: secondary
-            :expand:
+            .. button-ref:: development
+                :ref-type: ref
+                :click-parent:
+                :color: secondary
+                :expand:
 
-            To the development guide
+                To the development guide
 
 {% endif %}
 {% if single_doc and single_doc.endswith('.rst') -%}

@@ -78,7 +78,7 @@ dependencies:
   - cxx-compiler
 
   # code checks
-  - mypy=2.1.0  # pre-commit uses locally installed mypy
+  - mypy=2.4.0  # pre-commit uses locally installed mypy
   - tokenize-rt  # scripts/check_for_inconsistent_pandas_namespace.py
   - pre-commit>=4.2.0
 
@@ -90,7 +90,7 @@ dependencies:
   - pydata-sphinx-theme=0.20.0
   - pytest-cython>=0.4.0  # doctest
   - sphinx
-  - sphinx-design
+  - sphinx-design>=0.8.0
   - sphinx-copybutton
 
   # static typing

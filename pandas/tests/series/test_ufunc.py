@@ -11,6 +11,7 @@ import string
 import numpy as np
 import pytest
 
+from pandas.compat.numpy import np_version_gt2_6
 from pandas.errors import Pandas4Warning
 import pandas.util._test_decorators as td
 
@@ -279,6 +280,119 @@ def test_binary_ufunc_out_pandas_object():
     tm.assert_series_equal(out, expected)
 
 
+@pytest.mark.filterwarnings("ignore:'where' used without 'out':UserWarning")
+@pytest.mark.parametrize("box", [pd.Series, pd.Index, pd.array])
+def test_ufunc_where_pandas_object(box):
+    # GH#60611 a pandas object as `where` used to recurse infinitely
+    ser = pd.Series([-3.0, 4.0, 1.0], name="a")
+    mask = np.array([False, True, True])
+    expected = pd.Series([4.0, 2.0], index=[1, 2], name="a")
+
+    # positions where mask is False are left uninitialized
+    result = np.maximum(ser, 2.0, where=box(mask))
+    tm.assert_series_equal(result[mask], expected)
+
+    result = np.maximum(ser, 2.0, where=box(mask), out=np.full(3, -1.0))
+    tm.assert_series_equal(result, pd.Series([-1.0, 4.0, 2.0], name="a"))
+
+
+where_boxes = [
+    pd.Series,
+    pd.Index,
+    pd.array,
+    pd.Categorical,
+    pd.arrays.SparseArray,
+    pd.arrays.NumpyExtensionArray,
+    pytest.param(
+        lambda x: pd.array(x, dtype="bool[pyarrow]"),
+        marks=td.skip_if_no("pyarrow"),
+        id="arrow",
+    ),
+]
+
+
+@pytest.mark.filterwarnings("ignore:'where' used without 'out':UserWarning")
+@pytest.mark.parametrize("box", where_boxes)
+@pytest.mark.parametrize(
+    "values",
+    [
+        np.array([-3.0, 4.0, 1.0]),
+        pd.Index([-3.0, 4.0, 1.0]),
+        pd.Index(pd.array([-3, 4, 1], dtype="Int64")),
+        pd.array([-3.0, 4.0, 1.0], dtype="Float64"),
+        pd.arrays.NumpyExtensionArray(np.array([-3.0, 4.0, 1.0])),
+        pd.array(pd.to_timedelta([-3, 4, 1], unit="s")),
+    ],
+    ids=type,
+)
+def test_ufunc_where_pandas_object_only_where(values, box):
+    # GH#60611 a pandas `where` only masks; the inputs decide the result type
+    mask = np.array([False, True, True])
+    result = np.negative(values, where=box(mask))
+    expected = np.negative(values, where=mask)
+    assert type(result) is type(expected)
+    tm.assert_equal(result[mask], expected[mask])
+
+
+@pytest.mark.parametrize("box", where_boxes)
+def test_ufunc_where_pandas_object_only_where_out(box):
+    # GH#60611 like numpy, the result is `out` itself
+    out = np.full(3, np.nan)
+    where = box(np.array([False, True, True]))
+    result = np.negative(np.array([-3.0, 4.0, 1.0]), where=where, out=out)
+    assert result is out
+    tm.assert_numpy_array_equal(out, np.array([np.nan, -4.0, -1.0]))
+
+
+def test_ufunc_where_misaligned_raises():
+    # GH#60611 we don't guess whether to match `where` by label or position
+    ser = pd.Series([1.0, 2.0, 3.0])
+    mask = pd.Series([True, False, False], index=[2, 1, 0])
+    msg = "The ufunc 'where' argument must have the same axes as the aligned inputs"
+    with pytest.raises(ValueError, match=msg):
+        np.maximum(ser, 10.0, where=mask, out=np.zeros(3))
+    with pytest.raises(ValueError, match=msg):
+        np.maximum(ser, 10.0, where=mask.iloc[:2])
+    # numpy tries a subclass's __array_ufunc__ first
+    with pytest.raises(ValueError, match=msg):
+        np.maximum(ser, 10.0, where=tm.SubclassedSeries(mask), out=np.zeros(3))
+
+
+@pytest.mark.parametrize(
+    "where",
+    [
+        pd.Series(pd.array([True, None, False])),
+        pd.Series([True, None, False], dtype=object),
+        pd.Index(pd.array([True, None, False])),
+        pd.array([True, None, False]),
+        pd.Categorical([True, None, False]),
+        pytest.param(
+            lambda: pd.array([True, None, False], dtype="bool[pyarrow]"),
+            marks=td.skip_if_no("pyarrow"),
+            id="arrow",
+        ),
+    ],
+    ids=type,
+)
+@pytest.mark.parametrize(
+    "values",
+    [
+        np.array([1.0, 2.0, 3.0]),
+        pd.Series([1.0, 2.0, 3.0]),
+        pd.Index([1.0, 2.0, 3.0]),
+        pd.array([1.0, 2.0, 3.0], dtype="Float64"),
+    ],
+    ids=type,
+)
+def test_ufunc_where_missing_raises(values, where):
+    # GH#60611 a pandas input with `out=` used to treat a missing value as True
+    if callable(where):
+        where = where()
+    msg = "The ufunc 'where' argument cannot contain missing values"
+    with pytest.raises(ValueError, match=msg):
+        np.negative(values, where=where, out=np.zeros(3))
+
+
 def test_object_series_ok():
     class Dummy:
         def __init__(self, value) -> None:
@@ -435,6 +549,131 @@ class TestNumpyReductions:
             if same_type:
                 # check we have e.g. Timestamp instead of dt64
                 assert type(result) == type(expected)
+
+    @pytest.mark.parametrize(
+        "ufunc, data, dtype, expected",
+        [
+            (np.logical_and, [1, 2], "int64", True),
+            (np.logical_or, [0.0, 2.5], "float64", True),
+            (np.bitwise_or, [1, 2], "int64", 3),
+            (np.fmax, [1.5, 2.0], "float64", 2.0),
+            (np.fmax, [1, 2], "int64", 2),
+            (np.fmax, [1, 2], "Int64", 2),
+            (np.bitwise_or, [1, 2], "Sparse[int64]", 3),
+            (np.fmin, [1.5, 2.0], "longdouble", 1.5),
+            (
+                np.fmax,
+                ["2020-01-01", "2021-01-01"],
+                "datetime64[ns]",
+                pd.Timestamp("2021-01-01"),
+            ),
+        ],
+    )
+    @pytest.mark.parametrize("box", [pd.Series, pd.Index, pd.DataFrame])
+    def test_reduce_not_in_reduction_aliases(
+        self, ufunc, data, dtype, expected, box, using_python_scalars
+    ):
+        # GH#64266
+        obj = box(pd.Series(data, dtype=dtype))
+        kwargs = {"axis": None} if box is pd.DataFrame else {}
+        result = ufunc.reduce(obj, **kwargs)
+        assert result == expected
+        if using_python_scalars:
+            assert type(result) is type(expected)
+        else:
+            assert isinstance(result, (np.generic, pd.Timestamp))
+
+    def test_reduce_frame_categorical_python_scalars(self, using_python_scalars):
+        # GH#64266 CategoricalDtype.kind is "O", but the reduced array is int64
+        df = pd.DataFrame({"a": pd.Categorical([1, 2])})
+        result = np.fmax.reduce(df, axis=None)
+        assert result == 2
+        assert type(result) is (int if using_python_scalars else np.int64)
+
+    @pytest.mark.parametrize("box", [pd.Series, pd.Index, pd.DataFrame])
+    def test_reduce_object_dtype_preserves_numpy_scalars(self, box):
+        # GH#64266
+        obj = box(pd.Series([np.int8(1), np.int8(2)], dtype=object))
+        kwargs = {"axis": None} if box is pd.DataFrame else {}
+        result = np.bitwise_or.reduce(obj, **kwargs)
+        assert result == 3
+        assert type(result) is np.int8
+
+    @pytest.mark.skipif(
+        not np_version_gt2_6, reason="minimummaximum added in numpy 2.6"
+    )
+    @pytest.mark.parametrize("axis", [None, 0])
+    def test_minimummaximum_reduce(self, values_for_np_reduce, box_with_array, axis):
+        box = box_with_array
+        values = values_for_np_reduce
+
+        with tm.assert_produces_warning(None):
+            obj = box(values)
+
+        result = np._core.umath.minimummaximum.reduce(obj, axis=axis)
+        expected = (
+            np.minimum.reduce(obj, axis=axis),
+            np.maximum.reduce(obj, axis=axis),
+        )
+        assert isinstance(result, tuple)
+        assert len(result) == 2
+        for res, exp in zip(result, expected, strict=True):
+            if box is pd.DataFrame and axis == 0:
+                tm.assert_series_equal(res, exp)
+            else:
+                assert res == exp
+                # check we have e.g. Timestamp instead of dt64
+                assert type(res) == type(exp)
+
+    @pytest.mark.skipif(
+        not np_version_gt2_6, reason="minimummaximum added in numpy 2.6"
+    )
+    @pytest.mark.parametrize("box", [pd.Series, pd.DataFrame])
+    def test_minimummaximum_reduce_propagates_nan(self, box):
+        obj = box([1.0, np.nan, 3.0])
+        result = np._core.umath.minimummaximum.reduce(obj, axis=0)
+        expected = (np.minimum.reduce(obj), np.maximum.reduce(obj))
+        if box is pd.DataFrame:
+            tm.assert_series_equal(result[0], expected[0])
+            tm.assert_series_equal(result[1], expected[1])
+            assert result[0].isna().all()
+        else:
+            assert np.isnan(result[0])
+            assert np.isnan(result[1])
+
+    @pytest.mark.skipif(
+        not np_version_gt2_6, reason="minimummaximum added in numpy 2.6"
+    )
+    def test_minimummaximum_reduce_out(self):
+        df = pd.DataFrame({"a": [1.0, 5.0], "b": [2.0, 0.0]})
+        out_min, out_max = np.empty(2), np.empty(2)
+        result = np._core.umath.minimummaximum.reduce(
+            df, axis=0, out=(out_min, out_max)
+        )
+        assert result[0] is out_min
+        assert result[1] is out_max
+        tm.assert_numpy_array_equal(out_min, np.array([1.0, 0.0]))
+        tm.assert_numpy_array_equal(out_max, np.array([5.0, 2.0]))
+
+        # numpy allocates the outputs whose out entry is None
+        out_max = np.empty(2)
+        result = np._core.umath.minimummaximum.reduce(df, axis=0, out=(None, out_max))
+        tm.assert_series_equal(result[0], df.min())
+        assert result[1] is out_max
+        tm.assert_numpy_array_equal(out_max, np.array([5.0, 2.0]))
+
+    @pytest.mark.skipif(
+        not np_version_gt2_6, reason="minimummaximum added in numpy 2.6"
+    )
+    @pytest.mark.parametrize("swap", [False, True])
+    def test_minimummaximum_reduce_out_overlaps_input(self, swap):
+        arr = np.array([[5.0, 1.0, 4.0], [1.0, 9.0, 2.0]])
+        df = pd.DataFrame(arr, copy=False)
+        assert np.shares_memory(df.values, arr)
+        out = (arr[1], arr[0]) if swap else (arr[0], arr[1])
+        np._core.umath.minimummaximum.reduce(df, axis=0, out=out)
+        tm.assert_numpy_array_equal(out[0], np.array([1.0, 1.0, 2.0]))
+        tm.assert_numpy_array_equal(out[1], np.array([5.0, 9.0, 4.0]))
 
 
 @pytest.mark.parametrize("type_", [list, deque, tuple])
