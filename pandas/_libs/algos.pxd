@@ -68,19 +68,29 @@ cdef extern from "pandas/moments.h":
             int max_moment) noexcept nogil
 
 
+cdef inline int64_t skew_min_nobs(bint bias) noexcept nogil:
+    return 2 if bias else 3
+
+
+cdef inline int64_t kurt_min_nobs(bint bias) noexcept nogil:
+    return 2 if bias else 4
+
+
 @cython.cdivision(True)
 cdef inline float64_t calc_skew(
-    int64_t nobs, float64_t m2, float64_t m3
+    int64_t nobs, float64_t m2, float64_t m3, bint bias,
 ) noexcept nogil:
     cdef:
         float64_t moments_ratio, correction, dnobs
 
-    if nobs < 3:
+    if nobs < skew_min_nobs(bias):
         return NAN
 
     dnobs = <float64_t>nobs
 
     moments_ratio = m3 / (m2 * sqrt(m2))
+    if bias:
+        return moments_ratio * sqrt(dnobs)
     correction = (dnobs * sqrt(dnobs - 1.0)) / (dnobs - 2.0)
     return moments_ratio * correction
 
@@ -96,16 +106,18 @@ cdef inline float64_t calc_var(
 
 @cython.cdivision(True)
 cdef inline float64_t calc_kurt(
-    int64_t nobs, float64_t m2, float64_t m4
+    int64_t nobs, float64_t m2, float64_t m4, bint bias,
 ) noexcept nogil:
     cdef:
         float64_t result, dnobs, term1, term2, inner, correction
         float64_t moments_ratio
 
-    if nobs < 4:
+    if nobs < kurt_min_nobs(bias):
         return NAN
     dnobs = <float64_t>nobs
     moments_ratio = m4 / (m2 * m2)
+    if bias:
+        return moments_ratio * dnobs - 3.0
     term1 = dnobs * (dnobs + 1.0) * moments_ratio
     term2 = 3.0 * (dnobs - 1.0)
     inner = term1 - term2

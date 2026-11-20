@@ -75,6 +75,25 @@ def test_reduction_axis_valid(method, axis):
     assert result == expected or (pd.isna(result) and pd.isna(expected))
 
 
+@pytest.mark.parametrize("name, sp_func", [("skew", "skew"), ("kurt", "kurtosis")])
+@pytest.mark.parametrize("bias", [True, False])
+def test_skew_kurt_bias_array_method(name, sp_func, bias):
+    sp_stats = pytest.importorskip("scipy.stats")
+
+    data = [1.0, 2.0, 2.0, 3.0, 10.0]
+    arr = pd.array(data, dtype="float64[pyarrow]")
+    result = getattr(arr, name)(bias=bias)
+    expected = getattr(sp_stats, sp_func)(data, bias=bias)
+    tm.assert_almost_equal(result, expected)
+
+
+@pytest.mark.parametrize("name", ["skew", "kurt"])
+@pytest.mark.parametrize("bias", [True, False])
+def test_skew_kurt_bias_single_value(name, bias):
+    arr = pd.array([5.0], dtype="float64[pyarrow]")
+    assert getattr(arr, name)(bias=bias) is pd.NA
+
+
 @pytest.mark.parametrize(
     "method",
     ["sum", "prod", "mean", "median", "std", "var", "sem", "skew", "min", "max"],
