@@ -1,3 +1,7 @@
+from datetime import (
+    timedelta,
+    timezone,
+)
 import re
 import warnings
 import weakref
@@ -308,6 +312,17 @@ class TestDatetimeTZDtype(Base):
     def test_construction_from_string(self, dtype):
         result = DatetimeTZDtype.construct_from_string("datetime64[ns, US/Eastern]")
         assert is_dtype_equal(dtype, result)
+
+    def test_construction_from_string_with_seconds_offset(self):
+        # GH#41865
+        tz = timezone(timedelta(hours=5, minutes=30, seconds=15))
+        dtype = DatetimeTZDtype("ns", tz)
+        assert str(dtype) == "datetime64[ns, UTC+05:30:15]"
+
+        result = DatetimeTZDtype.construct_from_string(str(dtype))
+        assert result == dtype
+        expected = timedelta(hours=5, minutes=30, seconds=15)
+        assert result.tz.utcoffset(None) == expected
 
     @pytest.mark.parametrize(
         "string",
