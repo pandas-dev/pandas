@@ -242,11 +242,12 @@ class TestDataFrameDiff:
         result = df.diff(periods=periods, axis=1)
         tm.assert_frame_equal(result, pd.DataFrame(expected))
 
-    def test_diff_axis1_bool_transposed(self):
-        # GH#52579
-        df = pd.DataFrame({"col": [True, False]})
-        result = df.T.diff(axis=1)
-        expected = pd.DataFrame({0: [np.nan], 1: [True]}, index=["col"])
+    def test_diff_axis1_bool_column_labels(self):
+        # GH#52579 unsorted and duplicate column labels keep their order
+        df = pd.DataFrame([[True, False, True]], columns=["z", "a", "a"])
+        result = df.diff(axis=1)
+        expected = pd.DataFrame({0: [np.nan], 1: [True], 2: [True]})
+        expected.columns = ["z", "a", "a"]
         tm.assert_frame_equal(result, expected)
 
     def test_diff_sparse(self):

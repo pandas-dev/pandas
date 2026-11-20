@@ -14950,7 +14950,7 @@ class DataFrame(NDFrame, OpsMixin):
                 # in the periods == 0 case, this is equivalent diff of 0 periods
                 #  along axis=0, and the Manager method may be somewhat more
                 #  performant, so we dispatch in that case.
-                if len(self.columns) and (self.dtypes == np.bool_).all():
+                if (self.dtypes == np.bool_).all():
                     # GH#52579 bool data has no subtraction; use xor like
                     #  diff along axis=0 does
                     return self._diff_axis1_bool(periods)
