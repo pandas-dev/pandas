@@ -1305,7 +1305,7 @@ def rank_1d(
 @cython.wraparound(False)
 @cython.boundscheck(False)
 @cython.cdivision(True)
-cdef void rank_sorted_1d(
+cdef int rank_sorted_1d(
     float64_t[::1] out,
     int64_t[::1] grp_sizes,
     const intp_t[:] sort_indexer,
@@ -1319,7 +1319,7 @@ cdef void rank_sorted_1d(
     # https://github.com/cython/cython/issues/1630, only trailing arguments can
     # currently be omitted for cdef functions, which is why we keep this at the end
     const intp_t[:] labels=None,
-) noexcept nogil:
+) except -1 nogil:
     """
     See rank_1d.__doc__. Handles only actual ranking, so sorting and masking should
     be handled in the caller. Note that `out` and `grp_sizes` are modified inplace.
@@ -1468,6 +1468,8 @@ cdef void rank_sorted_1d(
         for i in range(N):
             if grp_sizes[i] != 0:
                 out[i] = out[i] / grp_sizes[i]
+
+    return 0
 
 
 @cython.wraparound(False)
