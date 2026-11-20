@@ -257,6 +257,7 @@ Timezones
 Numeric
 ^^^^^^^
 - Bug in :meth:`DataFrame.corr` silently computing the Pearson correlation when passed a nullable or pyarrow-backed array instead of a ``method``; this now raises a ``TypeError`` pointing to :meth:`DataFrame.corrwith` (:issue:`11260`)
+- Bug in :meth:`DataFrame.diff` with ``axis=1`` on ``bool`` data raising ``TypeError`` instead of using ``xor`` as with ``axis=0``; columns without a counterpart are now all-NaN ``float64``, as for other dtypes (:issue:`52579`)
 - Bug in :meth:`DataFrame.idxmax` with a nullable ``boolean`` column containing missing values returning the first ``False`` row instead of the first ``True`` row (:issue:`71833`)
 - Bug in :meth:`Series.skew` and :meth:`Series.kurt` (and their :class:`DataFrame` counterparts) on ``complex`` data discarding the imaginary part; these now raise ``TypeError`` (:issue:`43770`)
 - Bug in :meth:`Series.sum`, :meth:`Series.prod`, :meth:`Series.cumsum`, :meth:`Series.cumprod`, :meth:`Series.cummin` and :meth:`Series.cummax` (and their :class:`DataFrame` counterparts) on ``object`` data not skipping missing values with ``skipna=True``, which raised for elements such as strings and turned integer or ``Fraction`` cumulative results into floats (:issue:`59764`)
