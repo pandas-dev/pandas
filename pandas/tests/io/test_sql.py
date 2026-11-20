@@ -1000,8 +1000,8 @@ adbc_connectable_types = [
 ]
 
 
-# For what ADBC drivers do not implement, which the test_adbc_*_not_implemented
-# tests check: chunksize, params, index_label, dtype, method, engine, get_schema
+# Every connection but the ADBC ones, for what ADBC drivers do not implement;
+# the test_adbc_*_not_implemented tests check the errors they raise instead
 no_adbc_connectable = [*sqlalchemy_connectable, "sqlite_buildin"]
 
 no_adbc_connectable_iris = [*sqlalchemy_connectable_iris, "sqlite_buildin_iris"]
@@ -1930,7 +1930,10 @@ def test_api_custom_dateparsing_error(
     conn = request.getfixturevalue(conn)
     if text == "types" and conn_name == "sqlite_buildin_types":
         request.applymarker(
-            pytest.mark.xfail(reason="failing combination of arguments")
+            pytest.mark.xfail(
+                raises=(NotImplementedError, pd.errors.DatabaseError),
+                reason="a sqlite3 connection cannot read a table by its name",
+            )
         )
 
     expected = types_data_frame.astype({"DateCol": "datetime64[us]"})
@@ -2059,8 +2062,9 @@ def test_api_to_sql_index_label(conn, request, index_name, index_label, expected
     if "adbc" in conn:
         request.node.add_marker(
             pytest.mark.xfail(
+                raises=NotImplementedError if index_label else AssertionError,
                 reason="ADBC does not implement index_label and writes the index "
-                "after the columns, as __index_level_0__ when it has no name"
+                "after the columns, as __index_level_0__ when it has no name",
             )
         )
     conn = request.getfixturevalue(conn)
@@ -2086,8 +2090,9 @@ def test_api_to_sql_index_label_multiindex(conn, request):
     elif "adbc" in conn_name:
         request.node.add_marker(
             pytest.mark.xfail(
-                reason="ADBC does not implement index_label and writes the index "
-                "after the columns, as __index_level_0__ when it has no name"
+                raises=AssertionError,
+                reason="ADBC writes the index after the columns, as "
+                "__index_level_0__ and __index_level_1__ when it has no names",
             )
         )
 
@@ -2392,14 +2397,10 @@ def test_api_escaped_table_name(conn, request):
     tm.assert_frame_equal(res, df)
 
 
-@pytest.mark.parametrize("conn", all_connectable)
+@pytest.mark.parametrize("conn", [*sqlalchemy_connectable, *adbc_connectable])
 def test_api_table_name_quoted(conn, request):
     # GH#65065 ADBCDatabase did not escape SQL identifiers in
     # delete_rows, read_table, and to_sql (DROP TABLE path)
-    conn_name = conn
-    if conn_name == "sqlite_buildin":
-        pytest.skip("sqlite_buildin connection does not implement read_sql_table")
-
     conn = request.getfixturevalue(conn)
 
     tricky_name = "my table"
@@ -2468,7 +2469,8 @@ def test_read_table_index_col(conn, request, test_frame1):
 
 @pytest.mark.parametrize("conn", [*sqlalchemy_connectable_iris, *adbc_connectable_iris])
 def test_read_sql_delegate(conn, request):
-    # test_sqlite_read_sql_delegate has the sqlite3 connection
+    # test_sqlite_read_sql_delegate and test_sqlite_read_sql_table_not_implemented
+    # have the sqlite3 connection
     conn = request.getfixturevalue(conn)
     iris_frame1 = sql.read_sql_query("SELECT * FROM iris", conn)
     iris_frame2 = sql.read_sql("SELECT * FROM iris", conn)
@@ -2734,6 +2736,12 @@ def test_sqlite_read_sql_delegate(sqlite_buildin_iris):
     msg = "Execution failed on sql 'iris': near \"iris\": syntax error"
     with pytest.raises(sql.DatabaseError, match=msg):
         sql.read_sql("iris", conn)
+
+
+def test_sqlite_read_sql_table_not_implemented(sqlite_buildin_iris):
+    msg = "read_sql_table not supported for a DBAPI connection"
+    with pytest.raises(NotImplementedError, match=msg):
+        sql.read_sql_table("iris", sqlite_buildin_iris)
 
 
 def test_get_schema2(test_frame1):
@@ -3883,7 +3891,7 @@ def test_read_sql_dtype_backend_chunksize(
             tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("conn", all_connectable)
+@pytest.mark.parametrize("conn", [*sqlalchemy_connectable, *adbc_connectable])
 @pytest.mark.parametrize("func", ["read_sql", "read_sql_table"])
 def test_read_sql_dtype_backend_table(
     conn,
