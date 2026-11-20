@@ -755,6 +755,64 @@ def test_dt_timedelta_total_seconds():
     tm.assert_series_equal(result, expected)
 
 
+def _numpy_total_seconds(values, unit):
+    """Reference result: the same integers as timedelta64[unit] through the
+    NumPy path, returned as Arrow doubles (NaN -> null)."""
+    np_values = np.array(
+        [np.timedelta64("NaT", unit) if v is None else v for v in values],
+        dtype=f"m8[{unit}]",
+    )
+    result = pd.Series(np_values).dt.total_seconds()
+    return pd.Series(ArrowExtensionArray(pa.array(result.to_numpy(), from_pandas=True)))
+
+
+@pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+@pytest.mark.parametrize("sign", [1, -1])
+def test_dt_timedelta_total_seconds_large_values(unit, sign):
+    # GH#71953 - values past 2**53 ticks used to raise ArrowInvalid
+    values = [
+        sign * (2**53 - 1),
+        sign * (2**53 + 12345),
+        sign * (2**62 + 1),
+        0,
+        None,
+    ]
+    ser = pd.Series(ArrowExtensionArray(pa.array(values, type=pa.duration(unit))))
+    result = ser.dt.total_seconds()
+    expected = _numpy_total_seconds(values, unit)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("days", [103, 104, 105, 200])
+def test_dt_timedelta_total_seconds_ns_boundary(days):
+    # GH#71953 - the failure started between 104 and 105 days for ns
+    ser = pd.Series(
+        [pd.Timedelta(days=days), pd.Timedelta(days=-days), None],
+        dtype=ArrowDtype(pa.duration("ns")),
+    )
+    result = ser.dt.total_seconds()
+    expected = pd.Series(
+        ArrowExtensionArray(
+            pa.array([days * 86400.0, -days * 86400.0, None], type=pa.float64())
+        )
+    )
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("whole_seconds", [2**33, 5 * 10**9, -(2**33)])
+@pytest.mark.parametrize("remainder", [1, 2, 999_999_998, 999_999_999])
+def test_dt_timedelta_total_seconds_matches_numpy_near_whole_seconds(
+    whole_seconds, remainder
+):
+    # GH#71953 - for very large values the NumPy path nudges results that
+    # would round to an exact whole second (GH#31043); Arrow should match
+    values = [whole_seconds * 10**9 + remainder]
+    ser = pd.Series(ArrowExtensionArray(pa.array(values, type=pa.duration("ns"))))
+    result = ser.dt.total_seconds()
+    expected = _numpy_total_seconds(values, "ns")
+    tm.assert_series_equal(result, expected)
+
+
 def test_dt_timedelta_components():
     # Test that .dt.components returns correct values for Arrow duration arrays
     ser = pd.Series(
