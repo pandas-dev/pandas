@@ -1044,10 +1044,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             )
 
         # zip in reverse so we can always insert at loc 0
-        for level, (name, lev) in enumerate(
+        for level, (name, lev, grouping) in enumerate(
             zip(
                 reversed(self._grouper.names),
                 self._grouper.get_group_levels(),
+                reversed(self._grouper.groupings),
                 strict=True,
             )
         ):
@@ -1060,7 +1061,10 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 else:
                     name = f"level_{n_groupings - level - 1}"
 
-            if self._raises_on_label_collision and name in result.columns:
+            if (
+                self._raises_on_label_collision
+                or (grouping.name is not None and not grouping.in_axis)
+            ) and name in result.columns:
                 raise ValueError(f"cannot insert {name}, already exists")
             # GH #28549
             # When using .apply(-), name will be in columns already
