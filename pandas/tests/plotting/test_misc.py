@@ -582,6 +582,272 @@ class TestDataFramePlots:
             for a, b in zip(plot_bar.get_xticklabels(), expected, strict=True)
         )
 
+    @pytest.mark.parametrize("kind", ["bar", "barh"])
+    def test_bar_plot_uses_numeric_index_positions(self, kind):
+        # GH 11465, GH 55508
+        ser = pd.Series([1, 3, 2], index=[2010, 2015, 2020])
+        ticks = {"xticks": [2010, 2020]} if kind == "bar" else {"yticks": [2010, 2020]}
+
+        ax = ser.plot(kind=kind, **ticks)
+
+        if kind == "bar":
+            centers = [patch.get_x() + patch.get_width() / 2 for patch in ax.patches]
+            result_ticks = ax.get_xticks()
+        else:
+            centers = [patch.get_y() + patch.get_height() / 2 for patch in ax.patches]
+            result_ticks = ax.get_yticks()
+        tm.assert_numpy_array_equal(
+            np.array(centers), ser.index.to_numpy(dtype=np.float64)
+        )
+        tm.assert_numpy_array_equal(result_ticks, np.array([2010, 2020]))
+
+    @pytest.mark.parametrize(
+        "index, expected_width",
+        [([1990, 2000, 2010], 5.0), ([0.0, 0.1, 1.0], 0.05)],
+    )
+    def test_bar_plot_default_width_scales_to_numeric_spacing(
+        self, index, expected_width
+    ):
+        ser = pd.Series([1, 2, 3], index=index)
+
+        ax = ser.plot.bar()
+
+        widths = np.array([patch.get_width() for patch in ax.patches])
+        tm.assert_numpy_array_equal(
+            np.array([patch.get_x() + patch.get_width() / 2 for patch in ax.patches]),
+            np.asarray(index, dtype=np.float64),
+        )
+        tm.assert_numpy_array_equal(
+            widths, np.full(len(index), expected_width, dtype=np.float64)
+        )
+
+    def test_bar_plot_explicit_width_uses_numeric_units(self):
+        ser = pd.Series([1, 2, 3], index=[0.0, 0.1, 1.0])
+
+        ax = ser.plot.bar(width=0.5)
+
+        widths = np.array([patch.get_width() for patch in ax.patches])
+        tm.assert_numpy_array_equal(widths, np.full(len(ser), 0.5))
+
+    def test_bar_plot_group_width_scales_to_numeric_spacing(self):
+        df = pd.DataFrame({"a": [1, 2], "b": [3, 4]}, index=[0.0, 0.1])
+
+        ax = df.plot.bar()
+
+        widths = np.array([patch.get_width() for patch in ax.patches])
+        centers = np.array(
+            [patch.get_x() + patch.get_width() / 2 for patch in ax.patches]
+        ).reshape(len(df.columns), len(df))
+        tm.assert_numpy_array_equal(widths, np.full(len(ax.patches), 0.025))
+        tm.assert_almost_equal(
+            centers.mean(axis=0), df.index.to_numpy(dtype=np.float64)
+        )
+
+    def test_bar_plot_float32_group_offsets_do_not_collapse(self):
+        index = pd.Index(
+            [np.float32(1.0), np.nextafter(np.float32(1.0), np.float32(np.inf))]
+        )
+        df = pd.DataFrame({"a": [1, 2], "b": [3, 4]}, index=index)
+
+        ax = df.plot.bar()
+
+        centers = np.array(
+            [patch.get_x() + patch.get_width() / 2 for patch in ax.patches]
+        ).reshape(len(df.columns), len(df))
+        expected = index.to_numpy(dtype=np.float64)
+        assert (centers[0] < expected).all()
+        assert (centers[1] > expected).all()
+        tm.assert_numpy_array_equal(centers.mean(axis=0), expected)
+
+    def test_bar_plot_nonfinite_numeric_spacing_remains_categorical(self):
+        ser = pd.Series([1, 2], index=[-1e308, 1e308])
+
+        ax = ser.plot.bar()
+
+        centers = [patch.get_x() + patch.get_width() / 2 for patch in ax.patches]
+        tm.assert_numpy_array_equal(np.array(centers), np.arange(len(ser), dtype=float))
+
+    @pytest.mark.parametrize("kind", ["bar", "barh"])
+    def test_bar_plot_numeric_axis_padding_scales_to_spacing(self, kind):
+        ser = pd.Series([1, 2, 3], index=[0.0, 1e-6, 2e-6])
+
+        ax = ser.plot(kind=kind)
+
+        limits = ax.get_xlim() if kind == "bar" else ax.get_ylim()
+        tm.assert_almost_equal(np.array(limits), np.array([-5e-7, 2.5e-6]))
+
+    def test_bar_plot_respects_numeric_xlim(self):
+        # GH 48806
+        ser = pd.Series([4, 8, 1, 4, 6], index=[3, 4, 5, 6, 7])
+
+        ax = ser.plot.bar(xlim=(4, 6))
+
+        assert ax.get_xlim() == (4, 6)
+
+    def test_barh_plot_respects_numeric_ylim(self):
+        # GH 48806
+        ser = pd.Series([4, 8, 1, 4, 6], index=[3, 4, 5, 6, 7])
+
+        ax = ser.plot.barh(ylim=(4, 6))
+
+        assert ax.get_ylim() == (4, 6)
+
+    @pytest.mark.parametrize("kind", ["bar", "barh"])
+    def test_bar_plot_custom_ticks_expand_default_limits(self, kind):
+        ser = pd.Series([1, 2, 3], index=["a", "b", "c"])
+        ticks = {"xticks": [0, 20]} if kind == "bar" else {"yticks": [0, 20]}
+
+        ax = ser.plot(kind=kind, **ticks)
+
+        limits = ax.get_xlim() if kind == "bar" else ax.get_ylim()
+        assert limits[1] >= 20
+
+    def test_bar_plot_numeric_axis_formatter(self):
+        # GH 50508
+        df = pd.DataFrame({"xs": [13.2, 42.2, 55.2], "ys": [5.1, 7.1, 8.1]})
+        formatted = []
+        ax = df.plot.bar(x="xs", y="ys")
+        ax.xaxis.set_major_formatter(
+            mpl.ticker.FuncFormatter(
+                lambda value, position: formatted.append(value) or ""
+            )
+        )
+
+        ax.get_xticklabels()
+
+        assert set(df["xs"]).issubset(formatted)
+
+    @pytest.mark.parametrize("bar_first", [True, False])
+    def test_bar_and_line_plot_share_numeric_positions(self, bar_first):
+        # GH 56460
+        df = pd.DataFrame(
+            {"bars": [0.5, 1.0, 3.0, 3.5, 1.5], "line": [4.0, 2.0, 2.0, 2.0, 8.0]},
+            index=[1, 2, 3, 4, 5],
+        )
+
+        if bar_first:
+            ax = df["bars"].plot.bar()
+            df["line"].plot.line(ax=ax)
+        else:
+            ax = df["line"].plot.line()
+            df["bars"].plot.bar(ax=ax)
+
+        centers = [patch.get_x() + patch.get_width() / 2 for patch in ax.patches]
+        tm.assert_numpy_array_equal(
+            np.array(centers), ax.lines[0].get_xdata().astype(np.float64)
+        )
+
+    @pytest.mark.parametrize(
+        "index",
+        [
+            pd.Index([10, 20, 30], dtype=object),
+            pd.Index([1.0, np.nan, 3.0]),
+            pd.Index([2**53, 2**53 + 1, 2**53 + 2]),
+        ],
+        ids=["object", "nonfinite", "float64-collision"],
+    )
+    def test_bar_plot_unsafe_numeric_index_remains_categorical(self, index):
+        ser = pd.Series([1, 2, 3], index=index)
+
+        ax = ser.plot.bar()
+
+        centers = [patch.get_x() + patch.get_width() / 2 for patch in ax.patches]
+        tm.assert_numpy_array_equal(
+            np.array(centers), np.arange(len(ser), dtype=np.float64)
+        )
+
+    def test_bar_plot_decreasing_index_remains_categorical(self):
+        ser = pd.Series([1, 2, 3], index=[30, 20, 10])
+
+        ax = ser.plot.bar()
+
+        centers = [patch.get_x() + patch.get_width() / 2 for patch in ax.patches]
+        tm.assert_numpy_array_equal(
+            np.array(centers), np.arange(len(ser), dtype=np.float64)
+        )
+        assert [label.get_text() for label in ax.get_xticklabels()] == [
+            "30",
+            "20",
+            "10",
+        ]
+
+    @pytest.mark.parametrize(
+        "index",
+        [
+            pd.Index([True, False, True]),
+            pd.Index([1, pd.NA, 3], dtype="Int64"),
+            pd.Index([1.0, pd.NA, 3.0], dtype="Float64"),
+            pd.Index([2**63, 2**63 + 2, 2**63 + 4], dtype="uint64"),
+            pd.Index([1e16, 1e16 + 2, 1e16 + 4]),
+            pd.TimedeltaIndex(["1 day", "2 days", "3 days"]),
+            pd.MultiIndex.from_tuples([(1, "a"), (2, "b"), (3, "c")]),
+        ],
+        ids=[
+            "bool",
+            "nullable-int-na",
+            "nullable-float-na",
+            "uint64",
+            "float-edge-precision",
+            "timedelta",
+            "multi",
+        ],
+    )
+    def test_bar_plot_non_coordinate_index_remains_categorical(self, index):
+        ser = pd.Series([1, 2, 3], index=index)
+
+        ax = ser.plot.bar()
+
+        centers = [patch.get_x() + patch.get_width() / 2 for patch in ax.patches]
+        tm.assert_numpy_array_equal(
+            np.array(centers), np.arange(len(ser), dtype=np.float64)
+        )
+
+    @pytest.mark.parametrize("dtype", ["Int64", "Float64"])
+    def test_bar_plot_nullable_numeric_index_uses_numeric_positions(self, dtype):
+        index = pd.Index([1, 3, 5], dtype=dtype)
+        ser = pd.Series([1, 2, 3], index=index)
+
+        ax = ser.plot.bar()
+
+        centers = [patch.get_x() + patch.get_width() / 2 for patch in ax.patches]
+        tm.assert_numpy_array_equal(np.array(centers), index.to_numpy(dtype=np.float64))
+
+    def test_bar_plot_use_index_false_remains_categorical(self):
+        ser = pd.Series([1, 2, 3], index=[10, 20, 30])
+
+        ax = ser.plot.bar(use_index=False)
+
+        centers = [patch.get_x() + patch.get_width() / 2 for patch in ax.patches]
+        tm.assert_numpy_array_equal(
+            np.array(centers), np.arange(len(ser), dtype=np.float64)
+        )
+
+    def test_bar_plot_duplicate_numeric_index_uses_numeric_positions(self):
+        ser = pd.Series([1, 2, 3], index=[1, 1, 2])
+
+        ax = ser.plot.bar()
+
+        centers = [patch.get_x() + patch.get_width() / 2 for patch in ax.patches]
+        tm.assert_numpy_array_equal(
+            np.array(centers), ser.index.to_numpy(dtype=np.float64)
+        )
+
+    @pytest.mark.parametrize("kind", ["bar", "barh"])
+    @pytest.mark.parametrize("stacked", [True, False])
+    def test_bar_plot_multiple_series_center_on_numeric_index(self, kind, stacked):
+        df = pd.DataFrame({"a": [1, 2], "b": [3, 4]}, index=[10, 20])
+
+        ax = df.plot(kind=kind, stacked=stacked)
+
+        if kind == "bar":
+            centers = [patch.get_x() + patch.get_width() / 2 for patch in ax.patches]
+        else:
+            centers = [patch.get_y() + patch.get_height() / 2 for patch in ax.patches]
+        centers = np.array(centers).reshape(len(df.columns), len(df))
+        tm.assert_numpy_array_equal(
+            centers.mean(axis=0), df.index.to_numpy(dtype=np.float64)
+        )
+
     def test_barh_plot_labels_mixed_integer_string(self):
         # GH39126
         # Test barh plot with string and integer at the same column
