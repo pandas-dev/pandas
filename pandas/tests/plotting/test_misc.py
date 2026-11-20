@@ -139,6 +139,19 @@ class TestSeriesPlots:
             ax = pd.plotting.autocorrelation_plot(ser, label="Test")
         _check_legend_labels(ax, labels=["Test"])
 
+    def test_autocorrelation_plot_figsize(self):
+        # GH 31650
+        ser = pd.Series(np.arange(10, dtype=np.float64))
+        ax = pd.plotting.autocorrelation_plot(ser, figsize=(10, 8))
+        assert tuple(ax.figure.get_size_inches()) == (10, 8)
+
+    def test_autocorrelation_plot_figsize_ignored_with_ax(self):
+        # GH 31650
+        fig, ax = plt.subplots(figsize=(4, 3))
+        ser = pd.Series(np.arange(10, dtype=np.float64))
+        pd.plotting.autocorrelation_plot(ser, ax=ax, figsize=(10, 8))
+        assert tuple(fig.get_size_inches()) == (4, 3)
+
     @pytest.mark.parametrize("kwargs", [{}, {"lag": 5}])
     def test_lag_plot(self, kwargs):
         ser = pd.Series(
