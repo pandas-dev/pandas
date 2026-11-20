@@ -14950,6 +14950,10 @@ class DataFrame(NDFrame, OpsMixin):
                 # in the periods == 0 case, this is equivalent diff of 0 periods
                 #  along axis=0, and the Manager method may be somewhat more
                 #  performant, so we dispatch in that case.
+                if (self.dtypes == np.bool_).all():
+                    # GH#52579 bool data has no subtraction; use xor like
+                    #  diff along axis=0 does
+                    return self._diff_axis1_bool(periods)
                 return self - self.shift(periods, axis=axis)
             # With periods=0 this is equivalent to a diff with axis=0
             axis = 0
@@ -14957,6 +14961,34 @@ class DataFrame(NDFrame, OpsMixin):
         new_data = self._mgr.diff(n=periods)
         res_df = self._constructor_from_mgr(new_data, axes=new_data.axes)
         return res_df.__finalize__(self, "diff")
+
+    def _diff_axis1_bool(self, periods: int) -> DataFrame:
+        """
+        Diff along the columns of an all-bool DataFrame.
+
+        Columns without a counterpart ``periods`` away are all-NaN float64, as
+        for other dtypes; the rest are the bool xor of the two columns.
+        """
+        from pandas.core.reshape.concat import concat
+
+        ncols = len(self.columns)
+        if abs(periods) >= ncols:
+            return (self.astype(np.float64) * np.nan).__finalize__(self, "diff")
+
+        if periods > 0:
+            nan_part = self.iloc[:, :periods]
+            left = self.iloc[:, periods:]
+            right = self.iloc[:, :-periods]
+        else:
+            nan_part = self.iloc[:, periods:]
+            left = self.iloc[:, :periods]
+            right = self.iloc[:, -periods:]
+
+        nan_part = nan_part.astype(np.float64) * np.nan
+        xor_part = left ^ right.set_axis(left.columns, axis=1)
+        parts = [nan_part, xor_part] if periods > 0 else [xor_part, nan_part]
+        result = concat(parts, axis=1)
+        return result.__finalize__(self, "diff")
 
     # ----------------------------------------------------------------------
     # Function application
