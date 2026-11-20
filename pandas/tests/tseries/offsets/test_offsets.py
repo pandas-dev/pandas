@@ -668,6 +668,51 @@ class TestDateOffset:
         assert DateOffset(months=2).copy() == DateOffset(months=2)
         assert DateOffset(milliseconds=1).copy() == DateOffset(milliseconds=1)
 
+    @pytest.mark.parametrize("kwd", ["years", "months", "weeks", "days"])
+    def test_non_integer_relativedelta_kwd_raises(self, kwd):
+        # GH#55909 these route through relativedelta, which is multiplied by
+        # ``n`` when the offset is applied; that multiplication casts through
+        # int(), so the fraction used to be discarded silently
+        msg = f"DateOffset does not support non-integer {kwd}=1.5"
+        with pytest.raises(ValueError, match=msg):
+            DateOffset(**{kwd: 1.5})
+
+    @pytest.mark.parametrize("kwd", ["hours", "minutes", "seconds", "microseconds"])
+    def test_non_integer_subdaily_kwd_raises_when_combined(self, kwd):
+        # GH#55909 a sub-daily keyword on its own is handled by timedelta and
+        # keeps the fraction, but combining it with a date keyword switches to
+        # relativedelta, where the fraction would be lost
+        msg = f"DateOffset does not support non-integer {kwd}=1.5"
+        with pytest.raises(ValueError, match=msg):
+            DateOffset(days=1, **{kwd: 1.5})
+
+    @pytest.mark.parametrize(
+        "kwd, expected",
+        [
+            ("hours", "2008-01-02 01:30:00"),
+            ("minutes", "2008-01-02 00:01:30"),
+            ("seconds", "2008-01-02 00:00:01.500000"),
+            ("milliseconds", "2008-01-02 00:00:00.001500"),
+        ],
+    )
+    def test_non_integer_subdaily_kwd_alone_keeps_fraction(self, kwd, expected, dt):
+        # GH#55909 the timedelta path represents fractions exactly, so these
+        # must keep working rather than being caught by the check above
+        assert dt + DateOffset(**{kwd: 1.5}) == Timestamp(expected)
+
+    @pytest.mark.parametrize("kwd", ["years", "months", "weeks", "days"])
+    def test_integral_float_kwd_allowed(self, kwd):
+        # GH#55909 only a genuine fraction is rejected - a float that happens
+        # to be a whole number loses nothing
+        assert DateOffset(**{kwd: 2.0}) == DateOffset(**{kwd: 2})
+
+    @pytest.mark.parametrize("value", [float("nan"), float("inf")])
+    def test_non_finite_kwd_raises(self, value):
+        # GH#55909 nan and inf are not integral either, and must not slip
+        # through the check
+        with pytest.raises(ValueError, match="does not support non-integer days"):
+            DateOffset(days=value)
+
     @pytest.mark.parametrize(
         "arithmatic_offset_type, expected",
         list(
