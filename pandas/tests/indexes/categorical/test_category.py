@@ -400,3 +400,23 @@ def test_contains_rangeindex_categories_no_engine():
     assert 2 in ci
     assert 5 not in ci
     assert "_engine" not in ci._cache
+
+def test_contains_rangeindex_nonzero_start():
+    ci = CategoricalIndex(range(10, 13))
+
+    assert 10 in ci
+    assert 11 in ci
+    assert 12 in ci
+    assert 15 not in ci
+    assert "_engine" not in ci._cache
+
+def test_contains_rangeindex_unused_categories():
+    ci = CategoricalIndex([10, 12], categories=range(10, 15))
+
+    assert 10 in ci
+    assert 12 in ci
+    assert 11 not in ci
+    assert 13 not in ci
+    assert 14 not in ci
+    assert "_engine" not in ci._cache
+    

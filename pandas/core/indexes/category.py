@@ -930,12 +930,9 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
         if is_valid_na_for_dtype(key, self.dtype):
             return self.hasnans
         if self.categories._typ == "rangeindex":
-            container: Index | libindex.IndexEngine | libindex.ExtensionEngine = (
-                self.categories
-            )
-        else:
-            container = self._engine
-        return contains(self, key, container=container)
+            return contains(self, key, container=self.codes)
+
+        return contains(self, key, container=self._engine)
 
     def reindex(
         self,
