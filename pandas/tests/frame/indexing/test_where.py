@@ -175,7 +175,7 @@ class TestDataFrameIndexingWhere:
 
         def _check_set(df, cond, check_dtypes=True):
             dfi = df.copy()
-            econd = cond.reindex_like(df).fillna(True).infer_objects()
+            econd = cond.reindex_like(df).fillna(False).infer_objects()
             expected = dfi.mask(~econd)
 
             result = dfi.where(cond, np.nan, inplace=True)
@@ -1453,4 +1453,38 @@ def test_fillna_frame_other_categorical_other_categories():
     result = df.fillna(other)
 
     expected = pd.DataFrame({"a": pd.Categorical(["x", "x", "x"], dtype=dtype)})
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("cond_dtype", ["bool", "boolean"])
+@pytest.mark.parametrize("inplace", [True, False])
+@pytest.mark.parametrize(
+    "method, expected", [("where", [0, 99, 99, 99]), ("mask", [99, 1, 99, 99])]
+)
+def test_where_mask_misaligned_cond_independent_of_inplace(
+    frame_or_series, method, expected, inplace, cond_dtype
+):
+    # GH#57083 labels missing from cond get other, regardless of inplace
+    obj = frame_or_series(range(4))
+    expected = frame_or_series(expected)
+    cond = frame_or_series([True, False], dtype=cond_dtype)
+
+    result = getattr(obj, method)(cond, 99, inplace=inplace)
+    if inplace:
+        result = obj
+    tm.assert_equal(result, expected)
+
+
+@pytest.mark.parametrize("inplace", [True, False])
+def test_where_object_cond_with_na_independent_of_inplace(inplace):
+    # GH#57083 NA in an object-dtype cond is treated as False
+    df = pd.DataFrame({"a": [1, -2, 3], "b": [-4, 5, -6]})
+    cond = pd.DataFrame(
+        {"a": [True, None, False], "b": [True, True, None]}, dtype=object
+    )
+    expected = pd.DataFrame({"a": [1, 99, 99], "b": [-4, 5, 99]})
+
+    result = df.where(cond, 99, inplace=inplace)
+    if inplace:
+        result = df
     tm.assert_frame_equal(result, expected)

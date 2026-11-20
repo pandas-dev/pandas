@@ -1399,6 +1399,15 @@ You can use keyword arguments supported by either ``BusinessHour`` and ``CustomB
     # Monday is skipped because it's a holiday, business hour starts from 10:00
     dt + bhour_mon * 2
 
+.. _timeseries.custom_offsets:
+
+Writing your own offset
+~~~~~~~~~~~~~~~~~~~~~~~
+
+To define an offset none of the built-in ones cover, subclass
+:class:`~pandas.tseries.offsets.BaseOffset`. Its docstring lists the methods to
+override and gives an example.
+
 .. _timeseries.offset_aliases:
 
 Offset aliases

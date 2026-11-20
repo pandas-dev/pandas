@@ -311,6 +311,29 @@ class TestSeriesRepr:
         )
         assert res == expected
 
+    def test_repr_self_referencing(self):
+        # GH#25833
+        ser = pd.Series([1, 2], dtype=object)
+        ser[0] = ser
+        assert repr(ser) == "0    ...\n1      2\ndtype: object"
+
+    def test_repr_mutually_referencing_frame(self):
+        # GH#25833
+        ser = pd.Series([1, 2], dtype=object)
+        df = pd.DataFrame({"x": [1, 2]}, dtype=object)
+        ser[0] = df
+        df.iat[0, 0] = ser
+        expected = (
+            "0         x\n0  ...\n1    2\n1                       2\ndtype: object"
+        )
+        assert repr(ser) == expected
+
+    def test_repr_self_referencing_via_index(self):
+        # GH#25833
+        ser = pd.Series([1, 2], dtype=object)
+        ser[0] = pd.Index([ser, 9], dtype=object)
+        assert "..." in repr(ser)
+
 
 class TestCategoricalRepr:
     def test_categorical_repr_unicode(self):

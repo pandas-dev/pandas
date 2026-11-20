@@ -1005,7 +1005,7 @@ class DataFrameRenderer:
         path_or_buf: FilePath | WriteBuffer[bytes] | WriteBuffer[str] | None = None,
         encoding: str | None = None,
         sep: str = ",",
-        columns: Sequence[Hashable] | None = None,
+        columns: Axes | None = None,
         index_label: IndexLabel | None = None,
         mode: str = "w",
         compression: CompressionOptions = "infer",
