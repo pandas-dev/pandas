@@ -562,6 +562,38 @@ class TestFillNA:
         with pytest.raises(ValueError, match=".* not a suitable type to fill into .*"):
             df.fillna(pd.Series({"a": "abc", "b": "def", "c": "hij"}), axis=1)
 
+    @pytest.mark.parametrize("value_type", [dict, pd.Series])
+    @pytest.mark.parametrize(
+        "dtype, left, fill, right",
+        [
+            ("float64", 1.0, 2.0, 3.0),
+            ("string[python]", "a", "b", "c"),
+            ("datetime64[ns]", *pd.date_range("2020-01-01", periods=3)),
+            ("datetime64[ns, UTC]", *pd.date_range("2020-01-01", periods=3, tz="UTC")),
+            ("timedelta64[ns]", *pd.to_timedelta([1, 2, 3], unit="D")),
+            ("period[D]", *pd.period_range("2020-01-01", periods=3, freq="D")),
+            (
+                "interval[float64, right]",
+                *pd.IntervalIndex.from_breaks([0.0, 1.0, 2.0, 3.0]),
+            ),
+        ],
+    )
+    def test_fillna_dict_series_axis_1_dtype(
+        self, value_type, dtype, left, fill, right
+    ):
+        # GH#71197 a dict and the equivalent Series should behave the same
+        df = pd.DataFrame([[left, None, right]], index=["r0"], dtype=dtype)
+        result = df.fillna(value_type({"r0": fill}), axis=1)
+        expected = pd.DataFrame([[left, fill, right]], index=["r0"], dtype=dtype)
+        tm.assert_frame_equal(result, expected)
+
+    def test_fillna_dict_axis_1_invalid_value(self):
+        # GH#71197
+        df = pd.DataFrame([[1.0, np.nan, 2.0]], index=["r0"], dtype="float64")
+        msg = ".* not a suitable type to fill into .*"
+        with pytest.raises(ValueError, match=msg):
+            df.fillna({"r0": "a"}, axis=1)
+
     def test_fillna_dataframe(self):
         # GH#8377
         df = pd.DataFrame(
