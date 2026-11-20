@@ -294,6 +294,19 @@ class SubDatetime(datetime):
     pass
 
 
+@pytest.mark.parametrize("timestamp", ["10000-03-05T12:00", "10001-03-05T12:00"])
+def test_array_to_datetime_tz_aware_out_of_pydatetime_range(timestamp):
+    # GH#71371 the year was replaced by 1970/1972 because the conversion went
+    #  through the year of the underlying py datetime, which is a placeholder
+    #  for years outside 1-9999
+    ts = pd.Timestamp(np.datetime64(timestamp, "us")).tz_localize("UTC")
+    result, _ = tslib.array_to_datetime(np.array([ts], dtype=object))
+
+    expected = np.array([ts.asm8], dtype="M8[us]")
+    tm.assert_numpy_array_equal(result, expected)
+    assert pd.DatetimeIndex(result)[0].year == ts.year
+
+
 @pytest.mark.parametrize("klass", [SubDatetime, datetime, pd.Timestamp])
 def test_datetime_subclass(klass):
     # GH 25851
