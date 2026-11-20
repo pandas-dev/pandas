@@ -853,6 +853,29 @@ class TestDataFrameSetItem:
         )
         tm.assert_frame_equal(df, expected)
 
+    def test_loc_setitem_frame_value_masked_int_keeps_precision(self):
+        # GH#72193 integers above 2**53 in a frame value were rounded through float
+        big = 2**53 + 1
+        df = pd.DataFrame({"x": [0, 0, 0, 0], "y": [0, 0, 0, 0]}, dtype="Int64")
+        value = pd.DataFrame(
+            {"x": [big, 2**53, 2**60, None], "y": [big, 2**53, 2**60, None]},
+            index=[1, 0, 3, 2],
+            dtype="Int64",
+        )
+        df.loc[[1, 0, 3, 2]] = value
+        expected = pd.DataFrame(
+            {"x": [2**53, big, None, 2**60], "y": [2**53, big, None, 2**60]},
+            dtype="Int64",
+        )
+        tm.assert_frame_equal(df, expected)
+
+    def test_loc_setitem_frame_value_masked_int_out_of_bounds_raises(self):
+        # GH#72193 converting through float clipped 2**63 to 2**63 - 1
+        df = pd.DataFrame({"x": [0, 0], "y": [0, 0]}, dtype="Int64")
+        value = pd.DataFrame({"x": [2**63, None], "y": [2**63, None]}, dtype="UInt64")
+        with pytest.raises(TypeError, match="Invalid value"):
+            df.loc[:] = value
+
 
 class TestSetitemTZAwareValues:
     @pytest.fixture
@@ -1144,6 +1167,22 @@ class TestDataFrameSetItemBooleanMask:
         expected[np.array(mask)] = np.nan
         expected = pd.DataFrame(expected, index=df.index, columns=df.columns)
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("indexer", ["loc", "iloc"])
+    def test_setitem_mask_frame_value_masked_int_with_na(
+        self, any_int_ea_dtype, indexer
+    ):
+        # GH#72193 a frame value with NA in a masked integer column raised KeyError
+        #  when setting several columns
+        dtype = any_int_ea_dtype
+        df = pd.DataFrame({"x": [1, 2, 3, 4], "y": [1, 2, 3, 4]}, dtype=dtype)
+        value = pd.DataFrame({"x": [5, 6, 7, None], "y": [5, 6, 7, None]}, dtype=dtype)
+        mask = np.array([False, True, False, True])
+        getattr(df, indexer)[mask] = getattr(value, indexer)[mask]
+        expected = pd.DataFrame(
+            {"x": [1, 6, 3, None], "y": [1, 6, 3, None]}, dtype=dtype
+        )
+        tm.assert_frame_equal(df, expected)
 
     @pytest.mark.xfail(reason="Currently empty indexers are treated as all False")
     @pytest.mark.parametrize("box", [list, np.array, pd.Series])
