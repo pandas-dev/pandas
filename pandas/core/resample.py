@@ -2025,6 +2025,7 @@ class _GroupByMixin(PandasObject, SelectionMixin[Any]):
     _selection: IndexLabel | None = None
     _groupby: GroupBy[Any]
     _timegrouper: TimeGrouper
+    _on: Series | None
 
     def __init__(
         self,
@@ -2058,15 +2059,35 @@ class _GroupByMixin(PandasObject, SelectionMixin[Any]):
         self.ax = parent.ax
         self.obj = parent.obj
 
+        # GH#59350 the ``on`` column, aligned by position with the rows of the
+        # groupby's object; ``self.obj`` and ``self.ax`` are sorted by time
+        if isinstance(parent, _GroupByMixin):
+            self._on = parent._on
+        elif self._timegrouper.key is not None:
+            self._on = groupby.obj[self._timegrouper.key]
+        else:
+            self._on = None
+
     @no_type_check
     def _apply(self, f, *args, **kwargs):
         """
         Dispatch to _upsample; we are stripping all of the _upsample kwargs and
         performing the original function call on the grouped object.
         """
+        if self._on is not None:
+            # GH#59350 groupby.apply calls func once per group in the order of
+            # the splitter, so pair each group with its own ``on`` values by
+            # position; row labels are not positions and may be duplicated
+            on_groups = iter(self._groupby._grouper._get_splitter(self._on))
 
         def func(x):
-            x = self._resampler_cls(x, timegrouper=self._timegrouper, gpr_index=self.ax)
+            if self._on is None:
+                gpr_index = self.ax
+            else:
+                gpr_index = Index(next(on_groups))
+            x = self._resampler_cls(
+                x, timegrouper=self._timegrouper, gpr_index=gpr_index
+            )
 
             if isinstance(f, str):
                 return getattr(x, f)(**kwargs)

@@ -160,6 +160,123 @@ def test_groupby_resample_on_non_monotonic_across_groups():
     tm.assert_series_equal(result, expected)
 
 
+def test_groupby_resample_on_unsorted_index():
+    # GH#59350 the row index must not affect resampling on a column
+    df = pd.DataFrame(
+        {
+            "datetime": pd.to_datetime(["2024-07-30T00:00Z", "2024-07-30T00:01Z"]),
+            "group": ["A", "A"],
+            "value": [100, 200],
+        },
+        index=[1, 0],
+    )
+    result = df.groupby("group").resample("1min", on="datetime").agg({"value": "sum"})
+    exp_mi = pd.MultiIndex.from_arrays(
+        [["A", "A"], date_range("2024-07-30T00:00Z", periods=2, freq="min")],
+        names=["group", "datetime"],
+    )
+    expected = pd.DataFrame({"value": [100, 200]}, index=exp_mi)
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "index",
+    [
+        pd.Index([5, 3, 0, 1, 4, 2]),
+        pd.Index([10, 20, 30, 40, 50, 60]),
+        pd.Index([0, 0, 1, 1, 2, 2]),
+        pd.Index(list("fedcba")),
+        pd.MultiIndex.from_arrays([list("aabbcc"), [1, 0, 1, 0, 1, 0]]),
+    ],
+    ids=["shuffled", "non-range", "duplicates", "strings", "multiindex"],
+)
+@pytest.mark.parametrize(
+    "method",
+    [
+        lambda rs: rs["value"].sum(),
+        lambda rs: rs[["value"]].sum(),
+        lambda rs: rs.agg({"value": "sum"}),
+        lambda rs: rs["value"].agg(["sum", "max"]),
+    ],
+    ids=["select-column", "select-list", "dict-agg", "list-agg"],
+)
+@pytest.mark.parametrize("sort", [True, False])
+def test_groupby_resample_on_index_labels_ignored(index, method, sort):
+    # GH#59350 results must not depend on the row labels, including labels that
+    # are not valid positions or are duplicated
+    df = pd.DataFrame(
+        {
+            "group": list("BABABA"),
+            "time": pd.to_datetime(
+                [
+                    "2024-01-01 00:02",
+                    "2024-01-01 00:00",
+                    "2024-01-01 00:01",
+                    "2024-01-01 00:03",
+                    "2024-01-01 00:00",
+                    "2024-01-01 00:02",
+                ]
+            ),
+            "value": [1, 2, 4, 8, 16, 32],
+        },
+        index=index,
+    )
+    gb = df.groupby("group", sort=sort)
+    result = method(gb.resample("1min", on="time"))
+
+    expected = method(
+        df.reset_index(drop=True)
+        .groupby("group", sort=sort)
+        .resample("1min", on="time")
+    )
+    tm.assert_equal(result, expected)
+
+    # B: 00:00 -> 16, 00:01 -> 4, 00:02 -> 1; A: 00:00 -> 2, 00:02 -> 32, 00:03 -> 8
+    sums = method(df.groupby("group").resample("1min", on="time"))
+    if isinstance(sums, pd.DataFrame):
+        sums = sums.iloc[:, 0]
+    assert sums.tolist() == [2, 0, 32, 8, 16, 4, 1]
+
+
+def test_groupby_resample_on_multikey_dropna_false():
+    # GH#59350 pairing the time values with each group by position keeps NaN
+    # group keys working
+    df = pd.DataFrame(
+        {
+            "k1": ["x", "x", np.nan, "x", np.nan],
+            "k2": [1, 2, 1, 1, 1],
+            "time": pd.to_datetime(
+                [
+                    "2024-01-01 00:01",
+                    "2024-01-01 00:00",
+                    "2024-01-01 00:00",
+                    "2024-01-01 00:00",
+                    "2024-01-01 00:01",
+                ]
+            ),
+            "value": [1, 2, 4, 8, 16],
+        },
+        index=[40, 30, 20, 10, 0],
+    )
+    result = (
+        df.groupby(["k1", "k2"], dropna=False)
+        .resample("1min", on="time")["value"]
+        .sum()
+    )
+    expected = (
+        df.reset_index(drop=True)
+        .groupby(["k1", "k2"], dropna=False)
+        .resample("1min", on="time")["value"]
+        .sum()
+    )
+    tm.assert_series_equal(result, expected)
+
+    # x/1: 00:00 -> 8, 00:01 -> 1; x/2: 00:00 -> 2; NaN/1: 00:00 -> 4, 00:01 -> 16
+    assert result.tolist() == [8, 1, 2, 4, 16]
+    k1 = result.index.get_level_values("k1")
+    assert k1.isna().tolist() == [False, False, False, True, True]
+
+
 def test_groupby_with_origin():
     # GH 31809
 
