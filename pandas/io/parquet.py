@@ -94,6 +94,18 @@ def get_engine(engine: str) -> BaseImpl:
     raise ValueError("engine must be one of 'pyarrow', 'fastparquet'")
 
 
+def _validate_read_path(
+    path: FilePath | ReadBuffer[bytes] | WriteBuffer[bytes],
+) -> None:
+    if not isinstance(path, (str, os.PathLike)) and not callable(
+        getattr(path, "read", None)
+    ):
+        raise TypeError(
+            "path must be a string, path object or file-like object, "
+            f"not {type(path).__name__}"
+        )
+
+
 def _get_path_or_handle(
     path: FilePath | ReadBuffer[bytes] | WriteBuffer[bytes],
     fs: Any,
@@ -104,6 +116,8 @@ def _get_path_or_handle(
     FilePath | ReadBuffer[bytes] | WriteBuffer[bytes], IOHandles[bytes] | None, Any
 ]:
     """File handling for PyArrow."""
+    if mode == "rb":
+        _validate_read_path(path)
     path_or_handle = stringify_path(path)
     if fs is not None:
         pa_fs = import_optional_dependency("pyarrow.fs", errors="ignore")
@@ -411,6 +425,7 @@ class FastParquetImpl(BaseImpl):
         to_pandas_kwargs: dict[str, Any] | None = None,
         **kwargs,
     ) -> DataFrame:
+        _validate_read_path(path)
         parquet_kwargs: dict[str, Any] = {}
         dtype_backend = kwargs.pop("dtype_backend", lib.no_default)
         # We are disabling nullable dtypes for fastparquet pending discussion
