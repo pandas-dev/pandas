@@ -3579,3 +3579,13 @@ def test_merge_sort_false_range_like_span_exceeds_int64_max(how):
     else:
         expected = pd.DataFrame({"k": other_k, "v": [2.0, np.nan, 1.0], "w": [0, 1, 2]})
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("dtype", ["str", "string[pyarrow]", "int64[pyarrow]"])
+def test_merge_empty_arrow_multikey_outer(dtype):
+    # GH#72160
+    pytest.importorskip("pyarrow")
+    df = pd.DataFrame(columns=["a", "b"], dtype=dtype).set_index(["a", "b"])
+    result = merge(df, df, how="outer", on=["a", "b"])
+    expected = df.copy()
+    tm.assert_frame_equal(result, expected)

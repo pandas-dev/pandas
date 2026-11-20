@@ -2965,7 +2965,7 @@ def _factorize_keys(
             lk = lk._pa_array  # type: ignore[attr-defined]
             rk = rk._pa_array  # type: ignore[union-attr]
             dc = (
-                pa.chunked_array(lk.chunks + rk.chunks)  # type: ignore[union-attr]
+                pa.chunked_array(lk.chunks + rk.chunks, type=lk.type)  # type: ignore[union-attr]
                 .combine_chunks()
                 .dictionary_encode()
             )
