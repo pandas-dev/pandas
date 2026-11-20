@@ -842,7 +842,7 @@ class TestDatetime64Arithmetic:
 
         result = t2 - t1
         expected = pd.TimedeltaIndex(
-            ["-1 days +18:00:00", "-2 days +18:00:00", "-3 days +18:00:00"]
+            ["-0 days 06:00:00", "-1 days 06:00:00", "-2 days 06:00:00"]
         )
         expected = tm.box_expected(expected, box_with_array)
         tm.assert_equal(result, expected)
@@ -870,7 +870,7 @@ class TestDatetime64Arithmetic:
 
         result = t2 - t1
         expected = pd.TimedeltaIndex(
-            ["-1 days +18:00:00", "-1 days +18:00:00", "-1 days +18:00:00"]
+            ["-0 days 06:00:00", "-0 days 06:00:00", "-0 days 06:00:00"]
         )
         expected = tm.box_expected(expected, box_with_array)
         tm.assert_equal(result, expected)
