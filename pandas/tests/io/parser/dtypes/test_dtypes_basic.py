@@ -954,6 +954,23 @@ NVDA,20230301181139587,2023552585717889827,2023552585717263361"""
     assert len(orders.loc[orders["ID_DEAL"] == 2023552585717263361, "ID_DEAL"]) == 2
 
 
+@pytest.mark.parametrize(
+    "dtype",
+    [{"a": "category"}, {"a": "str"}, {"c": "float64"}, {"not_a_column": "int64"}],
+)
+def test_dict_dtype_unlisted_integer_column_with_na(all_parsers, dtype):
+    # GH#72219 an integer column that the dict dtype does not mention is read as if no
+    #  dtype was given: float64 when it has missing values, int64 otherwise
+    parser = all_parsers
+    data = "a,b,c\nx,1,3\ny,,4"
+    result = parser.read_csv(StringIO(data), dtype=dtype)
+    expected = pd.DataFrame({"a": ["x", "y"], "b": [1.0, np.nan], "c": [3, 4]})
+    expected = expected.astype(
+        {key: value for key, value in dtype.items() if key in expected.columns}
+    )
+    tm.assert_frame_equal(result, expected)
+
+
 def test_dtypes_with_usecols(all_parsers):
     # GH#54868, GH#57666
 

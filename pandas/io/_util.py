@@ -193,8 +193,12 @@ def _post_convert_dtypes(
                 if col not in dtype and df[col].dtype in cmp_dtypes:
                     # Any key that the user didn't explicitly specify
                     #  that got converted to IntegerDtype now gets converted
-                    #  to numpy dtype.
-                    dtype[col] = df[col].dtype.numpy_dtype
+                    #  to numpy dtype: float64 if it has missing values, as
+                    #  pyarrow gives without the IntegerDtype mapper.
+                    if df[col].hasnans:
+                        dtype[col] = np.dtype("float64")
+                    else:
+                        dtype[col] = df[col].dtype.numpy_dtype
 
             # Ignore non-existent columns from dtype mapping
             # like other parsers do
