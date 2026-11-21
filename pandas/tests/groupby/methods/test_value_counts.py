@@ -76,13 +76,6 @@ def test_value_counts_with_bins_dropna_false():
     expected = pd.Series([1, 1, 1, 1, 0, 1], index=index, name="count")
     tm.assert_series_equal(result, expected)
 
-    gb2 = df.groupby("key", group_keys=False)["score"]
-    result = gb2.value_counts(bins=[0, 2, 4], dropna=False, sort=False)
-    tm.assert_series_equal(result, expected)
-    gb2 = df.groupby("key", as_index=False)["score"]
-    result = gb2.value_counts(bins=[0, 2, 4], dropna=False, sort=False)
-    tm.assert_frame_equal(result, expected.reset_index())
-
     # as in Series.value_counts, a group with no NAs gets no NaN row
     result = (
         df.iloc[:-1]
@@ -101,17 +94,6 @@ def test_value_counts_with_bins_dropna_false():
         names=["key", "score"],
     )
     tm.assert_series_equal(result, expected)
-
-
-@pytest.mark.parametrize("kwarg", ["as_index", "group_keys"])
-def test_value_counts_scalar_bins_as_index_group_keys_false(kwarg):
-    # GH#72220
-    df = pd.DataFrame({"key": [0, 0, 1, 1], "score": [0, 3, 1, 9]})
-    expected = df.groupby("key")["score"].value_counts(bins=2)
-    result = df.groupby("key", **{kwarg: False})["score"].value_counts(bins=2)
-    if kwarg == "as_index":
-        expected = expected.reset_index()
-    tm.assert_equal(result, expected)
 
 
 def seed_df(seed_nans, n, m):

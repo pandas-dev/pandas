@@ -1150,31 +1150,21 @@ class SeriesGroupBy(GroupBy[Series]):
 
         index_names = [*self._grouper.names, self.obj.name]
 
-        def value_counts_by_apply() -> Series | DataFrame:
-            # keep the group keys in the index, as the code below does
-            with (
-                com.temp_setattr(self, "as_index", True),
-                com.temp_setattr(self, "group_keys", True),
-            ):
-                ser = self.apply(
-                    Series.value_counts,
-                    normalize=normalize,
-                    sort=sort,
-                    ascending=ascending,
-                    bins=bins,
-                    dropna=dropna,
-                )
-            ser.name = name
-            ser.index.names = index_names
-            if not self.as_index:
-                return ser.reset_index()
-            return ser
-
         if isinstance(val.dtype, CategoricalDtype) or not np.iterable(bins):
             # scalar bins cannot be done at top level
             # in a backward compatible way
             # GH38672 relates to categorical dtype
-            return value_counts_by_apply()
+            ser = self.apply(
+                Series.value_counts,
+                normalize=normalize,
+                sort=sort,
+                ascending=ascending,
+                bins=bins,
+                dropna=dropna,
+            )
+            ser.name = name
+            ser.index.names = index_names
+            return ser
 
         # groupby removes null keys from groupings
         mask = ids != -1
