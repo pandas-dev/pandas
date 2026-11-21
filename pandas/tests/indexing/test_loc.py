@@ -1329,9 +1329,16 @@ class TestLocBaseIndependent:
         df = pd.DataFrame({"x": [], "y": []}, dtype=dtype)
         getattr(df, method)[:, key] = box([7])
 
+        if dtype == "Int64":
+            x_dtype = dtype
+        elif box is np.array:
+            # platform default int, int32 on 32-bit
+            x_dtype = np.array([7]).dtype
+        else:
+            x_dtype = "int64"
         expected = pd.DataFrame(
             {
-                "x": pd.Series([7], dtype="int64" if dtype is object else dtype),
+                "x": pd.Series([7], dtype=x_dtype),
                 "y": pd.Series([], dtype=dtype).reindex([0]),
             }
         )
