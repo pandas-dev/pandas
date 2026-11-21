@@ -1150,20 +1150,31 @@ class SeriesGroupBy(GroupBy[Series]):
 
         index_names = [*self._grouper.names, self.obj.name]
 
+        def value_counts_by_apply() -> Series | DataFrame:
+            # keep the group keys in the index, as the code below does
+            with (
+                com.temp_setattr(self, "as_index", True),
+                com.temp_setattr(self, "group_keys", True),
+            ):
+                ser = self.apply(
+                    Series.value_counts,
+                    normalize=normalize,
+                    sort=sort,
+                    ascending=ascending,
+                    bins=bins,
+                    dropna=dropna,
+                )
+            ser.name = name
+            ser.index.names = index_names
+            if not self.as_index:
+                return ser.reset_index()
+            return ser
+
         if isinstance(val.dtype, CategoricalDtype) or not np.iterable(bins):
             # scalar bins cannot be done at top level
             # in a backward compatible way
             # GH38672 relates to categorical dtype
-            ser = self.apply(
-                Series.value_counts,
-                normalize=normalize,
-                sort=sort,
-                ascending=ascending,
-                bins=bins,
-            )
-            ser.name = name
-            ser.index.names = index_names
-            return ser
+            return value_counts_by_apply()
 
         # groupby removes null keys from groupings
         mask = ids != -1
@@ -1174,6 +1185,12 @@ class SeriesGroupBy(GroupBy[Series]):
         cat_obj = cast("Categorical", cat_ser._values)
         lev = cat_obj.categories
         lab = cat_obj.codes
+
+        # with dropna=False, NAs and values outside the bins are counted in an
+        # extra last bin that becomes the NaN row, GH#25970
+        na_bin = len(lev) if not dropna and (lab == -1).any() else None
+        if na_bin is not None:
+            lab = np.where(lab == -1, na_bin, lab)
 
         sorter = np.lexsort((lab, ids))
         ids, lab = ids[sorter], lab[sorter]
@@ -1231,7 +1248,7 @@ class SeriesGroupBy(GroupBy[Series]):
         for level_codes in codes[:-1]:
             diff |= np.r_[True, level_codes[1:] != level_codes[:-1]]
 
-        ncat, nbin = diff.sum(), len(levels[-1])
+        ncat, nbin = diff.sum(), len(levels[-1]) + (na_bin is not None)
         left = [np.repeat(np.arange(ncat), nbin), np.tile(np.arange(nbin), ncat)]
         right = [diff.cumsum() - 1, codes[-1]]
 
@@ -1257,6 +1274,11 @@ class SeriesGroupBy(GroupBy[Series]):
 
         codes = [build_codes(lev_codes) for lev_codes in codes[:-1]]
         codes.append(left[-1])
+        if na_bin is not None:
+            # as in Series.value_counts, drop NaN rows with a zero count
+            keep = (codes[-1] != na_bin) | (out != 0)
+            out, codes = out[keep], [level_codes[keep] for level_codes in codes]
+            codes[-1] = np.where(codes[-1] == na_bin, -1, codes[-1])
 
         mi = MultiIndex(
             levels=levels, codes=codes, names=index_names, verify_integrity=False

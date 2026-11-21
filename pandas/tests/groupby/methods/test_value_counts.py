@@ -64,6 +64,56 @@ def test_value_counts_with_bins(bins):
     tm.assert_series_equal(result, expected)
 
 
+def test_value_counts_with_bins_dropna_false():
+    # GH#25970
+    df = pd.DataFrame({"key": [0, 0, 0, 1, 1], "score": [0, 3, np.nan, 1, 9]})
+    gb = df.groupby("key")["score"]
+    result = gb.value_counts(bins=[0, 2, 4], dropna=False, sort=False)
+    bins = pd.IntervalIndex([pd.Interval(-0.001, 2.0), pd.Interval(2.0, 4.0), np.nan])
+    index = pd.MultiIndex.from_arrays(
+        [[0, 0, 0, 1, 1, 1], bins.append(bins)], names=["key", "score"]
+    )
+    expected = pd.Series([1, 1, 1, 1, 0, 1], index=index, name="count")
+    tm.assert_series_equal(result, expected)
+
+    gb2 = df.groupby("key", group_keys=False)["score"]
+    result = gb2.value_counts(bins=[0, 2, 4], dropna=False, sort=False)
+    tm.assert_series_equal(result, expected)
+    gb2 = df.groupby("key", as_index=False)["score"]
+    result = gb2.value_counts(bins=[0, 2, 4], dropna=False, sort=False)
+    tm.assert_frame_equal(result, expected.reset_index())
+
+    # as in Series.value_counts, a group with no NAs gets no NaN row
+    result = (
+        df.iloc[:-1]
+        .groupby("key")["score"]
+        .value_counts(bins=[0, 2, 4], dropna=False, sort=False)
+    )
+    tm.assert_series_equal(result, expected.iloc[:-1])
+
+    # scalar bins are computed per group, so the out-of-range 9 is binned
+    result = gb.value_counts(bins=2, dropna=False, sort=False)
+    expected = pd.concat(
+        {
+            key: group.value_counts(bins=2, dropna=False, sort=False)
+            for key, group in gb
+        },
+        names=["key", "score"],
+    )
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("kwarg", ["as_index", "group_keys"])
+def test_value_counts_scalar_bins_as_index_group_keys_false(kwarg):
+    # GH#72220
+    df = pd.DataFrame({"key": [0, 0, 1, 1], "score": [0, 3, 1, 9]})
+    expected = df.groupby("key")["score"].value_counts(bins=2)
+    result = df.groupby("key", **{kwarg: False})["score"].value_counts(bins=2)
+    if kwarg == "as_index":
+        expected = expected.reset_index()
+    tm.assert_equal(result, expected)
+
+
 def seed_df(seed_nans, n, m):
     days = pd.date_range("2015-08-24", periods=10)
 
