@@ -57,6 +57,12 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      - name: Fetch upstream tags
+        if: github.repository != 'pandas-dev/pandas'
+        run: |
+          git remote add upstream https://github.com/pandas-dev/pandas.git
+          git fetch upstream --tags --force
+
       - name: Set up Python
         uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
@@ -213,12 +219,16 @@ jobs:
 
       - name: Run pandas-stubs tests
         id: tests
-        run: poetry run pytest
+        run: >-
+          poetry run pytest
+          -W "ignore:min, max, median, idxmin, clip:pandas.errors.Pandas4Warning"
+          -W "ignore:The 'include_start' and 'include_end' keywords in DatetimeIndex.indexer_between_time are deprecated:pandas.errors.Pandas4Warning"
 
       # Keep one open issue while the tests fail, closed by the next passing run.
       - name: Report pandas-stubs test failures
         if: >-
           !cancelled() &&
+          github.repository == 'pandas-dev/pandas' &&
           (steps.tests.outcome == 'success' || steps.tests.outcome == 'failure')
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
