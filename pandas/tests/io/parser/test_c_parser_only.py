@@ -573,6 +573,39 @@ def test_buffer_rd_bytes_bad_unicode(c_parser_only):
         c_parser_only.read_csv(t, encoding="UTF-8")
 
 
+def test_buffer_rd_bytes_read_lookup_raises(c_parser_only):
+    # GH#49756 a failing lookup of .read inside the C reader segfaulted
+    class FlakyRead:
+        def __init__(self, ok):
+            self.buf = StringIO("a,b\n1,2\n")
+            self.ok = ok
+            self.lookups = 0
+
+        def __iter__(self):
+            return iter(self.buf)
+
+        @property
+        def read(self):
+            self.lookups += 1
+            if self.lookups > self.ok:
+                raise RuntimeError("read lookup failed")
+            return self.buf.read
+
+    expected = pd.DataFrame({"a": [1], "b": [2]})
+    # fail at each lookup in turn until one call succeeds, so the C reader's
+    # lookups are among those that failed
+    for ok in range(20):
+        try:
+            result = c_parser_only.read_csv(FlakyRead(ok))
+        except RuntimeError as err:
+            assert str(err) == "read lookup failed"
+        else:
+            tm.assert_frame_equal(result, expected)
+            break
+    else:
+        pytest.fail("read_csv never succeeded")
+
+
 @pytest.mark.parametrize("tar_suffix", [".tar", ".tar.gz"])
 def test_read_tarfile(c_parser_only, datapath, tar_suffix):
     # see gh-16530

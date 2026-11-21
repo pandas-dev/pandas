@@ -2810,6 +2810,37 @@ def test_to_json_iso_utcoffset_raises(dt_cls, box):
         obj.to_json(date_format="iso")
 
 
+class _RaisingArray:
+    ndim = 1
+
+    def __array__(self, dtype=None, copy=None):
+        raise RuntimeError("boom")
+
+
+def _raise_boom(self):
+    raise RuntimeError("boom")
+
+
+@pytest.mark.parametrize("orient", ["split", "records", "index", "columns", "values"])
+@pytest.mark.parametrize("values_for_json", [_raise_boom, lambda self: _RaisingArray()])
+def test_to_json_column_values_raise(monkeypatch, orient, values_for_json):
+    # GH#49756 an error while collecting the column arrays segfaulted
+    df = pd.DataFrame({"a": [1, 2], "b": pd.array([1, 2], dtype="Int64"), "c": [3, 4]})
+    monkeypatch.setattr(pd.arrays.IntegerArray, "_values_for_json", values_for_json)
+    with pytest.raises(RuntimeError, match="boom"):
+        df.to_json(orient=orient)
+
+
+@pytest.mark.parametrize("attr", ["year", "hour"])
+def test_to_json_datetime_subclass_non_int_field(attr):
+    # GH#49756 a non-integer field was silently written as -1
+    cls = type("BadField", (datetime.datetime,), {attr: property(lambda self: "x")})
+    ser = pd.Series([cls(2020, 1, 1)], dtype=object)
+    msg = "'str' object cannot be interpreted as an integer"
+    with pytest.raises(TypeError, match=msg):
+        ser.to_json(date_format="iso")
+
+
 @pytest.mark.parametrize("other", ['"notadate"', "true"])
 def test_read_json_quarterly_string_discarded_parse_no_warning(other):
     # GH#50907 _try_convert_to_date parses the column several ways and keeps at
