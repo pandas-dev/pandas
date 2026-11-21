@@ -5,6 +5,7 @@ import numpy as np
 import pytest
 
 from pandas.compat import PYPY
+from pandas.compat.numpy import np_version_gt2_6
 
 import pandas as pd
 import pandas._testing as tm
@@ -48,6 +49,25 @@ class TestCategoricalAnalytics:
         assert _max == "a"
         assert np.minimum.reduce(obj) == "d"
         assert np.maximum.reduce(obj) == "a"
+
+    @pytest.mark.skipif(
+        not np_version_gt2_6, reason="minimummaximum added in numpy 2.6"
+    )
+    def test_minimummaximum_reduce_ordered(self, index_or_series_or_array):
+        cat = pd.Categorical(
+            ["a", "b", "c", "d"], categories=["d", "c", "b", "a"], ordered=True
+        )
+        obj = index_or_series_or_array(cat)
+        assert np._core.umath.minimummaximum.reduce(obj) == ("d", "a")
+
+    @pytest.mark.skipif(
+        not np_version_gt2_6, reason="minimummaximum added in numpy 2.6"
+    )
+    def test_minimummaximum_reduce_not_ordered_raises(self):
+        cat = pd.Categorical(["a", "b", "c", "d"], ordered=False)
+        msg = "Categorical is not ordered for operation min"
+        with pytest.raises(TypeError, match=msg):
+            np._core.umath.minimummaximum.reduce(cat)
 
     def test_min_max_reduce(self):
         # GH52788
@@ -137,7 +157,7 @@ class TestCategoricalAnalytics:
             f"of {method}"
         )
         if kwarg == "axis":
-            msg = r"`axis` must be fewer than the number of dimensions \(1\)"
+            msg = r"`axis` must be less than the number of dimensions \(1\)"
         kwargs = {kwarg: 42}
         method = getattr(np, method)
         with pytest.raises(ValueError, match=msg):

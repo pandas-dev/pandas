@@ -23,12 +23,9 @@ class TestSeriesNLargestNSmallest:
     @pytest.mark.parametrize(
         "r",
         [
-            pd.Series([3.0, 2, 1, 2, "5"], dtype="object"),
-            pd.Series([3.0, 2, 1, 2, 5], dtype="object"),
             # not supported on some archs
             # Series([3., 2, 1, 2, 5], dtype='complex256'),
             pd.Series([3.0, 2, 1, 2, 5], dtype="complex128"),
-            pd.Series(list("abcde")),
             pd.Series(list("abcde"), dtype="category"),
         ],
     )
@@ -56,6 +53,10 @@ class TestSeriesNLargestNSmallest:
             np.array([3, 2, 1, 2, 5], dtype="uint64"),
             np.array([3, 2, 1, 2, 5], dtype="float32"),
             np.array([3, 2, 1, 2, 5], dtype="float64"),
+            np.array([3, 2, 1, 2, 5], dtype="object"),
+            np.array(list("32125"), dtype="object"),
+            pd.Categorical(list("32125"), categories=list("1235"), ordered=True),
+            pd.arrays.IntervalArray.from_arrays([3, 2, 1, 2, 5], [4, 3, 2, 3, 6]),
         ],
     )
     def test_nsmallest_nlargest(self, data):
@@ -187,6 +188,27 @@ class TestSeriesNLargestNSmallest:
             .astype(dtype)
         )
         tm.assert_series_equal(result, expected)
+
+    def test_nlargest_string(self, any_string_dtype):
+        # GH#61166
+        ser = pd.Series(["b", None, "c", "a", "c", "a"], dtype=any_string_dtype)
+        tm.assert_series_equal(ser.nsmallest(3), ser.iloc[[3, 5, 0]])
+        tm.assert_series_equal(ser.nlargest(1, keep="last"), ser.iloc[[4]])
+        tm.assert_series_equal(ser.nlargest(1, keep="all"), ser.iloc[[2, 4]])
+
+    def test_nlargest_categorical_uses_category_order(self):
+        # GH#61166
+        ser = pd.Series(
+            pd.Categorical(list("abca"), categories=list("cba"), ordered=True)
+        )
+        tm.assert_series_equal(ser.nlargest(1), ser.iloc[[0]])
+        tm.assert_series_equal(ser.nsmallest(1), ser.iloc[[2]])
+
+    def test_nlargest_mixed_object_raises(self, nselect_method):
+        # incomparable values raise like in sort_values
+        ser = pd.Series([3.0, 2, 1, 2, "5"], dtype=object)
+        with pytest.raises(TypeError, match="not supported between instances"):
+            getattr(ser, nselect_method)(2)
 
     def test_nsmallest_nan_when_keep_is_all(self):
         # GH#46589

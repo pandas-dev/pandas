@@ -58,7 +58,7 @@ jobs:
           persist-credentials: false
 
       - name: Set up Python
-        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: '3.14'
 
@@ -116,7 +116,7 @@ jobs:
         run: echo "sdist_name=$(ls ./dist)" >> "$GITHUB_ENV"
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@b9e566a2b284570af229f6c2a33673410d0389a3 # v4.3.4
+        uses: pypa/cibuildwheel@f9b966cfadf4109556cadc5bb39ddb72d0ce664e # v4.3.5
         with:
           package-dir: ./dist/${{ env.sdist_name }}
           only: ${{ matrix.python }}-${{ matrix.buildplat[1] }}
@@ -124,7 +124,7 @@ jobs:
       # Check [all] extra for 1 wheel
       - name: Set up uv for extras resolution
         if: matrix.python == 'cp311' && matrix.buildplat[1] == 'manylinux_x86_64'
-        uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           enable-cache: false
 
@@ -162,7 +162,7 @@ jobs:
           merge-multiple: true
 
       - name: Upload wheels & sdist
-        uses: scientific-python/upload-nightly-action@16fa02eacee1655195143de09f03676e60ef2bf5 # 0.6.5
+        uses: scientific-python/upload-nightly-action@5a74a2a4ec19d7ab8b5317c1cdd356c150d92cd0 # 0.6.6
         with:
           artifacts_path: dist
           anaconda_nightly_upload_token: ${{secrets.PANDAS_NIGHTLY_UPLOAD_TOKEN}}
@@ -195,7 +195,7 @@ jobs:
           path: ${{ runner.temp }}/pandas-wheel
 
       - name: Set up Python
-        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.14"
 

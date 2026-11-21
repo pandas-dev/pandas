@@ -18,6 +18,8 @@ import warnings
 
 import numpy as np
 
+from pandas._config import using_python_scalars
+
 from pandas._libs import lib
 from pandas._typing import (
     AxisInt,
@@ -44,7 +46,12 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
 )
-from pandas.core.dtypes.dtypes import ExtensionDtype
+from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
+    BaseMaskedDtype,
+    ExtensionDtype,
+    SparseDtype,
+)
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
     ABCIndex,
@@ -982,7 +989,16 @@ class IndexOpsMixin(OpsMixin):
         >>> idx.to_list()
         [1, 2, 3]
         """
-        return self._values.tolist()
+        values = self._values
+        if using_python_scalars():
+            dtype = values.dtype
+            if dtype.type is np.longdouble:
+                return values.astype(np.float64).tolist()
+            if dtype.type is np.clongdouble:
+                return values.astype(np.complex128).tolist()
+            if isinstance(dtype, SparseDtype):
+                return list(self)
+        return values.tolist()
 
     to_list = tolist
 
@@ -1013,11 +1029,26 @@ class IndexOpsMixin(OpsMixin):
         3
         """
         # We are explicitly making element iterators.
-        if not isinstance(self._values, np.ndarray):
+        values = self._values
+        if not isinstance(values, np.ndarray):
             # Check type instead of dtype to catch DTA/TDA
-            return iter(self._values)
+            if using_python_scalars() and values.dtype.kind != "O":
+                if isinstance(values.dtype, BaseMaskedDtype):
+                    return iter(values.tolist())
+                if isinstance(values.dtype, SparseDtype) or (
+                    values.dtype.kind not in "mM"
+                    and not isinstance(values.dtype, ArrowDtype)
+                ):
+                    return map(maybe_unbox_numpy_scalar, values)
+            return iter(values)
         else:
-            return map(self._values.item, range(self._values.size))
+            if using_python_scalars():
+                # ndarray.item returns NumPy scalars for these dtypes
+                if values.dtype.type is np.longdouble:
+                    values = values.astype(np.float64)
+                elif values.dtype.type is np.clongdouble:
+                    values = values.astype(np.complex128)
+            return map(values.item, range(values.size))
 
     @cache_readonly
     def hasnans(self) -> bool:

@@ -877,6 +877,37 @@ class TestParquetPyArrow(Base):
         expected["a"] = expected["a"].cat.set_categories(cats.astype("str"))
         check_round_trip(df, temp_file, pa, expected=expected)
 
+    @pytest.mark.skipif(
+        pa_version_under20p0, reason="pyarrow<20 reads dictionary indices as int32"
+    )
+    @pytest.mark.parametrize("n_categories, index_type", [(3, "int8"), (300, "int16")])
+    def test_read_dtype_backend_pyarrow_category_index_type(
+        self, pa, temp_file, n_categories, index_type
+    ):
+        # GH#58062
+        df = pd.DataFrame({"a": pd.Categorical([f"c{i}" for i in range(n_categories)])})
+        df.to_parquet(temp_file, engine=pa)
+
+        result = read_parquet(temp_file, engine=pa, dtype_backend="pyarrow")
+        assert str(result["a"].dtype.pyarrow_dtype.index_type) == index_type
+
+    def test_read_dtype_backend_pyarrow_list_of_struct_null_field(self, pa, temp_file):
+        # GH#58867 "b" holds only None, so pyarrow types it null; its child array
+        #  came back too short, so reading the elements raised ArrowIndexError
+        import pyarrow
+
+        df = pd.DataFrame({"a": [[{"b": None}, {"g": "moo"}]]})
+        df.to_parquet(temp_file, engine=pa)
+
+        result = read_parquet(temp_file, engine=pa, dtype_backend="pyarrow")
+
+        pa_type = pyarrow.list_(
+            pyarrow.struct([("b", pyarrow.null()), ("g", pyarrow.string())])
+        )
+        assert result["a"].dtype == pd.ArrowDtype(pa_type)
+        expected = [[{"b": None, "g": None}, {"b": None, "g": "moo"}]]
+        assert result["a"].tolist() == expected
+
     @pytest.mark.single_cpu
     def test_s3_roundtrip_explicit_fs(
         self, df_compat, s3_bucket_public, s3so, pa, temp_file
@@ -1067,6 +1098,19 @@ class TestParquetPyArrow(Base):
         idx = 5 * [timezone_aware_date_list]
         df = pd.DataFrame(index=idx, data={"index_as_col": idx})
         check_round_trip(df, temp_file, pa, check_dtype=False)
+
+    @pytest.mark.parametrize("tz", ["UTC", "America/Denver"])
+    def test_read_dtype_backend_pyarrow_timezone_aware_index(self, pa, tz, temp_file):
+        # GH#56282
+        idx = pd.date_range("2001-05-07", periods=3, tz=tz, unit="us", name="dt")
+        df = pd.DataFrame({"a": [1, 2, 3]}, index=idx)
+        df.to_parquet(temp_file, engine=pa)
+
+        result = read_parquet(temp_file, engine=pa, dtype_backend="pyarrow")
+
+        expected = df.astype("int64[pyarrow]")
+        expected.index = idx.astype(pd.ArrowDtype(pyarrow.timestamp("us", tz=tz)))
+        tm.assert_frame_equal(result, expected)
 
     def test_filter_row_groups(self, pa, temp_file):
         # https://github.com/pandas-dev/pandas/issues/26551

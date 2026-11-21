@@ -139,7 +139,7 @@ Of these, the clear standout is "scaling" to large datasets. A couple observatio
 1. Perhaps pandas' documentation should do a better job of promoting libraries that provide scalable dataframes (like [Dask](https://dask.org), [vaex](https://dask.org), and [modin](https://modin.readthedocs.io/en/latest/))
 2. Memory efficiency (perhaps from a native string data type, fewer internal copies, etc.) is a valuable goal.
 
-After that, the next-most critical improvement is integer missing values. Those were actually added in [Pandas 0.24](https://pandas.pydata.org/pandas-docs/stable/whatsnew/v0.24.0.html#optional-integer-na-support), but they're not the default, and there's still some incompatibilities with the rest of pandas API.
+After that, the next-most critical improvement is integer missing values. Those were actually added in [Pandas 0.24](https://pandas.pydata.org/docs/whatsnew/v0.24.0.html#optional-integer-na-support), but they're not the default, and there's still some incompatibilities with the rest of pandas API.
 
 Pandas is a less conservative library than, say, NumPy. We're approaching 1.0, but on the way we've made many deprecations and some outright API breaking changes. Fortunately, most people are OK with the tradeoff.
 

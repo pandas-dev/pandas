@@ -1,7 +1,11 @@
 from collections import namedtuple
 from collections.abc import Generator
 from contextlib import contextmanager
-from itertools import product
+from io import StringIO
+from itertools import (
+    count,
+    product,
+)
 import re
 import struct
 import tracemalloc
@@ -10,7 +14,12 @@ import weakref
 import numpy as np
 import pytest
 
-from pandas._libs import hashtable as ht
+from pandas._libs import (
+    algos as libalgos,
+    hashtable as ht,
+    join as libjoin,
+    parsers as libparsers,
+)
 
 import pandas as pd
 import pandas._testing as tm
@@ -543,6 +552,40 @@ def test_hash_equal_namedtuple_with_nans():
     assert ht.objects_are_equal(a, b)
 
 
+@pytest.mark.parametrize(
+    "a, b",
+    [
+        (np.float64("nan"), np.float64("nan")),
+        (np.float64("nan"), float("nan")),
+        (np.float32("nan"), np.float64("nan")),
+        (np.longdouble("nan"), float("nan")),
+        (np.complex128(complex(np.nan, 1)), np.complex128(complex(np.nan, 1))),
+        (np.complex64(complex(1, np.nan)), complex(1, np.nan)),
+        (np.clongdouble(complex(np.nan, np.nan)), complex(np.nan, np.nan)),
+        ((1, np.float32("nan")), (1, float("nan"))),
+    ],
+)
+def test_hash_equal_numpy_nan_scalars(a, b):
+    # GH#16632
+    assert ht.object_hash(a) == ht.object_hash(b)
+    assert ht.objects_are_equal(a, b)
+    assert ht.objects_are_equal(b, a)
+
+
+@pytest.mark.parametrize(
+    "a, b",
+    [
+        (np.float64("nan"), complex(np.nan, 0)),
+        (np.complex64(complex(np.nan, 1)), complex(np.nan, 2)),
+        (np.float32("nan"), np.float64(1.0)),
+    ],
+)
+def test_numpy_nan_scalars_not_equal(a, b):
+    # GH#16632
+    assert not ht.objects_are_equal(a, b)
+    assert not ht.objects_are_equal(b, a)
+
+
 def test_hash_equal_namedtuple_and_tuple():
     T = namedtuple("T", ["x", "y"])
     a = T(1, (2, 3))
@@ -746,9 +789,11 @@ class TestHelpFunctions:
         mask = np.zeros((5,), dtype=np.bool_)
         mask[1] = True
         mask[4] = True
-        keys, counts, na_counter = ht.value_count(values, False, mask=mask)
+        keys, counts, na_pos = ht.value_count(values, False, mask=mask)
         assert len(keys) == 2
-        assert na_counter == 2
+        # NA is first seen after one distinct value, GH#23074
+        assert na_pos == 1
+        tm.assert_numpy_array_equal(counts, np.array([3, 2], dtype=np.int64))
 
     def test_value_count_stable(self, dtype, writable):
         # GH12679
@@ -1140,6 +1185,33 @@ def test_ismember_does_not_leak_table_when_hash_raises():
         assert get_allocated_khash_memory() == 0
 
 
+@pytest.mark.parametrize("keep", ["first", "last", False])
+def test_duplicated_does_not_leak_table_when_hash_raises(keep):
+    key = hash_eq_raiser(value="hello", raise_hash=True)
+    arr = np.array([key], dtype=object)
+
+    with activated_tracemalloc():
+        with pytest.raises(HashEqAbort, match="__hash__"):
+            ht.duplicated(arr, keep=keep)
+        assert get_allocated_khash_memory() == 0
+
+
+def test_duplicated_keep_first_last_use_less_memory_than_keep_false():
+    # GH#39799 only keep=False uses the values array of a map
+    values = np.arange(10**5, dtype=np.int64)
+
+    peaks = {}
+    with activated_tracemalloc():
+        for keep in ["first", "last", False]:
+            tracemalloc.reset_peak()
+            start = tracemalloc.get_traced_memory()[0]
+            ht.duplicated(values, keep=keep)
+            peaks[keep] = tracemalloc.get_traced_memory()[1] - start
+
+    assert peaks["first"] < 0.75 * peaks[False]
+    assert peaks["last"] < 0.75 * peaks[False]
+
+
 # GH 57052, only BaseExceptions which are not Exceptions should propagate
 
 
@@ -1196,3 +1268,205 @@ def test_base_exception_from_eq_propagates_from_public_api():
         ser.isin([key1])
     with pytest.raises(HashEqAbort, match=msg):
         pd.Index([key1, key2]).get_loc(key2)
+
+
+# Keys occur twice, so an insert that failed unnoticed shows up in the result
+_INTS = np.tile(np.arange(1000, dtype=np.int64), 2)
+_OBJS = np.tile(np.array([f"s{num}" for num in range(1000)], dtype=object), 2)
+# More than kh_resize(table, len(keys)) holds at its load factor, so inserts grow it
+_DISTINCT_INTS = np.arange(2000, dtype=np.int64)
+# In the map methods a second occurrence would redo a failed insert
+_DISTINCT_OBJS = _OBJS[:1000]
+_CSV = "a\n" + "\n".join(_OBJS) + "\n"
+# Spelled so that only the numeric na_values match, not their string forms
+_CSV_FLOATS = "a\n" + "\n".join(f"{num}e0" for num in range(1000)) + "\n"
+# Wide enough to be parsed in chunks, so the bad date makes earlier chunks fall back
+_CSV_DATES = "\n".join(
+    [
+        "a" + ",c" * 64,
+        *(f"2000-01-{1 + num % 28:02d}" + ",1" * 64 for num in range(9000)),
+        "notadate" + ",1" * 64,
+        "",
+    ]
+)
+# Past what a table presized to SIZE_HINT_LIMIT holds, so that inserts still resize it
+_N_PAST_SIZE_HINT = 1_700_000
+
+
+def _many_ints():
+    return np.arange(_N_PAST_SIZE_HINT, dtype=np.int64)
+
+
+def _map_locations(table, keys):
+    table.map_locations(keys)
+    return len(table), table.lookup(keys)
+
+
+def _map_keys_to_values(table, keys):
+    table.map_keys_to_values(keys, keys)
+    return len(table), table.lookup(keys)
+
+
+def _set_items(table, keys):
+    for pos, key in enumerate(keys):
+        table.set_item(key, pos)
+    return len(table), table.lookup(keys)
+
+
+def _map_locations_masked():
+    table = ht.Int64HashTable(uses_mask=True)
+    keys = _many_ints()
+    mask = np.zeros(len(keys), dtype=bool)
+    table.map_locations(keys, mask)
+    return len(table), table.lookup(keys, mask)
+
+
+def _asof_backward(allow_exact_matches):
+    # the first left row inserts every right key, then each left row looks one up
+    left_values = np.full(_N_PAST_SIZE_HINT, _N_PAST_SIZE_HINT, dtype=np.int64)
+    return libjoin.asof_join_backward_on_X_by_Y(
+        left_values, _many_ints(), _many_ints(), _many_ints(), allow_exact_matches
+    )
+
+
+def _asof_forward(allow_exact_matches):
+    # the last left row inserts every right key, then each left row looks one up
+    left_values = np.full(_N_PAST_SIZE_HINT, -1, dtype=np.int64)
+    return libjoin.asof_join_forward_on_X_by_Y(
+        left_values, _many_ints(), _many_ints(), _many_ints(), allow_exact_matches
+    )
+
+
+_KHASH_ALLOC_CASES = {
+    "Int64HashTable.unique": (ht, lambda: ht.Int64HashTable().unique(_INTS)),
+    "Int64HashTable.factorize": (ht, lambda: ht.Int64HashTable().factorize(_INTS)),
+    "Int64HashTable.map_locations": (
+        ht,
+        lambda: _map_locations(ht.Int64HashTable(), _many_ints()),
+    ),
+    "Int64HashTable.map_locations-masked": (ht, _map_locations_masked),
+    "Int64HashTable.get_labels_groupby": (
+        ht,
+        lambda: ht.Int64HashTable().get_labels_groupby(_DISTINCT_INTS),
+    ),
+    "Int64HashTable.map_keys_to_values": (
+        ht,
+        lambda: _map_keys_to_values(ht.Int64HashTable(), _many_ints()),
+    ),
+    "Int64HashTable.set_item": (ht, lambda: _set_items(ht.Int64HashTable(), _INTS)),
+    "Float64HashTable.unique": (
+        ht,
+        lambda: ht.Float64HashTable().unique(_INTS.astype(np.float64)),
+    ),
+    "StringHashTable.unique": (ht, lambda: ht.StringHashTable().unique(_OBJS)),
+    "StringHashTable.factorize": (ht, lambda: ht.StringHashTable().factorize(_OBJS)),
+    "StringHashTable.map_locations": (
+        ht,
+        lambda: _map_locations(ht.StringHashTable(), _DISTINCT_OBJS),
+    ),
+    "StringHashTable.set_item": (ht, lambda: _set_items(ht.StringHashTable(), _OBJS)),
+    "PyObjectHashTable.unique": (ht, lambda: ht.PyObjectHashTable().unique(_OBJS)),
+    "PyObjectHashTable.factorize": (
+        ht,
+        lambda: ht.PyObjectHashTable().factorize(_OBJS),
+    ),
+    "PyObjectHashTable.map_locations": (
+        ht,
+        lambda: _map_locations(ht.PyObjectHashTable(), _DISTINCT_OBJS),
+    ),
+    "PyObjectHashTable.set_item": (
+        ht,
+        lambda: _set_items(ht.PyObjectHashTable(), _OBJS),
+    ),
+    "value_count-int64": (ht, lambda: ht.value_count(_INTS, False)),
+    "value_count-int64-distinct": (
+        ht,
+        lambda: ht.value_count(_DISTINCT_INTS, False),
+    ),
+    "value_count-object": (ht, lambda: ht.value_count(_OBJS, False)),
+    "duplicated-int64": (
+        ht,
+        lambda: ht.duplicated(np.tile(_many_ints(), 2), keep="first"),
+    ),
+    "duplicated-int64-keep_false": (
+        ht,
+        lambda: ht.duplicated(np.tile(_many_ints(), 2), keep=False),
+    ),
+    "duplicated-object": (
+        ht,
+        lambda: ht.duplicated(np.tile(_many_ints().astype(object), 2), keep="first"),
+    ),
+    "ismember-int64": (ht, lambda: ht.ismember(_DISTINCT_INTS, _DISTINCT_INTS)),
+    "ismember-object": (
+        ht,
+        lambda: ht.ismember(
+            _DISTINCT_INTS.astype(object), _DISTINCT_INTS.astype(object)
+        ),
+    ),
+    "get_indexer_non_unique": (
+        ht,
+        lambda: ht.get_indexer_non_unique(
+            np.tile(_many_ints(), 2), np.tile(_many_ints(), 2), False
+        ),
+    ),
+    "unique_label_indices": (
+        ht,
+        lambda: ht.unique_label_indices(np.tile(_many_ints(), 2).astype(np.intp)),
+    ),
+    "unique_deltas": (
+        libalgos,
+        lambda: libalgos.unique_deltas(np.cumsum(_INTS + 1)),
+    ),
+    "asof_join_backward": (libjoin, lambda: _asof_backward(True)),
+    "asof_join_backward-not_exact": (libjoin, lambda: _asof_backward(False)),
+    "asof_join_forward": (libjoin, lambda: _asof_forward(True)),
+    "asof_join_forward-not_exact": (libjoin, lambda: _asof_forward(False)),
+    "read_csv-object": (libparsers, lambda: pd.read_csv(StringIO(_CSV), dtype=object)),
+    "read_csv-category": (
+        libparsers,
+        lambda: pd.read_csv(StringIO(_CSV), dtype="category"),
+    ),
+    "read_csv-na_values": (
+        libparsers,
+        lambda: pd.read_csv(StringIO(_CSV), na_values=list(_OBJS)),
+    ),
+    "read_csv-parse_dates_fallback": (
+        libparsers,
+        lambda: pd.read_csv(StringIO(_CSV_DATES), parse_dates=["a"]),
+    ),
+    "read_csv-float_na_values": (
+        libparsers,
+        lambda: pd.read_csv(
+            StringIO(_CSV_FLOATS), na_values=_INTS.astype(float).tolist()
+        ),
+    ),
+}
+
+
+@pytest.mark.parametrize(
+    "module, func", _KHASH_ALLOC_CASES.values(), ids=_KHASH_ALLOC_CASES.keys()
+)
+def test_khash_allocation_failure(module, func):
+    # GH#32907 fail each khash allocation in turn: the call must raise MemoryError
+    # or, where a failed resize is harmless, still return the right result. Either
+    # way nothing may leak.
+    with activated_tracemalloc():
+        expected = func()
+        n_raised = 0
+        for countdown in count(1):
+            module._set_khash_alloc_fail_countdown(countdown)
+            try:
+                result = func()
+            except MemoryError:
+                n_raised += 1
+                continue
+            finally:
+                remaining = module._set_khash_alloc_fail_countdown(0)
+            tm.assert_equal(result, expected)
+            if remaining > 0:
+                # no allocation failed, so every allocation has been covered
+                break
+        assert n_raised > 0
+        # results can hold tables of their own, such as index engines
+        del expected, result
+        assert get_allocated_khash_memory() == 0

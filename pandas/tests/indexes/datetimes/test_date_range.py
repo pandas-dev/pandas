@@ -999,6 +999,19 @@ class TestDateRangeTZ:
         )
         assert times[-1] == pd.Timestamp(expected, tz=tz)
 
+    def test_date_range_nat_endpoints_inclusive(self, inclusive_endpoints_fixture):
+        # GH#40245 both endpoints are nonexistent and become NaT, so neither is
+        #  generated and nothing is excluded
+        kwargs = {"freq": "MS", "tz": "US/Eastern", "nonexistent": "NaT"}
+        result = pd.date_range(
+            "2020-03-08 02:30",
+            "2021-03-14 02:30",
+            inclusive=inclusive_endpoints_fixture,
+            **kwargs,
+        )
+        expected = pd.date_range("2020-04-01 02:30", "2021-03-01 02:30", **kwargs)
+        tm.assert_index_equal(result, expected)
+
 
 class TestGenRangeGeneration:
     @pytest.mark.parametrize(

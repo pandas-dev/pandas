@@ -67,6 +67,7 @@ class ExtensionDtype:
     -------
     construct_array_type
     construct_from_string
+    empty
     is_dtype
 
     See Also

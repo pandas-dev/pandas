@@ -63,3 +63,37 @@ def test_concat_series_between_empty_and_tzaware_series(using_infer_string):
         dtype=float,
     )
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "value, dtype",
+    [(2**60 + 1, "uint64[pyarrow]"), (1.5, "double[pyarrow]"), (1.5, "float64")],
+)
+def test_concat_arrow_int_with_float_common_type_rounds(value, dtype):
+    # GH#58819 ints beyond 2**53 round like numpy instead of raising
+    pytest.importorskip("pyarrow")
+    ser = pd.Series([2**60 + 1, None], dtype="int64[pyarrow]")
+    other = pd.Series([value], dtype=dtype)
+    result = pd.concat([ser, other], ignore_index=True)
+    expected = pd.Series([float(2**60), None, float(value)], dtype="double[pyarrow]")
+    tm.assert_series_equal(result, expected)
+
+
+def test_concat_numpy_int_with_arrow_float_rounds():
+    # GH#58819
+    pytest.importorskip("pyarrow")
+    ser = pd.Series([2**60 + 1])
+    other = pd.Series([1.5], dtype="double[pyarrow]")
+    result = pd.concat([ser, other], ignore_index=True)
+    expected = pd.Series([float(2**60), 1.5], dtype="double[pyarrow]")
+    tm.assert_series_equal(result, expected)
+
+
+def test_index_append_arrow_uint64_with_int64_rounds():
+    # GH#58819
+    pytest.importorskip("pyarrow")
+    idx = pd.Index([2**60 + 1], dtype="uint64[pyarrow]")
+    other = pd.Index([2**60 + 1], dtype="int64[pyarrow]")
+    result = idx.append(other)
+    expected = pd.Index([float(2**60)] * 2, dtype="double[pyarrow]")
+    tm.assert_index_equal(result, expected)

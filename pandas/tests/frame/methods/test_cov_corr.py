@@ -176,6 +176,28 @@ class TestDataFrameCorr:
         with pytest.raises(ValueError, match=msg):
             df.corr(method="____")
 
+    @pytest.mark.parametrize(
+        "box", [pd.Series, pd.DataFrame, np.array, list, pd.Index, pd.array]
+    )
+    def test_corr_other_object_raises(self, box):
+        # GH#11260
+        df = pd.DataFrame(np.random.default_rng(2).normal(size=(10, 2)))
+        other = box(np.random.default_rng(3).normal(size=10))
+        msg = "method must be a string or a callable.*use DataFrame.corrwith"
+        with pytest.raises(TypeError, match=msg):
+            df.corr(other)
+
+    def test_corr_callable_list_like_method(self):
+        # GH#11260 a callable that is also list-like is still a valid method
+        class CallableList(list):
+            def __call__(self, a, b):
+                return 0.5
+
+        df = pd.DataFrame(np.random.default_rng(2).normal(size=(10, 2)))
+        result = df.corr(CallableList())
+        expected = pd.DataFrame([[1.0, 0.5], [0.5, 1.0]])
+        tm.assert_frame_equal(result, expected)
+
     def test_corr_int(self):
         # dtypes other than float64 GH#1761
         df = pd.DataFrame({"a": [1, 2, 3, 4], "b": [1, 2, 3, 4]})
@@ -489,6 +511,18 @@ class TestDataFrameCorrWith:
         ser_bool = pd.Series([True, True, False, True])
         result = df_bool.corrwith(ser_bool, min_periods=3)
         expected = pd.Series([0.57735, 0.57735], index=["A", "B"])
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("dtype", ["Int64", "int64[pyarrow]"])
+    def test_corrwith_series_ea_frame_is_float64(self, dtype):
+        # GH#61812 apply retains the frame's extension dtype for a pointwise
+        #  result, but a correlation coefficient is float64; this would
+        #  otherwise be Float64 / double[pyarrow]
+        if "pyarrow" in dtype:
+            pytest.importorskip("pyarrow")
+        df = pd.DataFrame({"A": [1, 1, 1], "B": [1, 2, 3]}, dtype=dtype)
+        result = df.corrwith(pd.Series([1.0, 2.0, 3.0]))
+        expected = pd.Series([np.nan, 1.0], index=["A", "B"])
         tm.assert_series_equal(result, expected)
 
     def test_corr_within_bounds(self):

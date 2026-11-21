@@ -28,6 +28,7 @@ import pytest
 from pandas._config import using_string_dtype
 
 from pandas._libs import lib
+from pandas.compat import pa_version_under26p0
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import Pandas4Warning
 import pandas.util._test_decorators as td
@@ -46,6 +47,7 @@ from pandas.io.sql import (
     read_sql_query,
     read_sql_table,
 )
+from pandas.io.sql.sqlite import _get_valid_sqlite_name
 
 if TYPE_CHECKING:
     import sqlalchemy
@@ -229,17 +231,14 @@ def types_table_metadata(dialect: str):
         "types",
         metadata,
         Column("TextCol", TEXT),
-        # error: Cannot infer type argument 1 of "Column"
-        Column("DateCol", date_type),  # type: ignore[misc]
+        Column("DateCol", date_type),
         Column("IntDateCol", Integer),
         Column("IntDateOnlyCol", Integer),
         Column("FloatCol", Float),
         Column("IntCol", Integer),
-        # error: Cannot infer type argument 1 of "Column"
-        Column("BoolCol", bool_type),  # type: ignore[misc]
+        Column("BoolCol", bool_type),
         Column("IntColWithNull", Integer),
-        # error: Cannot infer type argument 1 of "Column"
-        Column("BoolColWithNull", bool_type),  # type: ignore[misc]
+        Column("BoolColWithNull", bool_type),
     )
     return types
 
@@ -555,7 +554,7 @@ def drop_table(
     conn: sqlite3.Connection | sqlalchemy.engine.Engine | sqlalchemy.engine.Connection,
 ):
     if isinstance(conn, sqlite3.Connection):
-        conn.execute(f"DROP TABLE IF EXISTS {sql._get_valid_sqlite_name(table_name)}")
+        conn.execute(f"DROP TABLE IF EXISTS {_get_valid_sqlite_name(table_name)}")
         conn.commit()
 
     else:
@@ -576,7 +575,7 @@ def drop_view(
     import sqlalchemy
 
     if isinstance(conn, sqlite3.Connection):
-        conn.execute(f"DROP VIEW IF EXISTS {sql._get_valid_sqlite_name(view_name)}")
+        conn.execute(f"DROP VIEW IF EXISTS {_get_valid_sqlite_name(view_name)}")
         conn.commit()
     else:
         adbc = import_optional_dependency("adbc_driver_manager.dbapi", errors="ignore")
@@ -2063,13 +2062,17 @@ def test_api_timedelta(conn, request):
         # TODO: Postgres stores an INTERVAL, which ADBC reads as a Month-Day-Nano
         # Interval; the default pandas type mapper maps this to a DateOffset
         # but maybe we should try and restore the timedelta here?
-        expected = pd.Series(
-            [
+        if pa_version_under26p0:
+            offsets = [
                 pd.DateOffset(months=0, days=0, microseconds=1000000, nanoseconds=0),
                 pd.DateOffset(months=0, days=0, microseconds=3000000, nanoseconds=0),
-            ],
-            name="foo",
-        )
+            ]
+        else:
+            offsets = [
+                pd.DateOffset(months=0, days=0, nanoseconds=1000000000),
+                pd.DateOffset(months=0, days=0, nanoseconds=3000000000),
+            ]
+        expected = pd.Series(offsets, name="foo")
     else:
         expected = df["foo"].astype("int64")
     tm.assert_series_equal(result["foo"], expected)
@@ -4659,7 +4662,7 @@ def test_xsqlite_write_row_by_row(sqlite_buildin):
     cur.execute(create_sql)
 
     ins = "INSERT INTO test VALUES (%s, %s, %s, %s)"
-    for _, row in frame.iterrows():
+    for row in frame.itertuples(index=False):
         fmt_sql = format_query(ins, *row)
         tquery(fmt_sql, con=sqlite_buildin)
 
