@@ -918,8 +918,11 @@ class BaseExcelReader(Generic[_WorkbookT]):
             # We have to handle mi without names. If any of the entries in the data
             # columns are not empty, this is a regular row
             assert isinstance(header, Sequence)
-            if len(header) < len(data):
-                potential_index_names = data[len(header)]
+            # GH#58898: the row holding the index names follows the last
+            # header row, which is max(header) + 1 when the header rows
+            # are not contiguous (e.g. header=[0, 2]).
+            if max(header) + 1 < len(data):
+                potential_index_names = data[max(header) + 1]
                 has_index_names = all(
                     x == "" or x is None
                     for i, x in enumerate(potential_index_names)

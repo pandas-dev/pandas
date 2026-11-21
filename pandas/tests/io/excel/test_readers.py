@@ -1389,6 +1389,101 @@ class TestReaders:
         )
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "header, rows",
+        [
+            (
+                [0, 2],
+                [
+                    ["", "Name1", "A1", "B1"],
+                    ["", "", "", ""],
+                    ["", "Name2", "A2", "B2"],
+                    ["IndexA", "IndexB", "", ""],
+                    ["", "IB0", 0.98, 3.68],
+                    ["IA1", "IB1", 1.04, -0.04],
+                    ["IA2", "IB2", 0.49, 0.73],
+                ],
+            ),
+            (
+                [2, 4],
+                [
+                    ["Report", "", "", ""],
+                    ["", "", "", ""],
+                    ["", "Name1", "A1", "B1"],
+                    ["", "", "", ""],
+                    ["", "Name2", "A2", "B2"],
+                    ["IndexA", "IndexB", "", ""],
+                    ["", "IB0", 0.98, 3.68],
+                    ["IA1", "IB1", 1.04, -0.04],
+                    ["IA2", "IB2", 0.49, 0.73],
+                ],
+            ),
+        ],
+    )
+    def test_read_excel_multiindex_header_with_holes(
+        self, read_ext, engine, tmp_excel, header, rows
+    ):
+        # GH#58898
+        if read_ext in (".xls", ".xlsb"):
+            pytest.skip(f"No engine for filetype: '{read_ext}'")
+
+        pd.DataFrame(rows).to_excel(tmp_excel, header=False, index=False)
+        result = pd.read_excel(
+            tmp_excel, header=header, index_col=[0, 1], engine=engine
+        )
+
+        columns = pd.MultiIndex.from_tuples(
+            [("A1", "A2"), ("B1", "B2")], names=["Name1", "Name2"]
+        )
+        index = pd.MultiIndex.from_tuples(
+            [(np.nan, "IB0"), ("IA1", "IB1"), ("IA2", "IB2")],
+            names=["IndexA", "IndexB"],
+        )
+        expected = pd.DataFrame(
+            [[0.98, 3.68], [1.04, -0.04], [0.49, 0.73]],
+            index=index,
+            columns=columns,
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_read_excel_multiindex_header_with_holes_no_index_names(
+        self, read_ext, engine, tmp_excel
+    ):
+        # GH#58898: holes in the header without an index-names row.
+        # The expected frame matches the contiguous header=[0, 1] read
+        # of the same frame: the row after the last header row is probed
+        # as a potential index-names row, and its second index value is
+        # picked up as an index name, as in the contiguous case.
+        if read_ext in (".xls", ".xlsb"):
+            pytest.skip(f"No engine for filetype: '{read_ext}'")
+
+        rows = [
+            ["", "Name1", "A1", "B1"],
+            ["", "", "", ""],
+            ["", "Name2", "A2", "B2"],
+            ["", "IB0", "", ""],
+            ["IA1", "IB1", 1.04, -0.04],
+            ["IA2", "IB2", 0.49, 0.73],
+        ]
+        pd.DataFrame(rows).to_excel(tmp_excel, header=False, index=False)
+        result = pd.read_excel(
+            tmp_excel, header=[0, 2], index_col=[0, 1], engine=engine
+        )
+
+        columns = pd.MultiIndex.from_tuples(
+            [("A1", "A2"), ("B1", "B2")], names=["Name1", "Name2"]
+        )
+        index = pd.MultiIndex.from_tuples(
+            [("IA1", "IB1"), ("IA2", "IB2")],
+            names=[None, "IB0"],
+        )
+        expected = pd.DataFrame(
+            [[1.04, -0.04], [0.49, 0.73]],
+            index=index,
+            columns=columns,
+        )
+        tm.assert_frame_equal(result, expected)
+
     def test_read_excel_multiindex_header_index_col_consumes_all_columns(
         self, read_ext, engine, tmp_excel
     ):
