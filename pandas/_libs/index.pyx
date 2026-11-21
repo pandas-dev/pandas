@@ -836,13 +836,24 @@ cdef class BaseMultiIndexCodesEngine:
         self.offsets = offsets
 
         # Transform labels in a single array, and add 2 so that we are working
-        # with positive integers (-1 for NaN becomes 1). This enables us to
-        # differentiate between values that are missing in other and matching
-        # NaNs. We will set values that are not found to 0 later:
+        # with positive integers. This enables us to differentiate between
+        # values that are missing in other and matching NaNs. We will set
+        # values that are not found to 0 later:
         codes = np.array(labels).T
+        # NA can be coded -1 or by an NA level entry (groupby with dropna=False);
+        # map both to that entry, keeping groupby-coded NA in code order, see GH#60642
+        self.level_na_codes = []
+        for i, lev in enumerate(levels):
+            if lev.hasnans:
+                lev_isna = lev.isna()
+                # python int: an np.int64 would wrap in MultiIndexPyIntEngine shifts
+                na_pos = int(lev_isna.argmax())
+                level_codes = codes[:, i]
+                level_codes[(level_codes == -1) | lev_isna[level_codes]] = na_pos
+                self.level_na_codes.append(na_pos + multiindex_nulls_shift)
+            else:
+                self.level_na_codes.append(multiindex_nulls_shift - 1)
         codes += multiindex_nulls_shift  # inplace sum optimisation
-
-        self.level_has_nans = [-1 in lab for lab in labels]
 
         # Map each codes combination in the index to an integer unambiguously
         # (no collisions possible), based on the "offsets", which describe the
@@ -901,13 +912,13 @@ cdef class BaseMultiIndexCodesEngine:
         """
         level_codes = list(target._recode_for_new_levels(self.levels, copy=True))
         for i, codes in enumerate(level_codes):
-            if self.levels[i].hasnans:
-                na_index = self.levels[i].isna().nonzero()[0][0]
-                codes[target.codes[i] == -1] = na_index
+            target_codes = target.codes[i]
+            is_na = target_codes == -1
+            if target.levels[i].hasnans:
+                is_na |= target.levels[i].isna()[target_codes]
             codes += 1
             codes[codes > 0] += 1
-            if self.level_has_nans[i]:
-                codes[target.codes[i] == -1] += 1
+            codes[is_na] = self.level_na_codes[i]
         return self._codes_to_ints(np.array(level_codes, dtype=self._codes_dtype).T)
 
     def get_indexer(self, target: np.ndarray) -> np.ndarray:
@@ -933,8 +944,12 @@ cdef class BaseMultiIndexCodesEngine:
         if not isinstance(key, tuple):
             raise KeyError(key)
         try:
-            indices = [1 if checknull(v) else lev.get_loc(v) + multiindex_nulls_shift
-                       for lev, v in zip(self.levels, key, strict=True)]
+            indices = [
+                na_code if checknull(v) else lev.get_loc(v) + multiindex_nulls_shift
+                for lev, na_code, v in zip(
+                    self.levels, self.level_na_codes, key, strict=True
+                )
+            ]
         except KeyError:
             raise KeyError(key)
 
