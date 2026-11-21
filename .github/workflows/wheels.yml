@@ -213,7 +213,10 @@ jobs:
 
       - name: Run pandas-stubs tests
         id: tests
-        run: poetry run pytest
+        run:  >-
+          poetry run pytest
+          -W "ignore:min, max, median, idxmin, clip:pandas.errors.Pandas4Warning"
+          -W "ignore:The 'include_start' and 'include_end' keywords in DatetimeIndex.indexer_between_time are deprecated:pandas.errors.Pandas4Warning"
 
       # Keep one open issue while the tests fail, closed by the next passing run.
       - name: Report pandas-stubs test failures
