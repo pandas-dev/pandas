@@ -78,6 +78,11 @@ cnp.import_array()
 from pandas._libs.interval import Interval
 
 
+cdef extern from "Python.h":
+    int Py_EnterRecursiveCall(const char *where) except -1
+    void Py_LeaveRecursiveCall()
+
+
 cdef extern from "pandas/parser/pd_parser.h":
     int floatify(object, float64_t *result, int *maybe_int) except -1
     void PandasParser_IMPORT()
@@ -706,6 +711,40 @@ def maybe_booleans_to_slice(ndarray[uint8_t, ndim=1] mask):
         return slice(start, end)
 
 
+cdef bint _sequences_equivalent(object x, object y):
+    # tuple/list == treats distinct NaN objects as unequal, so compare
+    #  elementwise with NaN-awareness, see GH#45945. strict_nan=True so None
+    #  inside a tuple does not start matching NaN.
+    cdef:
+        Py_ssize_t i, n
+        ndarray left, right
+
+    if not (
+        (isinstance(x, tuple) and isinstance(y, tuple))
+        or (isinstance(x, list) and isinstance(y, list))
+    ):
+        return False
+    n = len(x)
+    if len(y) != n:
+        return False
+
+    left = np.empty(n, dtype=object)
+    right = np.empty(n, dtype=object)
+    for i in range(n):
+        # assign elementwise so nested sequences are stored as objects
+        left[i] = x[i]
+        right[i] = y[i]
+    # raise RecursionError instead of crashing on self-referential sequences
+    Py_EnterRecursiveCall(" in array_equivalent_object")
+    try:
+        return array_equivalent_object(left, right, strict_nan=True)
+    except (ValueError, TypeError):
+        # x == y already returned False; don't raise on a pair it never reached
+        return False
+    finally:
+        Py_LeaveRecursiveCall()
+
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def array_equivalent_object(ndarray left, ndarray right, bint strict_nan=False) -> bool:
@@ -754,6 +793,7 @@ def array_equivalent_object(ndarray left, ndarray right, bint strict_nan=False) 
             elif not (
                 PyObject_RichCompareBool(x, y, Py_EQ)
                 or is_matching_na(x, y, nan_matches_none=not strict_nan)
+                or _sequences_equivalent(x, y)
             ):
                 return False
         except (ValueError, TypeError):

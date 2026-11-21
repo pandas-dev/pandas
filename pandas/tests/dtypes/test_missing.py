@@ -693,6 +693,63 @@ def test_array_equivalent_nested_strict_nan_mixed_dtype(value, dtype, dtype_equa
 
 
 @pytest.mark.parametrize("strict_nan", [True, False])
+@pytest.mark.parametrize(
+    "make",
+    [lambda x: (x, 1), lambda x: [x, 1], lambda x: (1, (x, 1))],
+    ids=["tuple", "list", "nested"],
+)
+def test_array_equivalent_nan_in_sequence(make, strict_nan):
+    # GH#45945 distinct NaN objects, so equality can't come from identity
+    left = _nest_object(make(float("nan")))
+    right = _nest_object(make(float("nan")))
+    assert array_equivalent(left, right, strict_nan=strict_nan)
+
+    assert not array_equivalent(left, _nest_object(make(1.0)), strict_nan=strict_nan)
+    # None matching NaN is not extended into sequences
+    assert not array_equivalent(left, _nest_object(make(None)), strict_nan=strict_nan)
+
+
+@pytest.mark.parametrize("strict_nan", [True, False])
+def test_array_equivalent_nan_in_sequence_raising_element(strict_nan):
+    # GH#45945 recursing past the NaN must not raise on NA vs 1
+    left = _nest_object((float("nan"), [pd.NA]))
+    right = _nest_object((float("nan"), [1]))
+    assert not array_equivalent(left, right, strict_nan=strict_nan)
+
+
+@pytest.mark.parametrize("strict_nan", [True, False])
+def test_array_equivalent_nan_in_sequence_length_mismatch(strict_nan):
+    # GH#45945 a length-1 sequence must not broadcast against a longer one
+    left = _nest_object((float("nan"), float("nan")))
+    right = _nest_object((float("nan"),))
+    assert not array_equivalent(left, right, strict_nan=strict_nan)
+    assert not array_equivalent(right, left, strict_nan=strict_nan)
+
+
+@pytest.mark.parametrize("strict_nan", [True, False])
+def test_array_equivalent_nan_in_sequence_type_mismatch(strict_nan):
+    # GH#45945 NaN-aware comparison does not make a tuple equal a list
+    left = _nest_object((float("nan"), 1))
+    right = _nest_object([float("nan"), 1])
+    assert not array_equivalent(left, right, strict_nan=strict_nan)
+
+
+@pytest.mark.parametrize("strict_nan", [True, False])
+def test_array_equivalent_nan_in_sequence_self_referential(strict_nan):
+    # GH#45945 must raise like list.__eq__, not recurse without bound
+    left_list = [float("nan")]
+    left_list.append(left_list)
+    right_list = [float("nan")]
+    right_list.append(right_list)
+    with pytest.raises(
+        RecursionError, match="(maximum recursion depth|Stack overflow)"
+    ):
+        array_equivalent(
+            _nest_object(left_list), _nest_object(right_list), strict_nan=strict_nan
+        )
+
+
+@pytest.mark.parametrize("strict_nan", [True, False])
 @pytest.mark.parametrize("value", [np.float32("nan"), complex(np.nan, 0)])
 def test_array_equivalent_object_fallback_float32_complex_nan(value, strict_nan):
     # GH#55492 a Series element makes == raise, so the Python fallback compares
