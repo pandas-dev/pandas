@@ -181,8 +181,17 @@ class YearEnd(YearOffset): ...
 class YearBegin(YearOffset): ...
 
 class QuarterOffset(SingleConstructorOffset):
+    @property
+    def month(self) -> int: ...
+    @property
+    def startingMonth(self) -> int: ...
     def __init__(
-        self, n: int = ..., normalize: bool = ..., startingMonth: int | None = ...
+        self,
+        n: int = ...,
+        normalize: bool = ...,
+        month: int | None = ...,
+        *,
+        startingMonth: int | None = ...,
     ) -> None: ...
 
 class BQuarterEnd(QuarterOffset): ...
@@ -191,8 +200,17 @@ class QuarterEnd(QuarterOffset): ...
 class QuarterBegin(QuarterOffset): ...
 
 class HalfYearOffset(SingleConstructorOffset):
+    @property
+    def month(self) -> int: ...
+    @property
+    def startingMonth(self) -> int: ...
     def __init__(
-        self, n: int = ..., normalize: bool = ..., startingMonth: int | None = ...
+        self,
+        n: int = ...,
+        normalize: bool = ...,
+        month: int | None = ...,
+        *,
+        startingMonth: int | None = ...,
     ) -> None: ...
 
 class BHalfYearEnd(HalfYearOffset): ...
@@ -231,13 +249,19 @@ class LastWeekOfMonth(WeekOfMonthMixin):
     ) -> None: ...
 
 class FY5253Mixin(SingleConstructorOffset):
+    @property
+    def month(self) -> int: ...
+    @property
+    def startingMonth(self) -> int: ...
     def __init__(
         self,
         n: int = ...,
         normalize: bool = ...,
         weekday: int = ...,
-        startingMonth: int = ...,
+        month: int | None = ...,
         variation: Literal["nearest", "last"] = ...,
+        *,
+        startingMonth: int = ...,
     ) -> None: ...
 
 class FY5253(FY5253Mixin): ...
@@ -248,9 +272,11 @@ class FY5253Quarter(FY5253Mixin):
         n: int = ...,
         normalize: bool = ...,
         weekday: int = ...,
-        startingMonth: int = ...,
+        month: int | None = ...,
         qtr_with_extra_week: int = ...,
         variation: Literal["nearest", "last"] = ...,
+        *,
+        startingMonth: int = ...,
     ) -> None: ...
 
 class Easter(SingleConstructorOffset):
