@@ -160,8 +160,8 @@ class TestConvertDtypes:
         # GH 48893
         df = pd.DataFrame({"a": [1, 2, 3]})
         msg = (
-            "dtype_backend numpy is invalid, only 'numpy_nullable' and "
-            "'pyarrow' are allowed."
+            "dtype_backend numpy is invalid, only 'numpy_nullable', "
+            "'pyarrow' and 'default' are allowed."
         )
         with pytest.raises(ValueError, match=msg):
             df.convert_dtypes(dtype_backend="numpy")
@@ -289,3 +289,85 @@ class TestConvertDtypes:
         msg = f"The {kwarg} keyword in DataFrame.convert_dtypes"
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             df.convert_dtypes(**{kwarg: True})
+
+    def test_convert_dtypes_backend_default(self):
+        # GH#35694
+        df = pd.DataFrame(
+            {
+                "int": pd.array([1, 2, 3], dtype="Int32"),
+                "int_na": pd.array([1, None, 3], dtype="UInt8"),
+                "bool": pd.array([True, False, True], dtype="boolean"),
+                "bool_na": pd.array([True, None, False], dtype="boolean"),
+                "float_na": pd.array([1.5, None, 3.0], dtype="Float32"),
+                "string": pd.array(["x", None, "z"], dtype="string"),
+                "numpy": np.array([1, 2, 3], dtype=np.int16),
+                "cat": pd.Categorical(["a", "b", "a"]),
+            }
+        )
+        result = df.convert_dtypes(dtype_backend="default")
+        expected = pd.DataFrame(
+            {
+                "int": np.array([1, 2, 3], dtype=np.int32),
+                "int_na": np.array([1.0, np.nan, 3.0]),
+                "bool": np.array([True, False, True]),
+                "bool_na": np.array([True, np.nan, False], dtype=object),
+                "float_na": np.array([1.5, np.nan, 3.0], dtype=np.float32),
+                "string": pd.Series(["x", np.nan, "z"], dtype="str"),
+                "numpy": np.array([1, 2, 3], dtype=np.int16),
+                "cat": pd.Categorical(["a", "b", "a"]),
+            }
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_convert_dtypes_backend_default_pyarrow(self):
+        # GH#35694
+        pa = pytest.importorskip("pyarrow")
+        ts = pd.Timestamp("2020-01-01")
+        date = datetime.date(2020, 1, 1)
+        df = pd.DataFrame(
+            {
+                "int": pd.array([1, 2], dtype="int8[pyarrow]"),
+                "int_na": pd.array([1, None], dtype="int64[pyarrow]"),
+                "bool_na": pd.array([True, None], dtype="bool[pyarrow]"),
+                "string": pd.array(["x", None], dtype=pd.ArrowDtype(pa.string())),
+                "string_pyarrow": pd.array(["x", None], dtype="string[pyarrow]"),
+                "ts": pd.array([ts, None], dtype="timestamp[us][pyarrow]"),
+                "ts_tz": pd.array(
+                    [ts.tz_localize("UTC"), None], dtype="timestamp[s, tz=UTC][pyarrow]"
+                ),
+                "duration": pd.array(
+                    [pd.Timedelta(1, "s"), None], dtype="duration[ms][pyarrow]"
+                ),
+                "date": pd.array([date, None], dtype="date32[pyarrow]"),
+            }
+        )
+        result = df.convert_dtypes(dtype_backend="default")
+        expected = pd.DataFrame(
+            {
+                "int": np.array([1, 2], dtype=np.int8),
+                "int_na": np.array([1.0, np.nan]),
+                "bool_na": np.array([True, np.nan], dtype=object),
+                "string": pd.Series(["x", np.nan], dtype="str"),
+                "string_pyarrow": pd.Series(["x", np.nan], dtype="str"),
+                "ts": pd.Series([ts, None], dtype="M8[us]"),
+                "ts_tz": pd.Series([ts, None], dtype="M8[s]").dt.tz_localize("UTC"),
+                "duration": pd.Series([pd.Timedelta(1, "s"), None], dtype="m8[ms]"),
+                "date": df["date"],
+            }
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_convert_dtypes_backend_default_roundtrip(self):
+        # GH#35694
+        df = pd.DataFrame(
+            {"a": np.array([1, 2], dtype=np.int32), "b": [1.5, np.nan], "c": ["x", "y"]}
+        )
+        result = df.convert_dtypes().convert_dtypes(dtype_backend="default")
+        tm.assert_frame_equal(result, df)
+
+    def test_convert_dtypes_backend_default_deprecated_kwargs_raise(self):
+        # GH#35694
+        df = pd.DataFrame({"a": [1, 2, 3]})
+        msg = "Cannot pass convert_integer with dtype_backend='default'"
+        with pytest.raises(ValueError, match=msg):
+            df.convert_dtypes(convert_integer=False, dtype_backend="default")
