@@ -43,7 +43,7 @@ class TestSeriesIsIn:
     def test_isin_datetimelike_mismatched_reso(self):
         expected = pd.Series([True, True, False, False, False])
 
-        ser = pd.Series(pd.date_range("jan-01-2013", "jan-05-2013"))
+        ser = pd.Series(pd.date_range("2013-01-01", "2013-01-05"))
 
         # fails on dtype conversion in the first place
         day_values = np.asarray(ser[0:2].values).astype("datetime64[D]")
@@ -57,7 +57,7 @@ class TestSeriesIsIn:
     def test_isin_datetimelike_mismatched_reso_list(self):
         expected = pd.Series([True, True, False, False, False])
 
-        ser = pd.Series(pd.date_range("jan-01-2013", "jan-05-2013"))
+        ser = pd.Series(pd.date_range("2013-01-01", "2013-01-05"))
 
         dta = ser[:2]._values.astype("M8[s]")
         result = ser.isin(list(dta))
@@ -70,7 +70,7 @@ class TestSeriesIsIn:
         expected2 = pd.Series([False, True, False, False, False])
 
         # datetime64[ns]
-        s = pd.Series(pd.date_range("jan-01-2013", "jan-05-2013"))
+        s = pd.Series(pd.date_range("2013-01-01", "2013-01-05"))
 
         result = s.isin(s[0:2])
         tm.assert_series_equal(result, expected)

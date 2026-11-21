@@ -645,7 +645,11 @@ def test_apply_numeric_coercion_when_datetime():
 def test_apply_numeric_coercion_when_datetime_getitem():
     # GH 15421
     df = pd.DataFrame(
-        {"A": [10, 20, 30], "B": ["foo", "3", "4"], "T": [pd.Timestamp("12:31:22")] * 3}
+        {
+            "A": [10, 20, 30],
+            "B": ["foo", "3", "4"],
+            "T": [pd.Timestamp("2026-01-01 12:31:22")] * 3,
+        }
     )
 
     def get_B(g):

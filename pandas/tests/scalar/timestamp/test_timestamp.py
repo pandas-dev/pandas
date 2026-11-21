@@ -922,7 +922,8 @@ def test_timestamp_class_min_max_resolution():
 
 def test_delimited_date():
     # https://github.com/pandas-dev/pandas/issues/50231
-    with tm.assert_produces_warning(None):
+    # GH#65381 the day/month swap is deprecated
+    with tm.assert_produces_warning(Pandas4Warning, match="as day-first"):
         result = pd.Timestamp("13-01-2000")
     expected = pd.Timestamp(2000, 1, 13)
     assert result == expected

@@ -469,7 +469,10 @@ class TestPeriodIndex:
         # GH#64158 the int64-array path read the integer as a literal calendar
         #  year, so it disagreed with Period(int, freq) and with the
         #  object-dtype path for anything but a four-digit year
-        expected = pd.PeriodIndex([pd.Period(str(val), freq="D")])
+        # GH#65381 "200701" is only parsed by dateutil
+        parse_warning = Pandas4Warning if val == 200701 else None
+        with tm.assert_produces_warning(parse_warning, match="relies on dateutil"):
+            expected = pd.PeriodIndex([pd.Period(str(val), freq="D")])
 
         depr_msg = "Passing integer data"
         with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):

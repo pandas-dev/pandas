@@ -692,7 +692,7 @@ def test_groupby_resample_size_all_index_same():
     # GH 46826
     df = pd.DataFrame(
         {"A": [1] * 3 + [2] * 3 + [1] * 3 + [2] * 3, "B": np.arange(12)},
-        index=date_range("31/12/2000 18:00", freq="h", periods=12, unit="ns"),
+        index=date_range("2000-12-31 18:00", freq="h", periods=12, unit="ns"),
     )
     result = df.groupby("A").resample("D").size()
 

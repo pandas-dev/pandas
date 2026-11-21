@@ -892,7 +892,8 @@ def get_grouper(
 
     # if the grouper is obj[name]
     def is_in_obj(gpr) -> bool:
-        if not hasattr(gpr, "name"):
+        if not hasattr(gpr, "name") or obj.ndim == 1:
+            # a Series has no columns; obj[gpr.name] would look up a row
             return False
         # We check the references to determine if the
         # series is part of the object
