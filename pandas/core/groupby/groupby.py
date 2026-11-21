@@ -216,16 +216,22 @@ class GroupByPlot(PandasObject):
 
     def __getattr__(self, name: str):
         def attr(*args, **kwargs):
-            def f(self, key):
+            colors = self._get_group_colors({**kwargs, "kind": name})
+            color_iter = iter(colors) if colors is not None else None
+
+            def plot_group(group, key):
                 local_kwargs = kwargs.copy()
-                GroupByPlot._set_default_title(local_kwargs, self, key)
+                GroupByPlot._set_default_title(local_kwargs, group, key)
 
                 if name == "scatter" and kwargs.get("legend"):
                     local_kwargs.setdefault("label", key)
+                if color_iter is not None:
+                    local_kwargs["color"] = next(color_iter)
+                    local_kwargs.pop("colormap")
 
-                return getattr(self.plot, name)(*args, **local_kwargs)
+                return getattr(group.plot, name)(*args, **local_kwargs)
 
-            return self._groupby._python_apply_plot(f)
+            return self._groupby._python_apply_plot(plot_group)
 
         return attr
 
