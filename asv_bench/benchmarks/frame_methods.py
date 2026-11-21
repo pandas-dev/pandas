@@ -611,8 +611,15 @@ class Interpolate:
         self.df2.loc[1::5, "A"] = np.nan
         self.df2.loc[1::5, "C"] = np.nan
 
+        same_nans = np.random.randn(100, 2000)
+        same_nans[::2] = np.nan
+        self.df_same_nans = DataFrame(same_nans)
+
     def time_interpolate(self):
         self.df.interpolate()
+
+    def time_interpolate_same_nans(self):
+        self.df_same_nans.interpolate(method="nearest")
 
     def time_interpolate_some_good(self):
         self.df2.interpolate()
