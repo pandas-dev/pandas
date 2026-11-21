@@ -1,4 +1,6 @@
 import copy
+import datetime
+import zoneinfo
 
 import numpy as np
 import pytest
@@ -112,6 +114,51 @@ def test_equals_none_vs_nan():
     assert ser.equals(ser2)
     assert pd.Index(ser, dtype=ser.dtype).equals(pd.Index(ser2, dtype=ser2.dtype))
     assert ser.array.equals(ser2.array)
+
+
+@pytest.mark.parametrize("unit", ["s", "ms", "us"])
+@pytest.mark.parametrize(
+    "values",
+    [
+        pd.DatetimeIndex(["2016-01-01", "NaT", "2016-01-03"]),
+        pd.DatetimeIndex(["2016-01-01", "NaT", "2016-01-03"], tz="US/Pacific"),
+        pd.TimedeltaIndex(["1 day", "NaT", "3 days"]),
+    ],
+)
+def test_equals_mismatched_datetimelike_resolution(values, unit):
+    # GH#55694
+    left = pd.Series(values.as_unit("ns"))
+    right = pd.Series(values.as_unit(unit))
+    assert left.dtype != right.dtype
+    assert left.equals(right)
+    assert right.equals(left)
+    assert left.array.equals(right.array)
+
+    assert not left.equals(right.iloc[::-1].reset_index(drop=True))
+
+
+def test_equals_mismatched_resolution_equivalent_tz():
+    # GH#55694 distinct but equivalent tz objects, as in DatetimeTZDtype.__eq__
+    dti = pd.date_range("2016-01-01", periods=3)
+    left = pd.Series(dti.tz_localize(datetime.UTC))
+    right = pd.Series(dti.tz_localize(zoneinfo.ZoneInfo("UTC")).as_unit("s"))
+    assert left.dt.tz is not right.dt.tz
+    assert left.equals(right)
+    assert right.equals(left)
+    assert pd.Index(left).equals(pd.Index(right))
+
+
+def test_equals_mismatched_datetimelike_resolution_not_equal():
+    # GH#55694 a differing tz, or values not representable at the finer
+    #  resolution, are never equal
+    ser = pd.Series(pd.date_range("2016-01-01", periods=3, tz="UTC", unit="ns"))
+    assert not ser.equals(ser.dt.tz_convert("US/Pacific").dt.as_unit("s"))
+    assert not ser.equals(ser.dt.tz_localize(None).dt.as_unit("s"))
+
+    far = pd.Series(pd.DatetimeIndex(["3000-01-01"]).as_unit("s"))
+    assert not far.equals(pd.Series(pd.DatetimeIndex(["2000-01-01"]).as_unit("ns")))
+    far_td = pd.Series(np.array([2**62], dtype="m8[s]"))
+    assert not far_td.equals(pd.Series(np.array([1], dtype="m8[ns]")))
 
 
 def test_equals_None_vs_float():

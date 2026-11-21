@@ -42,10 +42,12 @@ from pandas.core.dtypes.dtypes import (
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
+    ABCDatetimeArray,
     ABCExtensionArray,
     ABCIndex,
     ABCMultiIndex,
     ABCSeries,
+    ABCTimedeltaArray,
 )
 
 if TYPE_CHECKING:
@@ -588,7 +590,10 @@ def array_equals(left: ArrayLike, right: ArrayLike) -> bool:
     """
     ExtensionArray-compatible implementation of array_equivalent.
     """
-    if left.dtype != right.dtype:
+    if isinstance(left, (ABCDatetimeArray, ABCTimedeltaArray)):
+        # GH#55694 these treat values differing only in resolution as equal
+        return left.equals(right)
+    elif left.dtype != right.dtype:
         return False
     elif isinstance(left, ABCExtensionArray):
         return left.equals(right)
