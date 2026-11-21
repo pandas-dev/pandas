@@ -9,6 +9,7 @@ from datetime import (
     time,
 )
 import locale
+import re
 import unicodedata
 
 import numpy as np
@@ -329,23 +330,44 @@ class TestDatetimeIndexOps:
     def test_dti_is_year_quarter_start(self):
         dti = pd.date_range(freq="BQE-FEB", start=datetime(1998, 1, 1), periods=4)
 
+        msg = "using the index's freq"
         assert sum(dti.is_quarter_start) == 0
-        assert sum(dti.is_quarter_end) == 4
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            assert sum(dti.is_quarter_end) == 4
         assert sum(dti.is_year_start) == 0
-        assert sum(dti.is_year_end) == 1
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            assert sum(dti.is_year_end) == 1
 
     def test_dti_is_month_start(self):
         dti = pd.DatetimeIndex(["2000-01-01", "2000-01-02", "2000-01-03"])
 
         assert dti.is_month_start[0] == 1
 
-    def test_dti_is_month_start_custom(self):
-        # Ensure is_start/end accessors throw ValueError for CustomBusinessDay,
-        bday_egypt = pd.offsets.CustomBusinessDay(weekmask="Sun Mon Tue Wed Thu")
-        dti = pd.date_range(datetime(2013, 4, 30), periods=5, freq=bday_egypt)
-        msg = "Custom business days is not supported by is_month_start"
-        with pytest.raises(ValueError, match=msg):
-            dti.is_month_start
+    @pytest.mark.parametrize(
+        "freq",
+        [
+            pd.offsets.CustomBusinessDay(weekmask="Sun Mon Tue Wed Thu"),
+            pd.DateOffset(days=1),
+        ],
+    )
+    @pytest.mark.parametrize(
+        "field",
+        [
+            "is_month_start",
+            "is_month_end",
+            "is_quarter_start",
+            "is_quarter_end",
+            "is_year_start",
+            "is_year_end",
+        ],
+    )
+    def test_dti_start_end_field_unsupported_freq(self, freq, field):
+        # these freqs used to raise; they are now ignored, GH#58920
+        dti = pd.date_range(datetime(2012, 12, 30), periods=5, freq=freq)
+        result = getattr(dti, field)
+        expected = getattr(pd.Series(dti).dt, field).to_numpy()
+        tm.assert_numpy_array_equal(result, expected)
+        assert result.any()
 
     @pytest.mark.parametrize(
         "timestamp, freq, periods, expected_values",
@@ -434,11 +456,10 @@ class TestDatetimeIndexOps:
         assert all(dr.is_quarter_start)
 
     def test_dti_is_year_start_freq_custom_business_day_with_digit(self):
-        # GH#58664
+        # GH#58664, GH#58920
         dr = pd.date_range("2020-01-01", periods=2, freq="2C")
-        msg = "Custom business days is not supported by is_year_start"
-        with pytest.raises(ValueError, match=msg):
-            dr.is_year_start
+        expected = np.array([True, False])
+        tm.assert_numpy_array_equal(dr.is_year_start, expected)
 
     @pytest.mark.parametrize("freq", ["3BMS", pd.offsets.BusinessMonthBegin(3)])
     def test_dti_is_year_quarter_start_freq_business_month_begin(self, freq):
@@ -454,9 +475,44 @@ class TestDatetimeIndexOps:
     def test_dti_is_year_start_freq_two_business_days(self):
         # GH#58524
         dr = pd.date_range("2017-01-01", periods=2, freq="2B")
-        result = dr.is_year_start
+        with tm.assert_produces_warning(Pandas4Warning, match="using the index's freq"):
+            result = dr.is_year_start
         expected = np.array([True, False])
         tm.assert_numpy_array_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "field, freq, offset",
+    [
+        ("is_year_start", "BYS", pd.offsets.BYearBegin(month=1)),
+        ("is_year_end", "BYE", pd.offsets.BYearEnd(month=12)),
+        ("is_month_start", "B", pd.offsets.BusinessMonthBegin()),
+        ("is_month_end", "B", pd.offsets.BusinessMonthEnd()),
+        ("is_quarter_start", "QS-FEB", pd.offsets.QuarterBegin(startingMonth=2)),
+        ("is_quarter_end", "BQE", pd.offsets.BQuarterEnd(startingMonth=12)),
+        ("is_year_start", "YS-APR", pd.offsets.YearBegin(month=4)),
+        ("is_year_end", "QE-NOV", pd.offsets.YearEnd(month=11)),
+    ],
+)
+def test_start_end_field_freq_deprecated(field, freq, offset):
+    # GH#58920 the result depends on freq, which Series.dt does not have
+    dti = pd.date_range("2020-10-30", periods=500, freq=freq)
+    expected = dti.map(offset.is_on_offset).to_numpy()
+    ser_result = getattr(pd.Series(dti).dt, field).to_numpy()
+    assert not (expected == ser_result).all()
+
+    kwargs = ", ".join(f"{key}={val}" for key, val in offset.kwds.items())
+    recipe = (
+        f"idx.map(pd.offsets.{type(offset).__name__}({kwargs}).is_on_offset).to_numpy()"
+    )
+    msg = rf"DatetimeIndex.{field} using the index's freq .* use `{re.escape(recipe)}`"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = getattr(dti, field)
+    tm.assert_numpy_array_equal(result, expected)
+
+    with tm.assert_produces_warning(None):
+        result = getattr(dti._with_freq(None), field)
+    tm.assert_numpy_array_equal(result, ser_result)
 
 
 @pytest.mark.parametrize("freq", ["MS", "QS", "YS"])
