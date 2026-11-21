@@ -2023,6 +2023,31 @@ class MultiIndex(Index):
     # (previously declared in base class "IndexOpsMixin")
     _duplicated = duplicated  # type: ignore[misc]
 
+    def factorize(
+        self,
+        sort: bool = False,
+        use_na_sentinel: bool = True,
+    ) -> tuple[npt.NDArray[np.intp], MultiIndex]:
+        # Factorize the level codes instead of inferring dtypes from tuples.
+        shape = tuple(len(level) for level in self.levels)
+        ids = get_group_index(self.codes, shape, sort=False, xnull=False)
+        codes, uniques = algos.factorize(ids, use_na_sentinel=use_na_sentinel)
+
+        indexer = np.empty(len(uniques), dtype=np.intp)
+        positions = np.arange(len(self), dtype=np.intp)
+        indexer[codes] = positions
+        if sort and len(uniques) > 0:
+            _, codes = algos.safe_sort(
+                self.take(indexer)._values,
+                codes,
+                use_na_sentinel=use_na_sentinel,
+                assume_unique=True,
+                verify=False,
+            )
+            indexer[codes] = positions
+
+        return codes, self.take(indexer)
+
     def fillna(self, value):
         """
         fillna is not implemented for MultiIndex
