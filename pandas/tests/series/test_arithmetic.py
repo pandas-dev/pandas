@@ -501,6 +501,35 @@ class TestSeriesFlexComparison:
         expected = pd.Series(values, index=list("abcd"))
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize("na_value", [None, pd.NA])
+    @pytest.mark.parametrize(
+        "opname, equal, missing",
+        [
+            ("eq", True, False),
+            ("ne", False, True),
+            ("lt", False, False),
+            ("le", True, False),
+            ("gt", False, False),
+            ("ge", True, False),
+        ],
+    )
+    def test_comparison_flex_object_na(self, opname, equal, missing, na_value):
+        # GH#20442 match the operators, which treat None and NA as missing
+        left = pd.Series([1, na_value, 3], dtype=object)
+        right = pd.Series([1, na_value, na_value], dtype=object)
+        expected = pd.Series([equal, missing, missing])
+
+        result = getattr(left, opname)(right)
+        tm.assert_series_equal(result, expected)
+        tm.assert_series_equal(getattr(operator, opname)(left, right), expected)
+
+        result = getattr(left, opname)(right.to_numpy())
+        tm.assert_series_equal(result, expected)
+
+        # fill_value fills only positions missing on one side
+        result = getattr(left, opname)(right, fill_value=3)
+        tm.assert_series_equal(result, pd.Series([equal, missing, equal]))
+
     def test_eq_objects(self) -> None:
         # GH#62191 Test eq with Enum and List elements
 
