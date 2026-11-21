@@ -29,6 +29,7 @@ from pandas.errors import (
     Pandas4Warning,
     SpecificationError,
 )
+from pandas.errors.messages import REDUCTION_MESSAGE
 from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
 
@@ -799,7 +800,7 @@ class SeriesGroupBy(GroupBy[Series]):
             # rank's kwargs (e.g. ties_method) don't map onto Series.rank
             if how == "rank":
                 raise TypeError(
-                    f"{how} is not supported for {obj.dtype} dtype"
+                    REDUCTION_MESSAGE.format(dtype=obj.dtype, name=how)
                 ) from err
             # raises for numeric_only=True with a non-numeric dtype
             self._get_data_to_aggregate(numeric_only=numeric_only, name=how)
@@ -1518,7 +1519,7 @@ class SeriesGroupBy(GroupBy[Series]):
         def alt(obj):
             # This should not be reached since the cython path should raise
             #  TypeError and not NotImplementedError.
-            raise TypeError(f"'kurt' is not supported for dtype={obj.dtype}")
+            raise TypeError(REDUCTION_MESSAGE.format(dtype=obj.dtype, name="kurt"))
 
         return self._cython_agg_general(
             "kurt", alt=alt, skipna=skipna, numeric_only=numeric_only, **kwargs
@@ -2518,7 +2519,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
                 # rank's kwargs (e.g. ties_method) don't map onto Series.rank
                 if how == "rank":
                     raise TypeError(
-                        f"{how} is not supported for {bvalues.dtype} dtype"
+                        REDUCTION_MESSAGE.format(dtype=bvalues.dtype, name=how)
                     ) from err
                 return self._transform_py_fallback(how, bvalues, **kwargs)
 
@@ -3769,7 +3770,7 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         def alt(obj):
             # This should not be reached since the cython path should raise
             #  TypeError and not NotImplementedError.
-            raise TypeError(f"'skew' is not supported for dtype={obj.dtype}")
+            raise TypeError(REDUCTION_MESSAGE.format(dtype=obj.dtype, name="skew"))
 
         return self._cython_agg_general(
             "skew", alt=alt, skipna=skipna, numeric_only=numeric_only, **kwargs

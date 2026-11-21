@@ -34,6 +34,7 @@ from pandas._libs import (
 from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
+from pandas.errors.messages import REDUCTION_MESSAGE
 from pandas.util._decorators import (
     cache_readonly,
     set_module,
@@ -2499,7 +2500,7 @@ class ExtensionArray:
         [1, 3, 6]
         Length: 3, dtype: Int64
         """
-        raise NotImplementedError(f"cannot perform {name} with type {self.dtype}")
+        raise NotImplementedError(REDUCTION_MESSAGE.format(dtype=self.dtype, name=name))
 
     def _reduce(
         self, name: str, *, skipna: bool = True, keepdims: bool = False, **kwargs
@@ -2568,10 +2569,7 @@ class ExtensionArray:
         """
         meth = getattr(self, name, None)
         if meth is None:
-            raise TypeError(
-                f"'{type(self).__name__}' with dtype {self.dtype} "
-                f"does not support operation '{name}'"
-            )
+            raise TypeError(REDUCTION_MESSAGE.format(dtype=self.dtype, name=name))
         if name != "count":
             kwargs["skipna"] = skipna
         result = meth(**kwargs)
@@ -3267,9 +3265,7 @@ class ExtensionArray:
                 "skew",
                 "kurt",
             ]:
-                raise TypeError(
-                    f"dtype '{self.dtype}' does not support operation '{how}'"
-                )
+                raise TypeError(REDUCTION_MESSAGE.format(dtype=self.dtype, name=how))
             if op.how not in ["any", "all"]:
                 # Fail early to avoid conversion to object
                 op._get_cython_function(op.kind, op.how, np.dtype(object), False)
@@ -3341,12 +3337,12 @@ class ExtensionArray:
         """
         from pandas.core.arrays.string_ import StringDtype
 
-        if isinstance(self.dtype, StringDtype) or is_object_dtype(self.dtype):
-            raise TypeError(
-                f"dtype '{self.dtype}' does not support operation 'quantile'"
-            )
-        if is_bool_dtype(self.dtype):
-            raise TypeError("Cannot use quantile with bool dtype")
+        if (
+            isinstance(self.dtype, StringDtype)
+            or is_object_dtype(self.dtype)
+            or is_bool_dtype(self.dtype)
+        ):
+            raise TypeError(REDUCTION_MESSAGE.format(dtype=self.dtype, name="quantile"))
 
         mask = np.asarray(isna(self))
         nqs = len(qs)

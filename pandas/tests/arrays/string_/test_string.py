@@ -7,6 +7,7 @@ import numpy as np
 import pytest
 
 from pandas.compat.pyarrow import pa_version_under19p0
+from pandas.errors.messages import REDUCTION_MESSAGE
 
 from pandas.core.dtypes.common import is_dtype_equal
 
@@ -303,7 +304,7 @@ def test_unsupported_reduction_methods_raise(method, data, skipna, dtype):
     # GH#68389 pre-fix: empty returned a value from all eight, as did prod(skipna=False)
     arr = pd.array(data, dtype=dtype)
 
-    msg = f"Cannot perform reduction '{method}' with string dtype"
+    msg = REDUCTION_MESSAGE.format(dtype=arr.dtype, name=method)
     with pytest.raises(TypeError, match=msg):
         getattr(arr, method)(skipna=skipna)
 
@@ -314,7 +315,7 @@ def test_unsupported_numpy_reduction_raises(func, data, dtype):
     # GH#68389 np.prod and friends dispatch to the array method, not to _reduce
     arr = pd.array(data, dtype=dtype)
 
-    msg = f"Cannot perform reduction '{func.__name__}' with string dtype"
+    msg = REDUCTION_MESSAGE.format(dtype=arr.dtype, name=func.__name__)
     with pytest.raises(TypeError, match=msg):
         func(arr)
 

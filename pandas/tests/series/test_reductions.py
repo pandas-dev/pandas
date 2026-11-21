@@ -3,6 +3,7 @@ import pytest
 
 from pandas.compat import HAS_PYARROW
 from pandas.errors import Pandas4Warning
+from pandas.errors.messages import REDUCTION_MESSAGE
 
 import pandas as pd
 import pandas._testing as tm
@@ -268,7 +269,7 @@ def test_mean_with_convertible_string_raises(using_infer_string):
     # str dtype vs object dtype (infer_string=False) raise differently; drop the
     # object-dtype branch once infer_string=False is no longer supported.
     msg = (
-        "Cannot perform reduction 'mean' with string dtype"
+        REDUCTION_MESSAGE.format(dtype="str", name="mean")
         if using_infer_string
         else "Could not convert '1' to numeric"
     )
@@ -285,7 +286,7 @@ def test_mean_dont_convert_j_to_complex(using_infer_string):
     # str dtype vs object dtype (infer_string=False) raise differently; drop the
     # object-dtype branches once infer_string=False is no longer supported.
     msg = (
-        "Cannot perform reduction 'mean' with string dtype"
+        REDUCTION_MESSAGE.format(dtype="str", name="mean")
         if using_infer_string
         else "Could not convert 'J' to numeric"
     )
@@ -299,19 +300,19 @@ def test_mean_dont_convert_j_to_complex(using_infer_string):
     # converts. Without pyarrow the inferred str dtype can fall back either way
     # (depends on construction), so allow both there.
     if using_infer_string and HAS_PYARROW:
-        msg = "Cannot perform reduction 'mean' with string dtype"
+        msg = REDUCTION_MESSAGE.format(dtype="str", name="mean")
     else:
         msg = "|".join(
             [
                 "Could not convert 'J' to numeric",
-                "Cannot perform reduction 'mean' with string dtype",
+                REDUCTION_MESSAGE.format(dtype="str", name="mean"),
             ]
         )
     with pytest.raises(TypeError, match=msg):
         df["db"].mean()
 
     # .astype("string") forces str dtype regardless of the infer_string setting
-    msg = "Cannot perform reduction 'mean' with string dtype"
+    msg = REDUCTION_MESSAGE.format(dtype="string", name="mean")
     with pytest.raises(TypeError, match=msg):
         np.mean(df["db"].astype("string").array)
 
@@ -321,7 +322,7 @@ def test_median_with_convertible_string_raises(using_infer_string):
     # str dtype vs object dtype (infer_string=False) raise differently; drop the
     # object-dtype branch once infer_string=False is no longer supported.
     msg = (
-        "Cannot perform reduction 'median' with string dtype"
+        REDUCTION_MESSAGE.format(dtype="str", name="median")
         if using_infer_string
         else "Could not convert '1' to numeric"
     )
@@ -337,7 +338,7 @@ def test_median_with_convertible_string_raises(using_infer_string):
 def test_complex_reduction_raises(func, complex_dtype):
     # GH#43770 these would discard the imaginary part
     ser = pd.Series([1j, 1 + 4j, 2 + 3j, 3 + 2j, 4], dtype=complex_dtype)
-    msg = f"reduction operation '{func}' not allowed for this dtype"
+    msg = REDUCTION_MESSAGE.format(dtype=ser.dtype, name=func)
     with pytest.raises(TypeError, match=msg):
         getattr(ser, func)()
 

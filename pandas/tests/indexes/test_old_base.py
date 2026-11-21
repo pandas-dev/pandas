@@ -9,6 +9,7 @@ import pytest
 from pandas._libs.tslibs import Timestamp
 from pandas.compat import PY315
 from pandas.errors import Pandas4Warning
+from pandas.errors.messages import REDUCTION_MESSAGE
 
 from pandas.core.dtypes.common import (
     is_integer_dtype,
@@ -213,7 +214,7 @@ class TestBase:
             if idx.dtype.kind == "M":
                 msg = "'(any|all)' with datetime64 dtypes is not supported"
             else:
-                msg = "does not support operation '(any|all)'"
+                msg = REDUCTION_MESSAGE.format(dtype=".*", name="(any|all)")
             with pytest.raises(TypeError, match=msg):
                 idx.all()
             with pytest.raises(TypeError, match=msg):

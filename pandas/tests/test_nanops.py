@@ -1,10 +1,12 @@
 from decimal import Decimal
 from functools import partial
+import re
 
 import numpy as np
 import pytest
 
 from pandas.errors import Pandas4Warning
+from pandas.errors.messages import REDUCTION_MESSAGE
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_integer_dtype
@@ -1907,8 +1909,8 @@ class TestNanopsEmptyInput:
             "nankurt",
         ]:
             op_name = func.__name__.replace("nan", "")
-            msg = f"reduction operation '{op_name}' not allowed for this dtype"
-            with pytest.raises(TypeError, match=msg):
+            msg = REDUCTION_MESSAGE.format(dtype=arr.dtype, name=op_name)
+            with pytest.raises(TypeError, match=re.escape(msg)):
                 func(arr)
             return
 
@@ -1929,8 +1931,8 @@ class TestNanopsEmptyInput:
             "nankurt",
         ]:
             op_name = func.__name__.replace("nan", "")
-            msg = f"reduction operation '{op_name}' not allowed for this dtype"
-            with pytest.raises(TypeError, match=msg):
+            msg = REDUCTION_MESSAGE.format(dtype=arr.dtype, name=op_name)
+            with pytest.raises(TypeError, match=re.escape(msg)):
                 func(arr, axis=axis)
             return
 

@@ -25,6 +25,7 @@ from pandas._libs import (
     lib,
 )
 from pandas._libs.missing import NA
+from pandas.errors.messages import REDUCTION_MESSAGE
 from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
 
@@ -1291,7 +1292,7 @@ def rank(
     """
     if values.dtype.kind == "c":
         # GH#43770 complex has no natural ordering
-        raise TypeError(f"dtype '{values.dtype}' does not support operation 'rank'")
+        raise TypeError(REDUCTION_MESSAGE.format(dtype=values.dtype, name="rank"))
 
     is_datetimelike = needs_i8_conversion(values.dtype)
     values = _ensure_data(values)

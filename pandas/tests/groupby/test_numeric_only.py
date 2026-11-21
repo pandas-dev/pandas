@@ -7,6 +7,7 @@ from pandas.errors import (
     DataError,
     Pandas4Warning,
 )
+from pandas.errors.messages import REDUCTION_MESSAGE
 
 import pandas as pd
 import pandas._testing as tm
@@ -160,11 +161,10 @@ class TestNumericOnly:
                 [
                     "Categorical is not ordered",
                     f"Cannot perform {method} with non-ordered Categorical",
-                    f"category type does not support {method} operations",
                     re.escape(f"agg function failed [how->{method},dtype->object]"),
-                    # cumprod
-                    f"{method} is not supported for (str|object) dtype",
-                    f"dtype 'str' does not support operation '{method}'",
+                    REDUCTION_MESSAGE.format(
+                        dtype="(category|str|object)", name=method
+                    ),
                 ]
             )
             with pytest.raises(TypeError, match=msg):
@@ -172,10 +172,9 @@ class TestNumericOnly:
         elif method in ("sum", "mean", "median", "prod"):
             msg = "|".join(
                 [
-                    "category type does not support sum operations",
                     re.escape(f"agg function failed [how->{method},dtype->object]"),
                     re.escape(f"agg function failed [how->{method},dtype->string]"),
-                    f"dtype 'str' does not support operation '{method}'",
+                    REDUCTION_MESSAGE.format(dtype="(category|str)", name=method),
                 ]
             )
             with pytest.raises(TypeError, match=msg):
@@ -188,12 +187,12 @@ class TestNumericOnly:
             msg = "|".join(
                 [
                     "Categorical is not ordered",
-                    "category type does not support",
-                    f"{method} is not supported for (str|object) dtype",
+                    REDUCTION_MESSAGE.format(
+                        dtype="(category|str|object)", name=method
+                    ),
                     f"Cannot perform {method} with non-ordered Categorical",
                     re.escape(f"agg function failed [how->{method},dtype->object]"),
                     re.escape(f"agg function failed [how->{method},dtype->string]"),
-                    f"dtype 'str' does not support operation '{method}'",
                 ]
             )
             with pytest.raises(TypeError, match=msg):
@@ -281,16 +280,15 @@ def test_numeric_only(kernel, has_arg, numeric_only, keys):
 
         msg = "|".join(
             [
-                "not allowed for this dtype",
                 "cannot be performed against 'object' dtypes",
                 "must be a string or a real number",
                 "unsupported operand type",
-                f"{kernel} is not supported for object dtype",
+                REDUCTION_MESSAGE.format(dtype="object", name=kernel),
                 re.escape(f"agg function failed [how->{kernel},dtype->object]"),
             ]
         )
         if kernel == "quantile":
-            msg = "dtype 'object' does not support operation 'quantile'"
+            msg = REDUCTION_MESSAGE.format(dtype="object", name="quantile")
         elif kernel == "idxmin":
             msg = "'<' not supported between instances of 'type' and 'type'"
         elif kernel == "idxmax":
@@ -374,9 +372,9 @@ def test_deprecate_numeric_only_series(dtype, groupby_func, request):
     # that succeed should not be allowed to fail (without deprecation, at least)
     if groupby_func in fails_on_numeric_object and dtype is object:
         if groupby_func == "quantile":
-            msg = "dtype 'object' does not support operation 'quantile'"
+            msg = REDUCTION_MESSAGE.format(dtype="object", name="quantile")
         else:
-            msg = "is not supported for object dtype"
+            msg = REDUCTION_MESSAGE.format(dtype="object", name=groupby_func)
         with pytest.raises(TypeError, match=msg):
             method(*args)
     elif dtype is object:
@@ -421,7 +419,7 @@ def test_deprecate_numeric_only_series(dtype, groupby_func, request):
         with pytest.raises(TypeError, match=msg):
             method(*args, numeric_only=True)
     elif dtype == bool and groupby_func == "quantile":
-        msg = "Cannot use quantile with bool dtype"
+        msg = REDUCTION_MESSAGE.format(dtype="bool", name="quantile")
         with pytest.raises(TypeError, match=msg):
             # GH#51424
             method(*args, numeric_only=False)

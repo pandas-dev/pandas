@@ -13,6 +13,8 @@ import re
 import numpy as np
 import pytest
 
+from pandas.errors.messages import REDUCTION_MESSAGE
+
 import pandas as pd
 import pandas._testing as tm
 
@@ -254,7 +256,8 @@ class TestSeriesCumulativeOps:
     def test_cumprod_timedelta(self):
         # GH#48111
         ser = pd.Series([pd.Timedelta(days=1), pd.Timedelta(days=3)])
-        with pytest.raises(TypeError, match="cumprod not supported for Timedelta"):
+        msg = re.escape(REDUCTION_MESSAGE.format(dtype=ser.dtype, name="cumprod"))
+        with pytest.raises(TypeError, match=msg):
             ser.cumprod()
 
     @pytest.mark.parametrize(
@@ -306,7 +309,7 @@ class TestSeriesCumulativeOps:
     def test_cumprod_pyarrow_strings(self, pyarrow_string_dtype, skipna):
         # https://github.com/pandas-dev/pandas/pull/60633
         ser = pd.Series(list("xyz"), dtype=pyarrow_string_dtype)
-        msg = re.escape(f"operation 'cumprod' not supported for dtype '{ser.dtype}'")
+        msg = re.escape(REDUCTION_MESSAGE.format(dtype=ser.dtype, name="cumprod"))
         with pytest.raises(TypeError, match=msg):
             ser.cumprod(skipna=skipna)
 
@@ -353,6 +356,24 @@ class TestSeriesCumulativeOps:
         else:
             expected = pd.Series([-4.0, None, None], dtype="float64[pyarrow]")
         tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "data, dtype, op",
+    [
+        (["a", "b"], "category", "cumsum"),
+        (["a", "b"], "string[python]", "cumprod"),
+        ([0, 1], "timestamp[ns][pyarrow]", "cumsum"),
+    ],
+)
+def test_cum_method_unsupported_dtype_raises(data, dtype, op):
+    # GH#59580
+    if "pyarrow" in dtype:
+        pytest.importorskip("pyarrow")
+    ser = pd.Series(data).astype(dtype)
+    msg = re.escape(REDUCTION_MESSAGE.format(dtype=ser.dtype, name=op))
+    with pytest.raises(TypeError, match=msg):
+        getattr(ser, op)()
 
 
 def test_td64_cumsum_overflow():

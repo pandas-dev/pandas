@@ -27,6 +27,7 @@ from pandas._libs import (
 from pandas._libs.arrays import NDArrayBacked
 from pandas.compat.numpy import function as nv
 from pandas.errors import Pandas4Warning
+from pandas.errors.messages import REDUCTION_MESSAGE
 from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
@@ -2862,7 +2863,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         elif name == "cummax":
             func = np.maximum.accumulate
         else:
-            raise TypeError(f"Accumulation {name} not supported for {type(self)}")
+            raise TypeError(REDUCTION_MESSAGE.format(dtype=self.dtype, name=name))
         self.check_for_ordered(name)
 
         codes = self.codes.copy()
@@ -3060,8 +3061,6 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         op = WrappedCythonOp(how=how, has_dropped_na=has_dropped_na)
 
         dtype = self.dtype
-        if how in ["sum", "prod", "cumsum", "cumprod", "skew", "kurt"]:
-            raise TypeError(f"{dtype} type does not support {how} operations")
         if how in ["min", "max", "rank", "idxmin", "idxmax"] and not dtype.ordered:
             # raise TypeError instead of NotImplementedError to ensure we
             #  don't go down a group-by-group path, since in the empty-groups
@@ -3078,9 +3077,7 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             "idxmin",
             "idxmax",
         ]:
-            if op.kind == "transform":
-                raise TypeError(f"{dtype} type does not support {how} operations")
-            raise TypeError(f"{dtype} dtype does not support aggregation '{how}'")
+            raise TypeError(REDUCTION_MESSAGE.format(dtype=dtype, name=how))
 
         result_mask = None
         mask = self.isna()

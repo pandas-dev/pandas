@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.errors.messages import REDUCTION_MESSAGE
+
 import pandas as pd
 import pandas._testing as tm
 
@@ -163,7 +165,7 @@ def test_quantile_raises():
         [["foo", "a"], ["foo", "b"], ["foo", "c"]], columns=["key", "val"]
     )
 
-    msg = "dtype '(object|str)' does not support operation 'quantile'"
+    msg = REDUCTION_MESSAGE.format(dtype="(object|str)", name="quantile")
     with pytest.raises(TypeError, match=msg):
         df.groupby("key").quantile()
 
@@ -252,7 +254,7 @@ def test_groupby_quantile_raises_on_invalid_dtype(q, numeric_only):
         expected = df.groupby("a")[["b"]].quantile(q)
         tm.assert_frame_equal(result, expected)
     else:
-        msg = "dtype '.*' does not support operation 'quantile'"
+        msg = REDUCTION_MESSAGE.format(dtype=".*", name="quantile")
         with pytest.raises(TypeError, match=msg):
             df.groupby("a").quantile(q, numeric_only=numeric_only)
 

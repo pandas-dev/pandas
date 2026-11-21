@@ -5,6 +5,7 @@ import pytest
 
 from pandas._libs import lib
 from pandas.errors import Pandas4Warning
+from pandas.errors.messages import REDUCTION_MESSAGE
 
 from pandas.core.dtypes.common import ensure_platform_int
 
@@ -475,7 +476,7 @@ def test_transform_nuisance_raises(df, using_infer_string):
     gbc = grouped["B"]
     msg = "Could not convert"
     if using_infer_string:
-        msg = "Cannot perform reduction 'mean' with string dtype"
+        msg = REDUCTION_MESSAGE.format(dtype="str", name="mean")
     with pytest.raises(TypeError, match=msg):
         gbc.transform(lambda x: np.mean(x))
 
@@ -573,7 +574,7 @@ def test_groupby_transform_with_int(using_infer_string):
     )
     msg = "Could not convert"
     if using_infer_string:
-        msg = "Cannot perform reduction 'mean' with string dtype"
+        msg = REDUCTION_MESSAGE.format(dtype="str", name="mean")
     with np.errstate(all="ignore"):
         with pytest.raises(TypeError, match=msg):
             df.groupby("A").transform(lambda x: (x - x.mean()) / x.std())
@@ -849,11 +850,7 @@ def test_cython_transform_frame_column(
         and not (c in ("string", "string_missing") and op == "cumsum")
         and not object_fallback
     ):
-        if c == "timedelta":
-            msg = f"timedelta64 type does not support {op} operations"
-        else:
-            # datetime, or the string columns under the str dtype
-            msg = "does not support operation"
+        msg = REDUCTION_MESSAGE.format(dtype=".*", name=op)
         with pytest.raises(TypeError, match=msg):
             gb[c].transform(op)
         with pytest.raises(TypeError, match=msg):
@@ -864,7 +861,7 @@ def test_cython_transform_frame_column(
         except TypeError:
             if not object_fallback:
                 raise
-            msg = f"{op} is not supported for object dtype"
+            msg = REDUCTION_MESSAGE.format(dtype="object", name=op)
             with pytest.raises(TypeError, match=msg):
                 gb[c].transform(op)
             with pytest.raises(TypeError, match=msg):

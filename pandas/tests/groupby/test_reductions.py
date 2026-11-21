@@ -8,6 +8,7 @@ import pytest
 
 from pandas._libs.tslibs import iNaT
 from pandas.errors import Pandas4Warning
+from pandas.errors.messages import REDUCTION_MESSAGE
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import pandas_dtype
@@ -1250,7 +1251,7 @@ def test_string_dtype_all_na(
         "std",
         "var",
     ]:
-        msg = f"dtype '{dtype}' does not support operation '{reduction_func}'"
+        msg = REDUCTION_MESSAGE.format(dtype=dtype, name=reduction_func)
         with pytest.raises(TypeError, match=msg):
             method(*args, **kwargs)
         return

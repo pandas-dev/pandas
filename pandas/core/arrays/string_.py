@@ -30,6 +30,7 @@ from pandas.compat import (
 )
 from pandas.compat.numpy import function as nv
 from pandas.errors import Pandas4Warning
+from pandas.errors.messages import REDUCTION_MESSAGE
 from pandas.util._decorators import (
     set_module,
 )
@@ -975,7 +976,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
                 return self._from_sequence([result], dtype=self.dtype)
             return result
 
-        raise TypeError(f"Cannot perform reduction '{name}' with string dtype")
+        raise TypeError(REDUCTION_MESSAGE.format(dtype=self.dtype, name=name))
 
     def _accumulate(self, name: str, *, skipna: bool = True, **kwargs) -> StringArray:
         """
@@ -1006,7 +1007,7 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
         NotImplementedError : subclass does not define accumulations
         """
         if name == "cumprod":
-            msg = f"operation '{name}' not supported for dtype '{self.dtype}'"
+            msg = REDUCTION_MESSAGE.format(dtype=self.dtype, name=name)
             raise TypeError(msg)
 
         # We may need to strip out trailing NA values

@@ -77,6 +77,7 @@ from pandas.errors import (
     Pandas4Warning,
     PerformanceWarning,
 )
+from pandas.errors.messages import REDUCTION_MESSAGE
 from pandas.util._decorators import (
     cache_readonly,
 )
@@ -1317,7 +1318,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
 
     def _accumulate(self, name: str, *, skipna: bool = True, **kwargs) -> Self:
         if name not in {"cummin", "cummax"}:
-            raise TypeError(f"Accumulation {name} not supported for {type(self)}")
+            raise TypeError(REDUCTION_MESSAGE.format(dtype=self.dtype, name=name))
 
         op = getattr(datetimelike_accumulations, name)
         result = op(self.copy(), skipna=skipna, **kwargs)
@@ -1653,7 +1654,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         if dtype.kind == "M":
             # Adding/multiplying datetimes is not valid
             if how in ["sum", "prod", "cumsum", "cumprod", "var", "skew", "kurt"]:
-                raise TypeError(f"datetime64 type does not support operation '{how}'")
+                raise TypeError(REDUCTION_MESSAGE.format(dtype=dtype, name=how))
             if how in ["any", "all"]:
                 # GH#34479
                 raise TypeError(nanops.dt64_any_all_msg(how))
@@ -1661,7 +1662,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         elif isinstance(dtype, PeriodDtype):
             # Adding/multiplying Periods is not valid
             if how in ["sum", "prod", "cumsum", "cumprod", "var", "skew", "kurt"]:
-                raise TypeError(f"Period type does not support {how} operations")
+                raise TypeError(REDUCTION_MESSAGE.format(dtype=dtype, name=how))
             if how in ["any", "all"]:
                 # GH#34479
                 raise TypeError(
@@ -1670,7 +1671,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
                 )
         # timedeltas we can add but not multiply
         elif how in ["prod", "cumprod", "skew", "kurt", "var"]:
-            raise TypeError(f"timedelta64 type does not support {how} operations")
+            raise TypeError(REDUCTION_MESSAGE.format(dtype=dtype, name=how))
 
         # All of the functions implemented here are ordinal, so we can
         #  operate on the tz-naive equivalents
@@ -1700,7 +1701,7 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             from pandas.core.arrays import TimedeltaArray
 
             if isinstance(self.dtype, PeriodDtype):
-                raise TypeError("'std' and 'sem' are not valid for PeriodDtype")
+                raise TypeError(REDUCTION_MESSAGE.format(dtype=self.dtype, name=how))
             self = cast("DatetimeArray | TimedeltaArray", self)
             new_dtype = f"m8[{self.unit}]"
             res_values = res_values.view(new_dtype)

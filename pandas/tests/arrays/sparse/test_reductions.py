@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 from pandas.errors import Pandas4Warning
+from pandas.errors.messages import REDUCTION_MESSAGE
 
 import pandas as pd
 import pandas._testing as tm
@@ -718,7 +719,8 @@ def test_reductions_with_na_fill_value_match_dense(
     )
     if subtype == "complex128" and name in ["skew", "kurt"]:
         # GH#43770
-        with pytest.raises(TypeError, match="not allowed for this dtype"):
+        msg = REDUCTION_MESSAGE.format(dtype="complex128", name=name)
+        with pytest.raises(TypeError, match=msg):
             getattr(pd.Series(arr), name)(skipna=skipna)
         return
 
