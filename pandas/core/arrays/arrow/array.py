@@ -46,6 +46,7 @@ from pandas.errors import (
     OutOfBoundsTimedelta,
     Pandas4Warning,
 )
+from pandas.errors.messages import INVALID_SETITEM_VALUE
 from pandas.util._decorators import (
     cache_readonly,
     set_module,
@@ -3753,7 +3754,9 @@ class ArrowExtensionArray(
             value = lib.item_from_zerodim(value)
             bad = _first_truncated_to_integer(value)
             if bad is not None:
-                raise TypeError(f"Invalid value '{bad!s}' for dtype '{self.dtype}'")
+                raise TypeError(
+                    INVALID_SETITEM_VALUE.format(value=bad, dtype=self.dtype)
+                )
         self_temporal = _is_temporal_pa_type(pa_type)
         if self_temporal is not None:
             value_temporal = _is_temporal_value(value)
@@ -3762,7 +3765,7 @@ class ArrowExtensionArray(
                 #  temporal direction is rejected, matching int64/Int64, see
                 #  test_setitem_all_na_temporal_array_still_raises
                 if value_temporal or not _is_all_na(value):
-                    msg = f"Invalid value '{value!s}' for dtype '{self.dtype}'"
+                    msg = INVALID_SETITEM_VALUE.format(value=value, dtype=self.dtype)
                     raise TypeError(msg)
                 if is_list_like(value) and getattr(value, "ndim", 1) == 1:
                     # _box_pa would still cast, and e.g. double -> timestamp has
@@ -3772,7 +3775,7 @@ class ArrowExtensionArray(
         try:
             value = self._box_pa(value, pa_type)
         except pa.ArrowTypeError as err:
-            msg = f"Invalid value '{value!s}' for dtype '{self.dtype}'"
+            msg = INVALID_SETITEM_VALUE.format(value=value, dtype=self.dtype)
             raise TypeError(msg) from err
         return value
 

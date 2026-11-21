@@ -31,6 +31,7 @@ from pandas.errors import (
     OutOfBoundsDatetime,
     Pandas4Warning,
 )
+from pandas.errors.messages import INVALID_SETITEM_VALUE
 from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_bool_kwarg
@@ -483,7 +484,9 @@ class Block(PandasObject, libinternals.Block):
             raise_on_upcast = False
 
         if raise_on_upcast:
-            raise TypeError(f"Invalid value '{other}' for dtype '{self.values.dtype}'")
+            raise TypeError(
+                INVALID_SETITEM_VALUE.format(value=other, dtype=self.values.dtype)
+            )
         if self.values.dtype == new_dtype:
             raise AssertionError(
                 f"Did not expect new dtype {new_dtype} to equal self.dtype "

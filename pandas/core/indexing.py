@@ -34,6 +34,7 @@ from pandas.errors import (
     Pandas4Warning,
 )
 from pandas.errors.cow import _chained_assignment_msg
+from pandas.errors.messages import INVALID_SETITEM_VALUE
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import (
@@ -2996,7 +2997,7 @@ class _iLocIndexer(_LocationIndexer):
                     # - Exclude empty initial object with enlargement,
                     #   as then there's nothing to be inconsistent with.
                     raise TypeError(
-                        f"Invalid value '{value}' for dtype '{dtype}'"
+                        INVALID_SETITEM_VALUE.format(value=value, dtype=dtype)
                     ) from exc
                 self.obj.isetitem(loc, value)
         else:

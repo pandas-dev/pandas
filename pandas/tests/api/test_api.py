@@ -487,7 +487,7 @@ class TestApi(Base):
 
 class TestErrors(Base):
     def test_errors(self):
-        ignored = ["_CurrentDeprecationWarning", "abc", "ctypes", "cow"]
+        ignored = ["_CurrentDeprecationWarning", "abc", "ctypes", "cow", "messages"]
         self.check(pd.errors, pd.errors.__all__, ignored=ignored)
 
 

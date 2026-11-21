@@ -1107,7 +1107,7 @@ def test_where_period_invalid_na(frame_or_series, as_cat, request):
             "set the categories first"
         )
     else:
-        msg = "value should be a 'Period'"
+        msg = "Value should be a 'Period'"
 
     if as_cat:
         with pytest.raises(TypeError, match=msg):
