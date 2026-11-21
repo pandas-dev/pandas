@@ -390,6 +390,7 @@ I/O
 - Bug in :func:`read_html` with ``index_col`` reading the index-names row written by :meth:`DataFrame.to_html` as an extra column level instead of as the index names (:issue:`8897`)
 - Bug in :func:`read_html` with the ``bs4`` or ``html5lib`` parser dropping tables that have identical content, so only the first was returned (:issue:`49934`)
 - Bug in :func:`read_json` raising ``ValueError`` on numbers whose integer part does not fit in ``int64`` or ``uint64`` (e.g. ``100000000000000000000.5``), and silently returning a wrong value for some of them (:issue:`20599`)
+- Bug in :func:`read_parquet` with ``engine="pyarrow"`` raising ``TypeError`` for a column whose pandas metadata records a parameterized pyarrow type such as ``list<item: string>[pyarrow]`` (e.g. a :class:`ArrowDtype` list column written by :meth:`DataFrame.to_parquet`); the column is now read back with its :class:`ArrowDtype` preserved instead of raising or falling back to a NumPy object dtype (:issue:`53011`)
 - Bug in :func:`read_orc` raising whenever ``filesystem`` was passed (:issue:`58746`)
 - Bug in :func:`read_sas` exhausting memory instead of raising ``ValueError`` on a SAS7BDAT file that claims more rows than it can hold, when read from an uncompressed file, a zip archive, or a ``BytesIO`` (:issue:`70721`)
 - Bug in :func:`read_sas` returning rows that were deleted from an uncompressed SAS7BDAT file (:issue:`15963`)
@@ -519,6 +520,7 @@ Sparse
 
 ExtensionArray
 ^^^^^^^^^^^^^^
+- :meth:`.ArrowDtype.construct_from_string` (and therefore string dtypes such as ``"list<item: string>[pyarrow]"`` passed to constructors, ``astype``, ``read_csv`` and others) now supports parameterized and nested pyarrow types such as ``list<...>``, ``struct<...>``, ``map<...>``, ``dictionary<...>``, ``decimal128(...)`` and ``timestamp[..., tz=...]``, which previously raised ``TypeError`` or ``NotImplementedError`` (:issue:`53011`)
 - Bug in :func:`read_csv` and other parsing of strings into a decimal :class:`ArrowDtype` raising ``ArrowInvalid`` instead of parsing the values (:issue:`69838`)
 - Bug in :meth:`.ArrowExtensionArray.factorize` and :meth:`DataFrame.groupby` with a PyArrow ``dictionary`` dtype producing a group for a value no longer present (e.g. after filtering) or splitting one value across two groups; ``uniques`` are now in order of appearance, as for other dtypes (:issue:`71828`)
 - Bug in :meth:`.ArrowExtensionArray.factorize` ignoring ``use_na_sentinel=True`` for dictionary-encoded PyArrow data that stores nulls as dictionary values, keeping the null in the returned ``uniques`` or raising ``ArrowInvalid`` for chunked data (:issue:`66490`)

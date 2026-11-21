@@ -59,10 +59,12 @@ def test_from_sequence_of_strings_pa_array(data, request):
 
 
 def test_arrowdtype_construct_from_string_type_with_unsupported_parameters():
-    with pytest.raises(NotImplementedError, match="Passing pyarrow type"):
+    # GH#53011 unparseable pyarrow type strings raise TypeError (so that the
+    # dtype registry skips ArrowDtype) instead of NotImplementedError
+    with pytest.raises(TypeError, match="is not a valid pyarrow data type"):
         ArrowDtype.construct_from_string("not_a_real_dype[s, tz=UTC][pyarrow]")
 
-    with pytest.raises(NotImplementedError, match="Passing pyarrow type"):
+    with pytest.raises(TypeError, match="is not a valid pyarrow data type"):
         ArrowDtype.construct_from_string("decimal(7, 2)[pyarrow]")
 
 
@@ -72,15 +74,16 @@ def test_arrowdtype_construct_from_string_supports_dt64tz():
     expected = ArrowDtype(pa.timestamp("s", "UTC"))
     assert dtype == expected
 
+    # the legacy spelling without "tz=" is also accepted
+    dtype = ArrowDtype.construct_from_string("timestamp[s, UTC][pyarrow]")
+    assert dtype == expected
+
 
 def test_arrowdtype_construct_from_string_type_only_one_pyarrow():
     # GH#51225
     invalid = "int64[pyarrow]foobar[pyarrow]"
-    msg = (
-        r"Passing pyarrow type specific parameters \(\[pyarrow\]\) in the "
-        r"string is not supported\."
-    )
-    with pytest.raises(NotImplementedError, match=msg):
+    msg = "data type 'int64\\[pyarrow\\]foobar\\[pyarrow\\]' not understood"
+    with pytest.raises(TypeError, match=msg):
         pd.Series(range(3), dtype=invalid)
 
 
