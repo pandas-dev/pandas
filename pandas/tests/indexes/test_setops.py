@@ -1070,7 +1070,7 @@ def test_intersection_arrow_duplicates(dtype):
     ],
 )
 def test_setops_arrow_monotonic(dtype, right):
-    # GH#XXXXX
+    # GH#72267
     left = pd.Index([0, 1], dtype="int64[pyarrow]").astype(dtype)
     union = pd.Index(sorted({0, 1, *right}), dtype="int64[pyarrow]").astype(dtype)
     right = pd.Index(right, dtype="int64[pyarrow]").astype(dtype)
