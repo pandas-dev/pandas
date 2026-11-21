@@ -908,6 +908,64 @@ class TestParquetPyArrow(Base):
         expected = [[{"b": None, "g": None}, {"b": None, "g": "moo"}]]
         assert result["a"].tolist() == expected
 
+    @pytest.mark.parametrize("dtype_backend", [None, "numpy_nullable", "pyarrow"])
+    @pytest.mark.parametrize(
+        "case",
+        ["list", "large_list", "nested_list", "fixed_size_list", "struct"],
+    )
+    def test_read_parquet_arrow_nested_column_roundtrip(
+        self, pa, temp_file, case, dtype_backend
+    ):
+        # GH#53011 reading a parquet file whose pandas metadata records a
+        # parameterized pyarrow type (e.g. "list<item: string>[pyarrow]")
+        # raised TypeError instead of preserving the ArrowDtype
+        import pyarrow
+
+        cases = {
+            "list": (pyarrow.list_(pyarrow.string()), [["a"], ["a", "b"]]),
+            "large_list": (
+                pyarrow.large_list(pyarrow.string()),
+                [["a"], ["a", "b"]],
+            ),
+            "nested_list": (
+                pyarrow.list_(pyarrow.list_(pyarrow.string())),
+                [[["a"]], [["b", "c"]]],
+            ),
+            "fixed_size_list": (
+                pyarrow.list_(pyarrow.int64(), 3),
+                [[1, 2, 3], [4, 5, 6]],
+            ),
+            "struct": (
+                pyarrow.struct([("a", pyarrow.int64()), ("b", pyarrow.string())]),
+                [{"a": 1, "b": "x"}, None],
+            ),
+        }
+        pa_type, values = cases[case]
+        df = pd.DataFrame({"a": pd.Series(values, dtype=pd.ArrowDtype(pa_type))})
+        df.to_parquet(temp_file, engine=pa)
+
+        read_kwargs = {} if dtype_backend is None else {"dtype_backend": dtype_backend}
+        result = read_parquet(temp_file, engine=pa, **read_kwargs)
+
+        assert result["a"].dtype == pd.ArrowDtype(pa_type)
+        tm.assert_frame_equal(result, df)
+
+    def test_read_dtype_backend_pyarrow_list_written_by_pyarrow(self, pa, temp_file):
+        # GH#53011 a list-type column written directly with pyarrow.parquet
+        # (no pandas metadata) is read back as ArrowDtype with the pyarrow
+        # dtype backend, not as numpy object dtype
+        import pyarrow
+        import pyarrow.parquet
+
+        pa_type = pyarrow.list_(pyarrow.string())
+        table = pyarrow.table({"a": pyarrow.array([["a"], ["a", "b"]], type=pa_type)})
+        pyarrow.parquet.write_table(table, temp_file)
+
+        result = read_parquet(temp_file, engine=pa, dtype_backend="pyarrow")
+
+        assert result["a"].dtype == pd.ArrowDtype(pa_type)
+        assert result["a"].tolist() == [["a"], ["a", "b"]]
+
     @pytest.mark.single_cpu
     def test_s3_roundtrip_explicit_fs(
         self, df_compat, s3_bucket_public, s3so, pa, temp_file
