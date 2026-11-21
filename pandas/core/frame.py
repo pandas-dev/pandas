@@ -101,6 +101,8 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_iterator,
     is_list_like,
+    is_numeric_dtype,
+    is_object_dtype,
     is_scalar,
     is_sequence,
     is_string_dtype,
@@ -187,6 +189,7 @@ from pandas.core.internals.construction import (
     to_arrays,
     treat_as_nested,
 )
+from pandas.core.internals.managers import create_block_manager_from_column_arrays
 from pandas.core.methods import selectn
 from pandas.core.reshape.melt import melt
 from pandas.core.series import Series
@@ -6422,6 +6425,22 @@ class DataFrame(NDFrame, OpsMixin):
         """
         data = self.copy(deep=False)
 
+        # GH#60075 add each run of new columns as consolidated blocks rather
+        #  than one block per column; anything else is set one column at a time
+        columns_dtype = data.columns.dtype
+        can_batch = (
+            type(data).__setitem__ is DataFrame.__setitem__
+            # a str key can match e.g. a datetime label by parsing, which the
+            #  pending keys are not checked for
+            and (
+                is_numeric_dtype(columns_dtype)
+                or is_object_dtype(columns_dtype)
+                or isinstance(columns_dtype, StringDtype)
+            )
+            and not isinstance(data.columns, MultiIndex)
+            and len(data.index) > 0
+        )
+        pending: dict[Hashable, tuple[ArrayLike, bool]] = {}
         for name, value in kwargs.items():
             key: Hashable = name
             if isinstance(data.columns, MultiIndex) and name not in data.columns:
@@ -6439,18 +6458,90 @@ class DataFrame(NDFrame, OpsMixin):
                         f"df[{key}] = ... instead."
                     ),
                 )
-            data[key] = com.apply_if_callable(value, data)
+            if callable(value):
+                data._append_columns(pending)
+                value = com.apply_if_callable(value, data)
+            if (
+                can_batch
+                and name not in data.columns
+                and not isinstance(value, DataFrame)
+            ):
+                # defer copying a 1D ndarray, since stacking it into a block
+                #  copies it anyway
+                uncopied = isinstance(value, np.ndarray) and value.ndim == 1
+                arr, refs = data._sanitize_column(value, copy=not uncopied)
+                # stacking would store bytes as object, and would copy a Series
+                #  that __setitem__ only references
+                if arr.ndim == 1 and arr.dtype.kind != "S" and refs is None:
+                    pending[name] = (arr, uncopied)
+                    continue
+                data._append_columns(pending)
+                data._set_item_mgr(name, arr.copy() if uncopied else arr, refs)
+                continue
+
+            data._append_columns(pending)
+            data[key] = value
+        data._append_columns(pending)
         return data
 
-    def _sanitize_column(self, value) -> tuple[ArrayLike, BlockValuesRefs | None]:
+    def _append_columns(self, pending: dict[Hashable, tuple[ArrayLike, bool]]) -> None:
+        """
+        Append sanitized 1D arrays as new columns, consolidated by dtype.
+
+        Empties ``pending``, which maps new str labels to (array, whether the
+        array still needs a copy).
+        """
+        if len(pending) == 1:
+            # nothing to consolidate with, so insert as __setitem__ does
+            ((key, (arr, uncopied)),) = pending.items()
+            self._set_item_mgr(key, arr.copy() if uncopied else arr)
+        elif pending:
+            self._append_consolidated(pending)
+        pending.clear()
+
+    def _append_consolidated(
+        self, pending: dict[Hashable, tuple[ArrayLike, bool]]
+    ) -> None:
+        keys = list(pending)
+        columns = self.columns.insert(len(self.columns), keys[0])
+        if columns.dtype == object or isinstance(columns.dtype, StringDtype):
+            # adding more str labels cannot change these dtypes; Index.append
+            #  would re-infer object as str
+            columns = Index(
+                [*columns, *keys[1:]], dtype=columns.dtype, name=columns.name
+            )
+        else:
+            for key in keys[1:]:
+                columns = columns.insert(len(columns), key)
+        # stacking copies numpy-dtype arrays; extension arrays are not stacked
+        arrays = [
+            arr.copy() if uncopied and not isinstance(arr.dtype, np.dtype) else arr
+            for arr, uncopied in pending.values()
+        ]
+        new_mgr = create_block_manager_from_column_arrays(
+            arrays,
+            [Index(keys, dtype=object), self.index],
+            consolidate=True,
+            refs=[None] * len(arrays),
+        )
+        self._mgr = self._mgr.concat_horizontal(
+            [self._mgr, new_mgr], [columns, self.index]
+        )
+
+    def _sanitize_column(
+        self, value, copy: bool = True
+    ) -> tuple[ArrayLike, BlockValuesRefs | None]:
         """
         Ensures new columns (which go into the BlockManager as new blocks) are
-        always copied (or a reference is being tracked to them under CoW)
-        and converted into an array.
+        copied unless ``copy=False`` (or a reference is being tracked to them
+        under CoW) and converted into an array.
 
         Parameters
         ----------
         value : scalar, Series, or array-like
+        copy : bool, default True
+            Whether to copy an array-like ``value``; ignored for a Series or
+            dict.
 
         Returns
         -------
@@ -6467,7 +6558,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         if is_list_like(value):
             com.require_length_match(value, self.index)
-        return sanitize_array(value, self.index, copy=True, allow_2d=True), None
+        return sanitize_array(value, self.index, copy=copy, allow_2d=True), None
 
     @property
     def _series(self):
