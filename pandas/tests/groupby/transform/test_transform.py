@@ -243,7 +243,7 @@ def test_transform_series_groupby_empty_list():
     "kwargs",
     [
         {"func": [["max", "min"]]},
-        {"x": NamedAgg(column="val", aggfunc=["max", "min"])},
+        {"x": NamedAgg(column="val", aggfunc=["max", "min"])},  # type: ignore[arg-type]
         {"x": ("val", ["max", "min"])},
     ],
 )
