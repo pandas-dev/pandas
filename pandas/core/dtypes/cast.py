@@ -1604,6 +1604,16 @@ def maybe_cast_to_integer_array(
             f"casted to the dtype {dtype}"
         ) from err
 
+    if (
+        isinstance(arr, np.ndarray)
+        and arr.dtype.kind in "mM"
+        and is_supported_dtype(arr.dtype)
+        and dtype == np.int64
+    ):
+        # GH#55140 match DatetimeArray/TimedeltaArray.astype("int64"); other units
+        #  would need conversion to a supported unit first
+        return casted
+
     if isinstance(arr, np.ndarray) and arr.dtype == dtype:
         # avoid expensive array_equal check
         return casted
