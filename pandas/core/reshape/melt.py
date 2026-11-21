@@ -670,7 +670,8 @@ def wide_to_long(
     else:
         i = list(i)
 
-    if df[i].duplicated().any():
+    # the merge/join below treat all nulls as equal, unlike DataFrame.duplicated
+    if MultiIndex.from_frame(df[i]).has_duplicates:
         raise ValueError("the id variables need to uniquely identify each row")
 
     _melted = []

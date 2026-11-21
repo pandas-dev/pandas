@@ -1116,6 +1116,20 @@ class TestWideToLong:
         with pytest.raises(ValueError, match=msg):
             pd.wide_to_long(df, ["A_A", "B_B"], i="x", j="colname")
 
+    def test_non_unique_idvars_null_kinds(self):
+        # GH#21720 merge treats None and NaN ids as equal, so they are not unique
+        df = pd.DataFrame(
+            {
+                "id": pd.Series([None, np.nan], dtype=object),
+                "k": [1, 1],
+                "A1": [10, 20],
+                "A2": [30, 40],
+            }
+        )
+        msg = "the id variables need to uniquely identify each row"
+        with pytest.raises(ValueError, match=msg):
+            pd.wide_to_long(df, ["A"], i=["id", "k"], j="year")
+
     def test_cast_j_int(self):
         df = pd.DataFrame(
             {
