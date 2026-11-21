@@ -1560,6 +1560,8 @@ class FixedWidthReader(abc.Iterator[list[str]]):
                 line = next(self.f)  # type: ignore[arg-type]
         else:
             line = next(self.f)  # type: ignore[arg-type]
+        if self.comment is not None and line.lstrip().startswith(self.comment):
+            return [line]
         # Note: 'colspecs' is a sequence of half-open intervals.
         return [line[from_:to].strip(self.delimiter) for (from_, to) in self.colspecs]
 
