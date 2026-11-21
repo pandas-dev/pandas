@@ -349,6 +349,7 @@ Missing
 MultiIndex
 ^^^^^^^^^^
 - Bug in :class:`MultiIndex` constructor and :meth:`MultiIndex.set_codes` silently converting ``NaN`` or non-integer float codes to valid codes instead of raising ``ValueError`` (:issue:`26210`)
+- Bug in :class:`MultiIndex` with missing values sorted last, the default of :meth:`DataFrame.sort_index`, being treated as unsorted, so ``.loc`` slicing raised ``UnsortedIndexError`` (:issue:`17931`)
 - Bug in :meth:`DataFrame.dropna` raising ``KeyError`` when ``subset`` contained a partial key of a :class:`MultiIndex` (:issue:`17737`)
 - Bug in :meth:`DataFrame.loc` and :meth:`Series.loc` raising ``KeyError`` (or ``AssertionError`` for a :class:`MultiIndex` key) when indexing a :class:`MultiIndex` with a list of tuples shorter than the number of levels; these now select all rows matching each partial key (:issue:`16083`)
 - Bug in :meth:`DataFrame.sort_index`, :meth:`Series.sort_index`, :meth:`MultiIndex.sort_values` and :meth:`MultiIndex.is_monotonic_increasing` ignoring the category order of a :class:`CategoricalIndex` level (:issue:`47607`)
