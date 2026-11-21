@@ -108,7 +108,10 @@ class TestToTimestamp:
 
         result = idx.to_timestamp()
         expected = pd.DatetimeIndex(
-            ["2011-01-01 00:00", "2011-01-02 01:00"], dtype="M8[us]", name="idx"
+            ["2011-01-01 00:00", "2011-01-02 01:00"],
+            dtype="M8[us]",
+            name="idx",
+            freq="25h",
         )
         tm.assert_index_equal(result, expected)
 
@@ -195,3 +198,61 @@ def test_to_timestamp_end_bday_nanosecond_target():
         dtype="M8[ns]",
     )
     tm.assert_index_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "freq, target",
+    [
+        (freq, target)
+        for freq in ["M", "2M", "Q-NOV", "Y", "W-WED", "D", "3D", "h"]
+        for target in [None, "D", "s"]
+        # consecutive hours repeat days
+        if not (freq == "h" and target == "D")
+    ],
+)
+@pytest.mark.parametrize("periods", [1, 2])
+@pytest.mark.parametrize("start", ["2012-01-01", "1960-05-04"])
+def test_to_timestamp_short_index_freq(freq, target, periods, start):
+    # GH#56213 inferred freq should not depend on the length of the index
+    pi = pd.period_range(start, periods=5, freq=freq)
+    expected = pi.to_timestamp(target)[:periods]
+    result = pi[:periods].to_timestamp(target)
+    tm.assert_index_equal(result, expected)
+    assert result.freq is not None
+    assert result.freq == expected.freq
+
+
+def test_to_timestamp_short_index_near_bound():
+    # GH#56213 extending away from the epoch would leave the ns bounds
+    pi = pd.PeriodIndex(["1678", "1679"], freq="Y")
+    assert pi.to_timestamp("ns").freq == pd.offsets.YearBegin()
+
+
+@pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
+@pytest.mark.filterwarnings("ignore:Period with BDay freq is deprecated:FutureWarning")
+def test_to_timestamp_short_index_bday():
+    # GH#56213
+    pi = pd.period_range("2012-01-02", periods=1, freq="B")
+    assert pi.to_timestamp().freq == pd.offsets.BDay()
+
+
+@pytest.mark.filterwarnings(r"ignore:PeriodDtype\[B\] is deprecated:FutureWarning")
+@pytest.mark.filterwarnings("ignore:Period with BDay freq is deprecated:FutureWarning")
+@pytest.mark.parametrize(
+    "values, freq, target",
+    [
+        # not consecutive
+        (["2012-01", "2012-03"], "M", None),
+        # anchored target, see comment in PeriodArray._to_timestamp_freq
+        (["2000-02-29", "2000-03-01"], "D", "B"),
+        (["2012", "2013"], "Y", "W"),
+        (["2012-09-03"], "B", "M"),
+        ([pd.NaT], "B", None),
+        # extending would go out of bounds
+        (["1970"], "200000Y", None),
+    ],
+)
+def test_to_timestamp_short_index_no_freq(values, freq, target):
+    # GH#56213
+    pi = pd.PeriodIndex(values, freq=freq)
+    assert pi.to_timestamp(target).freq is None
