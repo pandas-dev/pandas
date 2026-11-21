@@ -2892,3 +2892,17 @@ def test_read_json_out_of_ns_bounds_date_strings_converted(dates):
     result = pd.read_json(StringIO(df.to_json()))
     expected = pd.DataFrame({"date": np.array(dates, dtype="M8[us]")})
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.filterwarnings(
+    "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+)
+@pytest.mark.parametrize("infer_string", [True, False])
+def test_read_json_mixed_format_date_strings(infer_string):
+    # GH#63472 object-dtype strings must take the string branch, not the
+    #  'unit' path of to_datetime, which no longer parses mixed formats
+    dates = ["2025-01-01T00:00:00.000000", "2025-01-01T01:00:00"]
+    with pd.option_context("future.infer_string", infer_string):
+        result = pd.read_json(StringIO(pd.DataFrame({"date": dates}).to_json()))
+        expected = pd.DataFrame({"date": pd.to_datetime(dates, format="ISO8601")})
+    tm.assert_frame_equal(result, expected)
