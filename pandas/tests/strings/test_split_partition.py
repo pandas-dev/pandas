@@ -4,12 +4,16 @@ import re
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.tests.strings import (
     _convert_na_value,
     is_object_or_nan_string_dtype,
 )
+
+SPLIT_REGEX_MSG = "The default value of regex in Series.str.split will change"
 
 
 @pytest.mark.parametrize("method", ["split", "rsplit"])
@@ -40,7 +44,8 @@ def test_split_more_than_one_char(any_string_dtype, method):
 def test_split_more_regex_split(any_string_dtype):
     # regex split
     values = pd.Series(["a,b_c", "c_d,e", np.nan, "f,g,h"], dtype=any_string_dtype)
-    result = values.str.split("[,_]")
+    with tm.assert_produces_warning(Pandas4Warning, match=SPLIT_REGEX_MSG):
+        result = values.str.split("[,_]")
     exp = pd.Series([["a", "b", "c"], ["c", "d", "e"], np.nan, ["f", "g", "h"]])
     exp = _convert_na_value(values, exp)
     tm.assert_series_equal(result, exp)
@@ -74,7 +79,8 @@ def test_split_regex_explicit(any_string_dtype):
     tm.assert_series_equal(result, exp)
 
     # non explicit regex split, pattern length != 1
-    result = values.str.split(r".jpg")
+    with tm.assert_produces_warning(Pandas4Warning, match=SPLIT_REGEX_MSG):
+        result = values.str.split(r".jpg")
     exp = pd.Series([["xx", "zzz", ""]])
     tm.assert_series_equal(result, exp)
 
@@ -84,6 +90,31 @@ def test_split_regex_explicit(any_string_dtype):
         match="Cannot use a compiled regex as replacement pattern with regex=False",
     ):
         values.str.split(regex_pat, regex=False)
+
+
+@pytest.mark.parametrize(
+    "pat, regex, warns",
+    [
+        (" | ", None, True),
+        ("||", None, True),
+        (r"\.jpg", None, True),
+        ("", None, True),
+        (".", None, False),
+        ("__", None, False),
+        (" | ", True, False),
+        (" | ", False, False),
+        (re.compile(" | "), None, False),
+        (None, None, False),
+    ],
+)
+def test_split_regex_default_deprecated(any_string_dtype, pat, regex, warns):
+    # GH#37963 the default regex=None will become regex=False
+    values = pd.Series(["a | b c"], dtype=any_string_dtype)
+    warning = Pandas4Warning if warns else None
+    with tm.assert_produces_warning(warning, match=SPLIT_REGEX_MSG):
+        values.str.split(pat, regex=regex)
+    with tm.assert_produces_warning(warning, match=SPLIT_REGEX_MSG):
+        pd.Index(values).str.split(pat, regex=regex)
 
 
 @pytest.mark.parametrize("expand", [None, False])
@@ -849,7 +880,8 @@ def test_split_arrow_dtype_regex_inference():
     pa = pytest.importorskip("pyarrow")
 
     ser = pd.Series(["230/270/270", "240-290-290"], dtype=pd.ArrowDtype(pa.string()))
-    result = ser.str.split(r"/|-", expand=True)
+    with tm.assert_produces_warning(Pandas4Warning, match=SPLIT_REGEX_MSG):
+        result = ser.str.split(r"/|-", expand=True)
     expected = pd.DataFrame(
         {"0": ["230", "240"], "1": ["270", "290"], "2": ["270", "290"]},
         dtype=pd.ArrowDtype(pa.string()),

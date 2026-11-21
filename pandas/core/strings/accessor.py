@@ -16,6 +16,7 @@ import numpy as np
 from pandas._config import using_string_dtype
 
 from pandas._libs import lib
+from pandas.errors import Pandas4Warning
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
@@ -779,6 +780,12 @@ class StringMethods(NoNewAttributesMixin):
               expression.
             - Cannot be set to False if `pat` is a compiled regex
 
+            .. deprecated:: 3.2.0
+                The default ``regex=None`` is deprecated. In a future version
+                the default will be ``regex=False``, treating `pat` as a
+                literal string regardless of its length, as in
+                :meth:`Series.str.replace`.
+
         Returns
         -------
         Series, Index, DataFrame or MultiIndex
@@ -895,22 +902,16 @@ class StringMethods(NoNewAttributesMixin):
         Remember to escape special characters when explicitly using regular expressions.
 
         >>> s = pd.Series(["foo and bar plus baz"])
-        >>> s.str.split(r"and|plus", expand=True)
+        >>> s.str.split(r"and|plus", regex=True, expand=True)
             0   1   2
         0 foo bar baz
 
-        Regular expressions can be used to handle urls or file names.
-        When `pat` is a string and ``regex=None`` (the default), the given `pat` is
-        compiled as a regex only if ``len(pat) != 1``.
+        A single-character `pat` is treated as a literal string.
 
         >>> s = pd.Series(["foojpgbar.jpg"])
         >>> s.str.split(r".", expand=True)
                    0    1
         0  foojpgbar  jpg
-
-        >>> s.str.split(r"\.jpg", expand=True)
-                   0 1
-        0  foojpgbar
 
         When ``regex=True``, `pat` is interpreted as a regex
 
@@ -937,6 +938,21 @@ class StringMethods(NoNewAttributesMixin):
             )
         if is_re(pat):
             regex = True
+        elif (
+            regex is None
+            and isinstance(pat, str)
+            and len(pat) != 1
+            and (pat == "" or any(char in pat for char in ".+*|^$?[](){}\\"))
+        ):
+            # warn only where the regex and literal results can differ
+            warnings.warn(
+                "The default value of regex in Series.str.split will change from "
+                "None to False in a future version, so pat will be treated as a "
+                "literal string. Pass regex=True to keep the current behavior, or "
+                "regex=False to adopt the future default and silence this warning.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
         result = self._data.array._str_split(pat, n, expand, regex)
         if self._data.dtype == "category":
             dtype = self._data.dtype.categories.dtype if expand else object
