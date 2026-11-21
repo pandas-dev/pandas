@@ -270,6 +270,14 @@ def _fill_bool_ea_na(cond):
     return cond
 
 
+def _attrs_equal(left: dict[Hashable, Any], right: dict[Hashable, Any]) -> bool:
+    try:
+        return bool(left == right)
+    except (TypeError, ValueError):
+        # array-like values, GH#45824
+        return False
+
+
 class NDFrame(PandasObject, indexing.IndexingMixin):
     """
     N-dimensional analogue of DataFrame. Store multi-dimensional in a
@@ -6475,7 +6483,9 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             if all(bool(obj.attrs) for obj in objs):
                 # all inputs have non-empty attrs
                 attrs = objs[0].attrs
-                have_same_attrs = all(obj.attrs == attrs for obj in objs[1:])
+                have_same_attrs = all(
+                    _attrs_equal(obj.attrs, attrs) for obj in objs[1:]
+                )
                 if have_same_attrs:
                     self.attrs = deepcopy(attrs)
 

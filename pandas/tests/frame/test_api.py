@@ -349,6 +349,22 @@ class TestDataFrameMisc:
         df2.attrs = {"c": 3}
         assert pd.merge(df1, df2).attrs == {}
 
+    @pytest.mark.parametrize(
+        "value",
+        [
+            np.array([1.0, np.nan]),
+            pd.Index([1, 2]),
+            pd.Series([1, 2]),
+            pd.DataFrame({"a": [1, 2]}),
+        ],
+    )
+    def test_attrs_concat_merge_array_like(self, value):
+        # GH#45824 comparing array-like attrs values raised; they are now dropped
+        df = pd.DataFrame({"key": [1, 2], "val": [3, 4]})
+        df.attrs = {"x": value}
+        assert pd.concat([df.head(1), df.tail(1)]).attrs == {}
+        assert pd.merge(df, df.copy(), on="key").attrs == {}
+
     @pytest.mark.parametrize("allows_duplicate_labels", [True, False, None])
     def test_set_flags(
         self,
