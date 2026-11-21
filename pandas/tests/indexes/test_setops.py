@@ -1060,6 +1060,27 @@ def test_intersection_arrow_duplicates(dtype):
 
 
 @td.skip_if_no("pyarrow")
+@pytest.mark.parametrize(
+    "dtype, right",
+    [
+        ("uint64[pyarrow]", [1, 2]),
+        ("bool[pyarrow]", [1]),
+        ("timestamp[us, tz=Asia/Tokyo][pyarrow]", [1, 2]),
+        ("duration[s][pyarrow]", [1, 2]),
+    ],
+)
+def test_setops_arrow_monotonic(dtype, right):
+    # GH#XXXXX
+    left = pd.Index([0, 1], dtype="int64[pyarrow]").astype(dtype)
+    union = pd.Index(sorted({0, 1, *right}), dtype="int64[pyarrow]").astype(dtype)
+    right = pd.Index(right, dtype="int64[pyarrow]").astype(dtype)
+
+    tm.assert_index_equal(left.union(right), union)
+    tm.assert_index_equal(left.intersection(right), right[:1])
+    tm.assert_index_equal(left.join(right, how="outer"), union)
+
+
+@td.skip_if_no("pyarrow")
 def test_intersection_arrow_chunked():
     # GH#66498
     left = pd.Index([1, 2, 2], dtype="int64[pyarrow]").append(
