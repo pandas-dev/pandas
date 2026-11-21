@@ -173,6 +173,7 @@ Other deprecations
 - Deprecated :meth:`DataFrame.iterrows`. Use :meth:`DataFrame.itertuples` instead (:issue:`43874`)
 - Deprecated ``pandas.to_pickle``, use the :meth:`DataFrame.to_pickle` or :meth:`Series.to_pickle` method instead (:issue:`48402`)
 - Deprecated constructing :class:`DataFrame`, :class:`Index` and :class:`Series` (including via ``astype``) from numeric data with non-native byte order (e.g. ``">f4"`` on a little-endian machine); this will raise in a future version. Convert with ``arr.astype(arr.dtype.newbyteorder("="))`` first (:issue:`53234`)
+- Deprecated implicitly constructing a :class:`MultiIndex` from a list of arrays passed as index or column labels, e.g. ``pd.Series([1, 2], index=[["a", "b"], [1, 2]])``, which silently treated the inner lists as levels rather than rows. Use :meth:`MultiIndex.from_arrays` instead (:issue:`37670`)
 - Deprecated passing ``None`` entries in ``objs`` to :func:`concat`; filter them out before calling :func:`concat` instead (:issue:`57846`)
 - Deprecated passing a list-like ``name`` to :meth:`Index.copy`; pass the label itself instead (:issue:`19171`)
 - Deprecated passing a negative ``min_count`` to :meth:`DataFrame.sum`, :meth:`DataFrame.prod`, :meth:`Series.sum`, :meth:`Series.prod`, :meth:`TimedeltaIndex.sum`, the ``sum`` and ``prod`` methods of pandas arrays, and the ``sum``, ``prod``, ``min``, ``max``, ``first``, and ``last`` methods of :class:`.DataFrameGroupBy`, :class:`.SeriesGroupBy`, and :class:`.Resampler`. Pass ``min_count=0`` instead, which behaves the same (:issue:`50022`)

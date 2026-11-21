@@ -83,8 +83,8 @@ the method :meth:`MultiIndex.from_frame`. This is a complementary method to
    )
    pd.MultiIndex.from_frame(df)
 
-As a convenience, you can pass a list of arrays directly into ``Series`` or
-``DataFrame`` to construct a ``MultiIndex`` automatically:
+To build a ``MultiIndex`` from one array per level, use
+:meth:`MultiIndex.from_arrays`:
 
 .. ipython:: python
 
@@ -92,10 +92,13 @@ As a convenience, you can pass a list of arrays directly into ``Series`` or
        np.array(["bar", "bar", "baz", "baz", "foo", "foo", "qux", "qux"]),
        np.array(["one", "two", "one", "two", "one", "two", "one", "two"]),
    ]
-   s = pd.Series(np.random.randn(8), index=arrays)
-   s
-   df = pd.DataFrame(np.random.randn(8, 4), index=arrays)
+   df = pd.DataFrame(np.random.randn(8, 4), index=pd.MultiIndex.from_arrays(arrays))
    df
+
+.. deprecated:: 3.2.0
+
+   Passing a list of arrays directly as ``index`` or ``columns`` to construct a
+   ``MultiIndex`` is deprecated. Use :meth:`MultiIndex.from_arrays` instead.
 
 All of the ``MultiIndex`` constructors accept a ``names`` argument which stores
 string names for the levels themselves. If no names are provided, ``None`` will

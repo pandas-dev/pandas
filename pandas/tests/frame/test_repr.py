@@ -64,7 +64,10 @@ class TestDataFrameRepr:
 
     def test_repr_with_mi_nat(self):
         df = pd.DataFrame(
-            {"X": [1, 2]}, index=[[pd.NaT, pd.Timestamp("20130101")], ["a", "b"]]
+            {"X": [1, 2]},
+            index=pd.MultiIndex.from_arrays(
+                [[pd.NaT, pd.Timestamp("20130101")], ["a", "b"]]
+            ),
         )
         result = repr(df)
         expected = "              X\nNaT        a  1\n2013-01-01 b  2"

@@ -719,7 +719,10 @@ class TestDataFrameConstructors:
     def test_constructor_2d_index(self):
         # GH 25416
         # handling of 2d index in construction
-        df = pd.DataFrame([[1]], columns=[[1]], index=[1, 2])
+        with tm.assert_produces_warning(
+            Pandas4Warning, match="Passing a list of arrays as an index"
+        ):
+            df = pd.DataFrame([[1]], columns=[[1]], index=[1, 2])
         expected = pd.DataFrame(
             [1, 1],
             index=pd.Index([1, 2], dtype="int64"),
@@ -727,7 +730,10 @@ class TestDataFrameConstructors:
         )
         tm.assert_frame_equal(df, expected)
 
-        df = pd.DataFrame([[1]], columns=[[1]], index=[[1, 2]])
+        with tm.assert_produces_warning(
+            Pandas4Warning, match="Passing a list of arrays as an index"
+        ):
+            df = pd.DataFrame([[1]], columns=[[1]], index=[[1, 2]])
         expected = pd.DataFrame(
             [1, 1],
             index=pd.MultiIndex(levels=[[1, 2]], codes=[[0, 1]]),
@@ -1423,7 +1429,10 @@ class TestDataFrameConstructors:
     def test_constructor_list_like_data_nested_list_column(self):
         # GH 32173
         arrays = [list("abcd"), list("cdef")]
-        result = pd.DataFrame([[1, 2, 3, 4], [4, 5, 6, 7]], columns=arrays)
+        with tm.assert_produces_warning(
+            Pandas4Warning, match="Passing a list of arrays as an index"
+        ):
+            result = pd.DataFrame([[1, 2, 3, 4], [4, 5, 6, 7]], columns=arrays)
 
         mi = pd.MultiIndex.from_arrays(arrays)
         expected = pd.DataFrame([[1, 2, 3, 4], [4, 5, 6, 7]], columns=mi)
@@ -1435,8 +1444,11 @@ class TestDataFrameConstructors:
         arrays = [list("abc"), list("cde")]
 
         msg = "3 columns passed, passed data had 4"
-        with pytest.raises(ValueError, match=msg):
-            pd.DataFrame([[1, 2, 3, 4], [4, 5, 6, 7]], columns=arrays)
+        with tm.assert_produces_warning(
+            Pandas4Warning, match="Passing a list of arrays as an index"
+        ):
+            with pytest.raises(ValueError, match=msg):
+                pd.DataFrame([[1, 2, 3, 4], [4, 5, 6, 7]], columns=arrays)
 
     def test_constructor_unequal_length_nested_list_column(self):
         # GH 32173
@@ -1444,8 +1456,11 @@ class TestDataFrameConstructors:
 
         # exception raised inside MultiIndex constructor
         msg = "all arrays must be same length"
-        with pytest.raises(ValueError, match=msg):
-            pd.DataFrame([[1, 2, 3, 4], [4, 5, 6, 7]], columns=arrays)
+        with tm.assert_produces_warning(
+            Pandas4Warning, match="Passing a list of arrays as an index"
+        ):
+            with pytest.raises(ValueError, match=msg):
+                pd.DataFrame([[1, 2, 3, 4], [4, 5, 6, 7]], columns=arrays)
 
     @pytest.mark.parametrize(
         "data",
@@ -2841,16 +2856,22 @@ class TestDataFrameConstructors:
     def test_dataframe_constructor_infer_multiindex(self):
         index_lists = [["a", "a", "b", "b"], ["x", "y", "x", "y"]]
 
-        multi = pd.DataFrame(
-            np.random.default_rng(2).standard_normal((4, 4)),
-            index=[np.array(x) for x in index_lists],
-        )
+        with tm.assert_produces_warning(
+            Pandas4Warning, match="Passing a list of arrays as an index"
+        ):
+            multi = pd.DataFrame(
+                np.random.default_rng(2).standard_normal((4, 4)),
+                index=[np.array(x) for x in index_lists],
+            )
         assert isinstance(multi.index, pd.MultiIndex)
         assert not isinstance(multi.columns, pd.MultiIndex)
 
-        multi = pd.DataFrame(
-            np.random.default_rng(2).standard_normal((4, 4)), columns=index_lists
-        )
+        with tm.assert_produces_warning(
+            Pandas4Warning, match="Passing a list of arrays as an index"
+        ):
+            multi = pd.DataFrame(
+                np.random.default_rng(2).standard_normal((4, 4)), columns=index_lists
+            )
         assert isinstance(multi.columns, pd.MultiIndex)
 
     def test_constructor_reindex_integer_multiindex_to_flat(self):
@@ -2858,8 +2879,8 @@ class TestDataFrameConstructors:
         #  flat integer index reindexes rather than raising a buffer-dtype error
         df = pd.DataFrame(
             np.arange(9.0).reshape(3, 3),
-            columns=[[2, 2, 4], [6, 8, 10]],
-            index=[[4, 4, 8], [8, 10, 12]],
+            columns=pd.MultiIndex.from_arrays([[2, 2, 4], [6, 8, 10]]),
+            index=pd.MultiIndex.from_arrays([[4, 4, 8], [8, 10, 12]]),
         )
         result = pd.DataFrame(df.iloc[[0, 1]], index=[8, 10])
         expected = pd.DataFrame(np.nan, index=pd.Index([8, 10]), columns=df.columns)
@@ -2989,9 +3010,11 @@ class TestDataFrameConstructors:
 
     def test_nested_list_columns(self):
         # GH 14467
-        result = pd.DataFrame(
-            [[1, 2, 3], [4, 5, 6]], columns=[["A", "A", "A"], ["a", "b", "c"]]
-        )
+        msg = "Passing a list of arrays as an index"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = pd.DataFrame(
+                [[1, 2, 3], [4, 5, 6]], columns=[["A", "A", "A"], ["a", "b", "c"]]
+            )
         expected = pd.DataFrame(
             [[1, 2, 3], [4, 5, 6]],
             columns=pd.MultiIndex.from_tuples([("A", "a"), ("A", "b"), ("A", "c")]),

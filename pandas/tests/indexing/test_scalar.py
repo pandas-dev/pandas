@@ -273,7 +273,9 @@ class TestMultiIndexScalar:
     def test_multiindex_at_get(self):
         # GH 26989
         # DataFrame.at and DataFrame.loc getter works with MultiIndex
-        df = pd.DataFrame({"a": [1, 2]}, index=[[1, 2], [3, 4]])
+        df = pd.DataFrame(
+            {"a": [1, 2]}, index=pd.MultiIndex.from_arrays([[1, 2], [3, 4]])
+        )
         assert df.index.nlevels == 2
         assert df.at[(1, 3), "a"] == 1
         assert df.loc[(1, 3), "a"] == 1
@@ -287,7 +289,9 @@ class TestMultiIndexScalar:
     def test_multiindex_at_set(self):
         # GH 26989
         # DataFrame.at and DataFrame.loc setter works with MultiIndex
-        df = pd.DataFrame({"a": [1, 2]}, index=[[1, 2], [3, 4]])
+        df = pd.DataFrame(
+            {"a": [1, 2]}, index=pd.MultiIndex.from_arrays([[1, 2], [3, 4]])
+        )
         assert df.index.nlevels == 2
         df.at[(1, 3), "a"] = 3
         assert df.at[(1, 3), "a"] == 3
@@ -304,6 +308,6 @@ class TestMultiIndexScalar:
 
     def test_multiindex_at_get_one_level(self):
         # GH#38053
-        s2 = pd.Series((0, 1), index=[[False, True]])
+        s2 = pd.Series((0, 1), index=pd.MultiIndex.from_arrays([[False, True]]))
         result = s2.at[False]
         assert result == 0

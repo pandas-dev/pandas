@@ -1908,7 +1908,9 @@ class TestLocWithMultiIndex:
     def test_loc_getitem_multilevel_index_order(self, dim, keys, expected):
         # GH#22797
         # Try to respect order of keys given for MultiIndex.loc
-        kwargs = {dim: [["c", "a", "a", "b", "b"], [1, 1, 2, 1, 2]]}
+        kwargs = {
+            dim: pd.MultiIndex.from_arrays([["c", "a", "a", "b", "b"], [1, 1, 2, 1, 2]])
+        }
         df = pd.DataFrame(np.arange(25).reshape(5, 5), **kwargs)
         exp_index = pd.MultiIndex.from_arrays(expected)
         if dim == "index":
@@ -2127,7 +2129,10 @@ class TestLocWithMultiIndex:
     @pytest.mark.parametrize("lt_value", [30, 10])
     def test_loc_multiindex_levels_contain_values_not_in_index_anymore(self, lt_value):
         # GH#41170
-        df = pd.DataFrame({"a": [12, 23, 34, 45]}, index=[list("aabb"), [0, 1, 2, 3]])
+        df = pd.DataFrame(
+            {"a": [12, 23, 34, 45]},
+            index=pd.MultiIndex.from_arrays([list("aabb"), [0, 1, 2, 3]]),
+        )
         with pytest.raises(KeyError, match=r"\['b'\] not in index"):
             df.loc[df["a"] < lt_value, :].loc[["b"], :]
 

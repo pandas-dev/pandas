@@ -166,11 +166,13 @@ def test_tuple_string_column_names():
 
 def test_frame_getitem_multicolumn_empty_level():
     df = pd.DataFrame({"a": ["1", "2", "3"], "b": ["2", "3", "4"]})
-    df.columns = [
-        ["level1 item1", "level1 item2"],
-        ["", "level2 item2"],
-        ["level3 item1", "level3 item2"],
-    ]
+    df.columns = pd.MultiIndex.from_arrays(
+        [
+            ["level1 item1", "level1 item2"],
+            ["", "level2 item2"],
+            ["level3 item1", "level3 item2"],
+        ]
+    )
 
     result = df["level1 item1"]
     expected = pd.DataFrame(

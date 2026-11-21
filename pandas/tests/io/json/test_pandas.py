@@ -2071,7 +2071,9 @@ class TestPandasContainer:
             ),
             (
                 pd.DataFrame(
-                    [[1, 2], [4, 5]], columns=["a", "b"], index=[["a", "b"], ["c", "d"]]
+                    [[1, 2], [4, 5]],
+                    columns=["a", "b"],
+                    index=pd.MultiIndex.from_arrays([["a", "b"], ["c", "d"]]),
                 ),
                 {"columns": ["a", "b"], "data": [[1, 2], [4, 5]]},
             ),
@@ -2081,7 +2083,11 @@ class TestPandasContainer:
                 {"name": "A", "data": [1, 2, 3]},
             ),
             (
-                pd.Series([1, 2], name="A", index=[["a", "b"], ["c", "d"]]),
+                pd.Series(
+                    [1, 2],
+                    name="A",
+                    index=pd.MultiIndex.from_arrays([["a", "b"], ["c", "d"]]),
+                ),
                 {"name": "A", "data": [1, 2]},
             ),
         ],
@@ -2102,12 +2108,20 @@ class TestPandasContainer:
             (pd.DataFrame([[1, 2], [4, 5]], columns=["a", "b"]).rename_axis("foo")),
             (
                 pd.DataFrame(
-                    [[1, 2], [4, 5]], columns=["a", "b"], index=[["a", "b"], ["c", "d"]]
+                    [[1, 2], [4, 5]],
+                    columns=["a", "b"],
+                    index=pd.MultiIndex.from_arrays([["a", "b"], ["c", "d"]]),
                 )
             ),
             (pd.Series([1, 2, 3], name="A")),
             (pd.Series([1, 2, 3], name="A").rename_axis("foo")),
-            (pd.Series([1, 2], name="A", index=[["a", "b"], ["c", "d"]])),
+            (
+                pd.Series(
+                    [1, 2],
+                    name="A",
+                    index=pd.MultiIndex.from_arrays([["a", "b"], ["c", "d"]]),
+                )
+            ),
         ],
     )
     def test_index_false_to_json_table(self, data):

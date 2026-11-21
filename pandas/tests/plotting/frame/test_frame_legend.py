@@ -196,7 +196,9 @@ class TestFrameLegend:
     def test_legend_name(self):
         multi = pd.DataFrame(
             np.random.default_rng(2).standard_normal((4, 4)),
-            columns=[np.array(["a", "a", "b", "b"]), np.array(["x", "y", "x", "y"])],
+            columns=pd.MultiIndex.from_arrays(
+                [np.array(["a", "a", "b", "b"]), np.array(["x", "y", "x", "y"])]
+            ),
         )
         multi.columns.names = ["group", "individual"]
 

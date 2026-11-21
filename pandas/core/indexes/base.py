@@ -8484,11 +8484,6 @@ def ensure_index(index_like: Axes, copy: bool = False) -> Index:
 
     >>> ensure_index([("a", "a"), ("b", "c")])
     Index([('a', 'a'), ('b', 'c')], dtype='object')
-
-    >>> ensure_index([["a", "a"], ["b", "c"]])
-    MultiIndex([('a', 'b'),
-            ('a', 'c')],
-           )
     """
     if isinstance(index_like, Index):
         if copy:
@@ -8511,6 +8506,14 @@ def ensure_index(index_like: Axes, copy: bool = False) -> Index:
         if index_like and lib.is_all_arraylike(index_like):
             from pandas.core.indexes.multi import MultiIndex
 
+            # GH#37670
+            warnings.warn(
+                "Passing a list of arrays as an index to construct a MultiIndex "
+                "is deprecated and will raise in a future version. Use "
+                "pd.MultiIndex.from_arrays instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
             return MultiIndex.from_arrays(index_like)
         else:
             return Index(index_like, copy=copy, tupleize_cols=False)

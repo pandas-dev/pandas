@@ -586,7 +586,8 @@ class TestBasic(Base):
             ["one", "two", "one", "two", "one", "two", "one", "two"],
         ]
         df = pd.DataFrame(
-            {"one": list(range(8)), "two": [-i for i in range(8)]}, index=arrays
+            {"one": list(range(8)), "two": [-i for i in range(8)]},
+            index=pd.MultiIndex.from_arrays(arrays),
         )
 
         expected = df.reset_index(drop=True)
@@ -617,7 +618,8 @@ class TestBasic(Base):
             [1, 2, 1, 2, 1, 2, 1, 2],
         ]
         df = pd.DataFrame(
-            np.random.default_rng(2).standard_normal((8, 8)), columns=arrays
+            np.random.default_rng(2).standard_normal((8, 8)),
+            columns=pd.MultiIndex.from_arrays(arrays),
         )
         df.columns.names = ["Level1", "Level2"]
         if engine == "fastparquet":
@@ -636,7 +638,8 @@ class TestBasic(Base):
             ["one", "two", "one", "two", "one", "two", "one", "two"],
         ]
         df = pd.DataFrame(
-            np.random.default_rng(2).standard_normal((8, 8)), columns=arrays
+            np.random.default_rng(2).standard_normal((8, 8)),
+            columns=pd.MultiIndex.from_arrays(arrays),
         )
         df.columns.names = ["ColLevel1", "ColLevel2"]
 

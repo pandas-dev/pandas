@@ -601,7 +601,7 @@ def test_resample_ohlc_dataframe(unit):
     assert exp.columns.names[0] == "Cols"
     tm.assert_frame_equal(exp, res)
 
-    df.columns = [["a", "b"], ["c", "d"]]
+    df.columns = pd.MultiIndex.from_arrays([["a", "b"], ["c", "d"]])
     res = df.resample("h").ohlc()
     exp.columns = pd.MultiIndex.from_tuples(
         [

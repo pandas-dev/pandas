@@ -819,7 +819,7 @@ def test_len_colspecs_len_names(colspecs, names, widths, index_col):
             None,
             [0, 1],
             pd.DataFrame(
-                index=[["col1", "ba"], ["col2", "b   ba"]],
+                index=pd.MultiIndex.from_arrays([["col1", "ba"], ["col2", "b   ba"]]),
                 columns=["a", "b"],
                 data=[["col3", "col4"], ["2", np.nan]],
             ),
@@ -830,7 +830,9 @@ def test_len_colspecs_len_names(colspecs, names, widths, index_col):
             None,
             [0, 1, 2],
             pd.DataFrame(
-                index=[["col1", "ba"], ["col2", "b   ba"], ["col3", "2"]],
+                index=pd.MultiIndex.from_arrays(
+                    [["col1", "ba"], ["col2", "b   ba"], ["col3", "2"]]
+                ),
                 columns=["a"],
                 data=[["col4"], [np.nan]],
             ),
@@ -852,7 +854,7 @@ def test_len_colspecs_len_names(colspecs, names, widths, index_col):
             [6] * 4,
             [0, 1],
             pd.DataFrame(
-                index=[["col1", "ba"], ["col2", "b   ba"]],
+                index=pd.MultiIndex.from_arrays([["col1", "ba"], ["col2", "b   ba"]]),
                 columns=["a", "b"],
                 data=[["col3", "col4"], ["2", np.nan]],
             ),
@@ -863,7 +865,9 @@ def test_len_colspecs_len_names(colspecs, names, widths, index_col):
             [6] * 4,
             [0, 1, 2],
             pd.DataFrame(
-                index=[["col1", "ba"], ["col2", "b   ba"], ["col3", "2"]],
+                index=pd.MultiIndex.from_arrays(
+                    [["col1", "ba"], ["col2", "b   ba"], ["col3", "2"]]
+                ),
                 columns=["a"],
                 data=[["col4"], [np.nan]],
             ),

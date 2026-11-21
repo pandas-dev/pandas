@@ -228,7 +228,8 @@ class TestDataFrameSubclassing:
 
         res = df.stack()
         exp = tm.SubclassedSeries(
-            [1, 2, 3, 4, 5, 6, 7, 8, 9], index=[list("aaabbbccc"), list("XYZXYZXYZ")]
+            [1, 2, 3, 4, 5, 6, 7, 8, 9],
+            index=pd.MultiIndex.from_arrays([list("aaabbbccc"), list("XYZXYZXYZ")]),
         )
 
         tm.assert_series_equal(res, exp)
@@ -390,7 +391,8 @@ class TestDataFrameSubclassing:
 
         res = df.unstack()
         exp = tm.SubclassedSeries(
-            [1, 4, 7, 2, 5, 8, 3, 6, 9], index=[list("XXXYYYZZZ"), list("abcabcabc")]
+            [1, 4, 7, 2, 5, 8, 3, 6, 9],
+            index=pd.MultiIndex.from_arrays([list("XXXYYYZZZ"), list("abcabcabc")]),
         )
 
         tm.assert_series_equal(res, exp)

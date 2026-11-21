@@ -244,36 +244,51 @@ class TestResetIndex:
         df = pd.DataFrame(
             vals,
             pd.Index(idx, name="a"),
-            columns=[["b", "b", "c"], ["mean", "median", "mean"]],
+            columns=pd.MultiIndex.from_arrays(
+                [["b", "b", "c"], ["mean", "median", "mean"]]
+            ),
         )
         rs = df.reset_index()
         xp = pd.DataFrame(
-            full, columns=[["a", "b", "b", "c"], ["", "mean", "median", "mean"]]
+            full,
+            columns=pd.MultiIndex.from_arrays(
+                [["a", "b", "b", "c"], ["", "mean", "median", "mean"]]
+            ),
         )
         tm.assert_frame_equal(rs, xp)
 
         rs = df.reset_index(col_fill=None)
         xp = pd.DataFrame(
-            full, columns=[["a", "b", "b", "c"], ["a", "mean", "median", "mean"]]
+            full,
+            columns=pd.MultiIndex.from_arrays(
+                [["a", "b", "b", "c"], ["a", "mean", "median", "mean"]]
+            ),
         )
         tm.assert_frame_equal(rs, xp)
 
         rs = df.reset_index(col_level=1, col_fill="blah")
         xp = pd.DataFrame(
-            full, columns=[["blah", "b", "b", "c"], ["a", "mean", "median", "mean"]]
+            full,
+            columns=pd.MultiIndex.from_arrays(
+                [["blah", "b", "b", "c"], ["a", "mean", "median", "mean"]]
+            ),
         )
         tm.assert_frame_equal(rs, xp)
 
         df = pd.DataFrame(
             vals,
             pd.MultiIndex.from_arrays([[0, 1, 2], ["x", "y", "z"]], names=["d", "a"]),
-            columns=[["b", "b", "c"], ["mean", "median", "mean"]],
+            columns=pd.MultiIndex.from_arrays(
+                [["b", "b", "c"], ["mean", "median", "mean"]]
+            ),
         )
         rs = df.reset_index("a")
         xp = pd.DataFrame(
             full,
             pd.Index([0, 1, 2], name="d"),
-            columns=[["a", "b", "b", "c"], ["", "mean", "median", "mean"]],
+            columns=pd.MultiIndex.from_arrays(
+                [["a", "b", "b", "c"], ["", "mean", "median", "mean"]]
+            ),
         )
         tm.assert_frame_equal(rs, xp)
 
@@ -281,7 +296,9 @@ class TestResetIndex:
         xp = pd.DataFrame(
             full,
             pd.Index(range(3), name="d"),
-            columns=[["a", "b", "b", "c"], ["a", "mean", "median", "mean"]],
+            columns=pd.MultiIndex.from_arrays(
+                [["a", "b", "b", "c"], ["a", "mean", "median", "mean"]]
+            ),
         )
         tm.assert_frame_equal(rs, xp)
 
@@ -289,7 +306,9 @@ class TestResetIndex:
         xp = pd.DataFrame(
             full,
             pd.Index(range(3), name="d"),
-            columns=[["blah", "b", "b", "c"], ["a", "mean", "median", "mean"]],
+            columns=pd.MultiIndex.from_arrays(
+                [["blah", "b", "b", "c"], ["a", "mean", "median", "mean"]]
+            ),
         )
         tm.assert_frame_equal(rs, xp)
 
