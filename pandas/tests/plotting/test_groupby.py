@@ -277,3 +277,77 @@ class TestDataFrameGroupByPlots:
         df = pd.DataFrame({"x": [1, 2, 3, 4], "y": [4, 3, 2, 1], "z": list("abab")})
         res = call(df.groupby("z"))
         assert [ax.get_title() for ax in res] == [expected, expected]
+
+    @pytest.mark.parametrize("kind", ["line", "bar", "area", "hist", "box", "kde"])
+    def test_groupby_plot_excludes_grouping_column(self, kind):
+        # GH#22069 like apply, each group's plot leaves out the grouping column;
+        #  for kde that constant column raised LinAlgError
+        if kind == "kde":
+            pytest.importorskip("scipy")
+        df = pd.DataFrame({"x": [1.0, 3, 2, 5], "y": [4.0, 1, 3, 2], "g": [1, 1, 2, 2]})
+        res = df.groupby("g").plot(kind=kind)
+        for ax in res:
+            if kind == "box":
+                labels = [label.get_text() for label in ax.get_xticklabels()]
+                assert labels == ["x", "y"]
+            else:
+                _check_legend_labels(ax, ["x", "y"])
+
+    def test_groupby_hist_excludes_grouping_column(self):
+        # GH#22069
+        df = pd.DataFrame({"x": [1.0, 3, 2, 5], "y": [4.0, 1, 3, 2], "g": [1, 1, 2, 2]})
+        res = df.groupby("g").hist()
+        for axes in res:
+            assert sorted(ax.get_title() for ax in axes.ravel()) == ["x", "y"]
+
+    def test_groupby_plot_pie_string_grouping_column(self):
+        # GH#22069 the string grouping column made pie raise TypeError
+        df = pd.DataFrame({"x": [1.0, 2, 3, 4], "y": [2.0, 3, 4, 5], "g": list("aabb")})
+        res = df.groupby("g").plot.pie(subplots=True)
+        assert [len(axes) for axes in res] == [2, 2]
+
+    @pytest.mark.parametrize(
+        "call",
+        [lambda gb: gb.plot(x=1, y=2), lambda gb: gb.plot(1, 2)],
+        ids=["keyword", "positional"],
+    )
+    def test_groupby_plot_positions_include_grouping_column(self, call):
+        # GH#22069 columns are not dropped when the call refers to them, so
+        #  positions still count the grouping column
+        df = pd.DataFrame({"g": [1, 1, 2, 2], "x": [1.0, 3, 2, 5], "y": [4.0, 1, 3, 2]})
+        res = call(df.groupby("g"))
+        for ax in res:
+            assert ax.get_xlabel() == "x"
+            _check_legend_labels(ax, ["y"])
+
+    @pytest.mark.parametrize(
+        "call",
+        [
+            lambda gb: gb.plot(subplots=True, ax=mpl.pyplot.subplots(1, 3)[1]),
+            lambda gb: gb.hist(ax=mpl.pyplot.subplots(1, 3)[1]),
+            lambda gb: gb.plot(subplots=True, title=["X", "Y", "G"]),
+        ],
+        ids=["plot_ax", "hist_ax", "title"],
+    )
+    def test_groupby_plot_per_column_args_include_grouping_column(self, call):
+        # GH#22069 per-column sequences are sized to every column, so the
+        #  grouping column is kept
+        df = pd.DataFrame({"x": [1.0, 3, 2, 5], "y": [4.0, 1, 3, 2], "g": [1, 1, 2, 2]})
+        for axes in call(df.groupby("g")):
+            assert len(axes) == 3
+
+    @pytest.mark.parametrize("kwarg", ["positions", "widths"])
+    def test_groupby_plot_box_per_column_args_include_grouping_column(self, kwarg):
+        # GH#22069
+        df = pd.DataFrame({"x": [1.0, 3, 2, 5], "y": [4.0, 1, 3, 2], "g": [1, 1, 2, 2]})
+        res = df.groupby("g").plot.box(**{kwarg: [0.1, 0.2, 0.3]})
+        for ax in res:
+            labels = [label.get_text() for label in ax.get_xticklabels()]
+            assert labels == ["x", "y", "g"]
+
+    @pytest.mark.parametrize("method", ["plot", "hist"])
+    def test_groupby_plot_only_grouping_columns(self, method):
+        # GH#22069 with nothing else to plot, the grouping columns are kept
+        df = pd.DataFrame({"g": [1, 1, 2, 2], "h": [1, 2, 1, 2]})
+        res = getattr(df.groupby(["g", "h"]), method)()
+        assert len(res) == 4
