@@ -467,7 +467,7 @@ def test_indexing_no_materialize(monkeypatch):
 
 
 def test_index_is_monotonic_does_not_build_engine():
-    # GH#XXXXX the engine holds the array as Python objects
+    # GH#72260 the engine holds the array as Python objects
     idx = pd.Index(to_decimal([1, 2]))
     assert idx.is_monotonic_increasing
     assert not idx.is_monotonic_decreasing

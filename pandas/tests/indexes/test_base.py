@@ -1997,7 +1997,7 @@ def test_is_monotonic_pyarrow_list_type():
 
 @pytest.mark.parametrize("pa_type", ["date32", "time32", "decimal128", "string"])
 def test_is_monotonic_pyarrow_does_not_build_engine(pa_type):
-    # GH#XXXXX the engine holds these types as Python objects
+    # GH#72260 the engine holds these types as Python objects
     pa = pytest.importorskip("pyarrow")
     pa_type = {
         "date32": pa.date32(),
