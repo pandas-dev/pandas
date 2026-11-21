@@ -7,7 +7,11 @@ from typing import (
 
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
-from pandas.util._decorators import set_module
+from pandas.errors import Pandas4Warning
+from pandas.util._decorators import (
+    deprecate_first_arg_keyword,
+    set_module,
+)
 from pandas.util._validators import check_dtype_backend
 
 from pandas.core.dtypes.inference import is_list_like
@@ -26,8 +30,10 @@ if TYPE_CHECKING:
 
 
 @set_module("pandas")
+@deprecate_first_arg_keyword(Pandas4Warning, "path")
 def read_spss(
-    path: str | Path,
+    source: str | Path,
+    /,
     usecols: SequenceNotStr[str] | None = None,
     convert_categoricals: bool = True,
     dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
@@ -41,8 +47,12 @@ def read_spss(
 
     Parameters
     ----------
-    path : str or Path
+    source : str or Path
         File path.
+
+        .. versionchanged:: 3.2.0
+
+            Renamed from ``path``. Passing it by keyword is deprecated.
     usecols : list-like, optional
         Return a subset of the columns. If None, return all columns.
     convert_categoricals : bool, default is True
@@ -89,7 +99,7 @@ def read_spss(
         usecols = list(usecols)  # pyreadstat requires a list
 
     df, metadata = pyreadstat.read_sav(
-        stringify_path(path),
+        stringify_path(source),
         usecols=usecols,
         apply_value_formats=convert_categoricals,
         **kwargs,

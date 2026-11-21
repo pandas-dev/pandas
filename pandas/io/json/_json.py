@@ -34,7 +34,10 @@ from pandas.errors import (
     OutOfBoundsDatetime,
     Pandas4Warning,
 )
-from pandas.util._decorators import set_module
+from pandas.util._decorators import (
+    deprecate_first_arg_keyword,
+    set_module,
+)
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import check_dtype_backend
 
@@ -541,7 +544,8 @@ def _validate_pyarrow_engine_options(
 
 @overload
 def read_json(
-    path_or_buf: FilePath | ReadBuffer[str] | ReadBuffer[bytes],
+    source: FilePath | ReadBuffer[str] | ReadBuffer[bytes],
+    /,
     *,
     orient: str | None = ...,
     typ: Literal["frame"] = ...,
@@ -565,7 +569,8 @@ def read_json(
 
 @overload
 def read_json(
-    path_or_buf: FilePath | ReadBuffer[str] | ReadBuffer[bytes],
+    source: FilePath | ReadBuffer[str] | ReadBuffer[bytes],
+    /,
     *,
     orient: str | None = ...,
     typ: Literal["series"],
@@ -589,7 +594,8 @@ def read_json(
 
 @overload
 def read_json(
-    path_or_buf: FilePath | ReadBuffer[str] | ReadBuffer[bytes],
+    source: FilePath | ReadBuffer[str] | ReadBuffer[bytes],
+    /,
     *,
     orient: str | None = ...,
     typ: Literal["series"],
@@ -613,7 +619,8 @@ def read_json(
 
 @overload
 def read_json(
-    path_or_buf: FilePath | ReadBuffer[str] | ReadBuffer[bytes],
+    source: FilePath | ReadBuffer[str] | ReadBuffer[bytes],
+    /,
     *,
     orient: str | None = ...,
     typ: Literal["frame"] = ...,
@@ -636,8 +643,10 @@ def read_json(
 
 
 @set_module("pandas")
+@deprecate_first_arg_keyword(Pandas4Warning, "path_or_buf")
 def read_json(
-    path_or_buf: FilePath | ReadBuffer[str] | ReadBuffer[bytes],
+    source: FilePath | ReadBuffer[str] | ReadBuffer[bytes],
+    /,
     *,
     orient: str | None = None,
     typ: Literal["frame", "series"] = "frame",
@@ -668,7 +677,7 @@ def read_json(
 
     Parameters
     ----------
-    path_or_buf : a str path, path object or file-like object
+    source : a str path, path object or file-like object
         Any valid string path is acceptable. The string could be a URL. Valid
         URL schemes include http, ftp, s3, and file. For file URLs, a host is
         expected. A local file could be:
@@ -684,6 +693,10 @@ def read_json(
         By file-like object, we refer to objects with a ``read()`` method,
         such as a file handle (e.g. via builtin ``open`` function)
         or ``StringIO``.
+
+        .. versionchanged:: 3.2.0
+
+            Renamed from ``path_or_buf``. Passing it by keyword is deprecated.
 
     orient : str, optional
         Indication of expected JSON string format.
@@ -802,7 +815,7 @@ def read_json(
         If this is None, the file will be read into memory all at once.
 
     compression : str or dict, default 'infer'
-        For on-the-fly decompression of on-disk data. If 'infer' and 'path_or_buf' is
+        For on-the-fly decompression of on-disk data. If 'infer' and 'source' is
         path-like, then detect compression from the following extensions: '.gz',
         '.bz2', '.zip', '.xz', '.zst', '.tar', '.tar.gz', '.tar.xz' or '.tar.bz2'
         (otherwise no compression).
@@ -994,7 +1007,7 @@ def read_json(
         convert_axes = True
 
     json_reader = JsonReader(
-        path_or_buf,
+        source,
         orient=orient,
         typ=typ,
         dtype=dtype,

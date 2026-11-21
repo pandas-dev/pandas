@@ -24,7 +24,10 @@ from pandas.errors import (
     AbstractMethodError,
     Pandas4Warning,
 )
-from pandas.util._decorators import set_module
+from pandas.util._decorators import (
+    deprecate_first_arg_keyword,
+    set_module,
+)
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import check_dtype_backend
 
@@ -584,8 +587,10 @@ def to_parquet(
 
 
 @set_module("pandas")
+@deprecate_first_arg_keyword(Pandas4Warning, "path")
 def read_parquet(
-    path: FilePath | ReadBuffer[bytes],
+    source: FilePath | ReadBuffer[bytes],
+    /,
     engine: str | lib.NoDefault = lib.no_default,
     columns: list[str] | None = None,
     storage_options: StorageOptions | None = None,
@@ -606,7 +611,7 @@ def read_parquet(
 
     Parameters
     ----------
-    path : str, path object or file-like object
+    source : str, path object or file-like object
         String, path object (implementing ``os.PathLike[str]``), or file-like
         object implementing a binary ``read()`` function.
         The string could be a URL. Valid URL schemes include http, ftp, s3,
@@ -621,6 +626,10 @@ def read_parquet(
         partitioned parquet files. Both pyarrow and fastparquet support
         paths to directories as well as file URLs. A directory path could be:
         ``file://localhost/path/to/tables`` or ``s3://bucket/partition_dir``.
+
+        .. versionchanged:: 3.2.0
+
+            Renamed from ``path``. Passing it by keyword is deprecated.
     engine : {'auto', 'pyarrow', 'fastparquet'}, default 'auto'
         Parquet library to use. If 'auto', then the option
         ``io.parquet.engine`` is used. The default ``io.parquet.engine``
@@ -771,7 +780,7 @@ def read_parquet(
     check_dtype_backend(dtype_backend)
 
     return impl.read(
-        path,
+        source,
         columns=columns,
         filters=filters,
         storage_options=storage_options,
