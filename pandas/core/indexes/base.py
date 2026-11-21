@@ -2507,12 +2507,14 @@ class Index(IndexOpsMixin, PandasObject):
         >>> pd.Index([1, 3, 2]).is_monotonic_increasing
         False
         """
-        if isinstance(self._values, ExtensionArray) and (
-            type(self._engine) is libindex.ObjectEngine
+        if (
+            isinstance(self._values, ExtensionArray)
+            and self._engine_target_is_object_cast
+            and not isinstance(self.dtype, StringDtype)
         ):
             # For custom EAs we use ObjectEngine by default, which gets the EA as
             # object ndarray -> use the EA's implementation directly instead of engine.
-            # Subclasses of ObjectEngine (e.g. StringObjectEngine) are excluded.
+            # Strings are excluded, they use StringObjectEngine.
             return self._values._is_monotonic_increasing
         return self._engine.is_monotonic_increasing
 
@@ -2542,12 +2544,14 @@ class Index(IndexOpsMixin, PandasObject):
         >>> pd.Index([3, 1, 2]).is_monotonic_decreasing
         False
         """
-        if isinstance(self._values, ExtensionArray) and (
-            type(self._engine) is libindex.ObjectEngine
+        if (
+            isinstance(self._values, ExtensionArray)
+            and self._engine_target_is_object_cast
+            and not isinstance(self.dtype, StringDtype)
         ):
             # For custom EAs we use ObjectEngine by default, which gets the EA as
             # object ndarray -> use the EA's implementation directly instead of engine.
-            # Subclasses of ObjectEngine (e.g. StringObjectEngine) are excluded.
+            # Strings are excluded, they use StringObjectEngine.
             return self._values._is_monotonic_decreasing
         return self._engine.is_monotonic_decreasing
 
@@ -5459,20 +5463,38 @@ class Index(IndexOpsMixin, PandasObject):
             elif pa.types.is_duration(pa_type):
                 vals = vals._to_timedeltaarray()
                 return vals._ndarray.view("i8")
-        if (
-            type(self) is Index
-            and isinstance(vals, ExtensionArray)
-            and not isinstance(vals, BaseMaskedArray)
-            and not (
-                isinstance(vals, ArrowExtensionArray)
-                and is_numeric_dtype(self.dtype)
-                # Exclude decimal
-                and self.dtype.kind != "O"
-            )
-        ):
-            # TODO(ExtensionIndex): remove special-case, just use self._values
+        if self._engine_target_is_object_cast:
             return vals.astype(object)
         return vals
+
+    @final
+    @cache_readonly
+    def _engine_target_is_object_cast(self) -> bool:
+        """
+        Whether _get_engine_target casts our ExtensionArray to an object ndarray.
+
+        Lets callers tell whether the engine would be an object engine without
+        building it.
+        """
+        vals = self._values
+        if (
+            type(self) is not Index
+            or not isinstance(vals, ExtensionArray)
+            or isinstance(vals, (BaseMaskedArray, StringArray))
+        ):
+            return False
+        if isinstance(vals, ArrowExtensionArray):
+            dtype = self.dtype
+            if dtype.kind in "Mm":
+                import pyarrow as pa
+
+                pa_type = vals._pa_array.type
+                if pa.types.is_timestamp(pa_type) or pa.types.is_duration(pa_type):
+                    return False
+            # Numeric types other than decimal go to the engine as-is
+            return not is_numeric_dtype(dtype) or dtype.kind == "O"
+        # TODO(ExtensionIndex): remove special-case, just use self._values
+        return True
 
     @final
     def _get_join_target(self) -> np.ndarray:
