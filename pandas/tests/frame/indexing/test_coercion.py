@@ -119,31 +119,78 @@ def test_iloc_setitem_unnecesssary_float_upcasting():
     tm.assert_frame_equal(df, orig)
 
 
-@pytest.mark.xfail(reason="unwanted casting to dt64")
-def test_12499():
-    # TODO: OP in GH#12499 used np.datetim64("NaT") instead of pd.NaT,
-    #  which has consequences for the expected df["two"] (though i think at
-    #  the time it might not have because of a separate bug). See if it makes
-    #  a difference which one we use here.
+@pytest.mark.parametrize("indexer", [1, (1, slice(None))])
+@pytest.mark.parametrize(
+    "box",
+    [list, tuple, lambda x: np.array(x, dtype=object)],
+    ids=["list", "tuple", "array"],
+)
+def test_12499(indexer, box):
+    # GH#12499 setting a new row must not infer one dtype for the whole row,
+    #  which turned the NaN into NaT
     ts = pd.Timestamp("2016-03-01 03:13:22.98986", tz="UTC")
+    df = pd.DataFrame({"one": [0], "two": [ts]})
+    df.loc[indexer] = box([np.nan, pd.NaT])
 
-    data = [{"one": 0, "two": ts}]
-    orig = pd.DataFrame(data)
-    df = orig.copy()
-    df.loc[1] = [np.nan, pd.NaT]
+    expected = pd.DataFrame(
+        {"one": [0, np.nan], "two": pd.Series([ts, pd.NaT], dtype="M8[us, UTC]")}
+    )
+    tm.assert_frame_equal(df, expected)
+
+
+def test_12499_extension_columns():
+    # GH#12499 the row infers as period, which must not turn NaN into NaT
+    per = pd.Period("2020", "D")
+    df = pd.DataFrame({"a": [per], "b": [pd.Interval(0.0, 1.0)]})
+    df.loc[1] = [per, np.nan]
 
     expected = pd.DataFrame(
         {
-            "one": [0, np.nan],
-            "two": pd.Series([ts, pd.NaT], dtype="datetime64[ns, UTC]"),
+            "a": [per, per],
+            "b": pd.array([pd.Interval(0.0, 1.0), np.nan], dtype="interval[float64]"),
         }
     )
     tm.assert_frame_equal(df, expected)
 
-    data = [{"one": 0, "two": ts}]
-    df = orig.copy()
-    df.loc[1, :] = [np.nan, pd.NaT]
+
+@pytest.mark.parametrize(
+    "row, expected",
+    [
+        ([2**60 + 1, 1.5], [1, 2**60 + 1]),
+        ([np.nan, pd.Timestamp("2021")], [1, np.nan]),
+    ],
+)
+def test_12499_object_column(row, expected):
+    # GH#12499 an object column would keep a value converted by whole-row
+    #  inference
+    df = pd.DataFrame({"a": pd.Series([1], dtype=object), "b": [row[1]]})
+    df.loc[1] = row
+
+    tm.assert_numpy_array_equal(
+        df["a"].to_numpy(), np.array(expected, dtype=object), strict_nan=True
+    )
+
+
+def test_12499_large_int_not_rounded():
+    # GH#12499 inferring float64 for the whole row would round the int
+    df = pd.DataFrame({"a": [0], "b": [0.5]})
+    df.loc[1] = [2**60 + 1, 0.5]
+
+    expected = pd.DataFrame({"a": [0, 2**60 + 1], "b": [0.5, 0.5]})
     tm.assert_frame_equal(df, expected)
+
+
+@pytest.mark.parametrize(
+    "box", [list, lambda x: dict(enumerate(x))], ids=["list", "dict"]
+)
+def test_12499_row_expansion_not_fragmented(box):
+    # GH#12499 an object row must not leave one block per column
+    df = pd.DataFrame({0: [1.5], 1: [2.5], 2: [1], 3: [2]})
+    df.loc[1] = box([3.5, 4.5, 3, 4])
+
+    expected = pd.DataFrame({0: [1.5, 3.5], 1: [2.5, 4.5], 2: [1, 3], 3: [2, 4]})
+    tm.assert_frame_equal(df, expected)
+    assert df._mgr.nblocks == 2
 
 
 def test_20476():
