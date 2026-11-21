@@ -596,8 +596,11 @@ def test_logical_op_both_sparse_matches_dense(op):
     with pytest.raises(TypeError, match=msg):
         op(SparseArray(floats), SparseArray(bools))
 
-    expected = op(pd.Series(bools), pd.Series(floats))
-    result = op(SparseArray(bools), SparseArray(floats))
+    depr_msg = "Logical ops .* with float or complex dtypes"
+    with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+        expected = op(pd.Series(bools), pd.Series(floats))
+    with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
+        result = op(SparseArray(bools), SparseArray(floats))
     tm.assert_numpy_array_equal(result.to_dense(), expected.to_numpy())
 
 
