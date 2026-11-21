@@ -35,13 +35,31 @@ subdirs_list = [
     'errors',
     'io',
     'plotting',
-    'tests',
     'tseries',
     'util',
 ]
 foreach subdir : subdirs_list
     install_subdir(subdir, install_dir: py.get_install_dir() / 'pandas')
 endforeach
+
+# Test data ships in the sdist but is installed only on request, see GH#54907
+tests_exclude_dirs = []
+if not get_option('install_test_data')
+    tests_exclude_dirs = [
+        'io/data',
+        'io/formats/data',
+        'io/json/data',
+        'io/parser/data',
+        'io/sas/data',
+        'reshape/data',
+        'tseries/offsets/data',
+    ]
+endif
+install_subdir(
+    'tests',
+    install_dir: py.get_install_dir() / 'pandas',
+    exclude_directories: tests_exclude_dirs,
+)
 
 top_level_py_list = [
     '__init__.py',
