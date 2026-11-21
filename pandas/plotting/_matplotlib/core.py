@@ -831,6 +831,17 @@ class MPLPlot(ABC):
         if len(self.axes) > 0:
             all_axes = self._get_subplots(fig)
             nrows, ncols = self._get_axes_layout(fig)
+            if self.sharex or self.sharey:
+                # explicit sharex/sharey alter every axes in the figure
+                targets = all_axes
+            else:
+                # only touch the axes this call drew on, not others in the
+                # figure the user may have customized, GH#27052
+                plotted = set(self.axes)
+                for ax in self.axes:
+                    plotted.add(getattr(ax, "left_ax", ax))
+                    plotted.add(getattr(ax, "right_ax", ax))
+                targets = [ax for ax in all_axes if ax in plotted]
             handle_shared_axes(
                 axarr=all_axes,
                 nplots=len(all_axes),
@@ -839,6 +850,7 @@ class MPLPlot(ABC):
                 ncols=ncols,
                 sharex=self.sharex,
                 sharey=self.sharey,
+                targets=targets,
             )
 
         for ax in self.axes:
