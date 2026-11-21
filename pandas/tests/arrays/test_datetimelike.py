@@ -1340,6 +1340,83 @@ def test_to_numpy_extra_readonly(arr):
     tm.assert_equal(arr, original)
 
 
+@pytest.mark.parametrize("dtype", [str, "U", "S", np.dtypes.StringDType()])
+@pytest.mark.parametrize(
+    "values, expected",
+    [
+        (pd.to_datetime(["2012-01-01", None]), "2012-01-01"),
+        (pd.to_datetime(["2012-01-01 10:00:01.5", None]), "2012-01-01 10:00:01.500"),
+        (
+            pd.to_datetime(["2012-01-01", None]).tz_localize("US/Eastern"),
+            "2012-01-01 00:00:00-05:00",
+        ),
+        (pd.to_timedelta(["1D", None]).as_unit("us"), "1 days"),
+    ],
+)
+def test_to_numpy_str(values, expected, dtype, index_or_series_or_array):
+    # GH#44484 numpy's repr gave e.g. "86400000000 microseco" for timedeltas
+    obj = index_or_series_or_array(values)
+    result = obj.to_numpy(dtype)
+    tm.assert_numpy_array_equal(result, np.array([expected, "NaT"], dtype=dtype))
+
+    # na_value longer than the formatted values is not truncated
+    result = obj.to_numpy(dtype, na_value="not available")
+    tm.assert_numpy_array_equal(
+        result, np.array([expected, "not available"], dtype=dtype)
+    )
+
+    result = obj.to_numpy(dtype, na_value=np.nan)
+    tm.assert_numpy_array_equal(result, np.array([expected, "nan"], dtype=dtype))
+
+
+@pytest.mark.parametrize(
+    "values, dtype",
+    [
+        (pd.to_datetime(["2012-01-01"]), "m8[ns]"),
+        (pd.to_datetime(["2012-01-01"]).tz_localize("UTC"), "m8[ns]"),
+        (pd.to_timedelta(["1D"]), "M8[ns]"),
+        (pd.to_timedelta(["1D"]), "M8"),
+    ],
+)
+def test_to_numpy_cross_kind_raises(values, dtype, index_or_series_or_array):
+    # GH#44484 numpy reinterprets the integers, ignoring the unit
+    obj = index_or_series_or_array(values)
+    msg = "Cannot cast (Datetime|Timedelta)Array to dtype"
+    with pytest.raises(TypeError, match=msg):
+        obj.to_numpy(dtype)
+
+
+@pytest.mark.parametrize(
+    "values, pa_dtype, dtype",
+    [
+        (pd.to_datetime(["2012-01-01"]), "timestamp[ns][pyarrow]", "m8[ns]"),
+        (pd.to_timedelta(["1D"]), "duration[ns][pyarrow]", "M8[ns]"),
+    ],
+)
+def test_to_numpy_cross_kind_raises_arrow(values, pa_dtype, dtype):
+    # GH#44484
+    pytest.importorskip("pyarrow")
+    ser = pd.Series(values).astype(pa_dtype)
+    msg = "Cannot cast (Datetime|Timedelta)Array to dtype"
+    with pytest.raises(TypeError, match=msg):
+        ser.to_numpy(dtype)
+
+
+@pytest.mark.parametrize(
+    "values, pa_dtype, expected",
+    [
+        (pd.to_datetime(["2012-01-01", None]), "timestamp[us][pyarrow]", "2012-01-01"),
+        (pd.to_timedelta(["1D", None]), "duration[us][pyarrow]", "1 days"),
+    ],
+)
+def test_to_numpy_str_arrow(values, pa_dtype, expected):
+    # GH#44484
+    pytest.importorskip("pyarrow")
+    ser = pd.Series(values).astype(pa_dtype)
+    result = ser.to_numpy(str)
+    tm.assert_numpy_array_equal(result, np.array([expected, "NaT"], dtype=str))
+
+
 @pytest.mark.parametrize("as_index", [True, False])
 @pytest.mark.parametrize(
     "values",

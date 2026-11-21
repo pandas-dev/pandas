@@ -144,6 +144,17 @@ def ensure_np_dtype(dtype: DtypeObj) -> np.dtype:
     return dtype
 
 
+def _use_datetimelike_to_numpy(blk_dtype: DtypeObj, dtype: np.dtype | None) -> bool:
+    # string and cross-kind casts of datetime64/timedelta64 follow
+    # DatetimeArray/TimedeltaArray rules instead of numpy's, GH#44484
+    return (
+        dtype is not None
+        and blk_dtype.kind in "mM"
+        and dtype.kind in "SUTmM"
+        and dtype.kind != blk_dtype.kind
+    )
+
+
 class BaseBlockManager(PandasObject):
     """
     Core internal data structure to implement DataFrame, Series, etc.
@@ -1911,7 +1922,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
                 else:
                     copy = True
 
-            if blk.is_extension:
+            if blk.is_extension or _use_datetimelike_to_numpy(blk.dtype, dtype):
                 # Avoid implicit conversion of extension blocks to object
 
                 # error: Item "ndarray" of "Union[ndarray, ExtensionArray]" has no
@@ -1987,7 +1998,7 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
 
         for blk in self.blocks:
             rl = blk.mgr_locs
-            if blk.is_extension:
+            if blk.is_extension or _use_datetimelike_to_numpy(blk.dtype, dtype):
                 # Avoid implicit conversion of extension blocks to object
 
                 # error: Item "ndarray" of "Union[ndarray, ExtensionArray]" has no
