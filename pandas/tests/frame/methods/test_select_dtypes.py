@@ -72,7 +72,8 @@ class TestSelectDtypes:
             }
         )
 
-        ri = df.select_dtypes(include=[np.number])
+        with tm.assert_produces_warning(Pandas4Warning, match="selects timedelta64"):
+            ri = df.select_dtypes(include=[np.number])
         ei = df[["b", "c", "d", "k"]]
         tm.assert_frame_equal(ri, ei)
 
@@ -190,7 +191,8 @@ class TestSelectDtypes:
             }
         )
 
-        ri = df.select_dtypes(include=np.number)
+        with tm.assert_produces_warning(Pandas4Warning, match="selects timedelta64"):
+            ri = df.select_dtypes(include=np.number)
         ei = df[["b", "c", "d", "k"]]
         tm.assert_frame_equal(ri, ei)
 
@@ -231,7 +233,8 @@ class TestSelectDtypes:
             }
         )
 
-        ri = df.select_dtypes(exclude=np.number)
+        with tm.assert_produces_warning(Pandas4Warning, match="drops timedelta64"):
+            ri = df.select_dtypes(exclude=np.number)
         ei = df[["a", "e", "f", "g", "h", "i", "j"]]
         tm.assert_frame_equal(ri, ei)
 
@@ -259,7 +262,8 @@ class TestSelectDtypes:
             }
         )
 
-        ri = df.select_dtypes(include=np.number, exclude="floating")
+        with tm.assert_produces_warning(Pandas4Warning, match="selects timedelta64"):
+            ri = df.select_dtypes(include=np.number, exclude="floating")
         ei = df[["b", "c", "k"]]
         tm.assert_frame_equal(ri, ei)
 
@@ -284,7 +288,8 @@ class TestSelectDtypes:
         ei = df[["b", "c"]]
         tm.assert_frame_equal(ri, ei)
 
-        ri = df.select_dtypes(include=[np.number, "category"], exclude="floating")
+        with tm.assert_produces_warning(Pandas4Warning, match="selects timedelta64"):
+            ri = df.select_dtypes(include=[np.number, "category"], exclude="floating")
         ei = df[["b", "c", "f", "k"]]
         tm.assert_frame_equal(ri, ei)
 
@@ -1479,3 +1484,63 @@ def test_select_dtypes_sparse_na_fill_value():
     )
     tm.assert_frame_equal(df.select_dtypes(include="Sparse[float64]"), df[["a"]])
     tm.assert_frame_equal(df.select_dtypes(exclude="Sparse[float64]"), df[["b"]])
+
+
+@pytest.mark.parametrize(
+    "spec",
+    [
+        np.number,
+        "number",
+        np.integer,
+        "integer",
+        np.signedinteger,
+        "signedinteger",
+    ],
+)
+@pytest.mark.parametrize(
+    "td_dtype", ["m8[ns]", "m8[s]", "Sparse[m8[ns]]", "duration[s][pyarrow]"]
+)
+def test_select_dtypes_numeric_spec_timedelta_deprecated(spec, td_dtype):
+    # GH#27881
+    if "pyarrow" in td_dtype:
+        pytest.importorskip("pyarrow")
+    td = pd.Series(pd.to_timedelta([1, 2], unit="s")).astype(td_dtype)
+    df = pd.DataFrame({"i": [1, 2], "td": td, "dt": pd.date_range("2016", periods=2)})
+
+    with tm.assert_produces_warning(Pandas4Warning, match="selects timedelta64"):
+        result = df.select_dtypes(include=spec)
+    tm.assert_frame_equal(result, df[["i", "td"]])
+    with tm.assert_produces_warning(Pandas4Warning, match="drops timedelta64"):
+        result = df.select_dtypes(exclude=spec)
+    tm.assert_frame_equal(result, df[["dt"]])
+
+    # naming timedelta explicitly gives the same result either way, so no warning
+    result = df.select_dtypes(include=[spec, "timedelta"])
+    tm.assert_frame_equal(result, df[["i", "td"]])
+    result = df.select_dtypes(include=spec, exclude="timedelta")
+    tm.assert_frame_equal(result, df[["i"]])
+    result = df.select_dtypes(exclude=[spec, "timedelta"])
+    tm.assert_frame_equal(result, df[["dt"]])
+
+
+def test_select_dtypes_numeric_spec_timedelta_unit_spec():
+    # GH#27881: a unit-qualified spec covers only its own resolution, so the
+    # other timedelta64 column still relies on the deprecated match
+    df = pd.DataFrame(
+        {
+            "a": pd.to_timedelta([1, 2], unit="s").as_unit("s"),
+            "b": pd.to_timedelta([1, 2], unit="s").as_unit("ns"),
+        }
+    )
+    with tm.assert_produces_warning(Pandas4Warning, match="selects timedelta64"):
+        result = df.select_dtypes(include=["number", "timedelta64[s]"])
+    tm.assert_frame_equal(result, df)
+
+
+def test_select_dtypes_numeric_spec_timedelta_exclude_with_include_timedelta():
+    # GH#27881: advising exclude='timedelta' would raise the overlap error here
+    df = pd.DataFrame({"i": [1, 2], "td": pd.to_timedelta([1, 2], unit="s")})
+    msg = r"drops timedelta64 .* it will not\.$"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = df.select_dtypes(include="timedelta", exclude="number")
+    tm.assert_frame_equal(result, df[[]])

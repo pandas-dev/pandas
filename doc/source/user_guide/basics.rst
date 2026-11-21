@@ -2388,11 +2388,11 @@ You can also pass the name of a dtype in the `NumPy dtype hierarchy
 :meth:`~pandas.DataFrame.select_dtypes` also works with generic dtypes.
 
 For example, to select all numeric and boolean columns while excluding unsigned
-integers:
+integers (``"number"`` currently also matches timedelta64 columns, which is deprecated):
 
 .. ipython:: python
 
-   df.select_dtypes(include=["number", "bool"], exclude=["unsignedinteger"])
+   df.select_dtypes(include=["number", "bool"], exclude=["unsignedinteger", "timedelta"])
 
 To select string columns include ``str``:
 

@@ -309,3 +309,11 @@ def test_pass_colormap_instance(df, plot_method):
     if plot_method == "hexbin":
         kwargs["C"] = kwargs.pop("c")
     getattr(df.plot, plot_method)(**kwargs)
+
+
+@pytest.mark.parametrize("f", ["background_gradient", "text_gradient"])
+def test_gradient_default_subset_timedelta(f):
+    # GH#27881: the default subset keeps timedelta64 columns, without warning
+    df = pd.DataFrame({"A": [1.0, 2.0], "B": pd.to_timedelta([1, 2], unit="h")})
+    result = getattr(df.style, f)()._compute().ctx
+    assert (0, 1) in result
