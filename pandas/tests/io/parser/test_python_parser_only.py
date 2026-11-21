@@ -552,6 +552,26 @@ def test_on_bad_lines_index_col_inferred(python_parser_only):
     tm.assert_frame_equal(result, expected)
 
 
+def test_on_bad_lines_callable_wide_first_row(python_parser_only):
+    # GH#47490 - the callable gets the wide first row instead of it becoming
+    # an implicit index
+    parser = python_parser_only
+    data = "a,b,c\n0,1,2,3,4\n5,6,7\n"
+    result = parser.read_csv(StringIO(data), on_bad_lines=lambda row: row[-3:])
+    expected = pd.DataFrame({"a": [2, 5], "b": [3, 6], "c": [4, 7]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_wide_first_row_skipfooter_implicit_index(python_parser_only):
+    # GH#47490 - with skipfooter, the row after the first may be the footer, so
+    # the wide first row stays an implicit index
+    parser = python_parser_only
+    data = "a,b\nx,1,2\nTOTAL,9\n"
+    result = parser.read_csv(StringIO(data), on_bad_lines="skip", skipfooter=1)
+    expected = pd.DataFrame({"a": [1], "b": [2]}, index=["x"])
+    tm.assert_frame_equal(result, expected)
+
+
 def test_on_bad_lines_callable_index_col_false(python_parser_only):
     # GH#49279
     parser = python_parser_only

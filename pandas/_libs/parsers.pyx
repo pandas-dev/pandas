@@ -287,6 +287,7 @@ cdef extern from "pandas/parser/tokenizer.h":
 
         int preloaded
         int header_done
+        int64_t lookahead_fields
 
     ctypedef struct coliter_t:
         const char *stream
@@ -1014,9 +1015,46 @@ cdef class TextReader:
                                      "header fields in the file")
             # oh boy, #2442, #2981
             elif self.allow_leading_cols and passed_count < field_count:
-                self.leading_cols = field_count - passed_count
+                if self._skip_wide_first_row(data_line, passed_count):
+                    field_count = passed_count
+                else:
+                    self.leading_cols = field_count - passed_count
 
         return header, field_count, unnamed_cols
+
+    cdef bint _skip_wide_first_row(self, uint64_t data_line, int64_t passed_count):
+        # A first data row wider than the header normally implies an index. If
+        # bad lines are not an error and the next row has the header's width,
+        # treat the first row as a bad line instead. GH#47490
+        cdef:
+            uint64_t bad_line_no
+            int64_t saw
+
+        if (self.parser.on_bad_lines == BLHM_ERROR or self.has_usecols
+                or self.has_mi_columns or self.parser.lines != data_line + 1
+                or self.parser_start != data_line):
+            return False
+
+        bad_line_no = self.parser.file_lines
+        saw = self.parser.line_fields[data_line]
+        # a next row that is itself a bad line still counts as the next row
+        self.parser.lookahead_fields = -1
+        self._tokenize_rows(1)
+        if (self.parser.lines < data_line + 2
+                or self.parser.lookahead_fields != passed_count):
+            return False
+
+        # the tokenizer padded the next row out to the first row's width
+        self.parser.line_fields[data_line + 1] = passed_count
+        if self.parser.expected_fields >= 0:
+            self.parser.expected_fields = passed_count
+        self.parser_start += 1
+        if self.parser.on_bad_lines == BLHM_WARN:
+            self._warn_parser(
+                f"Skipping line {bad_line_no}: expected {passed_count} fields, "
+                f"saw {saw}\n"
+            )
+        return True
 
     def read(self, rows: int | None = None) -> dict[int, "ArrayLike"]:
         """

@@ -1147,6 +1147,11 @@ The bad line will be a list of strings that was split by the ``sep``:
 
    The line was not processed in this case, as a "bad line" here is caused by an escape character.
 
+A first row with more fields than the header is normally read as an index (see
+:ref:`io.index_col`). With a single header row and no ``usecols`` or
+``skipfooter``, it is instead a bad line when ``on_bad_lines`` is not ``"error"``
+and the next row has the header's width.
+
 You can also use the ``usecols`` parameter to eliminate extraneous column
 data that appear in some lines but not others:
 

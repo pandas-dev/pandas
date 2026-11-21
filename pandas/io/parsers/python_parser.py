@@ -1184,6 +1184,21 @@ class PythonParser(ParserBase):
             index_col = self.index_col
             if index_col is not False:
                 implicit_first_cols = len(line) - self.num_original_columns
+                if (
+                    implicit_first_cols > 0
+                    and len(self.buf) > 1
+                    and len(self.buf[1]) == self.num_original_columns
+                    and self.on_bad_lines != self.BadLineHandleMethod.BLHM_ERROR
+                    and self.usecols is None
+                    and not self._have_mi_columns
+                    # buf[1] may be the footer
+                    and not self.skipfooter
+                ):
+                    # treat the wide first row as a bad line, not an index, as in
+                    # TextReader._skip_wide_first_row. buf[1] is the row after the
+                    # first; next_line is not once _infer_columns has buffered the
+                    # first. GH#47490
+                    implicit_first_cols = 0
 
             # Case 0
             if (
