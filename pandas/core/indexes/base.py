@@ -47,6 +47,7 @@ from pandas._libs.lib import (
 )
 from pandas._libs.missing import (
     NA,
+    checknull,
     is_matching_na,
 )
 from pandas._libs.tslibs import (
@@ -7347,6 +7348,15 @@ class Index(IndexOpsMixin, PandasObject):
         try:
             slc = self.get_loc(label)
         except KeyError:
+            if checknull(label) and not isinstance(self.dtype, CategoricalDtype):
+                # searchsorted places these last (GH#30944), but they are not
+                # valid slice bounds
+                if (
+                    label is NA
+                    or (is_string_dtype(self.dtype) and self.dtype != object)
+                    or (is_float(label) and self.dtype.kind in "mM")
+                ):
+                    self._raise_invalid_indexer("slice", original_label)
             try:
                 return self._searchsorted_monotonic(label, side)
             except ValueError:

@@ -1513,10 +1513,14 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
                 "searchsorted requires array to be sorted, which is impossible "
                 "with NAs present."
             )
-        if isinstance(value, ExtensionArray):
-            value = value.astype(object)
-        # Base class searchsorted would cast to object, which is *much* slower.
-        return self._data.searchsorted(value, side=side, sorter=sorter)
+
+        def search(val):
+            if isinstance(val, ExtensionArray):
+                val = val.astype(object)
+            # Base class searchsorted would cast to object, which is *much* slower.
+            return self._data.searchsorted(val, side=side, sorter=sorter)
+
+        return algos.searchsorted_na_last(search, value, self.dtype, len(self))
 
     def factorize(
         self,

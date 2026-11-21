@@ -3670,6 +3670,48 @@ def test_loc_with_positional_slice_raises():
         ser.loc[:3] = 2
 
 
+@pytest.mark.parametrize(
+    "dtype, key",
+    [
+        ("int64", pd.NA),
+        ("Int64", pd.NA),
+        ("str", np.nan),
+        ("str", pd.NA),
+        ("str", pd.NaT),
+        ("string[python]", np.nan),
+        pytest.param("string[pyarrow]", pd.NaT, marks=td.skip_if_no("pyarrow")),
+        pytest.param("timestamp[ns][pyarrow]", np.nan, marks=td.skip_if_no("pyarrow")),
+    ],
+)
+def test_loc_slice_with_missing_label_raises(dtype, key):
+    # GH#30944 searchsorted places missing values last, slicing still raises
+    if "str" in dtype:
+        values = ["a", "b", "c"]
+    elif "timestamp" in dtype:
+        values = pd.date_range("2016-01-01", periods=3)
+    else:
+        values = [1, 2, 3]
+    ser = pd.Series(range(3), index=pd.Index(values, dtype=dtype))
+
+    msg = "cannot do slice indexing on Index with these indexers"
+    with pytest.raises(TypeError, match=msg):
+        ser.loc[key:]
+    with pytest.raises(TypeError, match=msg):
+        ser.loc[:key]
+
+
+@pytest.mark.parametrize("dtype", ["M8[ns]", "timestamp[ns][pyarrow]"])
+def test_loc_slice_with_nat(dtype):
+    # GH#30944 NaT sorts last for pyarrow timestamps, as for DatetimeIndex
+    if "pyarrow" in dtype:
+        pytest.importorskip("pyarrow")
+    dti = pd.date_range("2016-01-01", periods=3)
+    ser = pd.Series(range(3), index=pd.Index(dti, dtype=dtype))
+
+    tm.assert_series_equal(ser.loc[pd.NaT :], ser.iloc[:0])
+    tm.assert_series_equal(ser.loc[: pd.NaT], ser)
+
+
 def test_loc_slice_disallows_positional():
     # GH#16121, GH#24612, GH#31810
     dti = pd.date_range("2016-01-01", periods=3)

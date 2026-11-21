@@ -2498,8 +2498,6 @@ class ArrowExtensionArray(
                 "searchsorted requires array to be sorted, which is impossible "
                 "with NAs present."
             )
-        if isinstance(value, ExtensionArray):
-            value = value.astype(object)
         # Base class searchsorted would cast to object, which is *much* slower.
         dtype = None
         if (
@@ -2509,7 +2507,14 @@ class ArrowExtensionArray(
             # np.array[datetime/timedelta].searchsorted(datetime/timedelta)
             # erroneously fails when numpy type resolution is nanoseconds
             dtype = object
-        return self.to_numpy(dtype=dtype).searchsorted(value, side=side, sorter=sorter)
+        values = self.to_numpy(dtype=dtype)
+
+        def search(val):
+            if isinstance(val, ExtensionArray):
+                val = val.astype(object)
+            return values.searchsorted(val, side=side, sorter=sorter)
+
+        return algos.searchsorted_na_last(search, value, self.dtype, len(self))
 
     def take(
         self,
