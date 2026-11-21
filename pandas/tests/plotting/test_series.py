@@ -1110,3 +1110,14 @@ class TestSeriesPlots:
         x_limits = ax.get_xlim()
         assert x_limits[0] <= bar_xticks[0][0]
         assert x_limits[1] >= bar_xticks[-1][0]
+
+
+def test_secondary_y_shared_list_across_series_no_warning():
+    # GH#13041 one secondary_y list for several Series plotted onto shared axes
+    df = pd.DataFrame({"a": [1, 2], "b": [30, 40]})
+    ax = None
+    with tm.assert_produces_warning(None):
+        for col in ["a", "b"]:
+            ax = df[col].plot(secondary_y=["b"], ax=ax)
+    assert len(ax.left_ax.get_lines()) == 1
+    assert len(ax.left_ax.right_ax.get_lines()) == 1

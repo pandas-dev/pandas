@@ -28,7 +28,10 @@ import numpy as np
 
 from pandas._libs import lib
 from pandas._libs.tslibs.dtypes import FreqGroup
-from pandas.errors import AbstractMethodError
+from pandas.errors import (
+    AbstractMethodError,
+    Pandas4Warning,
+)
 from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
 
@@ -312,6 +315,8 @@ class MPLPlot(ABC):
         self.color = self._validate_color_args(color, self.colormap)
         assert "color" not in self.kwds
 
+        # Series and 1-column DataFrame differ in bar colors and secondary_y checks
+        self._is_series = isinstance(self.data, ABCSeries)
         self.data = self._ensure_frame(self.data)
 
         from pandas.plotting import plot_params
@@ -779,6 +784,37 @@ class MPLPlot(ABC):
             raise TypeError("no numeric data to plot")
 
         self.data = numeric_data.apply(type(self)._convert_to_ndarray)
+        self._validate_secondary_y()
+
+    @final
+    def _validate_secondary_y(self) -> None:
+        # GH#13041 on_right silently ignores unmatched entries
+        if (
+            not isinstance(self.secondary_y, (list, tuple))
+            or isinstance(self, PlanePlot)
+            or self._is_series
+        ):
+            # ndarray and Index match via their own __contains__ in on_right;
+            #  PlanePlot never calls on_right; a Series may be one of several
+            #  plotted onto shared axes with one secondary_y list
+            return
+        # list membership, matching the comparison in on_right; None and
+        #  np.bool_ are meant as flags, not labels, but __init__ wraps them
+        columns = list(self.data.columns)
+        missing = [
+            key
+            for key in self.secondary_y
+            if key not in columns and not (key is None or isinstance(key, np.bool_))
+        ]
+        if missing:
+            warnings.warn(
+                f"secondary_y entries {missing} do not match any plotted column "
+                f"and are ignored; plotted columns are {columns}. In a future "
+                "version this will raise a ValueError. Pass only labels of "
+                "columns being plotted.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
 
     def _make_plot(self, fig: Figure) -> None:
         raise AbstractMethodError(self)
@@ -2051,9 +2087,6 @@ class BarPlot(MPLPlot):
         log=False,
         **kwargs,
     ) -> None:
-        # we have to treat a series differently than a
-        # 1-column DataFrame w.r.t. color handling
-        self._is_series = isinstance(data, ABCSeries)
         self.bar_width = width
         self._align = align
         self._position = position
