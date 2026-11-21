@@ -1027,6 +1027,7 @@ class _LocationIndexer(_NDFrameIndexerBase):
             and is_list_like_indexer(key)
             and not com.is_bool_indexer(key)
             and all(is_hashable(k) for k in key)
+            and not _is_flat_tuple_label(key, self.obj.columns)
         ):
             # GH#38148
             keys = self.obj.columns.union(key, sort=False)
@@ -1859,10 +1860,10 @@ class _LocIndexer(_LocationIndexer):
             return False
 
         for i, k in enumerate(key):
-            if not is_scalar(k):
+            ax = self.obj.axes[i]
+            if not (is_scalar(k) or _is_flat_tuple_label(k, ax)):
                 return False
 
-            ax = self.obj.axes[i]
             if isinstance(ax, MultiIndex):
                 return False
 
@@ -1960,6 +1961,13 @@ class _LocIndexer(_LocationIndexer):
         )
 
     def _getitem_tuple(self, tup: tuple[Any, ...]):
+        if (
+            self.axis is None
+            and len(tup) > self.ndim
+            and _is_flat_tuple_label(tup, self.obj.index)
+        ):
+            return self._get_label(tup, axis=0)
+
         with suppress(IndexingError):
             tup = self._expand_ellipsis(tup)
             return self._getitem_lowerdim(tup)
@@ -2008,6 +2016,8 @@ class _LocIndexer(_LocationIndexer):
             return self._get_slice_axis(key, axis=axis)
         elif com.is_bool_indexer(key):
             return self._getbool_axis(key, axis=axis)
+        elif _is_flat_tuple_label(key, labels):
+            return self._get_label(key, axis=axis)
         elif is_list_like_indexer(key):
             # an iterable multi-selection
             if not (isinstance(key, tuple) and isinstance(labels, MultiIndex)):
@@ -2097,6 +2107,9 @@ class _LocIndexer(_LocationIndexer):
 
         if isinstance(key, slice):
             return labels._convert_slice_indexer(key, kind="loc")
+
+        if _is_flat_tuple_label(key, labels):
+            return labels.get_loc(key)
 
         if (
             isinstance(key, tuple)
@@ -3890,6 +3903,20 @@ def maybe_convert_ix(*args):
         if not isinstance(arg, (np.ndarray, list, ABCSeries, Index)):
             return args
     return np.ix_(*args)
+
+
+def _is_flat_tuple_label(key, labels: Index) -> bool:
+    """
+    Whether ``key`` is a tuple that is itself a label of a non-MultiIndex axis,
+    and so should be looked up as one label rather than as a list of labels.
+    """
+    # GH#21574
+    return (
+        isinstance(key, tuple)
+        and not isinstance(labels, MultiIndex)
+        and is_hashable(key, allow_slice=False)
+        and key in labels
+    )
 
 
 def is_nested_tuple(tup, labels) -> bool:
