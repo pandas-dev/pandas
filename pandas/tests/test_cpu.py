@@ -1,6 +1,7 @@
 """
 Tests for pandas.compat._cpu: detection of the CPU allocation available to
-this process (affinity mask and cgroup CFS quota).
+this process (affinity mask and cgroup CFS quota), and the default thread count
+derived from it.
 """
 
 import os
@@ -11,7 +12,10 @@ from pandas.compat import _cpu
 from pandas.compat._cpu import (
     _parse_cgroup_v2_quota,
     available_cpu_count,
+    get_max_threads,
 )
+
+import pandas as pd
 
 
 @pytest.mark.parametrize(
@@ -70,7 +74,7 @@ def test_available_cpu_count_unconstrained(monkeypatch):
 
 
 def test_available_cpu_count_does_not_raise():
-    # _default_n_workers calls available_cpu_count() bare, so anything escaping
+    # get_max_threads calls available_cpu_count() bare, so anything escaping
     # it escapes read_csv.  Every other test mocks both the affinity call and
     # the cgroup reads; this one runs it against the host.
     available_cpu_count.cache_clear()
@@ -126,3 +130,53 @@ def test_read_sysfs_int_non_numeric(tmp_path):
     path = tmp_path / "cpu.cfs_quota_us"
     path.write_text("max", encoding="utf-8")
     assert _cpu._read_sysfs_int(str(path)) is None
+
+
+class TestGetMaxThreads:
+    """Unit tests for the default worker count."""
+
+    @pytest.mark.parametrize("platform_name", ["linux", "darwin", "win32"])
+    @pytest.mark.parametrize(
+        "cpu_count, available, expected",
+        [
+            (2, None, 2),  # unconstrained, below the cap -> logical CPU count
+            (16, None, 6),  # cap binds
+            (16, 1, 1),  # single-CPU container
+            (16, 2, 2),  # cgroup/affinity tighter than the cap
+            (16, 8, 6),  # allocation looser than the cap -> cap still binds
+            (2, 8, 2),  # allocation looser than the machine
+        ],
+    )
+    def test_combines_cap_and_allocation(
+        self, monkeypatch, cpu_count, available, expected, platform_name
+    ):
+        # Default = min(logical CPUs, available CPUs, MAX_DEFAULT_THREADS),
+        # on every threaded platform.
+        assert _cpu.MAX_DEFAULT_THREADS == 6
+        monkeypatch.setattr(_cpu.sys, "platform", platform_name)
+        monkeypatch.setattr(_cpu.os, "cpu_count", lambda: cpu_count)
+        monkeypatch.setattr(_cpu, "available_cpu_count", lambda: available)
+        with pd.option_context("mode.max_threads", None):
+            assert get_max_threads() == expected
+
+    def test_wasm_is_serial(self, monkeypatch):
+        monkeypatch.setattr(_cpu.sys, "platform", "emscripten")
+        # WASM stays serial even if a worker count is requested explicitly.
+        with pd.option_context("mode.max_threads", 8):
+            assert get_max_threads() == 1
+
+    def test_max_threads_exceeds_cap(self, monkeypatch):
+        # MAX_DEFAULT_THREADS and the availability clamp bound the *default*
+        # only.  The mode.max_threads docs promise an explicit setting still
+        # wins.
+        monkeypatch.setattr(_cpu.sys, "platform", "linux")
+        monkeypatch.setattr(_cpu.os, "cpu_count", lambda: 2)
+        monkeypatch.setattr(_cpu, "available_cpu_count", lambda: 1)
+        with pd.option_context("mode.max_threads", 32):
+            assert get_max_threads() == 32
+
+    @pytest.mark.parametrize("platform_name", ["linux", "win32"])
+    def test_max_threads_wins(self, monkeypatch, platform_name):
+        monkeypatch.setattr(_cpu.sys, "platform", platform_name)
+        with pd.option_context("mode.max_threads", 3):
+            assert get_max_threads() == 3

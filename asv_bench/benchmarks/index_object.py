@@ -138,6 +138,34 @@ class SetDisjoint:
         self.datetime_left.difference(self.datetime_right)
 
 
+class LargeMonotonicJoin:
+    # large enough for the sorted-join kernels to run on several threads
+    params = (
+        ["int", "datetime", "ea_int"],
+        ["inner", "outer", "left", "union", "intersection"],
+    )
+    param_names = ["dtype", "method"]
+
+    def setup(self, dtype, method):
+        N = 10**6
+        rng = np.random.default_rng(0)
+        left = np.unique(rng.integers(0, 2 * N, N))
+        right = np.unique(rng.integers(0, 2 * N, N))
+        if dtype == "datetime":
+            self.left, self.right = DatetimeIndex(left), DatetimeIndex(right)
+        elif dtype == "ea_int":
+            self.left = Index(left, dtype="Int64")
+            self.right = Index(right, dtype="Int64")
+        else:
+            self.left, self.right = Index(left), Index(right)
+
+    def time_operation(self, dtype, method):
+        if method in ["union", "intersection"]:
+            getattr(self.left, method)(self.right)
+        else:
+            self.left.join(self.right, how=method, return_indexers=True)
+
+
 class UnionWithDuplicates:
     def setup(self):
         self.left = Index(np.repeat(np.arange(1000), 100))

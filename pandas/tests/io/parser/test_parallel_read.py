@@ -26,7 +26,10 @@ import numpy as np
 import pytest
 
 from pandas._libs import parsers as _parsers
-from pandas.compat import WASM
+from pandas.compat import (
+    WASM,
+    _cpu,
+)
 from pandas.errors import (
     EmptyDataError,
     ParserError,
@@ -43,7 +46,6 @@ from pandas.io.parsers import readers as _readers
 from pandas.io.parsers.base_parser import ParserBase
 from pandas.io.parsers.readers import (
     _can_parallelize_csv,
-    _default_n_workers,
     _find_chunk_byte_offsets,
     _find_data_start_offset,
     _read_csv_parallel,
@@ -841,8 +843,8 @@ def test_parallel_on_by_default(tmp_path, monkeypatch, platform_name):
     # Pin the default so the test does not depend on the host's actual core
     # count, or on how many CPUs a container/affinity mask leaves the runner --
     # one usable CPU would make the default serial everywhere.
-    monkeypatch.setattr(_readers.os, "cpu_count", lambda: 4)
-    monkeypatch.setattr(_readers, "available_cpu_count", lambda: None)
+    monkeypatch.setattr(_cpu.os, "cpu_count", lambda: 4)
+    monkeypatch.setattr(_cpu, "available_cpu_count", lambda: None)
 
     # Stub the parallel reader so this exercises only the platform-gating
     # decision.  Calling the real one would start threads, which fails on
@@ -854,7 +856,7 @@ def test_parallel_on_by_default(tmp_path, monkeypatch, platform_name):
         return pd.DataFrame()
 
     monkeypatch.setattr(_readers, "_read_csv_parallel", stub)
-    monkeypatch.setattr(_readers.sys, "platform", platform_name)
+    monkeypatch.setattr(_cpu.sys, "platform", platform_name)
 
     pd.read_csv(path)
     assert len(calls) == 1
@@ -865,8 +867,8 @@ def test_parallel_default_off_on_wasm(tmp_path, monkeypatch):
     path = tmp_path / "big.csv"
     _make_large_csv(path)
     monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
-    monkeypatch.setattr(_readers.os, "cpu_count", lambda: 4)
-    monkeypatch.setattr(_readers, "available_cpu_count", lambda: None)
+    monkeypatch.setattr(_cpu.os, "cpu_count", lambda: 4)
+    monkeypatch.setattr(_cpu, "available_cpu_count", lambda: None)
 
     calls = []
 
@@ -875,7 +877,7 @@ def test_parallel_default_off_on_wasm(tmp_path, monkeypatch):
         return pd.DataFrame()
 
     monkeypatch.setattr(_readers, "_read_csv_parallel", stub)
-    monkeypatch.setattr(_readers.sys, "platform", "emscripten")
+    monkeypatch.setattr(_cpu.sys, "platform", "emscripten")
 
     pd.read_csv(path)
     assert calls == []
@@ -886,12 +888,12 @@ def test_parallel_default_thread_cap(tmp_path, monkeypatch):
     path = tmp_path / "big.csv"
     _make_large_csv(path)
     monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
-    monkeypatch.setattr(_readers.sys, "platform", "linux")
+    monkeypatch.setattr(_cpu.sys, "platform", "linux")
     # More cores than the cap: the default should clamp down to 6.
-    monkeypatch.setattr(_readers.os, "cpu_count", lambda: 16)
+    monkeypatch.setattr(_cpu.os, "cpu_count", lambda: 16)
     # Otherwise a CI runner with fewer than 6 usable CPUs clamps below the cap
     # and this test measures the runner, not the cap.
-    monkeypatch.setattr(_readers, "available_cpu_count", lambda: None)
+    monkeypatch.setattr(_cpu, "available_cpu_count", lambda: None)
 
     workers = []
 
@@ -909,61 +911,6 @@ def test_parallel_default_thread_cap(tmp_path, monkeypatch):
     with pd.option_context("mode.max_threads", 8):
         pd.read_csv(path)
     assert workers == [8]
-
-
-# ---------------------------------------------------------------------------
-# _default_n_workers
-# ---------------------------------------------------------------------------
-
-
-class TestDefaultNWorkers:
-    """Unit tests for the default worker count."""
-
-    @pytest.mark.parametrize("platform_name", ["linux", "darwin", "win32"])
-    @pytest.mark.parametrize(
-        "cpu_count, available, expected",
-        [
-            (2, None, 2),  # unconstrained, below the cap -> logical CPU count
-            (16, None, 6),  # cap binds
-            (16, 1, 1),  # single-CPU container
-            (16, 2, 2),  # cgroup/affinity tighter than the cap
-            (16, 8, 6),  # allocation looser than the cap -> cap still binds
-            (2, 8, 2),  # allocation looser than the machine
-        ],
-    )
-    def test_combines_cap_and_allocation(
-        self, monkeypatch, cpu_count, available, expected, platform_name
-    ):
-        # Default = min(logical CPUs, available CPUs, _MAX_DEFAULT_WORKERS),
-        # on every threaded platform.
-        assert _readers._MAX_DEFAULT_WORKERS == 6
-        monkeypatch.setattr(_readers.sys, "platform", platform_name)
-        monkeypatch.setattr(_readers.os, "cpu_count", lambda: cpu_count)
-        monkeypatch.setattr(_readers, "available_cpu_count", lambda: available)
-        with pd.option_context("mode.max_threads", None):
-            assert _default_n_workers() == expected
-
-    def test_wasm_is_serial(self, monkeypatch):
-        monkeypatch.setattr(_readers.sys, "platform", "emscripten")
-        # WASM stays serial even if a worker count is requested explicitly.
-        with pd.option_context("mode.max_threads", 8):
-            assert _default_n_workers() == 1
-
-    def test_max_threads_exceeds_cap(self, monkeypatch):
-        # _MAX_DEFAULT_WORKERS and the availability clamp bound the *default*
-        # only.  The mode.max_threads docs promise an explicit setting still
-        # wins.
-        monkeypatch.setattr(_readers.sys, "platform", "linux")
-        monkeypatch.setattr(_readers.os, "cpu_count", lambda: 2)
-        monkeypatch.setattr(_readers, "available_cpu_count", lambda: 1)
-        with pd.option_context("mode.max_threads", 32):
-            assert _default_n_workers() == 32
-
-    @pytest.mark.parametrize("platform_name", ["linux", "win32"])
-    def test_max_threads_wins(self, monkeypatch, platform_name):
-        monkeypatch.setattr(_readers.sys, "platform", platform_name)
-        with pd.option_context("mode.max_threads", 3):
-            assert _default_n_workers() == 3
 
 
 # ---------------------------------------------------------------------------

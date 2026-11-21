@@ -1,16 +1,25 @@
 """
 Detection of the CPU allocation actually available to this process.
 
-Used to bound the default worker count for parallel I/O, so that a default
-:func:`~pandas.read_csv` does not oversubscribe a machine on which the process
-has been given only a slice of the CPUs -- a CPU affinity mask, or a cgroup CPU
-quota as set by ``docker --cpus`` and Kubernetes CPU limits.
+Used to bound the default worker count for parallel operations (such as
+:func:`~pandas.read_csv` and sorted joins), so that they do not oversubscribe a
+machine on which the process has been given only a slice of the CPUs -- a CPU
+affinity mask, or a cgroup CPU quota as set by ``docker --cpus`` and Kubernetes
+CPU limits.
 """
 
 from __future__ import annotations
 
 import functools
 import os
+import sys
+
+from pandas._config import get_option
+
+# Ceiling on the *default* worker count: the parallel paths see diminishing
+# returns beyond a handful of threads, and a low default avoids oversubscribing
+# the machine.  mode.max_threads overrides it in either direction.
+MAX_DEFAULT_THREADS = 6
 
 
 def _read_sysfs_int(path: str) -> int | None:
@@ -24,8 +33,8 @@ def _read_sysfs_int(path: str) -> int | None:
 def _read_sysfs_str(path: str) -> str | None:
     # ValueError as well as OSError, matching _read_sysfs_int: a non-UTF-8 byte
     # raises UnicodeDecodeError, and this feeds available_cpu_count(), which
-    # _default_n_workers calls unguarded -- so it would surface out of read_csv
-    # rather than falling back.
+    # get_max_threads calls unguarded -- so it would surface out of read_csv
+    # or a join rather than falling back.
     try:
         with open(path, encoding="utf-8") as fh:
             return fh.read().strip()
@@ -80,7 +89,7 @@ def available_cpu_count() -> int | None:
     Windows.  macOS exposes no affinity mask at all; Windows does (via
     ``GetProcessAffinityMask`` and job-object rate limits) but it is not
     implemented here, so a restricted Windows process falls back to the
-    logical CPU count clamped by ``_MAX_DEFAULT_WORKERS``.
+    logical CPU count clamped by ``MAX_DEFAULT_THREADS``.
     On Linux ``sched_getaffinity`` always succeeds, so an unconstrained box
     reports its full logical CPU count rather than ``None``.
 
@@ -99,3 +108,29 @@ def available_cpu_count() -> int | None:
     if quota is not None:
         limits.append(max(1, int(quota)))
     return min(limits) if limits else None
+
+
+def get_max_threads() -> int:
+    """
+    Number of worker threads a parallel operation may use.
+
+    ``mode.max_threads`` wins whenever it is set (except on Emscripten, which
+    cannot spawn threads at all).  Otherwise it is the smallest of the machine's
+    logical CPU count, ``MAX_DEFAULT_THREADS``, and the CPUs actually available
+    to the process (CPU affinity / cgroup limits) -- so that an embedded or
+    containerised pandas does not oversubscribe its allocation.
+    """
+    max_threads = get_option("mode.max_threads")
+    if sys.platform == "emscripten":
+        # WASM cannot spawn threads, regardless of mode.max_threads.
+        return 1
+    if max_threads is not None:
+        return max_threads
+    n_threads = min(os.cpu_count() or 1, MAX_DEFAULT_THREADS)
+    # os.cpu_count() counts the machine's CPUs, not the ones this process may
+    # use, so it alone would put MAX_DEFAULT_THREADS threads on a single-CPU
+    # container.
+    available = available_cpu_count()
+    if available is not None:
+        n_threads = min(n_threads, available)
+    return n_threads
