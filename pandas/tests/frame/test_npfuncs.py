@@ -12,8 +12,8 @@ class TestAsArray:
     def test_asarray_homogeneous(self):
         df = pd.DataFrame({"A": pd.Categorical([1, 2]), "B": pd.Categorical([1, 2])})
         result = np.asarray(df)
-        # may change from object in the future
-        expected = np.array([[1, 1], [2, 2]], dtype="object")
+        # GH#22791 the categories' dtype, as for a single column
+        expected = np.array([[1, 1], [2, 2]], dtype="int64")
         tm.assert_numpy_array_equal(result, expected)
 
     def test_np_sqrt(self, float_frame):

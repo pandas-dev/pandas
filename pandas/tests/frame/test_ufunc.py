@@ -200,6 +200,18 @@ def test_binary_input_aligns_index(request, dtype):
     tm.assert_frame_equal(result, expected)
 
 
+def test_binary_input_differing_extension_dtypes():
+    # GH#22791 values that collide as float64 keep their identity
+    df = pd.DataFrame(
+        {
+            "a": pd.array([2**60 + 1, 1], dtype="Int64"),
+            "b": pd.array([1, 2], dtype="Int32"),
+        }
+    )
+    result = np.maximum(df, df)
+    tm.assert_frame_equal(result, df.astype(object))
+
+
 def test_binary_input_aligns_duplicate_labels():
     # GH#54416
     df1 = pd.DataFrame([[1.0, 2.0], [3.0, 4.0]], columns=["A", "B"], index=[0, 0])

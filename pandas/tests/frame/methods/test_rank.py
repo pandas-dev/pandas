@@ -213,6 +213,14 @@ class TestRank:
         tm.assert_frame_equal(df.rank(axis=0), df.rank(axis="index"))
         tm.assert_frame_equal(df.rank(axis=1), df.rank(axis="columns"))
 
+    def test_rank_axis1_extension_big_ints(self):
+        # GH#22791 values that collide as float64 keep their identity
+        arr = pd.array([2**60 + 1, 2**60, None], dtype="Int64")
+        df = pd.DataFrame({"a": arr, "b": arr[[1, 0, 2]]})
+        result = df.rank(axis=1)
+        expected = pd.DataFrame({"a": [2.0, 1.0, np.nan], "b": [1.0, 2.0, np.nan]})
+        tm.assert_frame_equal(result, expected)
+
     @pytest.mark.parametrize("ax", [0, 1])
     def test_rank_methods_frame(self, ax, rank_method):
         sp_stats = pytest.importorskip("scipy.stats")

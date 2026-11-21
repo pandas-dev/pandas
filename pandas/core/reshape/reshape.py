@@ -739,8 +739,7 @@ def stack(
 
     new_values: ArrayLike
     if not frame.empty and frame._is_homogeneous_type:
-        # For homogeneous EAs, frame._values will coerce to object. So
-        # we concatenate instead.
+        # frame._values would lose the extension dtype, so concatenate instead
         dtypes = list(frame.dtypes._values)
         dtype = dtypes[0]
 
@@ -756,7 +755,7 @@ def stack(
 
     else:
         # non-homogeneous
-        new_values = frame._values.ravel()
+        new_values = frame._values_ea_as_object.ravel()
 
     if dropna:
         mask = notna(new_values)
@@ -1023,7 +1022,7 @@ def stack_v3(frame: DataFrame, level: list[int]) -> Series | DataFrame:
         else:
             dtype = None
         result = frame._constructor_sliced(
-            frame._values.reshape(-1, order="F"), dtype=dtype
+            frame._values_ea_as_object.reshape(-1, order="F"), dtype=dtype
         )
     else:
         result = stack_reshape(frame, level, set_levels, stack_cols)

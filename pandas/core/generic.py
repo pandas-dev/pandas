@@ -2017,7 +2017,20 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             raise ValueError(
                 "Unable to avoid copy while creating an array as requested."
             )
-        values = self._values
+        if (
+            dtype is not None
+            and not self._mgr.is_single_block
+            and any(blk.is_extension for blk in self._mgr.blocks)
+        ):
+            # GH#22791 casting the default result would lose NAs and precision
+            np_dtype = np.dtype(dtype)
+            if np_dtype.kind in "US":
+                # cast from object instead; datetime64 columns raise on a
+                # too-short sized string
+                np_dtype = np.dtype(object)
+            values = self._mgr.as_array(dtype=np_dtype)  # type: ignore[union-attr]
+        else:
+            values = self._values
         if copy is None:
             # Note: branch avoids `copy=None` for NumPy 1.x support
             arr = np.asarray(values, dtype=dtype)
@@ -10014,7 +10027,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         else:
             # axis=1 needs all of a row's entries in one dtype, so it cannot go
             #  block by block
-            values = data.values if data.ndim == 2 else data._values
+            values: ArrayLike
+            if data.ndim == 2:
+                values = np.asarray(data._values_ea_as_object)
+            else:
+                values = data._values
             ranks_obj = self._constructor(
                 rank_values(values, axis_int), **data._construct_axes_dict()
             )

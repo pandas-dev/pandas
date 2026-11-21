@@ -1337,7 +1337,8 @@ class FrameApply(NDFrameApply):
     def apply_broadcast(self, target: DataFrame) -> DataFrame:
         assert callable(self.func)
 
-        result_values = np.empty_like(target.values)
+        # GH#22791 the columns' NumPy dtype may not hold extension results
+        result_values = np.empty_like(target._values_ea_as_object)
 
         # axis which we want to compare compliance
         result_compare = target.shape[0]

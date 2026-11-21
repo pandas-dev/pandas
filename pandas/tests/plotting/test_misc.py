@@ -124,6 +124,22 @@ def test_table_labels(frame_or_series, kwargs, expected_rows, expected_columns):
     assert columns == expected_columns
 
 
+def test_table_differing_extension_dtypes():
+    # GH#22791 cells show the values as the DataFrame repr does
+    df = pd.DataFrame(
+        {
+            "a": pd.array([2**60 + 1, None], dtype="Int64"),
+            "b": pd.array([1, 2], dtype="Int32"),
+        }
+    )
+    _, ax = plt.subplots()
+
+    result = pd.plotting.table(ax, df)
+
+    cells = [[result[i, j].get_text().get_text() for j in range(2)] for i in (1, 2)]
+    assert cells == [["1152921504606846977", "1"], ["<NA>", "2"]]
+
+
 class TestSeriesPlots:
     def test_autocorrelation_plot(self):
         ser = pd.Series(

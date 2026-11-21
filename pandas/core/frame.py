@@ -904,6 +904,18 @@ class DataFrame(NDFrame, OpsMixin):
         arr = cast("np.ndarray | DatetimeArray | TimedeltaArray | PeriodArray", arr)
         return arr.T
 
+    @property
+    def _values_ea_as_object(
+        self,
+    ) -> np.ndarray | DatetimeArray | TimedeltaArray | PeriodArray:
+        """
+        ``_values``, but object dtype where ``_values`` would interleave several
+        columns via their own ``to_numpy``, which can lose NAs and precision.
+        """
+        if self._mgr._interleaves_by_column():
+            return self._mgr.as_array(dtype=np.dtype(object))
+        return self._values
+
     # ----------------------------------------------------------------------
     # Rendering Methods
 
@@ -1563,11 +1575,14 @@ class DataFrame(NDFrame, OpsMixin):
 
             left = self.reindex(columns=common)
             right = other.reindex(index=common)
-            lvals = left.values
-            rvals = right._values
+            lvals = np.asarray(left._values_ea_as_object)
+            if isinstance(right, DataFrame):
+                rvals = right._values_ea_as_object
+            else:
+                rvals = right._values
         else:
             left = self
-            lvals = self.values
+            lvals = np.asarray(self._values_ea_as_object)
             rvals = np.asarray(other)
             if lvals.shape[1] != rvals.shape[0]:
                 raise ValueError(
@@ -4193,7 +4208,7 @@ class DataFrame(NDFrame, OpsMixin):
             else:
                 # We have other EAs with the same dtype. We preserve dtype in transpose.
                 arr_typ = first_dtype.construct_array_type()
-                values = self.values
+                values = self._values_ea_as_object
                 new_values = [
                     arr_typ._from_sequence(row, dtype=first_dtype) for row in values
                 ]
@@ -4206,7 +4221,7 @@ class DataFrame(NDFrame, OpsMixin):
             )
 
         else:
-            new_arr = self.values.T
+            new_arr = np.asarray(self._values_ea_as_object).T
             result = self._constructor(
                 new_arr,
                 index=self.columns,

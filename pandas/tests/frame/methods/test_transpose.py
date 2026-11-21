@@ -89,6 +89,36 @@ class TestTranspose:
         expected.index = ["A", "B"]
         tm.assert_frame_equal(result, expected)
 
+    def test_transpose_categorical_big_ints_with_nan(self):
+        # GH#22791 categories that collide as float64 keep their identity
+        cat = pd.Categorical([2**60 + 1, 2**60, None])
+        df = pd.DataFrame({"a": cat, "b": cat})
+        result = df.T
+        expected = pd.DataFrame(
+            {
+                i: pd.Categorical([val, val], dtype=cat.dtype)
+                for i, val in enumerate(cat)
+            },
+            index=["a", "b"],
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_transpose_differing_extension_dtypes(self):
+        # GH#22791 values that collide as float64 keep their identity
+        df = pd.DataFrame(
+            {
+                "a": pd.array([2**60 + 1, None], dtype="Int64"),
+                "b": pd.array([1, 2], dtype="Int32"),
+            }
+        )
+        expected = pd.DataFrame(
+            [[2**60 + 1, pd.NA], [1, 2]], index=["a", "b"], dtype=object
+        )
+        tm.assert_frame_equal(df.T, expected)
+        # methods that transpose internally
+        tm.assert_frame_equal(df.ffill(axis=1), df.astype(object))
+        tm.assert_series_equal(df.unstack(), df.astype(object).unstack())
+
     def test_transpose_float(self, float_frame):
         frame = float_frame
         dft = frame.T
@@ -182,6 +212,6 @@ class TestTranspose:
         )
         result = df.T
         for blk in result._mgr.blocks:
-            # When dtypes are unequal, we get NumPy object array
+            # When dtypes are unequal, we get a NumPy object array
             data = blk.values._data if dtype1 == dtype2 else blk.values
             assert data.flags["F_CONTIGUOUS"]

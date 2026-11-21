@@ -166,3 +166,23 @@ def test_arrow_dtype_series(dtype, exp_dtype):
     expected = pd.Series([1, 2], dtype=exp_dtype)
 
     tm.assert_series_equal(result, expected)
+
+
+def test_dot_differing_extension_dtypes():
+    # GH#22791 values that collide as float64 keep their identity
+    df = pd.DataFrame(
+        {
+            "a": pd.array([2**60 + 1, 1, 1], dtype="Int64"),
+            "b": pd.array([1, None, 2], dtype="Int32"),
+        }
+    )
+    ones = pd.Series([1, 1], index=["a", "b"])
+    expected = pd.Series([2**60 + 2, pd.NA, 3], dtype="Int64")
+    tm.assert_series_equal(df.dot(ones), expected)
+
+    result = pd.Series([1, 1, 1]).dot(df)
+    expected = pd.Series([2**60 + 3, pd.NA], index=["a", "b"], dtype="Int64")
+    tm.assert_series_equal(result, expected)
+
+    result = pd.DataFrame([[1, 1, 1]]).dot(df)
+    tm.assert_frame_equal(result, expected.to_frame().T)
