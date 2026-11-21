@@ -1276,7 +1276,7 @@ def test_groupby_keys_same_size_as_index():
     )
     df = pd.DataFrame([["A", 10], ["B", 15]], columns=["metric", "values"], index=index)
     result = df.groupby([pd.Grouper(level=0, freq=freq), "metric"]).mean()
-    expected = df.set_index([df.index, "metric"]).astype(float)
+    expected = df.set_index("metric", append=True).astype(float)
 
     tm.assert_frame_equal(result, expected)
 
@@ -2761,8 +2761,8 @@ def test_groupby_method_drop_na(method):
         result = getattr(df.groupby("A"), method)()
 
     if method in ["first", "last"]:
-        expected = pd.DataFrame({"B": [0, 2, 4]}).set_index(
-            pd.Series(["a", "b", "c"], name="A")
+        expected = pd.DataFrame({"B": [0, 2, 4]}).set_axis(
+            pd.Index(["a", "b", "c"], name="A")
         )
     else:
         expected = pd.DataFrame(

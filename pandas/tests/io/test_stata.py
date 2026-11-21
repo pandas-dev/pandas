@@ -1043,10 +1043,7 @@ class TestStata:
             exp_object.to_stata(path, convert_dates=date_conversion)
         written_and_read_again = self.read_dta(path)
 
-        tm.assert_frame_equal(
-            written_and_read_again.set_index("index"),
-            expected.set_index(expected.index.astype(np.int32)),
-        )
+        tm.assert_frame_equal(written_and_read_again.set_index("index"), expected)
 
     def test_dtype_conversion(self, datapath):
         expected = self.read_csv(datapath("io", "data", "stata", "stata6.csv"))
