@@ -11,6 +11,44 @@ import pandas as pd
 import pandas._testing as tm
 
 
+@pytest.mark.parametrize("year", [1600, 2000, 2400])
+@pytest.mark.parametrize("unit", ["s", "ms", "us"])
+@pytest.mark.parametrize("tz", [None, "UTC", "UTC+01:00"])
+def test_partial_slice_non_nanosecond_range(year, unit, tz):
+    # GH#56940 string bounds must not require nanosecond timestamps.
+    dates = np.arange(
+        f"{year - 11}-01", f"{year + 90}-01", dtype="datetime64[M]"
+    ).astype(f"datetime64[{unit}]")
+    index = pd.DatetimeIndex(dates).tz_localize(tz)
+    start, stop = f"{year}-01-01", f"{year + 20}-01-01"
+
+    result = index.slice_indexer(start, stop)
+
+    assert result == slice(132, 373)
+    assert index.get_loc(str(year)) == slice(132, 144)
+    frame = pd.DataFrame({"a": np.arange(len(index)), "b": 1.5}, index=index)
+    tm.assert_frame_equal(frame.loc[start:stop], frame.iloc[132:373])
+
+
+@pytest.mark.parametrize(
+    "year,unit",
+    [(year, unit) for year in [1650, 1969, 2000] for unit in ["s", "ms", "us"]]
+    + [(1969, "ns"), (2000, "ns")],
+)
+@pytest.mark.parametrize("tz", [None, "UTC", "UTC+01:00"])
+def test_partial_slice_retains_last_tick(year, unit, tz):
+    # Include the last tick, but exclude midnight and the next tick of the next day.
+    index = pd.date_range(
+        f"{year}-01-02", periods=3, freq=pd.Timedelta(1, unit=unit), unit=unit, tz=tz
+    )
+    index = index - pd.Timedelta(1, unit=unit)
+    series = pd.Series(range(3), index=index)
+
+    result = series.loc[f"{year}-01-01" : f"{year}-01-01"]
+
+    tm.assert_series_equal(result, series.iloc[:1])
+
+
 class TestSlicing:
     def test_string_index_series_name_converted(self):
         # GH#1644
