@@ -39,6 +39,7 @@ from pandas.core.api import (
 from pandas.io.sql.base import (
     PandasSQL,
     SQLTable,
+    timedelta_write_unit,
     wrap_result,
 )
 
@@ -182,8 +183,9 @@ class DBAPI2Table(SQLTable):
 
         if col_type == "timedelta64":
             warnings.warn(
-                "the 'timedelta' type is not supported, and will be "
-                "written as integer values (ns frequency) to the database.",
+                "the 'timedelta' type is not supported, and will be written as "
+                f"integer values ({timedelta_write_unit(col)} frequency) to the "
+                "database.",
                 UserWarning,
                 stacklevel=find_stack_level(),
             )
