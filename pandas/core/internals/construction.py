@@ -1146,7 +1146,12 @@ def convert_object_array(
                         convert_to_nullable_dtype=convert_to_nullable_dtype,
                         dtype_if_all_nat=np.dtype("M8[s]"),
                     )
-                    if convert_to_nullable_dtype and arr.dtype == np.dtype("O"):
+                    if (
+                        convert_to_nullable_dtype
+                        and arr.dtype == np.dtype("O")
+                        # GH#59242 leave bytes, dicts etc. as object
+                        and lib.is_string_array(arr, skipna=True)
+                    ):
                         new_dtype = StringDtype()
                         arr_cls = new_dtype.construct_array_type()
                         arr = arr_cls._from_sequence(arr, dtype=new_dtype)
