@@ -1421,6 +1421,19 @@ def test_apply_str_with_args(df, args, kwargs):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("func", [["sum"], {"C": "sum"}])
+@pytest.mark.parametrize("args", [(), (1,)])
+@pytest.mark.parametrize("select", [None, "C"])
+def test_apply_non_callable_raises(df, func, args, select):
+    # GH#17309
+    gb = df.groupby("A")
+    if select is not None:
+        gb = gb[select]
+    msg = "apply func should be callable.*pass a list to agg or transform"
+    with pytest.raises(TypeError, match=msg):
+        gb.apply(func, *args)
+
+
 @pytest.mark.parametrize("name", ["some_name", None])
 def test_result_name_when_one_group(name):
     # GH 46369
