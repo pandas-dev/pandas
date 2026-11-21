@@ -20,6 +20,11 @@ import pandas._testing as tm
 skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
 
 
+class _UnseekableStringIO(StringIO):
+    def seekable(self) -> bool:
+        return False
+
+
 @pytest.mark.parametrize("index_col", [0, "index"])
 def test_read_chunksize_with_index(all_parsers, index_col):
     parser = all_parsers
@@ -253,6 +258,7 @@ def test_warn_if_chunks_have_mismatched_type(
 
     # see gh-3866: if chunks are different types and can't
     # be coerced using numerical types, then issue warning.
+    # GH#68706: only a source that cannot be re-read still warns.
     if parser.engine == "c" and parser.low_memory:
         warning_type = DtypeWarning
         # Use a size to hit warning path dictated by DEFAULT_BUFFER_HEURISTIC
@@ -262,7 +268,7 @@ def test_warn_if_chunks_have_mismatched_type(
     integers = [str(i) for i in range(size)]
     data = "a\n" + "\n".join([*integers, "a", "b", *integers])
 
-    buf = StringIO(data)
+    buf = _UnseekableStringIO(data)
 
     if parser.engine == "pyarrow":
         df = parser.read_csv(
