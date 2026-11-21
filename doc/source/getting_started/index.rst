@@ -22,11 +22,11 @@ Installation
 
         pandas can be installed via conda from `conda-forge <https://anaconda.org/conda-forge/pandas>`__.
 
-        ++++++++++++++++++++++
+        .. card-footer::
 
-        .. code-block:: bash
+            .. code-block:: bash
 
-            conda install -c conda-forge pandas
+                conda install -c conda-forge pandas
 
     .. grid-item-card:: Prefer pip?
         :class-card: install-card
@@ -35,11 +35,11 @@ Installation
 
         pandas can be installed via pip from `PyPI <https://pypi.org/project/pandas>`__.
 
-        ++++
+        .. card-footer::
 
-        .. code-block:: bash
+            .. code-block:: bash
 
-            pip install pandas
+                pip install pandas
 
     .. grid-item-card:: In-depth instructions?
         :class-card: install-card
@@ -49,15 +49,15 @@ Installation
         Installing a specific version? Installing from source? Check the advanced
         installation page.
 
-        +++
+        .. card-footer::
 
-        .. button-ref:: install
-            :ref-type: ref
-            :click-parent:
-            :color: secondary
-            :expand:
+            .. button-ref:: install
+                :ref-type: ref
+                :click-parent:
+                :color: secondary
+                :expand:
 
-            Learn more
+                Learn more
 
 
 .. _gentle_intro:
@@ -557,15 +557,15 @@ the pandas-equivalent operations compared to software you already know:
         `tidyverse <https://www.tidyverse.org>`__ which use and extend ``data.frame``
         for convenient data handling functionalities similar to pandas.
 
-        +++
+        .. card-footer::
 
-        .. button-ref:: compare_with_r
-            :ref-type: ref
-            :click-parent:
-            :color: secondary
-            :expand:
+            .. button-ref:: compare_with_r
+                :ref-type: ref
+                :click-parent:
+                :color: secondary
+                :expand:
 
-            Learn more
+                Learn more
 
     .. grid-item-card::
         :img-top: ../_static/logo_sql.svg
@@ -576,15 +576,15 @@ the pandas-equivalent operations compared to software you already know:
         Already familiar with ``SELECT``, ``GROUP BY``, ``JOIN``, etc.?
         Many SQL manipulations have equivalents in pandas.
 
-        +++
+        .. card-footer::
 
-        .. button-ref:: compare_with_sql
-            :ref-type: ref
-            :click-parent:
-            :color: secondary
-            :expand:
+            .. button-ref:: compare_with_sql
+                :ref-type: ref
+                :click-parent:
+                :color: secondary
+                :expand:
 
-            Learn more
+                Learn more
 
     .. grid-item-card::
         :img-top: ../_static/logo_stata.svg
@@ -596,15 +596,15 @@ the pandas-equivalent operations compared to software you already know:
         statistical software suite corresponds to the pandas ``DataFrame``.
         Many of the operations known from STATA have an equivalent in pandas.
 
-        +++
+        .. card-footer::
 
-        .. button-ref:: compare_with_stata
-            :ref-type: ref
-            :click-parent:
-            :color: secondary
-            :expand:
+            .. button-ref:: compare_with_stata
+                :ref-type: ref
+                :click-parent:
+                :color: secondary
+                :expand:
 
-            Learn more
+                Learn more
 
     .. grid-item-card::
         :img-top: ../_static/spreadsheets/logo_excel.svg
@@ -616,15 +616,15 @@ the pandas-equivalent operations compared to software you already know:
         or other spreadsheet programs will find that many of the concepts are
         transferable to pandas.
 
-        +++
+        .. card-footer::
 
-        .. button-ref:: compare_with_spreadsheets
-            :ref-type: ref
-            :click-parent:
-            :color: secondary
-            :expand:
+            .. button-ref:: compare_with_spreadsheets
+                :ref-type: ref
+                :click-parent:
+                :color: secondary
+                :expand:
 
-            Learn more
+                Learn more
 
     .. grid-item-card::
         :img-top: ../_static/logo_sas.svg
@@ -637,15 +637,15 @@ the pandas-equivalent operations compared to software you already know:
         Also SAS vectorized operations such as filtering or string processing operations
         have similar functions in pandas.
 
-        +++
+        .. card-footer::
 
-        .. button-ref:: compare_with_sas
-            :ref-type: ref
-            :click-parent:
-            :color: secondary
-            :expand:
+            .. button-ref:: compare_with_sas
+                :ref-type: ref
+                :click-parent:
+                :color: secondary
+                :expand:
 
-            Learn more
+                Learn more
 
 Tutorials
 ---------

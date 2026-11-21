@@ -10,6 +10,7 @@ import functools
 from itertools import zip_longest
 import operator
 import os
+import reprlib
 import sys
 from typing import (
     TYPE_CHECKING,
@@ -987,6 +988,12 @@ class Index(IndexOpsMixin, PandasObject):
     def __array_ufunc__(
         self, ufunc: np.ufunc, method: str_t, *inputs: Any, **kwargs: Any
     ) -> Any:
+        result = arraylike.dispatch_where_only_ufunc(
+            self, ufunc, method, *inputs, **kwargs
+        )
+        if result is not NotImplemented:
+            return result
+
         if any(isinstance(other, (ABCSeries, ABCDataFrame)) for other in inputs):
             return NotImplemented
 
@@ -1499,6 +1506,7 @@ class Index(IndexOpsMixin, PandasObject):
     # Rendering Methods
 
     @final
+    @reprlib.recursive_repr("...")  # GH#25833
     def __repr__(self) -> str_t:
         """
         Return a string representation for this object.
@@ -3536,8 +3544,21 @@ class Index(IndexOpsMixin, PandasObject):
                 # non-comparable; should only be for object dtype
                 pass
             else:
+                res: ArrayLike
+                values = self._values
+                if isinstance(values, ArrowExtensionArray) and isinstance(
+                    res_indexer, ArrowExtensionArray
+                ):
+                    # merge output is sorted, so duplicates are adjacent
+                    if is_numeric_dtype(self.dtype):
+                        taken = res_indexer
+                    else:
+                        # the join target is lossy for time64[ns]
+                        taken = values.take(indexer)
+                    fast = taken._unique_by_run_ends()
+                    res = taken.unique() if fast is None else fast
                 # TODO: algos.unique1d should preserve DTA/TDA
-                if is_numeric_dtype(self.dtype):
+                elif is_numeric_dtype(self.dtype):
                     # This is faster, because Index.unique() checks for uniqueness
                     # before calculating the unique values.
                     res = algos.unique1d(res_indexer)

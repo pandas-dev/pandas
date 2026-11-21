@@ -1110,6 +1110,37 @@ class TestDataFrameGroupByPlots:
         assert get_y_axis(ax1).joined(ax1, ax2)
         assert get_y_axis(ax2).joined(ax1, ax2)
 
+    @pytest.mark.parametrize("dtype", [object, "str", "category"])
+    @pytest.mark.parametrize("method", ["frame", "series"])
+    def test_hist_by_sharex_non_numeric(self, dtype, method):
+        # GH#30126 the groups see the categories in different orders; each
+        # group's bars must still line up with the shared tick labels
+        df = pd.DataFrame(
+            {
+                "gender": ["F", "F", "F", "M", "M", "M", "M"],
+                "degree": pd.Series(["Y", "Y", "N", "N", "Y", "Y", "Y"], dtype=dtype),
+            }
+        )
+        if method == "frame":
+            axes = df.hist("degree", by="gender", sharex=True)
+        else:
+            axes = df["degree"].hist(by=df["gender"], sharex=True)
+        axes = axes.ravel()
+        axes[0].figure.canvas.draw()
+
+        result = {}
+        for ax in axes:
+            labels = [label.get_text() for label in ax.get_xticklabels()]
+            tick_labels = dict(zip(ax.get_xticks(), labels, strict=True))
+            result[ax.get_title()] = {
+                tick_labels[round(patch.get_x() + patch.get_width() / 2)]: (
+                    patch.get_height()
+                )
+                for patch in ax.patches
+                if patch.get_height() > 0
+            }
+        assert result == {"F": {"Y": 2, "N": 1}, "M": {"Y": 3, "N": 1}}
+
     @pytest.mark.parametrize(
         "histtype, expected",
         [
