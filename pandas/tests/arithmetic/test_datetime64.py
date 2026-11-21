@@ -1391,7 +1391,7 @@ class TestDatetime64DateOffsetArithmetic:
             "BusinessDay",
             "BDay",
             "QuarterEnd",
-            "QuarterBegin",
+            ("QuarterBegin", {"startingMonth": 3}),
             "CustomBusinessDay",
             "CDay",
             "CBMonthEnd",
@@ -1401,7 +1401,7 @@ class TestDatetime64DateOffsetArithmetic:
             "BusinessHour",
             "BYearBegin",
             "BYearEnd",
-            "BQuarterBegin",
+            ("BQuarterBegin", {"startingMonth": 3}),
             ("LastWeekOfMonth", {"weekday": 2}),
             (
                 "FY5253Quarter",
