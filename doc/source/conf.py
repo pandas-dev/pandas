@@ -796,7 +796,9 @@ class AccessorLevelDocumenter(Documenter):
             if not modname:
                 modname = self.env.temp_data.get("autodoc:module")
             if not modname:
-                if sphinx.__version__ > "1.3":
+                from packaging.version import Version
+
+            if Version(sphinx.__version__) > Version("1.3"):
                     modname = self.env.ref_context.get("py:module")
                 else:
                     modname = self.env.temp_data.get("py:module")
@@ -918,13 +920,11 @@ def linkcode_resolve(domain, info) -> str | None:
         return None
 
     try:
-        source, lineno = inspect.getsourcelines(obj)
-    except TypeError:
-        try:  # property
-            source, lineno = inspect.getsourcelines(obj.fget)
-        except (AttributeError, TypeError):
-            lineno = None
-    except OSError:
+    source, lineno = inspect.getsourcelines(obj)
+except (TypeError, OSError):
+    try:  # property
+        source, lineno = inspect.getsourcelines(obj.fget)
+    except (AttributeError, TypeError, OSError):
         lineno = None
 
     if lineno:
