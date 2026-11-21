@@ -2836,18 +2836,20 @@ class _iLocIndexer(_LocationIndexer):
                 # We get here in one case via .loc with an all-False mask
                 pass
 
-            elif len(ilocs) == len(value):
-                # We are setting multiple columns in a single row.
-                for loc, v in zip(ilocs, value, strict=True):
-                    self._setitem_single_column(loc, v, pi)
-
             elif len(ilocs) == 1 and com.is_null_slice(pi) and len(self.obj) == 0:
                 # This is a setitem-with-expansion, see
                 #  test_loc_setitem_empty_append_expands_rows_mixed_dtype
                 # e.g. df = DataFrame(columns=["x", "y"])
                 #  df["x"] = df["x"].astype(np.int64)
                 #  df.loc[:, "x"] = [1, 2, 3]
+                # Checked before the single-row case so a length-1 value
+                #  enlarges too, GH#56203
                 self._setitem_single_column(ilocs[0], value, pi)
+
+            elif len(ilocs) == len(value):
+                # We are setting multiple columns in a single row.
+                for loc, v in zip(ilocs, value, strict=True):
+                    self._setitem_single_column(loc, v, pi)
 
             else:
                 raise ValueError(
@@ -2975,6 +2977,16 @@ class _iLocIndexer(_LocationIndexer):
             return
 
         elif is_full_setter:
+            if (
+                self.obj.empty
+                and is_list_like(value)
+                and isinstance(value, abc.Sized)
+                and len(value)
+            ):
+                # Enlarge to fit the value, including length 1 which would
+                #  otherwise broadcast into zero rows, GH#56203
+                self.obj.isetitem(loc, value)
+                return
             try:
                 self.obj._mgr.column_setitem(
                     loc, plane_indexer, value, inplace_only=True
@@ -2993,8 +3005,8 @@ class _iLocIndexer(_LocationIndexer):
                     #       df = pd.DataFrame({'a': [1, 2]})
                     #       df.loc[:, 'b'] = .3
                     # - Exclude `object`, as then no upcasting happens.
-                    # - Exclude empty initial object with enlargement,
-                    #   as then there's nothing to be inconsistent with.
+                    # - Exclude an empty frame, as then there's nothing
+                    #   to be inconsistent with.
                     raise TypeError(
                         f"Invalid value '{value}' for dtype '{dtype}'"
                     ) from exc

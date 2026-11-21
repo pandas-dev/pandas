@@ -1318,6 +1318,42 @@ class TestLocBaseIndependent:
         df.loc[:, "x"] = data
         tm.assert_frame_equal(df, expected)
 
+    @pytest.mark.parametrize("dtype", [object, "int64", "Int64"])
+    @pytest.mark.parametrize("method, key", [("loc", "x"), ("iloc", 0)])
+    @pytest.mark.parametrize("box", [list, tuple, np.array, pd.Series])
+    def test_setitem_empty_append_expands_rows_length_one(
+        self, dtype, method, key, box
+    ):
+        # GH#56203 a length-1 value enlarges like a longer one would, instead of
+        #  being broadcast into zero rows
+        df = pd.DataFrame({"x": [], "y": []}, dtype=dtype)
+        getattr(df, method)[:, key] = box([7])
+
+        if dtype == "Int64":
+            x_dtype = dtype
+        elif box is np.array:
+            # platform default int, int32 on 32-bit
+            x_dtype = np.array([7]).dtype
+        else:
+            x_dtype = "int64"
+        expected = pd.DataFrame(
+            {
+                "x": pd.Series([7], dtype=x_dtype),
+                "y": pd.Series([], dtype=dtype).reindex([0]),
+            }
+        )
+        tm.assert_frame_equal(df, expected)
+
+    def test_loc_setitem_empty_frame_scalar_changes_dtype(self):
+        # an incompatible scalar on an empty frame swaps the column dtype like
+        #  __setitem__ instead of raising, since there is no data to upcast
+        df = pd.DataFrame({"x": [], "y": []}, dtype="int64")
+        df.loc[:, "x"] = "abc"
+
+        expected = pd.DataFrame({"x": [], "y": []}, dtype="int64")
+        expected["x"] = "abc"
+        tm.assert_frame_equal(df, expected)
+
     def test_loc_setitem_empty_append_single_value(self):
         # only appends one value
         expected = pd.DataFrame({"x": [1.0], "y": [np.nan]})
