@@ -219,6 +219,21 @@ def mean(
         return _reductions(np.mean, values=values, mask=mask, skipna=skipna, axis=axis)
 
 
+def _na_if_nobs_le_ddof(
+    result, mask: npt.NDArray[np.bool_], *, axis: AxisInt | None, ddof: int
+):
+    """
+    Like nanops, var/std with no more valid values than ``ddof`` are NA (NaN
+    entries for a 2D reduction along ``axis``) instead of NumPy's inf.
+    """
+    if axis is None or mask.ndim == 1:
+        if mask.size - mask.sum() <= ddof:
+            return libmissing.NA
+    else:
+        result[mask.shape[axis] - mask.sum(axis=axis) <= ddof] = np.nan
+    return result
+
+
 def var(
     values: np.ndarray,
     mask: npt.NDArray[np.bool_],
@@ -232,9 +247,10 @@ def var(
 
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", RuntimeWarning)
-        return _reductions(
+        result = _reductions(
             np.var, values=values, mask=mask, skipna=skipna, axis=axis, ddof=ddof
         )
+    return _na_if_nobs_le_ddof(result, mask, axis=axis, ddof=ddof)
 
 
 def std(
@@ -250,6 +266,7 @@ def std(
 
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", RuntimeWarning)
-        return _reductions(
+        result = _reductions(
             np.std, values=values, mask=mask, skipna=skipna, axis=axis, ddof=ddof
         )
+    return _na_if_nobs_le_ddof(result, mask, axis=axis, ddof=ddof)
