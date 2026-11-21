@@ -31,6 +31,9 @@ def test_axis_spellings(axis):
     result = np.concatenate([arr, arr[:1]], axis=axis)
     tm.assert_extension_array_equal(result, arr.take([0, 1, 2, 0]))
 
+    result = np.append(arr, arr[:1], axis=axis)
+    tm.assert_extension_array_equal(result, arr.take([0, 1, 2, 0]))
+
 
 @pytest.mark.parametrize(
     "kwargs",
@@ -40,6 +43,14 @@ def test_concatenate_with_kwargs_falls_back(kwargs):
     arr = pd.array([1, None], dtype="Int64")
     result = np.concatenate([arr, arr], **kwargs)
     expected = np.concatenate([np.asarray(arr)] * 2, **kwargs)
+    tm.assert_numpy_array_equal(result, expected)
+
+
+@pytest.mark.parametrize("kwargs", [{"dtype": object}, {"casting": "unsafe"}])
+def test_hstack_with_kwargs_falls_back(kwargs):
+    arr = pd.array([1, None], dtype="Int64")
+    result = np.hstack([arr, arr], **kwargs)
+    expected = np.hstack([np.asarray(arr)] * 2, **kwargs)
     tm.assert_numpy_array_equal(result, expected)
 
 
@@ -60,11 +71,17 @@ def test_concatenate_out_falls_back():
         np.array([1]),
     ],
 )
-def test_concatenate_mismatched_falls_back(other):
+@pytest.mark.parametrize(
+    "func",
+    [np.concatenate, np.hstack, lambda arrays: np.append(*arrays)],
+    ids=["concatenate", "hstack", "append"],
+)
+def test_concatenate_mismatched_falls_back(other, func):
     arr = pd.array([1, None], dtype="Int64")
-    result = np.concatenate([arr, other])
-    expected = np.concatenate([np.asarray(arr), np.asarray(other)])
-    tm.assert_numpy_array_equal(result, expected)
+    for arrays in [[arr, other], [other, arr]]:
+        result = func(arrays)
+        expected = func([np.asarray(x) for x in arrays])
+        tm.assert_numpy_array_equal(result, expected)
 
 
 @pytest.mark.parametrize(
@@ -83,15 +100,44 @@ def test_concatenate_same_type_different_dtype_falls_back(left, right):
     tm.assert_numpy_array_equal(result, expected)
 
 
-def test_2d_falls_back():
-    arr = pd.date_range("2000", periods=4)._data.reshape(2, 2)
-    expected = np.asarray(arr)
+@pytest.mark.parametrize(
+    "values",
+    [
+        pd.date_range("2000", periods=9)._data,
+        pd.date_range("2000", periods=9, tz="UTC")._data,
+        pd.period_range("2000", periods=9, freq="D")._data,
+        pd.array([1, None, 3, 4, 5, 6, 7, 8, 9], dtype="Int64"),
+    ],
+    ids=["datetime", "datetimetz", "period", "Int64"],
+)
+@pytest.mark.parametrize(
+    "func",
+    [
+        pytest.param(lambda left, col, row: np.delete(left, 0), id="delete"),
+        pytest.param(lambda left, col, row: np.delete(left, 0, axis=1), id="delete1"),
+        pytest.param(lambda left, col, row: np.concatenate([left, row]), id="concat"),
+        pytest.param(
+            lambda left, col, row: np.concatenate([left, col], axis=1), id="concat1"
+        ),
+        pytest.param(
+            lambda left, col, row: np.concatenate([left, col], axis=None),
+            id="concatNone",
+        ),
+        pytest.param(lambda left, col, row: np.append(left, col), id="append"),
+        pytest.param(lambda left, col, row: np.append(left, row, axis=0), id="append0"),
+        pytest.param(lambda left, col, row: np.append(left, col, axis=1), id="append1"),
+        pytest.param(lambda left, col, row: np.hstack([left, col]), id="hstack"),
+    ],
+)
+def test_2d_falls_back(values, func):
+    # GH#26380 shapes differ so joining along the wrong axis raises
+    left = values[:6].reshape(2, 3)
+    col = values[6:8].reshape(2, 1)
+    row = values[6:9].reshape(1, 3)
 
-    result = np.delete(arr, 0, axis=0)
-    tm.assert_numpy_array_equal(result, np.delete(expected, 0, axis=0))
-
-    result = np.concatenate([arr, arr])
-    tm.assert_numpy_array_equal(result, np.concatenate([expected, expected]))
+    result = func(left, col, row)
+    expected = func(np.asarray(left), np.asarray(col), np.asarray(row))
+    tm.assert_numpy_array_equal(result, expected)
 
 
 class ArrayFunctionOverride:

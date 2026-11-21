@@ -33,9 +33,18 @@ class BaseReshapingTests:
             assert isinstance(result._mgr.blocks[0], EABackedBlock)
         assert isinstance(result._mgr.blocks[0].values, ExtensionArray)
 
-    def test_np_concatenate(self, data):
-        # GH#26380 np.concatenate on matching dtypes keeps the dtype
-        result = np.concatenate([data, data[:3]])
+    @pytest.mark.parametrize(
+        "func",
+        [
+            np.concatenate,
+            np.hstack,
+            lambda arrays: np.append(*arrays),
+        ],
+        ids=["concatenate", "hstack", "append"],
+    )
+    def test_np_concatenate(self, data, func):
+        # GH#26380 concatenating matching dtypes keeps the dtype
+        result = func([data, data[:3]])
         expected = data._concat_same_type([data, data[:3]])
         tm.assert_extension_array_equal(result, expected)
 
