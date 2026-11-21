@@ -1245,7 +1245,10 @@ class TimeSeries_DateFormatter(mpl.ticker.Formatter):  # pyright: ignore[reportA
             ordinal = round(x)
             if abs(x - ordinal) > 1e-6:
                 if (
-                    isinstance(self.axis.get_major_locator(), mpl.ticker.FixedLocator)
+                    isinstance(
+                        self.axis.get_major_locator(),
+                        mpl.ticker.FixedLocator,  # pyright: ignore[reportAttributeAccessIssue]
+                    )
                     and freq_group.value >= FreqGroup.FR_DAY.value
                 ):
                     # a user's datetime between periods, placed exactly by
