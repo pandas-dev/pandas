@@ -1010,7 +1010,7 @@ def test_setitem_with_different_string_storage():
     ser_python = pd.Series(["a", "b", None, "d", "e"], dtype="string[python]")
     ser_pyarrow = pd.Series(["X", "Y", None], dtype="string[pyarrow]")
 
-    ser_python[1:4] = ser_pyarrow
+    ser_python[1:4] = ser_pyarrow.array
     expected = pd.Series(["a", "X", "Y", pd.NA, "e"], dtype="string[python]")
     tm.assert_series_equal(ser_python, expected)
 
