@@ -204,3 +204,32 @@ def test_unbalanced_quoting(all_parsers, balanced, request):
 
         with pytest.raises(ParserError, match=msg):
             parser.read_csv(StringIO(data))
+
+
+@pytest.mark.parametrize("nrows", [100_000, 250_000])
+@pytest.mark.parametrize("escaped", [False, True])
+def test_newlines_in_values_across_blocks_pyarrow(pyarrow_parser_only, nrows, escaped):
+    # GH#59009 a newline inside a value straddling a pyarrow block boundary
+    #  gave corrupted values or raised
+    parser = pyarrow_parser_only
+    expected = pd.DataFrame({"text": ["ab\ncd"] * nrows, "i": range(nrows)})
+    if escaped:
+        data = "text,i\n" + "".join(f"ab\\\ncd,{i}\n" for i in range(nrows))
+        kwargs = {"escapechar": "\\"}
+    else:
+        data = expected.to_csv(index=False)
+        kwargs = {}
+
+    result = parser.read_csv(StringIO(data), **kwargs)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_quoted_newline_in_skipped_header_pyarrow(pyarrow_parser_only):
+    # GH#59009 the header row replaced by names was skipped only up to its
+    #  quoted newline, leaking the rest into the data
+    parser = pyarrow_parser_only
+    data = '"a\nb",c\n1,2\n3,4\n'
+
+    result = parser.read_csv(StringIO(data), names=["x", "y"], header=0)
+    expected = pd.DataFrame({"x": [1, 3], "y": [2, 4]})
+    tm.assert_frame_equal(result, expected)

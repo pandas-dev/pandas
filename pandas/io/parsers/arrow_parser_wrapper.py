@@ -217,6 +217,10 @@ class ArrowParserWrapper(ParserBase):
             and option_name
             in ("delimiter", "quote_char", "escape_char", "ignore_empty_lines")
         }
+        # GH#59009 without this, a newline inside a value that straddles a block
+        #  boundary raises or silently corrupts it. Slower: pyarrow then finds
+        #  block boundaries on a single thread
+        self.parse_options["newlines_in_values"] = True
 
         on_bad_lines = self.kwds.get("on_bad_lines")
         if on_bad_lines is not None:
