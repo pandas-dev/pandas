@@ -554,16 +554,8 @@ def _array_equivalent_object(
         right_remaining = right
 
     for left_value, right_value in zip(left_remaining, right_remaining, strict=True):
-        if left_value is NaT and right_value is not NaT:
-            return False
-
-        elif left_value is libmissing.NA and right_value is not libmissing.NA:
-            return False
-
-        elif (lib.is_float(left_value) or lib.is_complex(left_value)) and np.isnan(
-            left_value
-        ):
-            # includes numpy float32 and complex NaNs, GH#55492
+        if libmissing.checknull(left_value):
+            # e.g. NaT vs NaT must match
             if not libmissing.is_matching_na(left_value, right_value):
                 return False
         else:
