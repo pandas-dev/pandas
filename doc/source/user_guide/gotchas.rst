@@ -439,7 +439,7 @@ lists has ``object`` dtype: each cell holds a reference to a separate Python
 object, so the column uses far more memory than a native-dtype column and no
 operation on it can use pandas' vectorized code paths. Because lists are not
 hashable, such a column also cannot be used as a group or merge key, and
-methods that need to hash the values, like :meth:`~DataFrame.drop_duplicates`,
+methods that need to hash the values, like :meth:`~DataFrame.value_counts`,
 raise a ``TypeError``.
 
 .. ipython:: python
