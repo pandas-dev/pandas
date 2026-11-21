@@ -64,7 +64,6 @@ from pandas.util._exceptions import (
 from pandas.util._validators import (
     validate_ascending,
     validate_bool_kwarg,
-    validate_inclusive,
     validate_min_count,
 )
 
@@ -9494,13 +9493,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if not isinstance(index, DatetimeIndex):
             raise TypeError("Index must be DatetimeIndex")
 
-        left_inclusive, right_inclusive = validate_inclusive(inclusive)
-        indexer = index.indexer_between_time(
-            start_time,
-            end_time,
-            include_start=left_inclusive,
-            include_end=right_inclusive,
-        )
+        indexer = index.indexer_between_time(start_time, end_time, inclusive=inclusive)
         return self.take(indexer, axis=axis)
 
     @final
@@ -10479,8 +10472,6 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if axis is not None:
             axis = self._get_axis_number(axis)
 
-        fill_value = bool(inplace)
-
         # align the cond to same shape as myself
         cond = common.apply_if_callable(cond, self)
         if isinstance(cond, NDFrame):
@@ -10506,7 +10497,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 #  fill_value via fillna to *both* objects, so it would alter
                 #  self.  Only safe for bool cond: for other dtypes a bool
                 #  fill_value is an incompatible reindex fill.
-                cond = cond.align(self, join="right", fill_value=fill_value)[0]
+                cond = cond.align(self, join="right", fill_value=False)[0]
             else:
                 cond = cond.align(self, join="right")[0]
         else:
@@ -10523,7 +10514,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 # incompatible value; if cond is not boolean, the dtype
                 # check below will raise TypeError anyway.
                 warnings.filterwarnings("ignore", ".*fill value.*", Pandas4Warning)
-                cond = cond.fillna(fill_value)
+                cond = cond.fillna(False)
             cond = cond.infer_objects()
 
             msg = "Boolean array expected for the condition, not {dtype}"
@@ -10540,7 +10531,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     if cond._mgr.any_extension_types:
                         # GH51574: avoid object ndarray conversion later on
                         cond = cond._constructor(
-                            cond.to_numpy(dtype=bool, na_value=fill_value),
+                            cond.to_numpy(dtype=bool, na_value=False),
                             **cond._construct_axes_dict(),
                         )
             else:
