@@ -319,6 +319,22 @@ class TestSeriesGroupByPlotColors:
                 ax.patches, facecolors=[color for color in colors for _ in range(3)]
             )
 
+    @pytest.mark.parametrize("accessor", [False, True])
+    def test_plot_cmap_alias(self, accessor):
+        n_groups = 3
+        values = pd.Series(np.tile([1, 2, 3], n_groups))
+        groups = np.repeat(np.arange(n_groups), 3)
+        grouped = values.groupby(groups)
+        _, ax = mpl.pyplot.subplots()
+
+        if accessor:
+            grouped.plot.line(ax=ax, legend=True, cmap="tab20")
+        else:
+            grouped.plot(ax=ax, legend=True, cmap="tab20")
+
+        colors = get_standard_colors(n_groups, colormap="tab20")
+        _check_colors(ax.get_lines(), linecolors=colors)
+
     def test_plot_color_overrides_colormap(self):
         values = pd.Series(np.tile([1, 2, 3], 2))
         groups = np.repeat([0, 1], 3)
