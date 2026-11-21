@@ -209,6 +209,12 @@ Reindexing / selection / label manipulation
    DataFrame.take
    DataFrame.truncate
 
+.. autosummary::
+   :toctree: api/
+   :template: autosummary/accessor.rst
+
+   DataFrame.ax
+
 .. _api.dataframe.missing:
 
 Missing data handling
