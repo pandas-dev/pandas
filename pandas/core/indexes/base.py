@@ -1762,7 +1762,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     @final
     def to_series(
-        self, index: Axes | None = None, name: Hashable | None = None
+        self, index: Axes | bool | None = None, name: Hashable | None = None
     ) -> Series:
         """
         Create a Series with both index and values equal to the index keys.
@@ -1771,8 +1771,12 @@ class Index(IndexOpsMixin, PandasObject):
 
         Parameters
         ----------
-        index : Index or array-like, optional
-            Index of resulting Series. If None, defaults to original index.
+        index : bool, Index or array-like, optional
+            Index of resulting Series. If None or True, defaults to original
+            index. If False, a default ``RangeIndex`` is used.
+
+            .. versionchanged:: 3.2.0
+               Added support for passing a bool.
         name : str, optional
             Name of resulting Series. If None, defaults to name of original
             index.
@@ -1808,6 +1812,14 @@ class Index(IndexOpsMixin, PandasObject):
         2     Cow
         Name: animal, dtype: str
 
+        To use a default ``RangeIndex``, pass ``index=False``:
+
+        >>> idx.to_series(index=False)
+        0     Ant
+        1    Bear
+        2     Cow
+        Name: animal, dtype: str
+
         To override the name of the resulting column, specify ``name``:
 
         >>> idx.to_series(name="zoo")
@@ -1819,7 +1831,10 @@ class Index(IndexOpsMixin, PandasObject):
         """
         from pandas import Series
 
-        if index is None:
+        if lib.is_bool(index):
+            # False -> let Series use a default RangeIndex
+            index = self._view() if index else None
+        elif index is None:
             index = self._view()
         if name is None:
             name = self.name

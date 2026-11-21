@@ -45,6 +45,7 @@ Other enhancements
 - New :attr:`Series.interval` accessor for interval-dtype data, with ``left``, ``right``, ``mid``, ``length``, ``contains``, ``overlaps`` and more (:issue:`16401`)
 - :meth:`Series.astype` and :func:`array` with ``dtype="boolean"`` now convert values the same way as ``astype(bool)`` instead of raising for values other than booleans, 0 and 1 (e.g. ``"False"`` becomes ``True``), with missing values becoming ``NA`` (:issue:`37614`, :issue:`40566`)
 - :meth:`DatetimeIndex.floor`, :meth:`DatetimeIndex.ceil`, :meth:`Series.dt.floor`, :meth:`Series.dt.ceil`, :meth:`Timestamp.floor`, and :meth:`Timestamp.ceil` now accept a single step of a date-anchored frequency such as ``"MS"``, ``"QE"``, ``"W-SUN"``, or ``"B"`` (:issue:`15303`)
+- :meth:`Index.to_series` now accepts ``index=False`` to use a default :class:`RangeIndex`, matching :meth:`Index.to_frame` (:issue:`34351`)
 - :meth:`Series.groupby` now accepts ``as_index=False``, returning aggregation results as a :class:`DataFrame` with the group labels as columns (:issue:`36507`)
 - Added :class:`api.extensions.Accessor` to the public API, for adding or overriding an accessor on a single class such as a :class:`DataFrame` subclass (:issue:`40103`)
 - Added :meth:`Categorical.to_dense` and :meth:`Series.cat.to_dense` to get the values with the dtype of the categories, including extension dtypes (:issue:`26410`)
