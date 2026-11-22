@@ -306,6 +306,20 @@ class TestSeriesGroupByPlotColors:
                 ax.patches, facecolors=[color for color in colors for _ in range(3)]
             )
 
+    @pytest.mark.parametrize("accessor", [False, True])
+    def test_plot_conflicting_cmap_and_colormap(self, accessor):
+        values = pd.Series([1, 2, 3, 4])
+        grouped = values.groupby([0, 0, 1, 1])
+        kwargs = {"colormap": "viridis", "cmap": None}
+
+        with pytest.raises(
+            TypeError, match="Only specify one of `cmap` and `colormap`"
+        ):
+            if accessor:
+                grouped.plot.line(**kwargs)
+            else:
+                grouped.plot(**kwargs)
+
     def test_plot_color_overrides_colormap(self):
         values = pd.Series(np.tile([1, 2, 3], 2))
         groups = np.repeat([0, 1], 3)
@@ -317,6 +331,28 @@ class TestSeriesGroupByPlotColors:
             values.groupby(groups).plot(ax=ax, color="red", colormap="viridis")
 
         _check_colors(ax.get_lines(), linecolors=["red", "red"])
+
+    @pytest.mark.parametrize("style", ["r--", ["r--"]])
+    def test_plot_style_color_overrides_colormap(self, style):
+        values = pd.Series(np.tile([1, 2, 3], 2))
+        groups = np.repeat([0, 1], 3)
+        _, ax = mpl.pyplot.subplots()
+
+        values.groupby(groups).plot(ax=ax, colormap="viridis", style=style)
+
+        _check_colors(ax.get_lines(), linecolors=["red", "red"])
+
+    def test_plot_style_without_color_uses_colormap(self):
+        n_groups = 2
+        values = pd.Series(np.tile([1, 2, 3], n_groups))
+        groups = np.repeat(np.arange(n_groups), 3)
+        _, ax = mpl.pyplot.subplots()
+
+        values.groupby(groups).plot(ax=ax, colormap="viridis", style="--")
+
+        colors = get_standard_colors(n_groups, colormap="viridis")
+        _check_colors(ax.get_lines(), linecolors=colors)
+        assert [line.get_linestyle() for line in ax.get_lines()] == ["--", "--"]
 
     def test_plot_default_colors(self):
         values = pd.Series(np.tile([1, 2, 3], 3))
