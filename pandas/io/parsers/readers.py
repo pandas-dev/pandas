@@ -2672,10 +2672,6 @@ def read_fwf(
         entire file, which is useful when columns vary in width and a value
         wider than anything in the first ``infer_nrows`` rows would otherwise
         be truncated.
-    comment : str (length 1), optional
-        Character indicating that the remainder of a line should not be parsed.
-        Lines beginning with this character are ignored, including when the
-        character occurs outside the specified or inferred column widths.
     iterator : bool, default False
         Return ``TextFileReader`` object for iteration or getting chunks with
         ``get_chunk()``.
@@ -2683,6 +2679,10 @@ def read_fwf(
         Number of lines to read from the file per chunk.
     **kwds : optional
         Additional keyword arguments accepted by :func:`read_csv`.
+        For example, ``comment`` specifies a character indicating that the
+        remainder of a line should not be parsed. Full-line comments are
+        ignored, including when the comment character occurs outside the
+        specified or inferred column widths.
 
     Returns
     -------
