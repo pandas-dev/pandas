@@ -12,9 +12,9 @@ from pandas.tests.plotting.common import (
     _check_legend_marker,
 )
 
-from pandas.plotting._matplotlib.style import get_standard_colors
-
 mpl = pytest.importorskip("matplotlib")
+
+from pandas.plotting._matplotlib.style import get_standard_colors
 
 
 class TestDataFrameGroupByPlots:
@@ -285,31 +285,17 @@ class TestDataFrameGroupByPlots:
 class TestSeriesGroupByPlotColors:
     @pytest.mark.parametrize("kind", ["line", "bar"])
     @pytest.mark.parametrize("n_groups", [2, 5])
-    def test_plot_colormap(self, kind, n_groups):
+    @pytest.mark.parametrize("accessor", [False, True])
+    def test_plot_colormap(self, kind, n_groups, accessor):
         values = pd.Series(np.tile([1, 2, 3], n_groups))
         groups = np.repeat(np.arange(n_groups), 3)
         grouped = values.groupby(groups)
         _, ax = mpl.pyplot.subplots()
 
-        grouped.plot(kind=kind, ax=ax, colormap="viridis")
-
-        colors = get_standard_colors(n_groups, colormap="viridis")
-        if kind == "line":
-            _check_colors(ax.get_lines(), linecolors=colors)
+        if accessor:
+            getattr(grouped.plot, kind)(ax=ax, colormap="viridis")
         else:
-            _check_colors(
-                ax.patches, facecolors=[color for color in colors for _ in range(3)]
-            )
-
-    @pytest.mark.parametrize("kind", ["line", "bar"])
-    def test_plot_accessor_colormap(self, kind):
-        n_groups = 2
-        values = pd.Series(np.tile([1, 2, 3], n_groups))
-        groups = np.repeat(np.arange(n_groups), 3)
-        grouped = values.groupby(groups)
-        _, ax = mpl.pyplot.subplots()
-
-        getattr(grouped.plot, kind)(ax=ax, colormap="viridis")
+            grouped.plot(kind=kind, ax=ax, colormap="viridis")
 
         colors = get_standard_colors(n_groups, colormap="viridis")
         if kind == "line":
@@ -362,11 +348,15 @@ class TestSeriesGroupByPlotColors:
         values = pd.Series(np.tile([1, 2, 3], 2))
         groups = np.repeat([0, 1], 3)
         grouped = values.groupby(groups)
+        _, ax = mpl.pyplot.subplots()
 
         if accessor:
-            grouped.plot.pie(colormap="viridis")
+            grouped.plot.pie(ax=ax, colormap="viridis")
         else:
-            grouped.plot(kind="pie", colormap="viridis")
+            grouped.plot(kind="pie", ax=ax, colormap="viridis")
+
+        colors = [tuple(patch.get_facecolor()) for patch in ax.patches[:3]]
+        assert len(set(colors)) == 3
 
     def test_plot_colormap_more_groups_than_colors(self):
         n_groups = 12
