@@ -2105,7 +2105,14 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
     notnull = notna
 
-    def value_counts(self, dropna: bool = True) -> Series:
+    def value_counts(
+        self,
+        normalize: bool = False,
+        sort: bool = True,
+        ascending: bool = False,
+        bins=None,
+        dropna: bool = True,
+    ) -> Series:
         """
         Return a Series containing counts of each category.
 
@@ -2113,6 +2120,20 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
 
         Parameters
         ----------
+        normalize : bool, default False
+            If True then the object returned will contain the relative
+            frequencies of the unique values.
+        sort : bool, default True
+            Sort by frequencies when True. Preserve the order of the categories
+            when False.
+
+            .. versionchanged:: 3.0.0
+
+                Prior to 3.0.0, the sort was unstable.
+        ascending : bool, default False
+            Sort in ascending order.
+        bins : int, optional
+            Not supported for Categorical. Will raise a TypeError.
         dropna : bool, default True
             Don't include counts of NaN.
 
@@ -2129,6 +2150,9 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
             Series,
         )
 
+        if bins is not None:
+            raise TypeError("bins argument only works with numeric data.")
+
         code, cat = self._codes, self.categories
         ncat, mask = (len(cat), code >= 0)
         ix, clean = np.arange(ncat), mask.all()
@@ -2143,13 +2167,22 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         ix = coerce_indexer_dtype(ix, self.dtype.categories)
         ix_categorical = self._from_backing_data(ix)
 
-        return Series(
+        result = Series(
             count,
             index=CategoricalIndex(ix_categorical),
             dtype="int64",
             name="count",
             copy=False,
         )
+
+        if sort:
+            result = result.sort_values(ascending=ascending, kind="stable")
+
+        if normalize:
+            result = result / result.sum()
+            result.name = "proportion"
+
+        return result
 
     # error: Argument 2 of "_empty" is incompatible with supertype
     # "NDArrayBackedExtensionArray"; supertype defines the argument type as

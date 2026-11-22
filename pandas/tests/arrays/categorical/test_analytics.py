@@ -363,3 +363,215 @@ class TestCategoricalAnalytics:
 
         expected = cat.take([-1, -1], allow_fill=True)
         tm.assert_extension_array_equal(result, expected)
+
+
+class TestCategoricalValueCounts:
+    def test_value_counts_default(self):
+        # GH#72246
+        cat = pd.Categorical([1, 2, 3, 1, 2, 3])
+        result = cat.value_counts()
+        expected = pd.Series(
+            [2, 2, 2], index=pd.CategoricalIndex([1, 2, 3]), name="count"
+        )
+        tm.assert_series_equal(result, expected)
+
+    def test_value_counts_unused_categories(self):
+        # GH#72246 - unused categories should have zero counts
+        cat = pd.Categorical([1, 2, 3, 1, 2, 3], categories=[1, 2, 3, 4, 5])
+        result = cat.value_counts()
+        expected = pd.Series(
+            [2, 2, 2, 0, 0],
+            index=pd.CategoricalIndex([1, 2, 3, 4, 5]),
+            name="count",
+        )
+        tm.assert_series_equal(result, expected)
+
+    def test_value_counts_normalize(self):
+        # GH#72246
+        cat = pd.Categorical([1, 2, 3, 1, 2, 3], categories=[1, 2, 3, 4, 5])
+        result = cat.value_counts(normalize=True)
+        expected = pd.Series(
+            [1 / 3, 1 / 3, 1 / 3, 0.0, 0.0],
+            index=pd.CategoricalIndex([1, 2, 3, 4, 5]),
+            name="proportion",
+        )
+        tm.assert_series_equal(result, expected)
+
+    def test_value_counts_normalize_with_nan(self):
+        # GH#72246
+        cat = pd.Categorical([1, 2, 3, 1, 2, 3, np.nan], categories=[1, 2, 3, 4, 5])
+        result = cat.value_counts(normalize=True, dropna=False)
+        expected = pd.Series(
+            [2 / 7, 2 / 7, 2 / 7, 1 / 7, 0.0, 0.0],
+            index=pd.CategoricalIndex([1, 2, 3, np.nan, 4, 5]),
+            name="proportion",
+        )
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("sort", [True, False])
+    def test_value_counts_sort(self, sort):
+        # GH#72246
+        cat = pd.Categorical(list("abcccb"), categories=list("cabd"))
+        result = cat.value_counts(sort=sort)
+
+        if sort:
+            values, counts = ["c", "b", "a", "d"], [3, 2, 1, 0]
+        else:
+            values, counts = ["c", "a", "b", "d"], [3, 1, 2, 0]
+
+        index = pd.CategoricalIndex(values, categories=cat.categories)
+        expected = pd.Series(counts, index=index, name="count")
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("ascending", [True, False])
+    def test_value_counts_ascending(self, ascending):
+        # GH#72246
+        cat = pd.Categorical([1, 2, 3, 1, 2, 3], categories=[1, 2, 3, 4, 5])
+        result = cat.value_counts(sort=True, ascending=ascending)
+
+        if ascending:
+            values, counts = [4, 5, 1, 2, 3], [0, 0, 2, 2, 2]
+        else:
+            values, counts = [1, 2, 3, 4, 5], [2, 2, 2, 0, 0]
+
+        index = pd.CategoricalIndex(values, categories=cat.categories)
+        expected = pd.Series(counts, index=index, name="count")
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("dropna", [True, False])
+    def test_value_counts_dropna(self, dropna):
+        # GH#72246
+        cat = pd.Categorical([1, 2, 3, 1, 2, 3, np.nan], categories=[1, 2, 3, 4, 5])
+        result = cat.value_counts(dropna=dropna)
+
+        if dropna:
+            values, counts = [1, 2, 3, 4, 5], [2, 2, 2, 0, 0]
+        else:
+            values, counts = [1, 2, 3, np.nan, 4, 5], [2, 2, 2, 1, 0, 0]
+
+        index = pd.CategoricalIndex(values, categories=cat.categories)
+        expected = pd.Series(counts, index=index, name="count")
+        tm.assert_series_equal(result, expected)
+
+    def test_value_counts_ordered_categorical(self):
+        # GH#72246 - ordered categorical should preserve category order when sort=False
+        cat = pd.Categorical([1, 2, 3, 1, 2, 3], categories=[3, 2, 1], ordered=True)
+        result = cat.value_counts(sort=False)
+        expected = pd.Series(
+            [2, 2, 2],
+            index=pd.CategoricalIndex([3, 2, 1], categories=[3, 2, 1], ordered=True),
+            name="count",
+        )
+        tm.assert_series_equal(result, expected)
+
+    def test_value_counts_ordered_categorical_sort(self):
+        # GH#72246 - ordered categorical with sort=True should sort by count
+        cat = pd.Categorical([1, 2, 3, 1, 1, 3], categories=[3, 2, 1], ordered=True)
+        result = cat.value_counts(sort=True)
+        # Counts: 1->3, 3->2, 2->1
+        expected = pd.Series(
+            [3, 2, 1],
+            index=pd.CategoricalIndex([1, 3, 2], categories=[3, 2, 1], ordered=True),
+            name="count",
+        )
+        tm.assert_series_equal(result, expected)
+
+    def test_value_counts_empty(self):
+        # GH#72246
+        cat = pd.Categorical([], categories=["a", "b", "c"])
+        result = cat.value_counts()
+        expected = pd.Series(
+            [0, 0, 0], index=pd.CategoricalIndex(["a", "b", "c"]), name="count"
+        )
+        tm.assert_series_equal(result, expected)
+
+    def test_value_counts_all_nan(self):
+        # GH#72246
+        cat = pd.Categorical([np.nan, np.nan], categories=["a", "b"])
+        result = cat.value_counts(dropna=True)
+        expected = pd.Series(
+            [0, 0], index=pd.CategoricalIndex(["a", "b"]), name="count"
+        )
+        tm.assert_series_equal(result, expected)
+
+        result = cat.value_counts(dropna=False)
+        expected = pd.Series(
+            [2, 0, 0], index=pd.CategoricalIndex([np.nan, "a", "b"]), name="count"
+        )
+        tm.assert_series_equal(result, expected)
+
+    def test_value_counts_bins_raises(self):
+        # GH#72246 - bins not supported for categorical
+        cat = pd.Categorical([1, 2, 3, 1, 2, 3])
+        with pytest.raises(
+            TypeError, match="bins argument only works with numeric data"
+        ):
+            cat.value_counts(bins=3)
+
+    def test_value_counts_combinations(self):
+        # GH#72246 - test combinations of arguments
+        cat = pd.Categorical([1, 2, 3, 1, 2, 3, np.nan], categories=[1, 2, 3, 4, 5])
+
+        # normalize + sort + ascending
+        # NaN sorts after zeros but before positive values in ascending order
+        result = cat.value_counts(
+            normalize=True, sort=True, ascending=True, dropna=False
+        )
+        expected = pd.Series(
+            [0.0, 0.0, 1 / 7, 2 / 7, 2 / 7, 2 / 7],
+            index=pd.CategoricalIndex([4, 5, np.nan, 1, 2, 3]),
+            name="proportion",
+        )
+        tm.assert_series_equal(result, expected)
+
+        # normalize + sort=False
+        # NaN is placed at the end (after all categories) when sort=False
+        result = cat.value_counts(normalize=True, sort=False, dropna=False)
+        expected = pd.Series(
+            [2 / 7, 2 / 7, 2 / 7, 0.0, 0.0, 1 / 7],
+            index=pd.CategoricalIndex([1, 2, 3, 4, 5, np.nan]),
+            name="proportion",
+        )
+        tm.assert_series_equal(result, expected)
+
+    def test_value_counts_name_attribute(self):
+        # GH#72246 - result name should be 'count' or 'proportion'
+        cat = pd.Categorical([1, 2, 3, 1, 2, 3])
+        result = cat.value_counts()
+        assert result.name == "count"
+
+        result = cat.value_counts(normalize=True)
+        assert result.name == "proportion"
+
+    def test_value_counts_index_name(self):
+        # GH#72246 - index name should be None for Categorical.value_counts
+        cat = pd.Categorical([1, 2, 3, 1, 2, 3])
+        result = cat.value_counts()
+        assert result.index.name is None
+
+        # But for Series.value_counts it should be the Series name
+        ser = pd.Series(cat, name="test")
+        result = ser.value_counts()
+        assert result.index.name == "test"
+
+    def test_value_counts_string_categories(self):
+        # GH#72246 - test with string categories
+        cat = pd.Categorical(["a", "b", "c", "a", "b", "c"], categories=["c", "b", "a"])
+        result = cat.value_counts(sort=False)
+        expected = pd.Series(
+            [2, 2, 2],
+            index=pd.CategoricalIndex(["c", "b", "a"], categories=["c", "b", "a"]),
+            name="count",
+        )
+        tm.assert_series_equal(result, expected)
+
+    def test_value_counts_numeric_categories(self):
+        # GH#72246 - test with numeric categories
+        cat = pd.Categorical([1.5, 2.5, 3.5, 1.5], categories=[3.5, 2.5, 1.5])
+        result = cat.value_counts(sort=False)
+        expected = pd.Series(
+            [1, 1, 2],
+            index=pd.CategoricalIndex([3.5, 2.5, 1.5], categories=[3.5, 2.5, 1.5]),
+            name="count",
+        )
+        tm.assert_series_equal(result, expected)

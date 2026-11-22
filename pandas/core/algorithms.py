@@ -1069,6 +1069,9 @@ def value_counts_internal(
 
     index_name = getattr(values, "name", None)
     name = "proportion" if normalize else "count"
+    ea_supports_sort = False
+    ea_supports_normalize = False
+    normalize_denominator = None
 
     if bins is not None:
         from pandas.core.reshape.tile import cut
@@ -1096,12 +1099,35 @@ def value_counts_internal(
         normalize_denominator = len(ii)
 
     else:
-        normalize_denominator = None
         if is_extension_array_dtype(values):
             # handle Categorical and sparse,
-            result = Series(values, copy=False)._values.value_counts(dropna=dropna)
+            # Pass additional parameters if the extension array supports them
+            ea = Series(values, copy=False)._values
+            ea_value_counts = ea.value_counts
+            import inspect
+
+            sig = inspect.signature(ea_value_counts)
+            params = sig.parameters
+            kwargs = {"dropna": dropna}
+            if "sort" in params:
+                kwargs["sort"] = sort
+            if "ascending" in params:
+                kwargs["ascending"] = ascending
+            if "normalize" in params:
+                kwargs["normalize"] = normalize
+            if "bins" in params:
+                kwargs["bins"] = bins
+            result = ea_value_counts(**kwargs)
             result.name = name
             result.index.name = index_name
+
+            # If the extension array doesn't support sort/normalize, apply them here
+            ea_supports_sort = "sort" in params
+            ea_supports_normalize = "normalize" in params
+            if not ea_supports_sort and sort:
+                result = result.sort_values(ascending=ascending, kind="stable")
+            if not ea_supports_normalize and normalize:
+                result = result / result.sum()
 
         elif isinstance(values, ABCMultiIndex):
             # GH49558
@@ -1134,10 +1160,10 @@ def value_counts_internal(
 
             result = Series(counts, index=idx, name=name, copy=False)
 
-    if sort:
+    if not ea_supports_sort and sort:
         result = result.sort_values(ascending=ascending, kind="stable")
 
-    if normalize:
+    if not ea_supports_normalize and normalize:
         if normalize_denominator is not None:
             result = result / normalize_denominator
         else:
