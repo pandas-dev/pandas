@@ -2335,6 +2335,7 @@ class PeriodIndexResampler(DatetimeIndexResampler):
             obj,
             indexer,
             new_index,
+            fill_value=fill_value,
         )
         return self._wrap_result(new_obj)
 
@@ -2944,13 +2945,19 @@ class TimeGrouper(Grouper):
 
 @overload
 def _take_new_index(
-    obj: DataFrame, indexer: npt.NDArray[np.intp], new_index: Index
+    obj: DataFrame,
+    indexer: npt.NDArray[np.intp],
+    new_index: Index,
+    fill_value=None,
 ) -> DataFrame: ...
 
 
 @overload
 def _take_new_index(
-    obj: Series, indexer: npt.NDArray[np.intp], new_index: Index
+    obj: Series,
+    indexer: npt.NDArray[np.intp],
+    new_index: Index,
+    fill_value=None,
 ) -> Series: ...
 
 
@@ -2958,12 +2965,15 @@ def _take_new_index(
     obj: DataFrame | Series,
     indexer: npt.NDArray[np.intp],
     new_index: Index,
+    fill_value=None,
 ) -> DataFrame | Series:
     if isinstance(obj, ABCSeries):
-        new_values = algos.take_nd(obj._values, indexer)
+        new_values = algos.take_nd(obj._values, indexer, fill_value=fill_value)
         return obj._constructor(new_values, index=new_index, name=obj.name)
     elif isinstance(obj, ABCDataFrame):
-        new_mgr = obj._mgr.reindex_indexer(new_axis=new_index, indexer=indexer, axis=1)
+        new_mgr = obj._mgr.reindex_indexer(
+            new_axis=new_index, indexer=indexer, axis=1, fill_value=fill_value
+        )
         return obj._constructor_from_mgr(new_mgr, axes=new_mgr.axes)
     else:
         raise ValueError("'obj' should be either a Series or a DataFrame")
