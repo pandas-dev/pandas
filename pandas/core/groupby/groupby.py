@@ -181,12 +181,11 @@ class GroupByPlot(PandasObject):
         # GH#56697: each group is plotted separately, so a colormap would give
         #  every group its first color. Pick one color per group instead.
         colormap = kwargs.get("colormap")
-        cmap = kwargs.get("cmap")
-        if colormap is not None and cmap is not None:
-            # let plotting raise "Only specify one of `cmap` and `colormap`"
-            return None
-        if colormap is None:
-            colormap = cmap
+        if "cmap" in kwargs:
+            if colormap:
+                # let plotting raise "Only specify one of `cmap` and `colormap`"
+                return None
+            colormap = kwargs["cmap"]
         if colormap is None or kwargs.get("color") is not None:
             return None
         backend = kwargs.get("backend") or get_option("plotting.backend")
