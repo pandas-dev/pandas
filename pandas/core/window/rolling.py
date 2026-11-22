@@ -86,8 +86,8 @@ from pandas.core.window.numba_ import (
 )
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
     from collections.abc import (
+        Callable,
         Hashable,
         Iterator,
         Sized,
@@ -96,10 +96,10 @@ if TYPE_CHECKING:
     from pandas._typing import (
         ArrayLike,
         NDFrameT,
-        QuantileInterpolation,
         P,
-        TimeUnit,
+        QuantileInterpolation,
         T,
+        TimeUnit,
         WindowingRankType,
         npt,
     )
@@ -292,6 +292,9 @@ class BaseWindow(SelectionMixin["NDFrame"]):
         # we need to make a shallow copy of ourselves
         # with the same groupby
         kwargs = {attr: getattr(self, attr) for attr in self._attributes}
+        if subset.ndim == 1 and self.on is not None:
+            # a Series subset no longer has the ``on`` column, GH#43769
+            kwargs["on"] = self._on
 
         selection = self._infer_selection(key, subset)
         new_win = type(self)(subset, selection=selection, **kwargs)
@@ -1882,6 +1885,32 @@ class RollingAndExpandingMixin(BaseWindow):
 
         return self._apply(window_func, name="nunique", numeric_only=numeric_only)
 
+    def _get_pairwise_window_indexer(self, x: Series) -> BaseIndexer:
+        """
+        Return the window indexer for ``x``, the result of aligning with 'other'.
+        """
+        window_indexer = self._get_window_indexer()
+        if type(window_indexer) is not VariableWindowIndexer or x.index.equals(
+            self._selected_obj.index
+        ):
+            return window_indexer
+        # GH#62937 aligning with 'other' changed the rows, so the time-based
+        # window bounds must come from the aligned index
+        if self.on is not None:
+            raise ValueError(
+                "'other' must have the same index as the rolling object "
+                f"when rolling on column '{self.on}'."
+            )
+        kwargs = {attr: getattr(self, attr) for attr in self._attributes}
+        try:
+            aligned = type(self)(x, **kwargs)
+        except ValueError as err:
+            raise ValueError(
+                "Aligning 'other' with the rolling object must give a monotonic "
+                "datetimelike index without NaT."
+            ) from err
+        return aligned._get_window_indexer()
+
     def cov(
         self,
         other: DataFrame | Series | None = None,
@@ -1898,7 +1927,7 @@ class RollingAndExpandingMixin(BaseWindow):
         def cov_func(x, y):
             x_array = self._prep_values(x)
             y_array = self._prep_values(y)
-            window_indexer = self._get_window_indexer()
+            window_indexer = self._get_pairwise_window_indexer(x)
             min_periods = (
                 self.min_periods
                 if self.min_periods is not None
@@ -1938,7 +1967,7 @@ class RollingAndExpandingMixin(BaseWindow):
         def corr_func(x, y):
             x_array = self._prep_values(x)
             y_array = self._prep_values(y)
-            window_indexer = self._get_window_indexer()
+            window_indexer = self._get_pairwise_window_indexer(x)
             min_periods = (
                 self.min_periods
                 if self.min_periods is not None
@@ -2366,7 +2395,7 @@ class Rolling(RollingAndExpandingMixin):
         Notes
         -----
         See more `here
-        <https://pandas.pydata.org/pandas-docs/stable/user_guide/groupby.html#piping-function-calls>`__.
+        <https://pandas.pydata.org/docs/user_guide/groupby.html#piping-function-calls>`__.
 
         Examples
         --------

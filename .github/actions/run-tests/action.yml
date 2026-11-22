@@ -33,11 +33,15 @@ runs:
         PYTHONWARNDEFAULTENCODING: 1
         # Clipboard tests
         QT_QPA_PLATFORM: offscreen
+        INPUTS_ENVIRONMENT: ${{ inputs.environment }}
+        INPUTS_PYTEST_MARKER_EXPRESSION: ${{ inputs.pytest_marker_expression }}
+        INPUTS_NUMPROCESSES: ${{ inputs.numprocesses }}
+        INPUTS_PYTEST_TARGET: ${{ inputs.pytest_target }}
       run: |
         pixi run \
-          --environment ${{ inputs.environment }} \
+          --environment "${INPUTS_ENVIRONMENT}" \
           ci-test-pandas \
-          '-m ${{ inputs.pytest_marker_expression }}' \
-          ${{ inputs.numprocesses }} \
-          ${{ inputs.pytest_target }}
+          "-m ${INPUTS_PYTEST_MARKER_EXPRESSION}" \
+          "${INPUTS_NUMPROCESSES}" \
+          "${INPUTS_PYTEST_TARGET}"
       shell: bash -euox pipefail {0}

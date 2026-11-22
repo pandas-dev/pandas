@@ -171,3 +171,55 @@ class TestSeriesClip:
         tm.assert_series_equal(result, expected)
         # the np.clip ufunc dispatches to Series.clip
         tm.assert_series_equal(np.clip(ser, bound, 1), expected)
+
+    @pytest.mark.parametrize(
+        "kwargs",
+        [
+            {"upper": -np.finfo(np.float64).tiny},
+            {"upper": pd.Series([-np.finfo(np.float64).tiny])},
+            {"upper": np.array([-1e300])},
+            {"lower": pd.Series([0.1])},
+        ],
+    )
+    def test_clip_inplace_bound_not_representable(self, kwargs):
+        # GH#21476 in-place clip with a float64 bound that float32 cannot hold
+        #  exactly must raise, not store a rounded value
+        ser = pd.Series([0.0], dtype=np.float32)
+        expected = ser.copy()
+        with pytest.raises(TypeError, match="Invalid value"):
+            ser.clip(**kwargs, inplace=True)
+        tm.assert_series_equal(ser, expected)
+
+        result = ser.clip(**kwargs)
+        bound = np.asarray(next(iter(kwargs.values())), dtype=np.float64)
+        tm.assert_series_equal(result, pd.Series(bound.reshape(1)))
+
+    @pytest.mark.parametrize(
+        "categories, lower, upper, expected",
+        [
+            (["a", "c", "b"], "c", "b", ["c", "c", "b"]),
+            (["a", "c", "b"], "b", "c", ["c", "c", "b"]),
+            ([3, 1, 2], 3, 1, [3, 1, 1]),
+            ([3, 1, 2], 1, 3, [3, 1, 1]),
+            (
+                list(pd.to_datetime(["2020-01-03", "2020-01-01", "2020-01-02"])),
+                pd.Timestamp("2020-01-03"),
+                "2020-01-01",
+                list(pd.to_datetime(["2020-01-03", "2020-01-01", "2020-01-01"])),
+            ),
+        ],
+    )
+    def test_clip_ordered_categorical(self, categories, lower, upper, expected):
+        # GH#49217 the bounds are ordered by category position, not by value
+        dtype = pd.CategoricalDtype(categories, ordered=True)
+        ser = pd.Series(categories, dtype=dtype)
+        result = ser.clip(lower, upper)
+        tm.assert_series_equal(result, pd.Series(expected, dtype=dtype))
+
+    def test_clip_ordered_categorical_bound_not_a_category(self):
+        # GH#49217
+        ser = pd.Series(
+            ["a", "c", "b"], dtype=pd.CategoricalDtype(["a", "c", "b"], ordered=True)
+        )
+        with pytest.raises(TypeError, match="Invalid comparison"):
+            ser.clip("c", "zzz")

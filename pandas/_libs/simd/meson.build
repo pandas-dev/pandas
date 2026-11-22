@@ -12,6 +12,13 @@ else
     simd_config.set('PANDAS_HAVE_SCALAR', 1)
 endif
 
+if simd_target != 'scalar'
+    xsimd_dep = dependency('xsimd', version: '>=14.2')
+    moments_deps = [xsimd_dep]
+else
+    moments_deps = []
+endif
+
 configure_file(
     output: 'pandas_simd_config.h',
     configuration: simd_config,
@@ -23,7 +30,7 @@ moments_lib = static_library(
     'moments_@0@'.format(simd_target),
     'moments_@0@.cpp'.format(simd_target),
     include_directories: [inc_pd],
-    dependencies: [xsimd_dep],
+    dependencies: moments_deps,
     cpp_args: strict_c_args,
 )
 

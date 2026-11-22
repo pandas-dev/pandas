@@ -407,6 +407,9 @@ A collection of intervals may be stored in an :class:`arrays.IntervalArray`.
 
    IntervalDtype
 
+If the :class:`Series` is of dtype :class:`IntervalDtype`, ``Series.interval`` can be used to
+access the interval data. See :ref:`api.series.interval` for more.
+
 
 .. Those attributes and methods are included in the API because the docstrings
 .. of IntervalIndex and IntervalArray are shared. Including it here to make
@@ -531,6 +534,13 @@ the :class:`Categorical` back to a NumPy array, so categories and order informat
    :toctree: api/
 
    Categorical.__array__
+
+:meth:`Categorical.to_dense` instead keeps the dtype of the categories.
+
+.. autosummary::
+   :toctree: api/
+
+   Categorical.to_dense
 
 A :class:`Categorical` can be stored in a :class:`Series` or :class:`DataFrame`.
 To create a Series of dtype ``category``, use ``cat = s.astype(dtype)`` or

@@ -1817,6 +1817,14 @@ def test_groupby_std_datetimelike():
     tm.assert_frame_equal(result, expected)
 
 
+def test_groupby_std_datetimelike_with_nat():
+    ser = pd.Series(pd.to_datetime(["2020-01-01", "NaT", "2020-01-03", "2020-01-05"]))
+    gb = ser.groupby([0] * 4)
+    result = gb.std(skipna=False)
+    expected = pd.Series([pd.NaT], dtype="m8[us]", index=np.array([0]))
+    tm.assert_series_equal(result, expected)
+
+
 def test_mean_numeric_only_validates_bool():
     # GH#62778
 
@@ -1844,6 +1852,8 @@ def test_mean_numeric_only_validates_bool():
         "skew",
         "kurt",
         "prod",
+        "min",
+        "max",
     ],
 )
 def test_groupby_reductions_dont_skip_nan_with_mask(method, skipna, using_nan_is_na):
@@ -1864,6 +1874,33 @@ def test_groupby_reductions_dont_skip_nan_with_mask(method, skipna, using_nan_is
         expected = pd.Series(
             [np.nan], index=pd.Index([1], name="A"), name="B", dtype="Float64"
         )
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("method", ["min", "max"])
+def test_min_max_all_nan_group_with_mask(method):
+    # GH#59106 an all-NaN group gave inf/-inf
+    with pd.option_context("future.distinguish_nan_and_na", True):
+        ser = pd.Series([0.0, 0.0, 1.0], dtype="Float32")
+        ser = ser / ser
+        result = getattr(ser.groupby([1, 1, 2]), method)()
+        values = np.array([np.nan, 1.0], dtype="float32")
+        arr = pd.arrays.FloatingArray(values, np.zeros(2, dtype=bool))
+        expected = pd.Series(arr, index=np.array([1, 2]))
+        tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("method", ["min", "max"])
+def test_min_max_arrow_float_nan_not_skipped(method, using_nan_is_na):
+    # GH#59106 a non-null NaN in arrow float data was skipped
+    pa = pytest.importorskip("pyarrow")
+    dtype = pd.ArrowDtype(pa.float64())
+    values = pa.array([1.0, np.nan, 2.0], from_pandas=False)
+    ser = pd.Series(values, dtype=dtype)
+    result = getattr(ser.groupby([1, 1, 2]), method)()
+    item = None if using_nan_is_na else np.nan
+    expected_values = pa.array([item, 2.0], from_pandas=False)
+    expected = pd.Series(expected_values, index=np.array([1, 2]), dtype=dtype)
     tm.assert_series_equal(result, expected)
 
 

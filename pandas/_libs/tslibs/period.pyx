@@ -1,4 +1,5 @@
 import re
+import warnings
 
 cimport numpy as cnp
 from cpython.object cimport (
@@ -17,6 +18,7 @@ from numpy cimport (
 import numpy as np
 
 from pandas._libs.properties import cache_readonly
+from pandas.util._exceptions import find_stack_level
 
 cnp.import_array()
 
@@ -1837,6 +1839,7 @@ def extract_ordinals(ndarray values, PeriodDtypeBase dtype) -> np.ndarray:
         cnp.broadcast mi = cnp.PyArray_MultiIterNew2(ordinals, values)
         object p
         bint saw_integer = False
+        list saw_tz = [False]
 
     if values.descr.type_num != cnp.NPY_OBJECT:
         # if we don't raise here, we'll segfault later!
@@ -1846,7 +1849,7 @@ def extract_ordinals(ndarray values, PeriodDtypeBase dtype) -> np.ndarray:
         # Analogous to: p = values[i]
         p = <object>(<PyObject**>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
 
-        ordinal = _extract_ordinal(p, dtype, &saw_integer)
+        ordinal = _extract_ordinal(p, dtype, &saw_integer, saw_tz)
 
         # Analogous to: ordinals[i] = ordinal
         (<int64_t*>cnp.PyArray_MultiIter_DATA(mi, 0))[0] = ordinal
@@ -1866,11 +1869,15 @@ def extract_ordinals(ndarray values, PeriodDtypeBase dtype) -> np.ndarray:
             stacklevel=find_stack_level(),
         )
 
+    if saw_tz[0]:
+        # GH#47005; warn once for the array rather than once per element
+        _warn_dropped_tz()
+
     return ordinals
 
 
 cdef int64_t _extract_ordinal(
-    object item, PeriodDtypeBase dtype, bint* saw_integer
+    object item, PeriodDtypeBase dtype, bint* saw_integer, list saw_tz
 ) except? -1:
     """
     See extract_ordinals.
@@ -1901,7 +1908,7 @@ cdef int64_t _extract_ordinal(
                 raise IncompatibleFrequency(msg)
 
         except AttributeError:
-            item = Period(item, freq=dtype)
+            item = Period._new(saw_tz, item, dtype)
             if item is NaT:
                 # input may contain NaT-like string
                 ordinal = NPY_NAT
@@ -1955,6 +1962,16 @@ INT_TO_PERIOD_SCALAR_DEPR_MSG = (
     "string, e.g. Period(str(value), freq=...). To get the future behavior "
     "now, use Period(ordinal=value, freq=...)."
 )
+
+DROPPED_TZ_MSG = "Converting to Period representation will drop timezone information."
+
+
+cdef _warn_dropped_tz():
+    import warnings
+
+    from pandas.util._exceptions import find_stack_level
+
+    warnings.warn(DROPPED_TZ_MSG, UserWarning, stacklevel=find_stack_level())
 
 
 @set_module("pandas.errors")
@@ -2454,9 +2471,13 @@ cdef class _Period(PeriodMixin):
 
         Parameters
         ----------
-        freq : str or DateOffset
-            Target frequency. Default is 'D' if self._freq is week or
-            longer and 'S' otherwise.
+        freq : str or DateOffset, optional
+            Target frequency. By default the result is exactly the start (or end)
+            of each period. With ``how="start"``, the result is the start of
+            ``asfreq(freq, how="start")``, except that a ``freq`` coarser than
+            daily gives midnight on that period's last day, so
+            ``to_timestamp("M")`` gives month-end dates. With ``how="end"``,
+            ``freq`` only affects the resolution ('ns' gives nanosecond unit).
         how : {'start', 'end', 's', 'e'}, default 'start'
             Whether to use the start or end of the period. Case-insensitive.
 
@@ -2476,6 +2497,11 @@ cdef class _Period(PeriodMixin):
         >>> timestamp = period.to_timestamp()
         >>> timestamp
         Timestamp('2023-01-01 00:00:00')
+
+        A ``freq`` coarser than daily gives the last day of the period:
+
+        >>> pd.Period("2023-01", freq="M").to_timestamp("M")
+        Timestamp('2023-01-31 00:00:00')
         """
         how = validate_end_alias(how)
 
@@ -3470,16 +3496,41 @@ class Period(_Period):
     date_range : Return a fixed frequency DatetimeIndex.
     timedelta_range : Generates a fixed frequency range of timedeltas.
 
+    Notes
+    -----
+    A multiplied ``freq`` such as ``"2Q"`` sets only the length of the span:
+    the period starts at the base unit (here, the quarter) containing
+    ``value``, not on a fixed grid. See :ref:`timeseries.periods`.
+
     Examples
     --------
     >>> period = pd.Period('2012-1-1', freq='D')
     >>> period
     Period('2012-01-01', 'D')
+
+    A ``"2Q"`` period can start in any quarter:
+
+    >>> pd.Period("2017-05-01", freq="2Q")
+    Period('2017Q2', '2Q-DEC')
     """
 
     def __new__(cls, value=None, freq=None, ordinal=None,
                 year=None, month=None, quarter=None, day=None,
                 hour=None, minute=None, second=None):
+        saw_tz = [False]
+        result = cls._new(saw_tz, value, freq, ordinal,
+                          year, month, quarter, day, hour, minute, second)
+        if saw_tz[0]:
+            # GH#47005
+            _warn_dropped_tz()
+        return result
+
+    @classmethod
+    def _new(cls, list saw_tz, value=None, freq=None, ordinal=None,
+             year=None, month=None, quarter=None, day=None,
+             hour=None, minute=None, second=None):
+        # Sets saw_tz[0] instead of warning so extract_ordinals can warn
+        #  once for an array.
         # freq points to a tuple (base, mult);  base is one of the defined
         # periods such as Y, Q, etc. Every five minutes would be, e.g.,
         # ('min', 5) but may be passed in as a string like '5min'
@@ -3604,6 +3655,8 @@ class Period(_Period):
             raise ValueError(msg)
 
         if ordinal is None:
+            if dt.tzinfo is not None:
+                saw_tz[0] = True
             base = freq_to_dtype_code(freq)
             ordinal = period_ordinal(dt.year, dt.month, dt.day,
                                      dt.hour, dt.minute, dt.second,
@@ -3651,10 +3704,20 @@ cdef int64_t _ordinal_from_fields(int year, int month, quarter, int day,
 
 
 def validate_end_alias(how: str) -> str:  # Literal["E", "S"]
-    how_dict = {"S": "S", "E": "E",
-                "START": "S", "FINISH": "E",
-                "BEGIN": "S", "END": "E"}
-    result = how_dict.get(str(how).upper())
+    how_dict = {"S": "S", "E": "E", "START": "S", "END": "E"}
+    upper = str(how).upper()
+    if upper in ("BEGIN", "FINISH"):
+        from pandas.errors import Pandas4Warning
+
+        alt = "start" if upper == "BEGIN" else "end"
+        warnings.warn(
+            f"how={repr(how)} is deprecated and will raise in a future "
+            f"version. Use how='{alt}' instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        upper = alt.upper()
+    result = how_dict.get(upper)
     if result is None:
         raise ValueError(
             f"how must be one of 'start', 'end', 's', 'e', got {repr(how)}"

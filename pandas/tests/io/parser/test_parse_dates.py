@@ -16,7 +16,10 @@ from io import (
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas._libs import lib
+from pandas.compat.pyarrow import pa_version_under25p0
 from pandas.errors import Pandas4Warning
 
 import pandas as pd
@@ -124,6 +127,26 @@ def test_parse_dates_string(all_parsers):
         {"A": ["a", "b", "c"], "B": [1, 3, 4], "C": [2, 4, 5]}, index=index
     )
     tm.assert_frame_equal(result, expected)
+
+
+def test_parse_dates_decimal_comma(all_parsers):
+    # GH#17265 "2013,11,04" used to parse as 2013-04-01; it is now rejected, which
+    #  for read_csv means the column is left alone rather than raising
+    parser = all_parsers
+    data = """date,A
+"2013,11,04",1
+"2013,11,05",2
+"""
+    with tm.assert_produces_warning(
+        UserWarning, match="Could not infer format", check_stacklevel=False
+    ):
+        result = parser.read_csv(StringIO(data), parse_dates=["date"])
+    tm.assert_frame_equal(result, parser.read_csv(StringIO(data)))
+
+    result = parser.read_csv(
+        StringIO(data), parse_dates=["date"], date_format="%Y,%m,%d"
+    )
+    assert result["date"].tolist() == [datetime(2013, 11, 4), datetime(2013, 11, 5)]
 
 
 @pytest.mark.parametrize("parse_dates", [[0, 2], ["a", "c"]])
@@ -454,7 +477,6 @@ def test_parse_timezone(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-@skip_pyarrow  # pandas.errors.ParserError: CSV parse error
 @pytest.mark.parametrize(
     "date_string",
     ["32/32/2019", "02/30/2019", "13/13/2019", "13/2019", "a3/11/2018", "10/11/2o17"],
@@ -486,10 +508,7 @@ def test_parse_delimited_date_swap_no_warning(
 ):
     parser = all_parsers
     expected = pd.DataFrame({0: [expected]}, dtype="datetime64[us]")
-    if parser.engine == "pyarrow":
-        if not dayfirst:
-            # "CSV parse error: Empty CSV file or block"
-            pytest.skip(reason="https://github.com/apache/arrow/issues/38676")
+    if parser.engine == "pyarrow" and dayfirst:
         msg = "The 'dayfirst' option is not supported with the 'pyarrow' engine"
         with pytest.raises(ValueError, match=msg):
             parser.read_csv(
@@ -793,6 +812,167 @@ def test_parse_dates_and_string_dtype(all_parsers):
     result = parser.read_csv(StringIO(data), dtype="string", parse_dates=["b"])
     expected = pd.DataFrame({"a": ["1"], "b": [pd.Timestamp("2019-12-31")]})
     expected["a"] = expected["a"].astype("string")
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "value, expected_dtype",
+    [
+        ("2019-12-31", "M8[us]"),
+        ("2019-12-31T00:00:00+02:00", "datetime64[us, UTC+02:00]"),
+    ],
+)
+@pytest.mark.parametrize("dtype", [str, object, "string", "category"])
+@pytest.mark.parametrize("parse_dates", [["b"], [1]])
+def test_parse_dates_with_dtype_for_same_column(
+    request, all_parsers, dtype, parse_dates, value, expected_dtype
+):
+    # GH#57512
+    parser = all_parsers
+    if parser.engine == "pyarrow" and dtype == "category" and "+" in value:
+        # pyarrow parses these timestamps itself and converts them to UTC
+        request.applymarker(pytest.mark.xfail(reason="offset becomes UTC"))
+    data = f"a,b\nx,{value}\ny,\n"
+    result = parser.read_csv(
+        StringIO(data), dtype={"b": dtype}, parse_dates=parse_dates
+    )
+    expected = pd.DataFrame(
+        {"a": ["x", "y"], "b": pd.DatetimeIndex([value, None], dtype=expected_dtype)}
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("dtype", [str, object, "string"])
+@pytest.mark.parametrize("parse_dates", [["b"], [1]])
+def test_parse_dates_with_scalar_string_dtype(request, all_parsers, dtype, parse_dates):
+    # GH#57512
+    parser = all_parsers
+    if (
+        parser.engine == "pyarrow"
+        and dtype is str
+        and pa_version_under25p0
+        and not using_string_dtype()
+    ):
+        # the missing value becomes the string "None" before dates are parsed
+        request.applymarker(pytest.mark.xfail(reason="dtype applied first"))
+    data = "a,b\nx,2019-12-31\ny,\n"
+    result = parser.read_csv(StringIO(data), dtype=dtype, parse_dates=parse_dates)
+    expected = pd.Series(
+        pd.DatetimeIndex(["2019-12-31", None], dtype="M8[us]"), name="b"
+    )
+    tm.assert_series_equal(result["b"], expected)
+
+
+@pytest.mark.parametrize(
+    "value, expected_dtype",
+    [
+        ("2019-12-31", "M8[us]"),
+        ("2019-12-31T00:00:00+02:00", "datetime64[us, UTC+02:00]"),
+    ],
+)
+@pytest.mark.parametrize("dtype", [str, object, "string", "category", "int64"])
+@pytest.mark.parametrize("index_col", ["b", 1])
+def test_parse_dates_index_col_with_dtype(
+    request, all_parsers, dtype, index_col, value, expected_dtype
+):
+    # GH#57512
+    parser = all_parsers
+    if parser.engine == "pyarrow" and dtype == "category" and "+" in value:
+        # pyarrow parses these timestamps itself and converts them to UTC
+        request.applymarker(pytest.mark.xfail(reason="offset becomes UTC"))
+    if parser.engine == "pyarrow" and dtype == "int64":
+        # pyarrow applies a numeric dtype before parsing dates
+        request.applymarker(pytest.mark.xfail(reason="dtype applied first"))
+    data = f"a,b\nx,{value}\ny,\n"
+    result = parser.read_csv(
+        StringIO(data), dtype={"b": dtype}, parse_dates=["b"], index_col=index_col
+    )
+    expected = pd.DataFrame(
+        {"a": ["x", "y"]},
+        index=pd.DatetimeIndex([value, None], dtype=expected_dtype, name="b"),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("dtype", [str, object, "string", "category"])
+def test_parse_dates_multiindex_col_with_dtype(all_parsers, dtype):
+    # GH#57512
+    parser = all_parsers
+    data = "a,b,c\nx,2019-12-31,1\ny,,2\n"
+    result = parser.read_csv(
+        StringIO(data), dtype={"b": dtype}, parse_dates=["b"], index_col=[0, 1]
+    )
+    expected = pd.DatetimeIndex(["2019-12-31", None], dtype="M8[us]", name="b")
+    tm.assert_index_equal(result.index.get_level_values(1), expected)
+
+
+@pytest.mark.parametrize("values", [[1, 2], [1.5, 2.5], [True, False]])
+@pytest.mark.parametrize("index_col", [0, "idx"])
+def test_parse_dates_true_non_date_index(all_parsers, values, index_col):
+    # GH#71873 an index column that fails to parse as dates keeps its dtype
+    parser = all_parsers
+    data = f"idx,a\n{values[0]},0\n{values[1]},1"
+    result = parser.read_csv_check_warnings(
+        UserWarning,
+        "Could not infer format",
+        StringIO(data),
+        index_col=index_col,
+        parse_dates=True,
+    )
+    expected = pd.DataFrame({"a": [0, 1]}, index=pd.Index(values, name="idx"))
+    tm.assert_frame_equal(result, expected)
+
+
+def test_parse_dates_true_multiindex_non_date_level(all_parsers):
+    # GH#71873
+    parser = all_parsers
+    data = "d,id,v\n2020-01-01,1,10\n2020-01-02,2,20"
+    result = parser.read_csv_check_warnings(
+        UserWarning,
+        "Could not infer format",
+        StringIO(data),
+        index_col=[0, 1],
+        parse_dates=True,
+    )
+    expected = pd.MultiIndex.from_arrays(
+        [pd.DatetimeIndex(["2020-01-01", "2020-01-02"], dtype="M8[us]"), [1, 2]],
+        names=["d", "id"],
+    )
+    tm.assert_index_equal(result.index, expected)
+
+
+@pytest.mark.parametrize(
+    "values, date_format",
+    [(["2020-01-01", "2020-01-02"], "%d/%m/%Y"), (["10:00:00", "11:30:00"], "%Y")],
+)
+@pytest.mark.parametrize("parse_dates", [True, ["idx"]])
+@pytest.mark.parametrize("dtype", [None, "category"])
+def test_parse_dates_index_format_mismatch(
+    all_parsers, values, date_format, parse_dates, dtype
+):
+    # GH#71873 date/time values that fail to parse stay as text
+    parser = all_parsers
+    data = f"idx,a\n{values[0]},0\n{values[1]},1"
+    result = parser.read_csv(
+        StringIO(data),
+        index_col="idx",
+        parse_dates=parse_dates,
+        date_format=date_format,
+        dtype=None if dtype is None else {"idx": dtype},
+    )
+    expected = pd.DataFrame(
+        {"a": [0, 1]}, index=pd.Index(values, name="idx", dtype=dtype)
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("parse_dates", [True, ["idx"]])
+def test_parse_dates_bool_index_with_na(pyarrow_parser_only, parse_dates):
+    # GH#71873
+    parser = pyarrow_parser_only
+    data = "idx,a\ntrue,0\n,1"
+    result = parser.read_csv(StringIO(data), index_col="idx", parse_dates=parse_dates)
+    expected = parser.read_csv(StringIO(data), index_col="idx")
     tm.assert_frame_equal(result, expected)
 
 

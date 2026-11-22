@@ -30,7 +30,11 @@ from pandas.core.dtypes.inference import is_integer
 
 from pandas.core.arrays.arrow.array import to_pyarrow_type
 
-from pandas.io._util import arrow_table_to_pandas
+from pandas.io._util import (
+    arrow_table_to_pandas,
+    validate_integer_cast,
+    validate_integer_casts,
+)
 from pandas.io.common import mangle_dupe_names
 from pandas.io.parsers.base_parser import (
     ParserBase,
@@ -86,6 +90,36 @@ def _pyarrow_parse_type(dtype) -> pa.DataType | None:
         # directly as large_string avoids a cast in the conversion to pandas
         return pa.large_string()
     return None
+
+
+class _NewlineTerminatedReader:
+    """
+    Read from ``src``, adding a final newline if ``src`` fits in the first
+    read and lacks one.
+
+    GH#62635 pyarrow infers the number of columns from the first complete line
+    in its first block, so a single line without a trailing newline fails.
+    """
+
+    def __init__(self, src: ReadBuffer[bytes]) -> None:
+        self.src = src
+        self.closed = False  # required by pyarrow
+        self._first = True
+
+    def read(self, size: int = -1) -> bytes:
+        data = self.src.read(size)
+        if not self._first or not isinstance(data, bytes):
+            return data
+        self._first = False
+        # a short read need not be EOF, so read until full or EOF
+        while size < 0 or len(data) < size:
+            chunk = self.src.read(-1 if size < 0 else size - len(data))
+            if not chunk:
+                if data and data[-1:] not in b"\r\n":
+                    data += b"\n"
+                break
+            data += chunk
+        return data
 
 
 class ArrowParserWrapper(ParserBase):
@@ -412,14 +446,21 @@ class ArrowParserWrapper(ParserBase):
                 # parse_dates for index columns: the other engines parse these
                 # while building the index, but the pyarrow path sets the index
                 # after reading, so do the conversion here.
-                if self._index_col_should_parse_dates(col_name, position):
-                    frame[col_name] = date_converter(
+                parse_as_dates = self._index_col_should_parse_dates(col_name, position)
+                if parse_as_dates:
+                    parsed = date_converter(
                         frame[col_name],
                         col=col_name,
                         dayfirst=self.dayfirst,
                         cache_dates=self.cache_dates,
                         date_format=self.date_format,
                     )
+                    # on failure keep pyarrow's dtype like the other engines,
+                    #  except date/time objects, which they leave as text
+                    if parsed.dtype.kind == "M" or lib.infer_dtype(
+                        frame[col_name].to_numpy(), skipna=True
+                    ) in ("date", "time"):
+                        frame[col_name] = parsed
 
                 # Process dtype for index_col and drop from dtypes
                 if isinstance(self.dtype, dict):
@@ -429,7 +470,15 @@ class ArrowParserWrapper(ParserBase):
                         else (frame.columns[item], self.dtype.get(frame.columns[item]))
                     )
                     if new_dtype is not None:
-                        frame[key] = frame[key].astype(new_dtype)
+                        # GH#57512 don't undo a parse_dates conversion
+                        if not (
+                            frame[key].dtype.kind == "M"
+                            and pandas_dtype(new_dtype).kind != "M"
+                            and parse_as_dates
+                        ):
+                            casted = frame[key].astype(new_dtype)
+                            validate_integer_cast(frame[key], casted.dtype)
+                            frame[key] = casted
                         del self.dtype[key]
 
             if self.dtype is not None and not isinstance(self.dtype, dict):
@@ -460,35 +509,40 @@ class ArrowParserWrapper(ParserBase):
 
         return frame
 
-    def _finalize_dtype(self, frame: DataFrame) -> DataFrame:
+    def _finalize_dtype(
+        self, frame: DataFrame, parse_dates_cols: set[Hashable]
+    ) -> DataFrame:
         if self.dtype is not None:
             # Ignore non-existent columns from dtype mapping
             # like other parsers do
             if isinstance(self.dtype, dict):
+                # GH#57512 don't undo a parse_dates conversion
                 self.dtype = {
                     k: pandas_dtype(v)
                     for k, v in self.dtype.items()
                     if k in frame.columns
+                    and not (
+                        k in parse_dates_cols
+                        and frame[k].dtype.kind == "M"
+                        and pandas_dtype(v).kind != "M"
+                    )
                 }
             else:
                 # GH#34066 a scalar dtype must not clobber the dtype produced by
                 # date parsing, so exclude parse_dates columns from the cast.
                 scalar_dtype = pandas_dtype(self.dtype)
-                parse_dates_cols = (
-                    set(self.parse_dates)
-                    if isinstance(self.parse_dates, list)
-                    else set()
-                )
                 self.dtype = {
                     col: scalar_dtype
                     for col in frame.columns
                     if col not in parse_dates_cols
                 }
             try:
-                frame = frame.astype(self.dtype)
+                casted = frame.astype(self.dtype)
             except TypeError as err:
                 # GH#44901 reraise to keep api consistent
                 raise ValueError(str(err)) from err
+            validate_integer_casts(frame, casted)
+            frame = casted
         return frame
 
     def _finalize_pandas_output(
@@ -508,10 +562,19 @@ class ArrowParserWrapper(ParserBase):
         DataFrame
             The processed DataFrame.
         """
+        parse_dates_cols: set[Hashable] = set()
+        if isinstance(self.parse_dates, list):
+            # resolve positions before index columns are removed
+            parse_dates_cols = {
+                frame.columns[col]
+                if isinstance(col, int) and col not in frame.columns
+                else col
+                for col in self.parse_dates
+            }
         frame = self._do_date_conversions(frame.columns, frame)
         frame = self._maybe_restore_string_dtype(frame)
         frame = self._finalize_index(frame, multi_index_named)
-        frame = self._finalize_dtype(frame)
+        frame = self._finalize_dtype(frame, parse_dates_cols)
         # GH#65862 tuples passed via names imply MultiIndex columns,
         # as with other engines
         frame.columns = self._maybe_make_multi_index_columns(
@@ -526,6 +589,10 @@ class ArrowParserWrapper(ParserBase):
         if not (using_string_dtype() and isinstance(self.parse_dates, list)):
             return frame
         for col in self.parse_dates:
+            if isinstance(self.index_col, list) and col in self.index_col:
+                # not converted by _do_date_conversions; _finalize_index
+                #  handles these
+                continue
             if col in frame.columns and frame[col].dtype == object:
                 frame[col] = frame[col].astype("str")
         return frame
@@ -541,11 +608,16 @@ class ArrowParserWrapper(ParserBase):
                 "The pyarrow engine does not allow 'usecols' to be a callable."
             )
 
-    def read(self) -> DataFrame:
+    def read(self, nrows: int | None = None, row_offset: int = 0) -> DataFrame:
         """
         Reads the contents of a CSV file into a DataFrame and
         processes it according to the kwargs passed in the
         constructor.
+
+        Parameters
+        ----------
+        nrows, row_offset
+            Ignored; the pyarrow engine always reads the whole file.
 
         Returns
         -------
@@ -556,10 +628,15 @@ class ArrowParserWrapper(ParserBase):
         pyarrow_csv = import_optional_dependency("pyarrow.csv")
         self._get_pyarrow_options()
         convert_options = self._get_convert_options()
+        src: ReadBuffer[bytes] | _NewlineTerminatedReader = self.src
+        if "a\n".encode(self.encoding).endswith(b"a\n"):
+            # the reader appends b"\n", a newline only in ASCII-compatible
+            # encodings
+            src = _NewlineTerminatedReader(self.src)
 
         try:
             table = pyarrow_csv.read_csv(
-                self.src,
+                src,
                 read_options=pyarrow_csv.ReadOptions(**self.read_options),
                 parse_options=pyarrow_csv.ParseOptions(**self.parse_options),
                 convert_options=convert_options,

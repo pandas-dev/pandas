@@ -84,6 +84,7 @@ if TYPE_CHECKING:
         CompressionOptions,
         FilePath,
         ReadBuffer,
+        SequenceNotStr,
         StorageOptions,
         WriteBuffer,
     )
@@ -1105,7 +1106,7 @@ class StataReader(StataParser, abc.Iterator[DataFrame]):
         index_col: str | None = None,
         convert_missing: bool = False,
         preserve_dtypes: bool = True,
-        columns: Sequence[str] | None = None,
+        columns: SequenceNotStr[str] | None = None,
         order_categoricals: bool = True,
         chunksize: int | None = None,
         compression: CompressionOptions = "infer",
@@ -1667,7 +1668,7 @@ the string values returned are correct."""
         index_col: str | None = None,
         convert_missing: bool | None = None,
         preserve_dtypes: bool | None = None,
-        columns: Sequence[str] | None = None,
+        columns: SequenceNotStr[str] | None = None,
         order_categoricals: bool | None = None,
     ) -> DataFrame:
         """
@@ -1735,6 +1736,11 @@ the string values returned are correct."""
                         data[col] = data[col].astype(dt)
             if columns is not None:
                 data = self._do_select_columns(data, columns)
+            if convert_categoricals:
+                self._read_value_labels()
+                data = self._do_convert_categoricals(
+                    data, self._value_label_dict, self._lbllist, order_categoricals
+                )
             return data
 
         if (self._format_version >= 117) and (not self._value_labels_read):
@@ -1908,7 +1914,9 @@ the string values returned are correct."""
             data.isetitem(i, [self.GSO[str(k)] for k in data.iloc[:, i]])
         return data
 
-    def _do_select_columns(self, data: DataFrame, columns: Sequence[str]) -> DataFrame:
+    def _do_select_columns(
+        self, data: DataFrame, columns: SequenceNotStr[str]
+    ) -> DataFrame:
         if not self._column_selector_set:
             column_set = set(columns)
             if len(column_set) != len(columns):
@@ -1960,7 +1968,9 @@ the string values returned are correct."""
                 keys = np.array(list(vl.keys()))
                 column = data[col]
                 key_matches = column.isin(keys)
-                if self._using_iterator and key_matches.all():
+                # An empty column has no codes to take the categories from, so use
+                # all the value labels, as when iterating.
+                if (self._using_iterator or column.empty) and key_matches.all():
                     initial_categories: np.ndarray | None = keys
                     # If all categories are in the keys and we are iterating,
                     # use the same keys for all chunks. If some are missing
@@ -2156,7 +2166,7 @@ def read_stata(
     index_col: str | None = None,
     convert_missing: bool = False,
     preserve_dtypes: bool = True,
-    columns: Sequence[str] | None = None,
+    columns: SequenceNotStr[str] | None = None,
     order_categoricals: bool = True,
     chunksize: int | None = None,
     iterator: bool = False,
@@ -2653,7 +2663,7 @@ class StataWriter(StataParser):
                 values = data[col].cat.codes._values.copy()
 
                 # Upcast if needed so that correct missing values can be set
-                if values.max() >= get_base_missing_value(dtype):
+                if len(values) and values.max() >= get_base_missing_value(dtype):
                     if dtype == np.int8:
                         dtype = np.dtype(np.int16)
                     elif dtype == np.int16:
@@ -3350,11 +3360,11 @@ class StataStrLWriter:
         gso_df = self.df
         columns = list(gso_df.columns)
         selected = gso_df[self.columns]
-        col_index = [(col, columns.index(col)) for col in self.columns]
+        col_index = [columns.index(col) for col in self.columns]
         keys = np.empty(selected.shape, dtype=np.uint64)
-        for o, (idx, row) in enumerate(selected.iterrows()):
-            for j, (col, v) in enumerate(col_index):
-                val = row[col]
+        for o, row in enumerate(selected.values):
+            for j, v in enumerate(col_index):
+                val = row[j]
                 # Allow columns with mixed str and None or pd.NA (GH 23633)
                 val = "" if isna(val) else val
                 key = gso_table.get(val, None)

@@ -183,3 +183,17 @@ def test_is_monotonic_with_nans(values, attr):
     # GH: 37220
     idx = pd.MultiIndex.from_tuples(values, names=["test"])
     assert getattr(idx, attr) is False
+
+
+@pytest.mark.parametrize("ordered", [True, False])
+def test_is_monotonic_categorical_level_not_sorted(ordered):
+    # GH#47607 level values are sorted by category order, not lexically
+    level = pd.CategoricalIndex(
+        ["a", "b", "c"], categories=["c", "b", "a"], ordered=ordered
+    )
+    mi = pd.MultiIndex(levels=[level, [1, 2]], codes=[[0, 1, 2], [0, 0, 1]])
+    assert mi.is_monotonic_increasing is False
+    assert mi.is_monotonic_decreasing is True
+    assert mi[::-1].is_monotonic_increasing is True
+    assert mi[::-1].is_monotonic_decreasing is False
+    assert mi.sort_values().equals(mi[::-1])

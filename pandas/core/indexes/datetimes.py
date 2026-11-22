@@ -36,6 +36,7 @@ from pandas.util._decorators import (
     set_module,
 )
 from pandas.util._exceptions import find_stack_level
+from pandas.util._validators import validate_inclusive
 
 from pandas.core.dtypes.common import is_scalar
 from pandas.core.dtypes.dtypes import (
@@ -70,6 +71,7 @@ if TYPE_CHECKING:
         TimeUnit,
         npt,
     )
+
     from pandas.core.api import (
         DataFrame,
         PeriodIndex,
@@ -1214,7 +1216,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             specified `freq`.
         DatetimeIndex.ceil : Perform ceil operation on the data to the
             specified `freq`.
-        DatetimeIndex.snap : Snap time stamps to nearest occurring frequency.
 
         Notes
         -----
@@ -1265,7 +1266,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         ----------
         freq : str or Offset
             The frequency level to floor the index to. Must be a fixed
-            frequency like 's' (second) not 'ME' (month end). See
+            frequency like 's' (second), or a single step of a
+            date-anchored frequency like 'MS' (month start). See
             :ref:`frequency aliases <timeseries.offset_aliases>` for
             a list of possible `freq` values.
         ambiguous : 'infer', bool-ndarray, 'NaT', default 'raise'
@@ -1306,7 +1308,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             specified `freq`.
         DatetimeIndex.ceil : Perform ceil operation on the data to the
             specified `freq`.
-        DatetimeIndex.snap : Snap time stamps to nearest occurring frequency.
 
         Notes
         -----
@@ -1357,7 +1358,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         ----------
         freq : str or Offset
             The frequency level to ceil the index to. Must be a fixed
-            frequency like 's' (second) not 'ME' (month end). See
+            frequency like 's' (second), or a single step of a
+            date-anchored frequency like 'MS' (month start). See
             :ref:`frequency aliases <timeseries.offset_aliases>` for
             a list of possible `freq` values.
         ambiguous : 'infer', bool-ndarray, 'NaT', default 'raise'
@@ -1398,7 +1400,6 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             specified `freq`.
         DatetimeIndex.floor : Perform floor operation on the data to the
             specified `freq`.
-        DatetimeIndex.snap : Snap time stamps to nearest occurring frequency.
 
         Notes
         -----
@@ -1757,6 +1758,12 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         PeriodIndex: Immutable ndarray holding ordinal values.
         DatetimeIndex.to_pydatetime: Return DatetimeIndex as object.
 
+        Notes
+        -----
+        A multiplied ``freq`` does not bin timestamps: with ``"2h"``, each
+        timestamp maps to the 2-hour period starting at its own hour. For
+        aligned 2-hour bins, use ``floor("2h").to_period("2h")``.
+
         Examples
         --------
         >>> df = pd.DataFrame(
@@ -2065,6 +2072,15 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         """
         Snap time stamps to nearest occurring frequency.
 
+        .. deprecated:: 3.2.0
+            For fixed frequencies ``snap`` returns the values unchanged; use
+            :meth:`DatetimeIndex.round` if rounding was intended. For other
+            offsets, use::
+
+                offset = pd.tseries.frequencies.to_offset(freq)
+                back, fwd = idx.map(offset.rollback), idx.map(offset.rollforward)
+                fwd.where(fwd - idx <= idx - back, back)
+
         Each timestamp in the index is adjusted to the nearest occurrence of
         the specified frequency, snapping backward or forward as appropriate.
 
@@ -2096,10 +2112,18 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         >>> idx
         DatetimeIndex(['2023-01-01', '2023-01-02', '2023-02-01', '2023-02-02'],
         dtype='datetime64[ns]', freq=None)
-        >>> idx.snap("MS")
+        >>> idx.snap("MS")  # doctest: +SKIP
         DatetimeIndex(['2023-01-01', '2023-01-01', '2023-02-01', '2023-02-01'],
         dtype='datetime64[ns]', freq=None)
         """
+        warnings.warn(
+            "DatetimeIndex.snap is deprecated and will be removed in a future "
+            "version. For non-fixed offsets, use the offset's rollback and "
+            "rollforward methods. For fixed frequencies snap returns the values "
+            "unchanged; use DatetimeIndex.round if rounding was intended.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
         # Superdumb, punting on any optimizing
         freq = to_offset(freq)
 
@@ -2139,7 +2163,8 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         lower, upper: pd.Timestamp
         """
         freq = OFFSET_TO_PERIOD_FREQSTR.get(reso.attr_abbrev, reso.attr_abbrev)
-        per = Period(parsed, freq=freq)
+        # tz is re-applied below, GH#47005
+        per = Period(parsed.replace(tzinfo=None), freq=freq)
         start = per.start_time
         # Can't use end_time here bc that will subtract a microsecond
         #  instead of a nanosecond
@@ -2429,7 +2454,13 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         return (time_micros == micros).nonzero()[0]
 
     def indexer_between_time(
-        self, start_time, end_time, include_start: bool = True, include_end: bool = True
+        self,
+        start_time,
+        end_time,
+        include_start: bool | lib.NoDefault = lib.no_default,
+        include_end: bool | lib.NoDefault = lib.no_default,
+        *,
+        inclusive: IntervalClosedType | lib.NoDefault = lib.no_default,
     ) -> npt.NDArray[np.intp]:
         """
         Return index locations of values between particular times of day.
@@ -2445,8 +2476,18 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             "%H:%M:%S", "%H%M%S", "%I:%M:%S%p","%I%M%S%p").
         include_start : bool, default True
             Include boundaries; whether to set start bound as closed or open.
+
+            .. deprecated:: 3.2.0
+               Use ``inclusive`` instead.
         include_end : bool, default True
             Include boundaries; whether to set end bound as closed or open.
+
+            .. deprecated:: 3.2.0
+               Use ``inclusive`` instead.
+        inclusive : {"both", "neither", "left", "right"}, default "both"
+            Include boundaries; whether to set each bound as closed or open.
+
+            .. versionadded:: 3.2.0
 
         Returns
         -------
@@ -2465,25 +2506,43 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         DatetimeIndex(['2023-01-01 00:00:00', '2023-01-01 01:00:00',
                            '2023-01-01 02:00:00', '2023-01-01 03:00:00'],
                           dtype='datetime64[us]', freq='h')
-        >>> idx.indexer_between_time("00:00", "2:00", include_end=False)
+        >>> idx.indexer_between_time("00:00", "2:00", inclusive="left")
         array([0, 1])
         """
+        if include_start is not lib.no_default or include_end is not lib.no_default:
+            if inclusive is not lib.no_default:
+                raise TypeError(
+                    "Cannot pass 'inclusive' together with 'include_start' or "
+                    "'include_end'."
+                )
+            left_inclusive = include_start is lib.no_default or bool(include_start)
+            right_inclusive = include_end is lib.no_default or bool(include_end)
+            replacement = {
+                (True, True): "both",
+                (True, False): "left",
+                (False, True): "right",
+                (False, False): "neither",
+            }[(left_inclusive, right_inclusive)]
+            warnings.warn(
+                "The 'include_start' and 'include_end' keywords in "
+                "DatetimeIndex.indexer_between_time are deprecated and will be "
+                f"removed in a future version. Use inclusive='{replacement}' instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+        else:
+            if inclusive is lib.no_default:
+                inclusive = "both"
+            left_inclusive, right_inclusive = validate_inclusive(inclusive)
+
         start_time = to_time(start_time)
         end_time = to_time(end_time)
         time_micros = self._get_time_micros()
         start_micros = _time_to_micros(start_time)
         end_micros = _time_to_micros(end_time)
 
-        if include_start and include_end:
-            lop = rop = operator.le
-        elif include_start:
-            lop = operator.le
-            rop = operator.lt
-        elif include_end:
-            lop = operator.lt
-            rop = operator.le
-        else:
-            lop = rop = operator.lt
+        lop = operator.le if left_inclusive else operator.lt
+        rop = operator.le if right_inclusive else operator.lt
 
         if start_time <= end_time:
             join_op = operator.and_

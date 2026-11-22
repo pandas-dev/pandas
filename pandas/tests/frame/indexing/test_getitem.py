@@ -237,6 +237,26 @@ class TestGetitemListLike:
         with pytest.raises(KeyError, match="not in index"):
             frame[idx]
 
+    @pytest.mark.parametrize("tupleize_cols", [True, False])
+    def test_getitem_list_of_nested_tuples(self, tupleize_cols):
+        # GH#43780
+        keys = [(("a1", "a2"), ("b1", "b2")), (("a1", "a2"), ("c1", "c2"))]
+        cols = pd.Index(keys, tupleize_cols=tupleize_cols)
+        df = pd.DataFrame([[0, 1]], columns=cols)
+        expected = df.iloc[:, [0]]
+        tm.assert_frame_equal(df[keys[:1]], expected)
+        tm.assert_frame_equal(df.loc[:, keys[:1]], expected)
+        tm.assert_frame_equal(df.drop(columns=keys[1:]), expected)
+
+        ser = df.iloc[0]
+        tm.assert_series_equal(ser[keys[:1]], ser.iloc[[0]])
+        tm.assert_series_equal(ser.loc[keys[:1]], ser.iloc[[0]])
+
+        ser[keys[:1]] = 5
+        df.loc[:, keys[:1]] = 5
+        assert ser.iloc[0] == 5
+        assert df.iloc[0, 0] == 5
+
     def test_getitem_iloc_generator(self):
         # GH#39614
         df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})

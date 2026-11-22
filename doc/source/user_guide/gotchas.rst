@@ -393,34 +393,35 @@ For :class:`Series` and :class:`DataFrame` objects, :meth:`~DataFrame.var` norma
 Thread-safety
 -------------
 
-pandas is not 100% thread safe. The known issues relate to
-the :meth:`~DataFrame.copy` method. If you are doing a lot of copying of
-:class:`DataFrame` objects shared among threads, we recommend holding locks inside
-the threads where the data copying occurs.
+pandas objects are not safe to mutate while another thread is reading or
+writing them. This applies to all operations, not just :meth:`~DataFrame.copy`.
+If threads share a :class:`DataFrame` and any of them modifies it, guard every
+access with a lock, or give each thread its own copy made under that lock.
 
-See `this link <https://stackoverflow.com/questions/13592618/python-pandas-dataframe-thread-safe>`__
-for more information.
+Options are global: :func:`set_option` and :func:`option_context` in one thread
+affect every other thread, including where pandas sets an option internally, as
+:meth:`DataFrame.to_string` does for ``max_colwidth``.
 
 
 Byte-ordering issues
 --------------------
 Occasionally you may have to deal with data that were created on a machine with
-a different byte order than the one on which you are running Python. A common
-symptom of this issue is an error like::
+a different byte order than the one on which you are running Python. pandas
+does not support numeric data with non-native byte order: many operations raise
+an error like::
 
     Traceback
         ...
     ValueError: Big-endian buffer not supported on little-endian compiler
 
-To deal
-with this issue you should convert the underlying NumPy array to the native
-system byte order *before* passing it to :class:`Series` or :class:`DataFrame`
-constructors using something similar to the following:
+and constructing a :class:`Series`, :class:`DataFrame` or :class:`Index` from it
+is deprecated. Convert the underlying NumPy array to the native byte order
+first:
 
 .. ipython:: python
 
    x = np.array(list(range(10)), ">i4")  # big endian
-   newx = x.byteswap().view(x.dtype.newbyteorder())  # force native byteorder
+   newx = x.astype(x.dtype.newbyteorder("="))  # force native byteorder
    s = pd.Series(newx)
 
 See `the NumPy documentation on byte order

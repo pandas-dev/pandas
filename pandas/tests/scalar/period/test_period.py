@@ -1,4 +1,5 @@
 from datetime import (
+    UTC,
     date,
     datetime,
     timedelta,
@@ -539,6 +540,20 @@ class TestPeriodConstruction:
         with pytest.raises(ValueError, match="Could not parse as weekly-freq Period"):
             pd.Period(value)
 
+    @pytest.mark.parametrize(
+        "value",
+        [
+            "2022-01-01 06:00+02:00",
+            pd.Timestamp("2022-01-01 06:00", tz="US/Pacific"),
+            datetime(2022, 1, 1, 6, tzinfo=UTC),
+        ],
+    )
+    def test_construct_from_tzaware_warns(self, value):
+        # GH#47005
+        with tm.assert_produces_warning(UserWarning, match="drop timezone"):
+            result = pd.Period(value, freq="h")
+        assert result == pd.Period("2022-01-01 06:00", freq="h")
+
     def test_period_from_ordinal(self):
         p = pd.Period("2011-01", freq="M")
         res = pd.Period._from_ordinal(p.ordinal, dtype=p._dtype)
@@ -769,14 +784,14 @@ class TestPeriodMethods:
     def test_to_timestamp(self):
         p = pd.Period("1982", freq="Y")
         start_ts = p.to_timestamp(how="S")
-        aliases = ["s", "StarT", "BEGIn"]
+        aliases = ["s", "StarT", "START"]
         for a in aliases:
             assert start_ts == p.to_timestamp("D", how=a)
             # freq with mult should not affect to the result
             assert start_ts == p.to_timestamp("3D", how=a)
 
         end_ts = p.to_timestamp(how="E")
-        aliases = ["e", "end", "FINIsH"]
+        aliases = ["e", "end", "EnD"]
         for a in aliases:
             assert end_ts == p.to_timestamp("D", how=a)
             assert end_ts == p.to_timestamp("3D", how=a)

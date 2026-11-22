@@ -272,10 +272,8 @@ def test_dataframe_from_series_or_index(data, dtype, index_or_series):
 
     # forcing copy=True still results in an actual hard copy up front
     df = pd.DataFrame(obj, copy=True)
-    if not (obj.dtype == "str" and obj.dtype.storage == "pyarrow"):
-        # ArrowExtensionArray deep copy still points to the same underlying data
-        assert not tm.shares_memory(get_array(obj), get_array(df, 0))
-        assert df._mgr._has_no_reference(0)
+    assert not tm.shares_memory(get_array(obj), get_array(df, 0))
+    assert df._mgr._has_no_reference(0)
 
     df.iloc[0, 0] = data[-1]
     tm.assert_equal(obj, obj_orig)
@@ -324,6 +322,64 @@ def test_dataframe_from_numpy_array(copy):
         assert not np.shares_memory(get_array(df, 0), arr)
     else:
         assert np.shares_memory(get_array(df, 0), arr)
+
+
+@pytest.mark.parametrize("shape", [(4,), (2, 2)], ids=["1d", "2d"])
+@pytest.mark.parametrize("copy", [False, None, True])
+def test_dataframe_from_numpy_array_ea_dtype(copy, shape):
+    # GH#52338
+    arr = np.ones(shape, dtype="int64")
+    df = pd.DataFrame(arr, dtype="Int64", copy=copy)
+    result = get_array(df, 0)
+
+    if copy is False:
+        assert np.shares_memory(result, arr)
+    else:
+        assert not np.shares_memory(result, arr)
+        # non-contiguous columns make take extremely slow
+        assert result.flags.c_contiguous
+
+
+@pytest.mark.parametrize("dtype", ["Int64", "datetime64[ns, UTC]"])
+@pytest.mark.parametrize("copy", [False, None, True])
+def test_dataframe_from_dict_of_numpy_array_ea_dtype(copy, dtype):
+    # GH#52338
+    arr = np.ones(4, dtype="int64")
+    df = pd.DataFrame({"a": arr}, dtype=dtype, copy=copy)
+
+    assert np.shares_memory(get_array(df, "a"), arr) is (copy is False)
+
+
+@pytest.mark.parametrize("as_dict", [False, True], ids=["series", "dict"])
+@pytest.mark.parametrize("dtype", ["Int64", "datetime64[ns, UTC]"])
+@pytest.mark.parametrize("copy", [False, None, True])
+def test_dataframe_from_series_ea_dtype(copy, dtype, as_dict):
+    # GH#52338 writing to df must not reach ser
+    ser = pd.Series([1, 2, 3], dtype="int64")
+    ser_orig = ser.copy()
+    df = pd.DataFrame({"a": ser} if as_dict else ser, dtype=dtype, copy=copy)
+
+    df.iloc[0, 0] = df.iloc[1, 0]
+    tm.assert_series_equal(ser, ser_orig)
+
+
+def test_dataframe_from_datetime_array_arrow_dtype():
+    # GH#52338
+    pytest.importorskip("pyarrow")
+    arr = pd.array(np.array(["2020-01-01"], dtype="M8[ns]"))
+    df = pd.DataFrame(arr, dtype="timestamp[ns][pyarrow]")
+
+    arr[0] = pd.Timestamp("2030-01-01")
+    assert df.iloc[0, 0] == pd.Timestamp("2020-01-01")
+
+
+def test_dataframe_from_object_array_python_string_dtype():
+    # GH#52338
+    arr = np.array(["a", "b"], dtype=object)
+    df = pd.DataFrame(arr, dtype=pd.StringDtype("python"))
+
+    df.iloc[0, 0] = "z"
+    assert arr.tolist() == ["a", "b"]
 
 
 @pytest.mark.parametrize(

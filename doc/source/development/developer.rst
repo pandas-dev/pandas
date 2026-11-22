@@ -106,14 +106,21 @@ Column metadata
 
 The ``numpy_type`` is the physical storage type of the column, which is the
 result of ``str(dtype)`` for the underlying NumPy array that holds the data. So
-for ``datetimetz`` this is ``datetime64[ns]`` and for categorical, it may be
-any of the supported integer categorical types.
+for ``datetimetz`` this is e.g. ``datetime64[ns]`` or ``datetime64[us]``, and
+for categorical, it may be any of the supported integer categorical types.
+
+For other extension dtypes, ``numpy_type`` is typically ``str(dtype)`` of the
+extension dtype itself (e.g. ``'Int64'``, ``'boolean'``, ``'string'``,
+``'period[D]'``), so that readers can restore it with
+:func:`pandas.api.types.pandas_dtype`.
+``pandas_type`` is then a best-effort logical type, e.g. ``'int64'`` for
+``Int64`` or ``'object'`` for ``period[D]``.
 
 The ``metadata`` field is ``None`` except for:
 
-* ``datetimetz``: ``{'timezone': zone, 'unit': 'ns'}``, e.g. ``{'timezone',
+* ``datetimetz``: ``{'timezone': zone, 'unit': 'ns'}``, e.g. ``{'timezone':
   'America/New_York', 'unit': 'ns'}``. The ``'unit'`` is optional, and if
-  omitted it is assumed to be nanoseconds.
+  omitted it is given by ``numpy_type``.
 * ``categorical``: ``{'num_categories': K, 'ordered': is_ordered, 'type': $TYPE}``
 
   * Here ``'type'`` is optional, and can be a nested pandas type specification
@@ -131,7 +138,7 @@ The ``metadata`` field is ``None`` except for:
   * ``'json'``
 
 * ``timedelta``: ``{'unit': 'ns'}``. The ``'unit'`` is optional, and if omitted
-  it is assumed to be nanoseconds. This metadata is optional altogether
+  it is given by ``numpy_type``. This metadata is optional altogether
 
 For types other than these, the ``'metadata'`` key can be
 omitted. Implementations can assume ``None`` if the key is not present.

@@ -150,9 +150,9 @@ def test_shares_memory_string():
 def test_shares_memory_arrow():
     obj = pd.array([1, 2, 3], dtype="int64[pyarrow]")
 
-    # pyarrow buffers are immutable, so a copy is not a defensive one
     assert tm.shares_memory(obj, obj)
-    assert tm.shares_memory(obj, obj.copy())
+    # GH#61930
+    assert not tm.shares_memory(obj, obj.copy())
 
     assert not tm.shares_memory(obj, pd.array([1, 2, 3], dtype="int64[pyarrow]"))
 

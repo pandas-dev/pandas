@@ -113,6 +113,13 @@ class NDArrayBackedExtensionArray(NDArrayBacked, ExtensionArray):
         # used by NDArrayBackedExtensionIndex.insert
         raise AbstractMethodError(self)
 
+    def __reduce__(self) -> tuple[Any, ...]:
+        # Don't pickle the cache, whose contents depend on access history,
+        #  GH#49170. Keep the cython reconstructor so these load in older pandas.
+        reduced = super().__reduce__()
+        attrs = {key: val for key, val in self.__dict__.items() if key != "_cache"}
+        return reduced[0], reduced[1], (self._dtype, self._ndarray, attrs)
+
     # ------------------------------------------------------------------------
 
     @overload

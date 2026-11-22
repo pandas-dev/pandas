@@ -3,6 +3,7 @@ from datetime import (
     timedelta,
     timezone,
 )
+import pickle
 import zoneinfo
 from zoneinfo._zoneinfo import ZoneInfo as _ZoneInfo
 
@@ -65,7 +66,7 @@ cdef bint is_utc_zoneinfo(tzinfo tz):
     return tz is utc_zoneinfo
 
 
-cpdef inline bint is_utc(tzinfo tz):
+cpdef inline bint is_utc(tzinfo tz):  # no-cython-lint
     return (
         tz is utc_stdlib
         or isinstance(tz, _dateutil_tzutc)
@@ -89,11 +90,39 @@ cdef bint treat_tz_as_pytz(tzinfo tz):
 
 
 cdef bint treat_tz_as_dateutil(tzinfo tz):
+    # dateutil<3 tzfile; see treat_tz_as_zoneinfo for dateutil>=3
     return hasattr(tz, "_trans_list") and hasattr(tz, "_trans_idx")
 
 
+cdef bint treat_tz_as_zoneinfo(tzinfo tz):
+    # dateutil>=3 tzfile is a backport of ZoneInfo, so it goes through the
+    #  same pure-python twin. GH#71459
+    return is_zoneinfo(tz) or (
+        isinstance(tz, _dateutil_tzfile) and not treat_tz_as_dateutil(tz)
+    )
+
+
+cdef object get_dateutil_key(tzinfo tz):
+    """
+    Return the key of a dateutil>=3 ``tzfile``, or None if it has no
+    trustworthy key.
+
+    ``tzfile(fileobj, key=...)`` accepts any key, so trust it only when
+    ``gettz``, which searches the same path as ``zoneinfo``, maps it to equal
+    data.
+    """
+    key = getattr(tz, "key", None)
+    if key is None:
+        return None
+    found = dateutil_gettz(key)
+    if found is not tz and found != tz:
+        # tzfile compares by value
+        return None
+    return key
+
+
 # Returns str or tzinfo object
-cpdef inline object get_timezone(tzinfo tz):
+cpdef inline object get_timezone(tzinfo tz):  # no-cython-lint
     """
     We need to do several things here:
     1) Distinguish between pytz and dateutil timezones
@@ -117,7 +146,11 @@ cpdef inline object get_timezone(tzinfo tz):
         if zone is None:
             return tz
         return zone
-    elif treat_tz_as_dateutil(tz):
+    elif isinstance(tz, _dateutil_tzfile):
+        key = get_dateutil_key(tz)
+        if key is not None:
+            # unlike _filename, the same on every machine
+            return "dateutil/" + key
         if ".tar.gz" in tz._filename:
             raise ValueError(
                 "Bad tz filename. Dateutil on python 3 on windows has a "
@@ -132,7 +165,7 @@ cpdef inline object get_timezone(tzinfo tz):
         return tz
 
 
-cpdef inline tzinfo maybe_get_tz(object tz):
+cpdef inline tzinfo maybe_get_tz(object tz):  # no-cython-lint
     """
     (Maybe) Construct a timezone object from a string. If tz is a string, use
     it to construct a timezone object. Otherwise, just return tz.
@@ -233,7 +266,7 @@ cdef timedelta get_utcoffset(tzinfo tz, datetime obj):
         return tz.utcoffset(obj)
 
 
-cpdef inline bint is_fixed_offset(tzinfo tz):
+cpdef inline bint is_fixed_offset(tzinfo tz):  # no-cython-lint
     if treat_tz_as_dateutil(tz):
         if len(tz._trans_idx) == 0 and len(tz._trans_list) == 0:
             return 1
@@ -245,8 +278,13 @@ cpdef inline bint is_fixed_offset(tzinfo tz):
             return 1
         else:
             return 0
-    elif is_zoneinfo(tz):
-        tz_py = _ZoneInfo(tz.key)
+    elif treat_tz_as_zoneinfo(tz):
+        tz_py = get_zoneinfo_twin(tz)
+        if tz_py is None:
+            # e.g. ZoneInfo.from_file; without a twin we cannot see the
+            #  transitions, so report not-fixed and let callers take the
+            #  tzinfo-API path.  GH#64379
+            return 0
         if tz_py._fixed_offset:
             return 1
         else:
@@ -296,16 +334,65 @@ cdef datetime _UTC_EPOCH = datetime(1970, 1, 1, tzinfo=timezone.utc)
 cdef int64_t _MIN_TRANS_SECONDS = -(-(NPY_NAT + 1) // 1_000_000_000)
 
 
+cdef tzinfo get_zoneinfo_twin(tzinfo tz):
+    """
+    Get the pure-python ``zoneinfo`` implementation of `tz`.
+
+    The cached-transition fast path needs transition data that only the
+    pure-python implementation exposes, and the only handle we have for
+    rebuilding it is ``tz.key``.  That handle is good when `tz` was loaded
+    from the installed tzdata under that key, but ``ZoneInfo.from_file``
+    objects have no reliable key (absent or not necessarily matching with
+    tzdata).  In those cases we have no way to see the transitions and callers
+    must fall back to the tzinfo API.  GH#64379
+
+    For a ZoneInfo, whether the key describes the object is decided by asking
+    it to pickle.
+    The stdlib documents that a ``from_file`` object cannot be pickled,
+    because its data is not recoverable from its key.
+
+    A dateutil>=3 ``tzfile`` uses its key only when `get_dateutil_key` accepts
+    it.
+
+    Parameters
+    ----------
+    tz : ZoneInfo or dateutil.tz.tzfile
+
+    Returns
+    -------
+    zoneinfo._zoneinfo.ZoneInfo or None
+    """
+    if not is_zoneinfo(tz):
+        # dateutil tzfile timezone
+        key = get_dateutil_key(tz)
+        if key is None:
+            return None
+        try:
+            return _ZoneInfo(key)
+        except (zoneinfo.ZoneInfoNotFoundError, ValueError):
+            # e.g. "America/New York", which dateutil resolves to
+            #  America/New_York and zoneinfo rejects
+            return None
+
+    try:
+        tz.__reduce__()
+    except pickle.PicklingError:
+        # i.e. ZoneInfo.from_file; both implementations refuse to pickle it
+        return None
+
+    return _ZoneInfo(tz.key)
+
+
 cdef tuple _get_zoneinfo_trans_and_deltas(tzinfo tz):
     """
-    Get transition times and UTC offsets for a ZoneInfo timezone.
+    Get transition times and UTC offsets for a ZoneInfo or dateutil>=3 tzfile.
 
     Uses zoneinfo's Python fallback implementation to get transition data,
     including future transitions generated from POSIX TZ rules.
 
     Parameters
     ----------
-    tz : ZoneInfo
+    tz : ZoneInfo or dateutil.tz.tzfile
 
     Returns
     -------
@@ -315,7 +402,7 @@ cdef tuple _get_zoneinfo_trans_and_deltas(tzinfo tz):
         Nanosecond UTC offsets corresponding to DST transitions.
     is_fixed : bint
         True if this is a fixed-offset timezone with no transitions.
-    has_tz_tule : bint
+    has_tz_rule : bint
         Bool indicating if the tz has a "rule" attached describing transitions
         after the array of trans/deltas.
     """
@@ -325,7 +412,9 @@ cdef tuple _get_zoneinfo_trans_and_deltas(tzinfo tz):
         int year, last_year, std_offset, dst_offset
         bint valid
 
-    tz_py = _ZoneInfo(tz.key)
+    # Note: result is always non-None; callers (Localizer and tz_localize_to_utc_single,
+    #  via is_fixed_offset) keep no-twin zones away from get_dst_info (GH#64379)
+    tz_py = get_zoneinfo_twin(tz)
 
     if tz_py._fixed_offset:
         fixed_offset_seconds = int(tz_py._tz_after.utcoff.total_seconds())
@@ -488,7 +577,7 @@ cdef object get_dst_info(tzinfo tz):
                 raise AssertionError("dateutil tzinfo is not a FixedOffset "
                                      "and has an empty `_trans_list`.", tz)
 
-        elif is_zoneinfo(tz):
+        elif treat_tz_as_zoneinfo(tz):
             trans, deltas, is_fixed, has_tz_rule = _get_zoneinfo_trans_and_deltas(tz)
             typ = "fixed" if is_fixed else "zoneinfo"
 
@@ -540,7 +629,7 @@ cpdef bint tz_compare(tzinfo start, tzinfo end):
     start : tzinfo
     end : tzinfo
 
-    Returns:
+    Returns
     -------
     bool
     """

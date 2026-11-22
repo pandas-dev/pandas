@@ -5,6 +5,7 @@ from datetime import (
 )
 import io
 import os
+import re
 import sys
 from zipfile import ZipFile
 
@@ -848,6 +849,16 @@ z
             df.to_csv(handle, mode=mode)
         tm.assert_frame_equal(df, pd.read_csv(temp_file, index_col=0))
 
+    @pytest.mark.parametrize("mode", ["b", "wb", "ab", "xb", "w+b"])
+    @pytest.mark.parametrize("compression", ["infer", "gzip"])
+    @pytest.mark.parametrize("box", [pd.DataFrame, pd.Series])
+    def test_to_csv_binary_mode_no_path_raises(self, mode, compression, box):
+        # GH#44409
+        obj = box([1, 2])
+        msg = f"mode='{re.escape(mode)}' is not supported when path_or_buf is None"
+        with pytest.raises(ValueError, match=msg):
+            obj.to_csv(mode=mode, compression=compression)
+
     @pytest.mark.parametrize("mode", ["wb", "w"])
     def test_to_csv_encoding_binary_handle(self, mode, temp_file):
         """
@@ -1110,3 +1121,73 @@ def test_to_csv_datetime_tz_consistent_format():
     ]
     expected = tm.convert_rows_list_to_csv_str(expected_rows)
     assert result == expected
+
+
+@pytest.mark.parametrize(
+    "first_row, index, kwargs, expected_rows",
+    [
+        (
+            [np.nan, np.nan],
+            ["r0", "r1"],
+            {},
+            [",a,b", ",x,y", ",,", "r0,,", "r1,1.0,2.0"],
+        ),
+        (
+            [np.nan, np.nan],
+            pd.MultiIndex.from_tuples([("r", 0), ("r", 1)]),
+            {},
+            [",,a,b", ",,x,y", ",,,", "r,0,,", "r,1,1.0,2.0"],
+        ),
+        # missing index value: two of three fields blank
+        (
+            [np.nan, 0.5],
+            [np.nan, 1.0],
+            {},
+            [",a,b", ",x,y", ",,", ",,0.5", "1.0,1.0,2.0"],
+        ),
+        (
+            [np.nan, np.nan],
+            ["r0", "r1"],
+            {"index_label": False},
+            [",a,b", ",x,y", ",,", "r0,,", "r1,1.0,2.0"],
+        ),
+    ],
+)
+@pytest.mark.parametrize("engine", ["c", "python"])
+def test_to_csv_mi_columns_blank_first_row_roundtrip(
+    first_row, index, kwargs, expected_rows, engine
+):
+    # GH#21995 the first row was read back as index names and dropped
+    columns = pd.MultiIndex.from_tuples([("a", "x"), ("b", "y")])
+    df = pd.DataFrame([first_row, [1.0, 2.0]], index=index, columns=columns)
+
+    result = df.to_csv(**kwargs)
+    assert result == tm.convert_rows_list_to_csv_str(expected_rows)
+
+    index_col = list(range(df.index.nlevels))
+    roundtrip = pd.read_csv(
+        io.StringIO(result), header=[0, 1], index_col=index_col, engine=engine
+    )
+    tm.assert_frame_equal(roundtrip, df, check_index_type=False)
+
+
+def test_to_csv_mi_columns_empty_frame():
+    # GH#21995 no first row to check for the index line
+    df = pd.DataFrame(columns=pd.MultiIndex.from_tuples([("a", "x"), ("b", "y")]))
+    assert df.to_csv() == tm.convert_rows_list_to_csv_str([",a,b", ",x,y"])
+
+
+@pytest.mark.parametrize("box", [list, np.array, pd.Index, pd.Series])
+def test_to_csv_columns_listlike(box):
+    # GH#72199
+    df = pd.DataFrame([[1, 2, 3]], columns=[0.5, 1.5, np.nan])
+    result = df.to_csv(columns=box([0.5, np.nan]))
+    assert result == tm.convert_rows_list_to_csv_str([",0.5,", "0,1,3"])
+
+
+def test_to_csv_columns_datetimeindex_date_format():
+    # GH#72199 formatted labels are partial-date keys that matched the wrong column
+    dti = pd.date_range("2020", periods=3)
+    df = pd.DataFrame([[1, 2, 3]], columns=dti)
+    result = df.to_csv(columns=dti[:2], date_format="%Y-%m")
+    assert result == tm.convert_rows_list_to_csv_str([",2020-01,2020-01", "0,1,2"])

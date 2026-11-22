@@ -294,6 +294,7 @@ MultiIndex components
    MultiIndex.set_codes
    MultiIndex.to_flat_index
    MultiIndex.to_frame
+   MultiIndex.to_list
    MultiIndex.sortlevel
    MultiIndex.droplevel
    MultiIndex.swaplevel
@@ -397,6 +398,7 @@ Conversion
    :toctree: api/
 
    DatetimeIndex.as_unit
+   DatetimeIndex.set_freq
    DatetimeIndex.to_period
    DatetimeIndex.to_pydatetime
    DatetimeIndex.to_series
@@ -439,6 +441,7 @@ Conversion
    :toctree: api/
 
    TimedeltaIndex.as_unit
+   TimedeltaIndex.set_freq
    TimedeltaIndex.to_pytimedelta
    TimedeltaIndex.to_series
    TimedeltaIndex.round

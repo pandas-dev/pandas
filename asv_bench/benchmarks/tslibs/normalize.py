@@ -5,8 +5,8 @@ try:
     )
 except ImportError:
     from pandas._libs.tslibs.conversion import (
-        normalize_i8_timestamps,
         is_date_array_normalized,
+        normalize_i8_timestamps,
     )
 
 import pandas as pd

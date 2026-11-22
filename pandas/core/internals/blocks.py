@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 import inspect
 import re
 from typing import (
@@ -107,6 +108,7 @@ from pandas.core.computation import expressions
 from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
     extract_array,
+    warn_non_native_byteorder,
 )
 from pandas.core.indexers import (
     check_setitem_lengths,
@@ -120,7 +122,6 @@ if TYPE_CHECKING:
         Callable,
         Generator,
         Iterable,
-        Sequence,
     )
 
     from pandas._typing import (
@@ -852,6 +853,12 @@ class Block(PandasObject, libinternals.Block):
 
         src_len = len(pairs) - 1
 
+        # With inplace, the masks must see the original values: either compare against
+        #  a copy or materialize the masks, whichever takes less memory (GH#25816).
+        copy_values = inplace and len(pairs) * values.size > values.nbytes
+        if copy_values:
+            values = values.copy()
+
         if is_string_dtype(values.dtype) or (
             regex and is_string_dtype(_regex_target_dtype(values.dtype))
         ):
@@ -867,9 +874,7 @@ class Block(PandasObject, libinternals.Block):
         else:
             # GH#38086 faster if we know we dont need to check for regex
             masks = (missing.mask_missing(values, s[0]) for s in pairs)
-        # Materialize if inplace = True, since the masks can change
-        # as we replace
-        if inplace:
+        if inplace and not copy_values:
             masks = list(masks)
 
         # Don't set up refs here, otherwise we will think that we have
@@ -1872,6 +1877,16 @@ class EABackedBlock(Block):
 
         if other is lib.no_default:
             other = self.fill_value
+        elif (
+            arr.ndim == 2
+            and is_list_like(other)
+            and isinstance(other, Sequence)
+            and not isinstance(other, tuple)
+            and len(other) == len(arr)
+        ):
+            # GH#70533 line up a list against the rows, as for a Series, rather
+            #  than letting it broadcast across the columns
+            other = construct_1d_object_array_from_listlike(other).reshape(-1, 1)
 
         icond, noop = validate_putmask(arr, ~cond)
         if noop:
@@ -2440,6 +2455,8 @@ def maybe_coerce_values(values: ArrayLike) -> ArrayLike:
 
         if issubclass(values.dtype.type, str):
             values = np.array(values, dtype=object)
+        elif isinstance(values, np.ndarray):
+            warn_non_native_byteorder(values)
 
     return values
 
