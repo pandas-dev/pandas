@@ -572,3 +572,13 @@ def test_usecols_names_keep_file_order(all_parsers, usecols, monkeypatch):
     result = parser.read_csv(StringIO(data), usecols=usecols)
     expected = pd.DataFrame({"a": [1, 4], "c": [3, 6]})
     tm.assert_frame_equal(result, expected)
+
+
+def test_usecols_names_keep_file_order_numpy_skiprows(all_parsers):
+    # GH#67010 numpy integers are accepted for skiprows
+    parser = all_parsers
+    data = "skip\na,b,c\n1,2,3\n4,5,6"
+
+    result = parser.read_csv(StringIO(data), usecols=["c", "a"], skiprows=np.int64(1))
+    expected = pd.DataFrame({"a": [1, 4], "c": [3, 6]})
+    tm.assert_frame_equal(result, expected)

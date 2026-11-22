@@ -136,7 +136,7 @@ class _RewindableReader(RawIOBase):
     such as compressed files and remote streams may not be seekable.
     """
 
-    def __init__(self, src: ReadBuffer[bytes]) -> None:
+    def __init__(self, src: ReadBuffer[bytes] | _NewlineTerminatedReader) -> None:
         self.src = src
         self._captured = bytearray()
         self._replay_pos: int | None = None
@@ -420,11 +420,13 @@ class ArrowParserWrapper(ParserBase):
 
         raw_names = None
         try:
-            for _ in range(self.read_options["skip_rows"]):
+            for _ in range(cast("int", self.read_options["skip_rows"])):
                 text.readline()
+            delimiter = option_text("delimiter", ",")
+            assert delimiter is not None
             reader = csv.reader(
                 text,
-                delimiter=option_text("delimiter", ","),
+                delimiter=delimiter,
                 quotechar=option_text("quote_char", '"'),
                 escapechar=option_text("escape_char", None),
             )
@@ -438,7 +440,7 @@ class ArrowParserWrapper(ParserBase):
             replay.rewind()
 
         if raw_names is not None:
-            positions = {}
+            positions: dict[str, int] = {}
             for i, name in enumerate(raw_names):
                 positions.setdefault(name, i)
             self.convert_options["include_columns"] = sorted(
