@@ -206,7 +206,7 @@ Performance improvements
 - Performance improvement in :meth:`DataFrameGroupBy.pct_change` and :meth:`SeriesGroupBy.pct_change` (:issue:`70972`)
 - Performance improvement in :meth:`DataFrameGroupBy.transform` and :meth:`SeriesGroupBy.transform` with a user-defined function when the input rows are not already ordered by group or NA group keys are dropped (:issue:`71957`)
 - Performance improvement in :meth:`DatetimeIndex.strftime`, :meth:`Series.dt.strftime`, and :meth:`DataFrame.to_csv` with a ``date_format`` built from ``%Y``, ``%m``, ``%d``, ``%H``, ``%M``, ``%S``, ``%f`` and ``%N`` (:issue:`44764`)
-- Performance improvement in :meth:`Index.intersection` for monotonic Arrow-backed indexes (:issue:`66498`)
+- Performance improvement in :meth:`Index.intersection` for monotonic Arrow-backed indexes (:issue:`66498`, :issue:`XXXXX`)
 - Performance improvement in :meth:`MultiIndex.append` and :func:`concat` when combining many objects with a :class:`MultiIndex` whose levels have few values in common (:issue:`70884`)
 - Performance improvement in :meth:`PeriodIndex.strftime` with a custom ``date_format`` (:issue:`70106`)
 - Performance improvement in :meth:`RangeIndex.isin`, which no longer builds the full integer array of the index when the values are integers or whole-number floats (:issue:`66263`)
@@ -523,6 +523,7 @@ Sparse
 
 ExtensionArray
 ^^^^^^^^^^^^^^
+- Bug in :meth:`Index.intersection` raising ``ArrowNotImplementedError`` for monotonic indexes with a PyArrow ``dictionary`` dtype holding numeric or boolean values (:issue:`XXXXX`)
 - Bug in :func:`read_csv` and other parsing of strings into a decimal :class:`ArrowDtype` raising ``ArrowInvalid`` instead of parsing the values (:issue:`69838`)
 - Bug in :meth:`.ArrowExtensionArray.factorize` and :meth:`DataFrame.groupby` with a PyArrow ``dictionary`` dtype producing a group for a value no longer present (e.g. after filtering) or splitting one value across two groups; ``uniques`` are now in order of appearance, as for other dtypes (:issue:`71828`)
 - Bug in :meth:`.ArrowExtensionArray.factorize` ignoring ``use_na_sentinel=True`` for dictionary-encoded PyArrow data that stores nulls as dictionary values, keeping the null in the returned ``uniques`` or raising ``ArrowInvalid`` for chunked data (:issue:`66490`)
