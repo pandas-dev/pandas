@@ -520,3 +520,11 @@ def test_repr_truncated_na_shows_na_not_nan(nrows):
     result = repr(df)
     assert "<NA>" in result
     assert "NaN" not in result
+
+
+def test_repr_self_referencing():
+    # GH#25833
+    df = pd.DataFrame({"x": [1, 2]}, dtype=object)
+    df.iat[0, 0] = df
+    assert repr(df) == "     x\n0  ...\n1    2"
+    assert "..." in df._repr_html_()

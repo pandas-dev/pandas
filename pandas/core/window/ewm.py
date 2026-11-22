@@ -602,6 +602,7 @@ class ExponentialMovingWindow(BaseWindow):
                 adjust=self.adjust,
                 ignore_na=self.ignore_na,
                 deltas=tuple(self._deltas),
+                use_deltas=self.times is not None,
                 normalize=True,
             )
             return self._apply(ewm_func, name="mean")
@@ -693,6 +694,7 @@ class ExponentialMovingWindow(BaseWindow):
                 adjust=self.adjust,
                 ignore_na=self.ignore_na,
                 deltas=tuple(self._deltas),
+                use_deltas=self.times is not None,
                 normalize=False,
             )
             return self._apply(ewm_func, name="sum")

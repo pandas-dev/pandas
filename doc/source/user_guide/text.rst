@@ -836,6 +836,57 @@ represented and behave as ``pd.NA``.
 Notice that the last three values are all inferred by pandas as being NA
 values, and hence stored as ``pd.NA``.
 
+.. _text.storage_differences:
+
+Differences between the ``python`` and ``pyarrow`` storage
+==========================================================
+
+In general, pandas code gives the same result regardless of the storage, and
+apart from the known differences listed below, a difference in behavior is
+considered a bug. Most users should not set the storage explicitly and can
+rely on the default.
+
+Performance
+-----------
+
+The ``pyarrow`` storage is immutable, so setting values in an existing array
+copies the data. Assigning values one at a time in a loop can therefore be much
+slower than with the ``python`` storage. Prefer building the values first and
+constructing the Series once, or setting many values in a single assignment.
+
+Known behavior differences
+--------------------------
+
+* **Case mapping** (:meth:`~Series.str.upper`, :meth:`~Series.str.lower`,
+  :meth:`~Series.str.title`, :meth:`~Series.str.capitalize`,
+  :meth:`~Series.str.swapcase`): the ``python`` storage follows the
+  corresponding Python :class:`str` methods, which can change the length of
+  the string, while the ``pyarrow`` storage maps each character to exactly one
+  character and does not apply context-dependent rules.
+
+  .. csv-table::
+     :header: "Operation", "``python`` storage", "``pyarrow`` storage"
+     :widths: 30, 20, 20
+
+     ``"ß"`` upper, ``"SS"``, ``"ẞ"``
+     ``"ﬁ"`` upper, ``"FI"``, ``"ﬁ"``
+     ``"İ"`` lower, ``"i̇"``, ``"i"``
+     ``"ΑΣ"`` lower, ``"ας"``, ``"ασ"``
+
+* **Character classification** (:meth:`~Series.str.isdigit`,
+  :meth:`~Series.str.islower`, and similar): the two storages use different
+  Unicode implementations, so results can differ for some characters. For
+  example, with pyarrow 21 or later, :meth:`~Series.str.isdigit` returns
+  ``True`` for ``"⅕"`` and ``"㊁"`` with the ``pyarrow`` storage and ``False``
+  with the ``python`` storage.
+
+* **Regular expressions**: pandas aims to match the behavior of Python's
+  :mod:`re` module for both storages, falling back to it for many patterns
+  PyArrow's regex engine does not support, but some patterns still give a
+  different result or raise depending on the storage. For example, with the
+  ``python`` storage ``\pL`` raises and ``[[:alpha:]]`` matches different
+  strings. See :issue:`63683`.
+
 Method summary
 ==============
 

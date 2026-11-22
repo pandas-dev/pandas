@@ -728,13 +728,14 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     def fillna(self, value, limit: int | None = None, copy: bool = True) -> Self:
         # Fast path: single-pass Cython using iNaT sentinel. GH#42147
         if lib.is_scalar(value):
-            if not self._hasna:
-                return self.copy() if copy else self[:]
             try:
                 validated = self._validate_setitem_value(value)
             except (ValueError, TypeError):
+                # super().fillna raises, even when there is nothing to fill
                 pass
             else:
+                if not self._hasna:
+                    return self.copy() if copy else self[:]
                 if copy:
                     new_ndarray = self._ndarray.copy()
                 else:

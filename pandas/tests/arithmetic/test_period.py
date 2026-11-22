@@ -534,6 +534,37 @@ class TestPeriodIndexArithmetic:
         expected = pd.Index([pd.NaT, 0 * off, 0 * off, 0 * off, 0 * off])
         tm.assert_index_equal(result, expected)
 
+    @pytest.mark.parametrize("left_len, right_len", [(1, 2), (1, 0), (3, 2)])
+    @pytest.mark.parametrize(
+        "make_other, op",
+        [
+            (lambda n: pd.period_range("2016", periods=n, freq="D"), operator.sub),
+            (lambda n: np.arange(n, dtype=np.int64), operator.add),
+            (lambda n: np.arange(n, dtype=np.int64), operator.sub),
+            (lambda n: pd.timedelta_range("1D", periods=n), operator.add),
+            (lambda n: pd.timedelta_range("1D", periods=n), operator.sub),
+        ],
+        ids=["sub-period", "add-int", "sub-int", "add-td", "sub-td"],
+    )
+    def test_parr_addsub_length_mismatch(
+        self, index_or_series_or_array, left_len, right_len, make_other, op
+    ):
+        # GH#23853 e.g. length 1 and length 0 returned a length-1 result
+        left = pd.period_range("2016-01-01", periods=left_len, freq="D")
+        obj = index_or_series_or_array(left)
+        other = make_other(right_len)
+        if isinstance(other, pd.Index):
+            other = other.array
+        with pytest.raises(ValueError, match="shape mismatch"):
+            op(obj, other)
+
+    def test_parr_masked_add_length_mismatch(self):
+        # GH#23853 raised IndexError
+        left = pd.array([1, 2, 3], dtype="Int64")
+        other = pd.period_range("2016-01-01", periods=1, freq="D").array
+        with pytest.raises(ValueError, match="shape mismatch"):
+            left + other
+
     def test_parr_sub_pi_mismatched_freq(self, box_with_array, box_with_array2):
         rng = pd.period_range("1/1/2000", freq="D", periods=5)
         other = pd.period_range("1/6/2000", freq="h", periods=5)
