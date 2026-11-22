@@ -193,7 +193,7 @@ class GroupByPlot(PandasObject):
         if backend != "matplotlib":
             return None
         if self._groupby._selected_obj.ndim != 1:
-            # TODO: DataFrameGroupBy, pending discussion on GH#56697
+            # DataFrameGroupBy on a shared ax is left for a follow-up (GH#56697)
             return None
         if kwargs.get("kind", "line") == "pie":
             return None
