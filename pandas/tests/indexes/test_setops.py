@@ -1111,7 +1111,7 @@ def test_intersection_arrow_dictionary_no_run_end_kernel():
 def test_intersection_arrow_dictionary_numeric_values(
     value_type, left, right, expected
 ):
-    # GH#XXXXX the join output cannot be rebuilt as a dictionary array
+    # GH#72271 the join output cannot be rebuilt as a dictionary array
     pa = pytest.importorskip("pyarrow")
 
     dtype = pd.ArrowDtype(pa.dictionary(pa.int32(), pa.type_for_alias(value_type)))
