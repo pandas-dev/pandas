@@ -178,6 +178,17 @@ def _coerce_to_data_and_mask(values, dtype, copy: bool, dtype_cls: type[NumericD
             # object dtype array of bools
             name = dtype_cls.__name__.strip("_")
             raise TypeError(f"{values.dtype} cannot be converted to {name}")
+        elif values.dtype.kind in "SU":
+            # casts from str are always safe since they raise
+            # a ValueError if the str cannot be parsed into a float
+            target_dtype = default_dtype if dtype is None else dtype.numpy_dtype
+            values = values.astype(target_dtype, copy=copy)
+        elif values.dtype == object and inferred_type in ("string", "unicode"):
+            target_dtype = default_dtype if dtype is None else dtype.numpy_dtype
+            try:
+                values = values.astype(target_dtype, copy=copy)
+            except TypeError:
+                pass
 
     elif values.dtype.kind == "b" and checker(dtype):
         # fastpath
@@ -250,13 +261,10 @@ def _coerce_to_data_and_mask(values, dtype, copy: bool, dtype_cls: type[NumericD
     if inferred_type in ("string", "unicode"):
         # casts from str are always safe since they raise
         # a ValueError if the str cannot be parsed into a float
-        values = values.astype(dtype, copy=copy)
+        if values.dtype != dtype:
+            values = values.astype(dtype, copy=copy)
     else:
         values = dtype_cls._safe_cast(values, dtype, copy=False)
-    if values.dtype.kind == "f" and is_nan_na():
-        nan_mask = np.isnan(values)
-        if nan_mask.any():
-            mask = mask | nan_mask
     return values, mask
 
 
