@@ -88,8 +88,6 @@ from pandas.core.dtypes.missing import (
     notna,
 )
 
-from pandas.io._util import _arrow_dtype_mapping
-
 if TYPE_CHECKING:
     from collections.abc import (
         Collection,
@@ -1082,6 +1080,8 @@ def convert_dtypes(
                 inferred_dtype = ArrowDtype(pa_type)
     elif dtype_backend == "numpy_nullable" and isinstance(inferred_dtype, ArrowDtype):
         # GH 53648
+        from pandas.core.arrays.arrow.util import _arrow_dtype_mapping
+
         inferred_dtype = _arrow_dtype_mapping()[inferred_dtype.pyarrow_dtype]
 
     assert not isinstance(inferred_dtype, str)

@@ -885,6 +885,12 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     _HANDLED_TYPES: tuple[type, ...]
 
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
+        result = arraylike.dispatch_where_only_ufunc(
+            self, ufunc, method, *inputs, **kwargs
+        )
+        if result is not NotImplemented:
+            return result
+
         # For MaskedArray inputs, we apply the ufunc to ._data
         # and mask the result.
 
@@ -1317,6 +1323,20 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         data = self._data.copy()
         mask = self._mask.copy()
         return self._simple_new(data, mask)
+
+    def _where(self, mask: npt.NDArray[np.bool_], value) -> Self:
+        if (
+            isinstance(value, BaseMaskedArray)
+            and value.dtype == self.dtype
+            and value.shape == self.shape
+            and mask.shape == self.shape
+        ):
+            # Pick the data and the mask in one pass each, rather than the
+            #  boolean getitem and setitem of the base class
+            data = np.where(mask, self._data, value._data)
+            new_mask = np.where(mask, self._mask, value._mask)
+            return self._simple_new(data, new_mask)
+        return super()._where(mask, value)
 
     @overload
     def view(self, dtype: None = ...) -> Self: ...

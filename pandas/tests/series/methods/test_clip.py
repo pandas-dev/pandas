@@ -173,6 +173,28 @@ class TestSeriesClip:
         tm.assert_series_equal(np.clip(ser, bound, 1), expected)
 
     @pytest.mark.parametrize(
+        "kwargs",
+        [
+            {"upper": -np.finfo(np.float64).tiny},
+            {"upper": pd.Series([-np.finfo(np.float64).tiny])},
+            {"upper": np.array([-1e300])},
+            {"lower": pd.Series([0.1])},
+        ],
+    )
+    def test_clip_inplace_bound_not_representable(self, kwargs):
+        # GH#21476 in-place clip with a float64 bound that float32 cannot hold
+        #  exactly must raise, not store a rounded value
+        ser = pd.Series([0.0], dtype=np.float32)
+        expected = ser.copy()
+        with pytest.raises(TypeError, match="Invalid value"):
+            ser.clip(**kwargs, inplace=True)
+        tm.assert_series_equal(ser, expected)
+
+        result = ser.clip(**kwargs)
+        bound = np.asarray(next(iter(kwargs.values())), dtype=np.float64)
+        tm.assert_series_equal(result, pd.Series(bound.reshape(1)))
+
+    @pytest.mark.parametrize(
         "categories, lower, upper, expected",
         [
             (["a", "c", "b"], "c", "b", ["c", "c", "b"]),

@@ -2208,6 +2208,32 @@ class MultiIndex(Index):
             level = self._get_level_number(level)
             return self._get_level_values(level=level, unique=True)
 
+    def to_list(self) -> list[Any]:
+        """
+        Return a list of the elements of the MultiIndex.
+
+        The list will be a list of tuples, with the length of each tuple corresponding
+        to the number of levels in the MultiIndex.
+
+        Returns
+        -------
+        list
+            A list of tuples representing the MultiIndex elements.
+
+        See Also
+        --------
+        Index.to_list : Return a list of the values for an Index.
+
+        Examples
+        --------
+        >>> mi = pd.MultiIndex.from_product([["a", "b"], ["apple", "banana"]])
+        >>> mi.to_list()
+        [('a', 'apple'), ('a', 'banana'), ('b', 'apple'), ('b', 'banana')]
+        """
+        return super().to_list()
+
+    tolist = to_list
+
     def to_frame(
         self,
         index: bool = True,
@@ -3424,7 +3450,33 @@ class MultiIndex(Index):
             self._raise_if_missing(key, indexer, axis_name)
             return self[indexer], indexer
 
+        if len(keyarr) and 0 < len(keyarr[0]) < self.nlevels:
+            nlev = len(keyarr[0])
+            if isinstance(keyarr, MultiIndex) or all(
+                isinstance(tup, tuple) and len(tup) == nlev for tup in keyarr
+            ):
+                # GH#16083 partial tuples select on the first nlev levels
+                return self._get_indexer_partial_tuples(keyarr, nlev, axis_name)
+
         return super()._get_indexer_strict(key, axis_name)
+
+    def _get_indexer_partial_tuples(
+        self, keyarr, nlev: int, axis_name: str
+    ) -> tuple[Index, npt.NDArray[np.intp]]:
+        """
+        Find all rows whose first `nlev` levels match each key, in key order.
+        """
+        trunc = MultiIndex(
+            levels=self.levels[:nlev], codes=self.codes[:nlev], verify_integrity=False
+        )
+        indexer, missing = trunc.get_indexer_non_unique(keyarr)
+        if len(missing):
+            keys = ensure_index(keyarr)
+            if len(missing) == len(keys):
+                raise KeyError(f"None of [{keys}] are in the [{axis_name}]")
+            not_found = list(keys[missing].unique())
+            raise KeyError(f"{not_found} not in index")
+        return self[indexer], indexer
 
     def _raise_if_missing(self, key, indexer, axis_name: str) -> None:
         keyarr = key

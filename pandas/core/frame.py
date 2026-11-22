@@ -22,6 +22,7 @@ import functools
 from io import StringIO
 import itertools
 import operator
+import reprlib
 import sys
 from typing import (
     TYPE_CHECKING,
@@ -162,6 +163,7 @@ from pandas.core.indexes.api import (
     default_index,
     ensure_index,
     ensure_index_from_sequences,
+    get_objs_combined_axis,
 )
 from pandas.core.indexes.multi import (
     MultiIndex,
@@ -968,6 +970,7 @@ class DataFrame(NDFrame, OpsMixin):
             self._repr_fits_horizontal_() and self._repr_fits_vertical_()
         )
 
+    @reprlib.recursive_repr("...")  # GH#25833
     def __repr__(self) -> str:
         """
         Return a string representation for a particular DataFrame.
@@ -995,32 +998,14 @@ class DataFrame(NDFrame, OpsMixin):
             return f"<pre>{val}</pre>"
 
         if config["display"]["notebook_repr_html"]:
-            max_rows = config["display"]["max_rows"]
-            min_rows = config["display"]["min_rows"]
-            max_cols = config["display"]["max_columns"]
-            show_dimensions = config["display"]["show_dimensions"]
-            show_floats = config["display"]["float_format"]
-
-            formatter = fmt.DataFrameFormatter(
-                self,
-                columns=None,
-                col_space=None,
-                formatters=None,
-                float_format=show_floats,
-                sparsify=None,
-                justify=None,
-                index_names=True,
-                header=True,
-                index=True,
-                bold_rows=True,
-                escape=True,
-                max_rows=max_rows,
-                min_rows=min_rows,
-                max_cols=max_cols,
-                show_dimensions=show_dimensions,
-                decimal=".",
+            # go through to_html so subclass overrides apply here too, GH#30727
+            return self.to_html(
+                max_rows=config["display"]["max_rows"],
+                min_rows=config["display"]["min_rows"],
+                max_cols=config["display"]["max_columns"],
+                show_dimensions=config["display"]["show_dimensions"],
+                notebook=True,
             )
-            return fmt.DataFrameRenderer(formatter).to_html(notebook=True)
         else:
             return None
 
@@ -3176,6 +3161,7 @@ class DataFrame(NDFrame, OpsMixin):
         index_names: bool = ...,
         justify: str | None = ...,
         max_rows: int | None = ...,
+        min_rows: int | None = ...,
         max_cols: int | None = ...,
         show_dimensions: bool | str = ...,
         decimal: str = ...,
@@ -3205,6 +3191,7 @@ class DataFrame(NDFrame, OpsMixin):
         index_names: bool = ...,
         justify: str | None = ...,
         max_rows: int | None = ...,
+        min_rows: int | None = ...,
         max_cols: int | None = ...,
         show_dimensions: bool | str = ...,
         decimal: str = ...,
@@ -3233,6 +3220,7 @@ class DataFrame(NDFrame, OpsMixin):
         index_names: bool = True,
         justify: str | None = None,
         max_rows: int | None = None,
+        min_rows: int | None = None,
         max_cols: int | None = None,
         show_dimensions: bool | str = False,
         decimal: str = ".",
@@ -3301,6 +3289,11 @@ class DataFrame(NDFrame, OpsMixin):
             * unset.
         max_rows : int, optional
             Maximum number of rows to display in the console.
+        min_rows : int, optional
+            The number of rows to display in a truncated table (when number
+            of rows is above `max_rows`).
+
+            .. versionadded:: 3.2.0
         max_cols : int, optional
             Maximum number of columns to display in the console.
         show_dimensions : bool, default False
@@ -3428,6 +3421,7 @@ class DataFrame(NDFrame, OpsMixin):
             escape=escape,
             decimal=decimal,
             max_rows=max_rows,
+            min_rows=min_rows,
             max_cols=max_cols,
             show_dimensions=show_dimensions,
         )
@@ -4795,6 +4789,14 @@ class DataFrame(NDFrame, OpsMixin):
             raise TypeError(
                 "Must pass DataFrame or 2-d ndarray with boolean values only"
             )
+
+        if not key.size:
+            # an empty key may be object dtype, which the align below keeps
+            key = key.astype(bool)
+        # a label missing from key or an NA in it means "do not set" (GH#57083)
+        key = key.align(self, join="right", fill_value=False)[0]
+        if key._mgr.any_extension_types:
+            key = key.fillna(False)
 
         try:
             self._where(-key, value, inplace=True)
@@ -9805,8 +9807,8 @@ class DataFrame(NDFrame, OpsMixin):
         Notes
         -----
         This function cannot be used with all column types. For example, when
-        specifying columns with `object` or `category` dtypes, ``TypeError`` is
-        raised.
+        specifying columns with complex or unordered `category` dtypes,
+        ``TypeError`` is raised.
 
         Examples
         --------
@@ -16018,14 +16020,26 @@ class DataFrame(NDFrame, OpsMixin):
             # join indexes only using concat
             if can_concat:
                 if how in {"left", "right"}:
-                    res = concat(
-                        frames, axis=1, join="outer", verify_integrity=True, sort=sort
-                    )
                     index = self.index if how == "left" else frames[-1].index
                     if sort:
                         index = index.sort_values()
-                    result = res.reindex(index)
-                    return result
+                    # align to the union as an outer concat would, but take only
+                    # the result's rows so keys absent from it do not upcast the
+                    # kept columns, see GH#28269
+                    union = get_objs_combined_axis(frames, sort=False)[0]
+                    target = union.reindex(index)[1]
+                    aligned = []
+                    for frame in frames:
+                        if union.equals(frame.index):
+                            indexer = target
+                        else:
+                            indexer = algorithms.take_nd(
+                                frame.index.get_indexer(union), target, fill_value=-1
+                            )
+                        aligned.append(
+                            frame._reindex_with_indexers({0: [index, indexer]})
+                        )
+                    return concat(aligned, axis=1, verify_integrity=True)
                 else:
                     if how == "outer":
                         sort = True
@@ -16646,6 +16660,12 @@ class DataFrame(NDFrame, OpsMixin):
         dogs   1.0   NaN
         cats   NaN   1.0
         """  # noqa: E501
+        if is_list_like(method) and not callable(method):
+            raise TypeError(
+                "method must be a string or a callable, got "
+                f"{type(method).__name__}. To correlate with another Series or "
+                "DataFrame, use DataFrame.corrwith."
+            )
         data = self._get_numeric_data() if numeric_only else self
         cols = data.columns
         idx = cols.copy()
@@ -19916,14 +19936,19 @@ class DataFrame(NDFrame, OpsMixin):
         copy: bool | lib.NoDefault = lib.no_default,
     ) -> DataFrame:
         """
-        Cast PeriodIndex to DatetimeIndex of timestamps, at *beginning* of period.
+        Cast PeriodIndex to DatetimeIndex, by default at *beginning* of period.
 
         This can be changed to the *end* of the period, by specifying `how="e"`.
 
         Parameters
         ----------
-        freq : str, default frequency of PeriodIndex
-            Desired frequency.
+        freq : str or DateOffset, optional
+            Target frequency. By default the result is exactly the start (or end)
+            of each period. With ``how="start"``, the result is the start of
+            ``asfreq(freq, how="start")``, except that a ``freq`` coarser than
+            daily gives midnight on that period's last day, so
+            ``to_timestamp("M")`` gives month-end dates. With ``how="end"``,
+            ``freq`` only affects the resolution ('ns' gives nanosecond unit).
         how : {'start', 'end', 's', 'e'}, default 'start'
             Convention for converting period to timestamp; start of period
             vs. end. Case-insensitive.
@@ -19972,7 +19997,8 @@ class DataFrame(NDFrame, OpsMixin):
         >>> df1.index
         DatetimeIndex(['2023-01-01', '2024-01-01'], dtype='datetime64[us]', freq=None)
 
-        Using `freq` which is the offset that the Timestamps will have
+        With ``freq="M"``, each timestamp is the last day of the period's first
+        month
 
         >>> df2 = pd.DataFrame(data=d, index=idx)
         >>> df2 = df2.to_timestamp(freq="M")

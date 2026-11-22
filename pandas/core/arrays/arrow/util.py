@@ -1,7 +1,50 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import numpy as np
-import pyarrow
+
+from pandas.core.arrays.boolean import BooleanDtype
+from pandas.core.arrays.floating import (
+    Float32Dtype,
+    Float64Dtype,
+)
+from pandas.core.arrays.integer import (
+    Int8Dtype,
+    Int16Dtype,
+    Int32Dtype,
+    Int64Dtype,
+    UInt8Dtype,
+    UInt16Dtype,
+    UInt32Dtype,
+    UInt64Dtype,
+)
+from pandas.core.arrays.string_ import StringDtype
+
+if TYPE_CHECKING:
+    import pyarrow
+
+    from pandas.core.dtypes.dtypes import BaseMaskedDtype
+
+
+def _arrow_dtype_mapping() -> dict[pyarrow.DataType, BaseMaskedDtype | StringDtype]:
+    import pyarrow as pa
+
+    return {
+        pa.int8(): Int8Dtype(),
+        pa.int16(): Int16Dtype(),
+        pa.int32(): Int32Dtype(),
+        pa.int64(): Int64Dtype(),
+        pa.uint8(): UInt8Dtype(),
+        pa.uint16(): UInt16Dtype(),
+        pa.uint32(): UInt32Dtype(),
+        pa.uint64(): UInt64Dtype(),
+        pa.bool_(): BooleanDtype(),
+        pa.string(): StringDtype(),
+        pa.float32(): Float32Dtype(),
+        pa.float64(): Float64Dtype(),
+        pa.large_string(): StringDtype(),
+    }
 
 
 def pyarrow_array_to_numpy_and_mask(
@@ -24,6 +67,8 @@ def pyarrow_array_to_numpy_and_mask(
         Tuple of two numpy arrays with the raw data (with specified dtype) and
         a boolean mask (validity mask, so False means missing)
     """
+    import pyarrow
+
     dtype = np.dtype(dtype)
 
     if pyarrow.types.is_null(arr.type):

@@ -319,7 +319,11 @@ def _live_ax_freq(ax: Axes):
 def _get_period_alias(freq: timedelta | BaseOffset | str) -> str | None:
     if isinstance(freq, BaseOffset):
         n = freq.n
-        freqstr = freq.rule_code
+        try:
+            freqstr = freq.rule_code
+        except NotImplementedError:
+            # DateOffset and Easter have no rule_code, see GH#26921
+            return None
     else:
         offset = to_offset(freq, is_period=True)
         n = offset.n

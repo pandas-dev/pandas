@@ -1399,7 +1399,8 @@ class PlotAccessor(PandasObject):
                     x = data_cols[x]
                 elif not isinstance(data[x], ABCSeries):
                     raise ValueError("x must be a label or position")
-                data = data.set_index(x)
+                # keep x as a column when y is given so y may include it (GH#22088)
+                data = data.set_index(x, drop=y is None)
             if y is not None:
                 # check if we have y as int or list of ints
                 int_ylist = is_list_like(y) and all(is_integer(c) for c in y)

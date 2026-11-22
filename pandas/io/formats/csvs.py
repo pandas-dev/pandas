@@ -40,6 +40,7 @@ from pandas.io.common import get_handle
 
 if TYPE_CHECKING:
     from pandas._typing import (
+        Axes,
         CompressionOptions,
         FilePath,
         FloatFormatType,
@@ -68,7 +69,7 @@ class CSVFormatter:
         formatter: DataFrameFormatter,
         path_or_buf: FilePath | WriteBuffer[str] | WriteBuffer[bytes] = "",
         sep: str = ",",
-        cols: Sequence[Hashable] | None = None,
+        cols: Axes | None = None,
         index_label: IndexLabel | None = None,
         mode: str = "w",
         encoding: str | None = None,
@@ -169,11 +170,7 @@ class CSVFormatter:
                 raise TypeError(msg)
 
         if cols is not None:
-            if isinstance(cols, ABCIndex):
-                cols = cols._get_values_for_csv(**self._number_format)
-            else:
-                cols = list(cols)
-            self.obj = self.obj.loc[:, cols]
+            self.obj = self.obj.loc[:, list(cols)]
 
         # update columns to include possible multiplicity of dupes
         # and make sure cols is just a list of labels

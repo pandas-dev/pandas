@@ -206,6 +206,11 @@ from pandas.io.formats.excel import (
             "border-top-style: slantDashDot; border-top-color: blue",
             {"border": {"top": {"style": "slantDashDot", "color": "0000FF"}}},
         ),
+        # GH#71305
+        (
+            "border-top: 1px solid indigo",
+            {"border": {"top": {"style": "thin", "color": "4B0082"}}},
+        ),
         # ALIGNMENT
         # - horizontal
         ("text-align: center", {"alignment": {"horizontal": "center"}}),

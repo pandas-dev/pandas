@@ -268,6 +268,11 @@ def describe_numeric_1d(series: Series, percentiles: Sequence[float]) -> Series:
                 dtype = ArrowDtype(pa.float64())
         else:
             dtype = Float64Dtype()
+            try:
+                return Series(d, index=stat_index, name=series.name, dtype=dtype)
+            except (TypeError, ValueError):
+                # GH#61707 e.g. pint quantities, whose units block a float cast
+                dtype = None
     elif series.dtype.kind in "iufb":
         # i.e. numeric but exclude complex dtype
         dtype = np.dtype("float")
