@@ -370,6 +370,9 @@ def _get_freq(ax: Axes, series: Series, index_freq: str | None = None):
 
 
 def use_dynamic_x(ax: Axes, index: Index) -> bool:
+    if index.empty:
+        return False
+
     freq = _get_index_freq(index)
     ax_freq = _get_ax_freq(ax)
 
