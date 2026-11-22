@@ -6674,7 +6674,17 @@ class Selection:
                     self.start, self.stop, self.table.nrows
                 )
                 if where.dtype == np.bool_:
-                    self.coordinates = np.arange(start, stop)[where]
+                    if len(where) == self.table.nrows:
+                        coords = np.flatnonzero(where)
+                        self.coordinates = coords[(coords >= start) & (coords < stop)]
+                    elif len(where) == (stop - start):
+                        self.coordinates = np.arange(start, stop)[where]
+                    else:
+                        raise ValueError(
+                            f"Boolean mask length ({len(where)}) does not match "
+                            f"table row count ({self.table.nrows}) or window length "
+                            f"({stop - start})"
+                        )
                 elif issubclass(where.dtype.type, np.integer):
                     invalid = where[(where < start) | (where >= stop)]
                     if len(invalid):

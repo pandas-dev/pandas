@@ -389,6 +389,31 @@ def test_select_chunksize_with_where_and_start_stop(temp_hdfstore, start, stop):
     tm.assert_frame_equal(result, expected[expected["b"] != 1])
 
 
+def test_select_boolean_mask_with_start_stop(temp_hdfstore):
+    df = pd.DataFrame({"a": range(20)})
+    temp_hdfstore.put("df", df, format="table", track_times=False)
+
+    mask = np.zeros(20, dtype=bool)
+    mask[2] = True
+    mask[7] = True
+    mask[15] = True
+
+    # 1. Full-table mask with window [5, 10): only row 7 selected
+    result = temp_hdfstore.select("df", where=mask, start=5, stop=10)
+    tm.assert_frame_equal(result, df.iloc[[7]])
+
+    # 2. Window-sized mask for [5, 10): length 5, index 2 corresponds to row 7
+    window_mask = np.zeros(5, dtype=bool)
+    window_mask[2] = True
+    result_window = temp_hdfstore.select("df", where=window_mask, start=5, stop=10)
+    tm.assert_frame_equal(result_window, df.iloc[[7]])
+
+    # 3. Mismatched length mask raises ValueError
+    invalid_mask = np.zeros(8, dtype=bool)
+    with pytest.raises(ValueError, match="Boolean mask length"):
+        temp_hdfstore.select("df", where=invalid_mask, start=5, stop=10)
+
+
 def test_select_with_dups(temp_hdfstore):
     # single dtypes
     df = pd.DataFrame(
