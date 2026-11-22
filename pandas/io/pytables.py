@@ -5638,7 +5638,7 @@ class AppendableTable(Table):
     def delete(
         self, where=None, start: int | None = None, stop: int | None = None
     ) -> int | None:
-        if isinstance(where, np.ndarray) and not len(where):
+        if isinstance(where, (np.ndarray, Index, Series)) and not len(where):
             # an empty array of coordinates selects no rows
             return 0
 

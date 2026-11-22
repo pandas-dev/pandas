@@ -371,19 +371,21 @@ class BinOp(ops.BinOp):
                 # Find the index of the first match of conv_val in metadata
                 result = np.flatnonzero(metadata == conv_val)[0]
             return TermValue(result, result, "integer")
-        elif (
-            kind == "integer"
-            and self.is_period
-            and not (lib.is_integer(conv_val) or lib.is_float(conv_val))
-        ):
+        elif kind == "integer" and self.is_period:
+            if lib.is_integer(conv_val) or lib.is_float(conv_val):
+                val_type = type(conv_val).__name__
+                raise TypeError(
+                    f"Cannot compare Period column [{self.lhs.value}] to {val_type}"
+                )
             # a Period column is stored as int64 ordinals: compare against the
             # ordinal of the Period the value stands for, at the column's freq
             freq = PeriodDtype.construct_from_string(self.dtype_name).freq
             period = Period(conv_val, freq=freq)
-            if period is NaT or not isinstance(period, Period):
+            if period is NaT:
                 raise ValueError(
                     f"Cannot compare [{self.lhs.value}] to a missing Period"
                 )
+            assert isinstance(period, Period)
             return TermValue(period.ordinal, period.ordinal, kind)
         elif kind == "integer":
             try:

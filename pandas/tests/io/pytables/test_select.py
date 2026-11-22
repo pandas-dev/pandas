@@ -279,7 +279,7 @@ def test_select_negated_constant_expression(temp_hdfstore):
 
 @pytest.mark.parametrize("op", ["<", "<=", ">", ">="])
 def test_select_string_column_inequality_skips_missing(temp_hdfstore, op):
-    # GH#71432: Fixed-width string columns store missing values as a byte sentinel
+    # GH#71277: Fixed-width string columns store missing values as a byte sentinel
     # (default b"nan"). Inequality comparisons must exclude the sentinel row.
     df = pd.DataFrame({"s": ["a", None, "j", "z", None, "b"], "x": range(6)})
     temp_hdfstore.append("df", df, data_columns=True)
@@ -314,6 +314,17 @@ def test_select_period_column_comparison(temp_hdfstore, op):
     result = temp_hdfstore.select("df", where=f"per {op} '2020-01-04'")
     mask = _COMPARE[op](df["per"], pd.Period("2020-01-04", "D"))
     tm.assert_frame_equal(result, df[mask])
+
+
+def test_select_period_column_compared_to_scalar_int_raises(temp_hdfstore):
+    periods = pd.array(
+        ["2020-01-01", None, "2020-01-03", "2020-01-04", None, "2020-01-06"],
+        dtype="period[D]",
+    )
+    df = pd.DataFrame({"per": periods, "x": range(6)})
+    temp_hdfstore.append("df", df, data_columns=True)
+    with pytest.raises(TypeError, match="Cannot compare Period column"):
+        temp_hdfstore.select("df", where="per > 18266")
 
 
 def test_select_pytablesexpr_in_where_list(temp_hdfstore):
@@ -353,6 +364,16 @@ def test_coordinates_select_and_remove(temp_hdfstore, make, coords):
     assert temp_hdfstore.remove("df", where=where) == len(coords)
     remaining = temp_hdfstore.select("df")
     tm.assert_frame_equal(remaining, df.drop(index=coords))
+
+
+def test_direct_delete_empty_coordinates(temp_hdfstore):
+    df = pd.DataFrame({"a": range(10)})
+    temp_hdfstore.put("df", df, format="table", track_times=False)
+    storer = temp_hdfstore.get_storer("df")
+    assert storer.delete(where=pd.Index([], dtype=np.int64)) == 0
+    assert storer.delete(where=pd.Series([], dtype=np.int64)) == 0
+    assert storer.delete(where=np.array([], dtype=np.int64)) == 0
+    tm.assert_frame_equal(temp_hdfstore.select("df"), df)
 
 
 @pytest.mark.parametrize("start, stop", [(None, None), (4, 17), (0, 5), (10, None)])
