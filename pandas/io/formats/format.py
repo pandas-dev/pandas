@@ -1479,7 +1479,7 @@ class FloatArrayFormatter(_GenericArrayFormatter):
             threshold = None
 
         # if we have a fixed_width, we'll need to try different float_format
-        def format_values_with(float_format):
+        def format_values_with(float_format, pad_zeros: bool = False):
             formatter = self._value_formatter(float_format, threshold)
 
             # default formatter leaves a space to the left when formatting
@@ -1501,6 +1501,8 @@ class FloatArrayFormatter(_GenericArrayFormatter):
                 if is_complex:
                     result = _trim_zeros_complex(values, self.decimal)
                 else:
+                    if pad_zeros:
+                        values = _pad_float_zeros(values, self.decimal)
                     result = _trim_zeros_float(values, self.decimal)
                 return np.asarray(result, dtype="object")
 
@@ -1512,12 +1514,15 @@ class FloatArrayFormatter(_GenericArrayFormatter):
         if self.float_format is None:
             if self.fixed_width:
                 float_format = self._fixed_width_format("f")
+                pad_zeros = self.values.dtype == np.float32
             else:
                 float_format = self.float_format
+                pad_zeros = False
         else:
             float_format = lambda value: self.float_format % value
+            pad_zeros = False
 
-        formatted_values = format_values_with(float_format)
+        formatted_values = format_values_with(float_format, pad_zeros)
 
         if not self.fixed_width:
             return formatted_values
@@ -1971,6 +1976,35 @@ def _trim_zeros_complex(str_complexes: ArrayLike, decimal: str = ".") -> list[st
 
 
 _NUMBER_WITH_DECIMAL_RE = re.compile(r"^\s*[+-]?[0-9]+\.[0-9]*$")
+
+
+def _pad_float_zeros(
+    str_floats: ArrayLike | list[str], decimal: str = "."
+) -> list[str]:
+    """Pad decimal strings to the largest number of decimal places."""
+    if decimal != ".":
+        number_regex = re.compile(rf"^\s*[+-]?[0-9]+\{decimal}[0-9]*$")
+    else:
+        number_regex = _NUMBER_WITH_DECIMAL_RE
+
+    def decimal_place_count(value: str) -> int:
+        return len(value) - value.rfind(decimal) - len(decimal)
+
+    decimal_place_counts = [
+        decimal_place_count(x)
+        for x in str_floats
+        if number_regex.match(x) is not None
+    ]
+    if not decimal_place_counts:
+        return list(str_floats)
+
+    max_decimal_places = max(decimal_place_counts)
+    return [
+        x + "0" * (max_decimal_places - decimal_place_count(x))
+        if number_regex.match(x) is not None
+        else x
+        for x in str_floats
+    ]
 
 
 def _trim_zeros_float(

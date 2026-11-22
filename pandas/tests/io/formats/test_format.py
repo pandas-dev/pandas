@@ -2120,7 +2120,7 @@ class TestFloatArrayFormatter:
             ("Float32", ["<NA>", "<NA>", "<NA>"]),
             pytest.param(
                 "float32[pyarrow]",
-                ["<NA>", "NaN", "<NA>"],
+                ["<NA>", "<NA>", "<NA>"],
                 marks=td.skip_if_no("pyarrow"),
             ),
         ],
@@ -2167,13 +2167,101 @@ class TestFloatArrayFormatter:
         with pd.option_context("display.float_format", "{:.2f}".format):
             result = ser.to_string()
 
-        assert result == "0    100.10"
+        assert result == "0   100.10"
+
+    @pytest.mark.parametrize(
+        "dtype, dtype_repr, expected_body",
+        [
+            ("float32", "float32", "0    1.500\n1    2.250\n2    3.125"),
+            ("Float32", "Float32", "0    1.500\n1    2.250\n2    3.125"),
+            pytest.param(
+                "float32[pyarrow]",
+                "float[pyarrow]",
+                "0    1.500\n1    2.250\n2    3.125",
+                marks=td.skip_if_no("pyarrow"),
+            ),
+            ("float64", "float64", "0    1.500\n1    2.250\n2    3.125"),
+            ("Float64", "Float64", "0      1.5\n1     2.25\n2    3.125"),
+            pytest.param(
+                "float64[pyarrow]",
+                "double[pyarrow]",
+                "0      1.5\n1     2.25\n2    3.125",
+                marks=td.skip_if_no("pyarrow"),
+            ),
+        ],
+    )
+    def test_float_display_reviewer_example(self, dtype, dtype_repr, expected_body):
+        # GH#71916
+        ser = pd.Series([1.5, 2.25, 3.125], dtype=dtype)
+        frame = ser.to_frame("value")
+
+        expected_series = f"{expected_body}\ndtype: {dtype_repr}"
+        expected_frame = "   value\n0  1.500\n1  2.250\n2  3.125"
+
+        assert repr(ser) == expected_series
+        assert ser.to_string() == expected_series.removesuffix(
+            f"\ndtype: {dtype_repr}"
+        )
+        if dtype in {"float32", "Float32", "float32[pyarrow]", "float64"}:
+            assert repr(frame) == expected_frame
+            assert frame.to_string() == expected_frame
+            assert "<td>1.500</td>" in ser._repr_html_()
+            assert "<td>2.250</td>" in frame._repr_html_()
+
+    @pytest.mark.parametrize(
+        "precision, expected",
+        [
+            (0, "0    100\ndtype: float32"),
+            (2, "0    100.1\ndtype: float32"),
+            (6, "0    100.1\ndtype: float32"),
+            (8, "0    100.1\ndtype: float32"),
+            (20, "0    100.1\ndtype: float32"),
+        ],
+    )
+    def test_float32_display_precision_limits_shortest_decimal(
+        self, precision, expected
+    ):
+        # GH#71916
+        ser = pd.Series([100.1], dtype="float32")
+
+        with pd.option_context("display.precision", precision):
+            result = repr(ser)
+
+        assert result == expected
+
+    @pytest.mark.parametrize(
+        "values, expected",
+        [
+            ([1.2345678, 2.5], "0    1.234568\n1    2.500000\ndtype: float32"),
+            ([-0.0, 1.0], "0   -0.0\n1    1.0\ndtype: float32"),
+        ],
+    )
+    def test_float32_display_rounding_and_negative_zero(self, values, expected):
+        # GH#71916
+        assert repr(pd.Series(values, dtype="float32")) == expected
 
     def test_float64_display_precision(self):
         # GH#71916
         ser = pd.Series([100.1], dtype="float64")
 
         assert repr(ser) == "0    100.1\ndtype: float64"
+
+    def test_float64_display_high_precision(self):
+        # GH#71916
+        ser = pd.Series([100.1], dtype="float64")
+        distinct = pd.Series([1.0000000000000002, 1.0000000000000004])
+
+        with pd.option_context("display.precision", 20):
+            result = repr(ser)
+            distinct_result = repr(distinct)
+
+        assert result == "0    100.09999999999999431566\ndtype: float64"
+        expected = (
+            "0    1.00000000000000022204\n"
+            "1    1.00000000000000044409\n"
+            "dtype: float64"
+        )
+        assert distinct_result == expected
 
     def test_output_display_precision_trailing_zeroes(self):
         # Issue #20359: trimming zeros while there is no decimal point

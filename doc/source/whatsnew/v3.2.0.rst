@@ -195,6 +195,7 @@ Timezones
 
 Numeric
 ^^^^^^^
+- Bug in :class:`Series` and :class:`DataFrame` display showing binary representation artifacts for ``float32`` values, including nullable and PyArrow-backed ``float32`` dtypes (:issue:`71916`)
 - Bug in :meth:`Series.skew` and :meth:`Series.kurt` (and their :class:`DataFrame` counterparts) on ``complex`` data discarding the imaginary part; these now raise ``TypeError`` (:issue:`43770`)
 - Bug in :meth:`Series.var` and :meth:`Series.std` (and their :class:`DataFrame` counterparts) returning very inaccurate results for large ``float32`` data when bottleneck is installed (:issue:`70945`)
 - Bug in in-place arithmetic and logical operations (e.g. ``ser += other``) upcasting the result or raising when ``other`` has index labels not in the left operand (:issue:`12755`)
