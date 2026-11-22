@@ -562,7 +562,7 @@ class TestArrowArray(base.ExtensionTests):
         ],
     )
     def test_construct_from_string_invalid_parameterized_raises(self, string):
-        # GH#53011 unparseable pyarrow type strings raise TypeError so that
+        # GH#53011 unparsable pyarrow type strings raise TypeError so that
         # the dtype registry skips ArrowDtype
         msg = "is not a valid pyarrow"
         with pytest.raises(TypeError, match=msg):

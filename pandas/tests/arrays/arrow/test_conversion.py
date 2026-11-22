@@ -59,7 +59,7 @@ def test_from_sequence_of_strings_pa_array(data, request):
 
 
 def test_arrowdtype_construct_from_string_type_with_unsupported_parameters():
-    # GH#53011 unparseable pyarrow type strings raise TypeError (so that the
+    # GH#53011 unparsable pyarrow type strings raise TypeError (so that the
     # dtype registry skips ArrowDtype) instead of NotImplementedError
     with pytest.raises(TypeError, match="is not a valid pyarrow data type"):
         ArrowDtype.construct_from_string("not_a_real_dype[s, tz=UTC][pyarrow]")
