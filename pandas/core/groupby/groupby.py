@@ -198,6 +198,20 @@ class GroupByPlot(PandasObject):
         if kwargs.get("kind", "line") == "pie":
             return None
 
+        import matplotlib as mpl
+
+        style = kwargs.get("style")
+        if style is not None:
+            if isinstance(style, dict):
+                styles = list(style.values())
+            elif isinstance(style, str):
+                styles = [style]
+            else:
+                styles = list(style)
+            if any(not set(mpl.colors.BASE_COLORS).isdisjoint(s) for s in styles):
+                # a color in ``style`` takes precedence, as in DataFrame.plot
+                return None
+
         from pandas.plotting._matplotlib.style import get_standard_colors
 
         return iter(
@@ -206,7 +220,6 @@ class GroupByPlot(PandasObject):
 
     @staticmethod
     def _set_group_color(kwargs: dict[str, Any], colors: Iterator | None) -> None:
-        # GH#56697: give this group the next color instead of the colormap
         if colors is not None:
             kwargs["color"] = next(colors)
             kwargs.pop("colormap", None)
