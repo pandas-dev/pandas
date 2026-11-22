@@ -285,15 +285,10 @@ class TestArrowArray(base.ExtensionTests):
 
     def test_from_dtype(self, data, request):
         pa_dtype = data.dtype.pyarrow_dtype
-        if pa.types.is_string(pa_dtype) or pa.types.is_decimal(pa_dtype):
-            if pa.types.is_string(pa_dtype):
-                reason = "ArrowDtype(pa.string()) != StringDtype('pyarrow')"
-            else:
-                reason = f"pyarrow.type_for_alias cannot infer {pa_dtype}"
-
+        if pa.types.is_string(pa_dtype):
             request.applymarker(
                 pytest.mark.xfail(
-                    reason=reason,
+                    reason="ArrowDtype(pa.string()) != StringDtype('pyarrow')",
                 )
             )
         super().test_from_dtype(data)
@@ -497,14 +492,6 @@ class TestArrowArray(base.ExtensionTests):
 
     def test_construct_from_string_own_name(self, dtype, request):
         pa_dtype = dtype.pyarrow_dtype
-        if pa.types.is_decimal(pa_dtype):
-            request.applymarker(
-                pytest.mark.xfail(
-                    raises=NotImplementedError,
-                    reason=f"pyarrow.type_for_alias cannot infer {pa_dtype}",
-                )
-            )
-
         if pa.types.is_string(pa_dtype):
             # We still support StringDtype('pyarrow') over ArrowDtype(pa.string())
             msg = r"string\[pyarrow\] should be constructed by StringDtype"
@@ -521,14 +508,65 @@ class TestArrowArray(base.ExtensionTests):
             # We still support StringDtype('pyarrow') over ArrowDtype(pa.string())
             assert not type(dtype).is_dtype(dtype.name)
         else:
-            if pa.types.is_decimal(pa_dtype):
-                request.applymarker(
-                    pytest.mark.xfail(
-                        raises=NotImplementedError,
-                        reason=f"pyarrow.type_for_alias cannot infer {pa_dtype}",
-                    )
-                )
             super().test_is_dtype_from_name(dtype)
+
+    @pytest.mark.parametrize(
+        "pa_type",
+        [
+            pa.list_(pa.string()),
+            pa.large_list(pa.int64()),
+            pa.list_(pa.list_(pa.string())),
+            pa.list_(pa.int64(), 3),
+            pa.list_view(pa.int64()),
+            pa.large_list_view(pa.int64()),
+            pa.struct([("a", pa.int64()), ("b", pa.list_(pa.string()))]),
+            pa.struct([pa.field("x", pa.int64(), nullable=False)]),
+            pa.map_(pa.string(), pa.int64()),
+            pa.map_(pa.string(), pa.int64(), keys_sorted=True),
+            pa.dictionary(pa.int32(), pa.string()),
+            pa.dictionary(pa.int32(), pa.list_(pa.int64()), ordered=True),
+            pa.decimal128(10, 2),
+            pa.decimal256(40, 5),
+            pa.binary(7),
+            pa.timestamp("us", tz="America/New_York"),
+            pa.union([pa.field("a", pa.int8())], mode="dense", type_codes=[5]),
+            pa.run_end_encoded(pa.int32(), pa.string()),
+        ],
+        ids=str,
+    )
+    def test_construct_from_string_parameterized_types(self, pa_type):
+        # GH#53011 parameterized and nested pyarrow types can be constructed
+        # from their string representation
+        dtype = ArrowDtype(pa_type)
+
+        result = ArrowDtype.construct_from_string(dtype.name)
+        assert type(result) is ArrowDtype
+        assert result == dtype
+
+        # check OK as classmethod
+        result = type(dtype).construct_from_string(dtype.name)
+        assert result == dtype
+
+        # and through the dtype registry / pandas_dtype
+        assert pandas_dtype(dtype.name) == dtype
+        assert ArrowDtype.is_dtype(dtype.name)
+
+    @pytest.mark.parametrize(
+        "string",
+        [
+            "list<>",
+            "foo",
+            "struct<a: int64",
+            "list<item: string extra>",
+            "dictionary<values=string>",
+        ],
+    )
+    def test_construct_from_string_invalid_parameterized_raises(self, string):
+        # GH#53011 unparsable pyarrow type strings raise TypeError so that
+        # the dtype registry skips ArrowDtype
+        msg = "is not a valid pyarrow"
+        with pytest.raises(TypeError, match=msg):
+            ArrowDtype.construct_from_string(f"{string}[pyarrow]")
 
     def test_construct_from_string_another_type_raises(self, dtype):
         msg = r"'another_type' must end with '\[pyarrow\]'"
@@ -564,14 +602,7 @@ class TestArrowArray(base.ExtensionTests):
     @pytest.mark.parametrize("engine", ["c", "python"])
     def test_EA_types(self, engine, data, dtype_backend, request, using_nan_is_na):
         pa_dtype = data.dtype.pyarrow_dtype
-        if pa.types.is_decimal(pa_dtype):
-            request.applymarker(
-                pytest.mark.xfail(
-                    raises=NotImplementedError,
-                    reason=f"Parameterized types {pa_dtype} not supported.",
-                )
-            )
-        elif pa.types.is_timestamp(pa_dtype) and pa_dtype.unit in ("us", "ns"):
+        if pa.types.is_timestamp(pa_dtype) and pa_dtype.unit in ("us", "ns"):
             request.applymarker(
                 pytest.mark.xfail(
                     raises=ValueError,
