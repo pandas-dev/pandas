@@ -1132,9 +1132,7 @@ def value_counts_internal(
         # GH49558
         levels = list(range(values.nlevels))
         result = (
-            Series(index=values, name=name)
-            .groupby(level=levels, dropna=dropna)
-            .size()
+            Series(index=values, name=name).groupby(level=levels, dropna=dropna).size()
         )
         result.index.names = values.names
 
