@@ -177,7 +177,7 @@ class GroupByPlot(PandasObject):
         if group.ndim == 2 and kwargs.get("ax") is None:
             kwargs.setdefault("title", pprint_thing(key))
 
-    def _get_group_colors(self, kwargs: dict[str, Any]) -> list | None:
+    def _get_group_colors(self, kwargs: dict[str, Any]) -> Iterator | None:
         # GH#56697: each group is plotted separately, so a colormap would give
         #  every group its first color. Pick one color per group instead.
         colormap = kwargs.get("colormap")
@@ -200,21 +200,27 @@ class GroupByPlot(PandasObject):
 
         from pandas.plotting._matplotlib.style import get_standard_colors
 
-        return get_standard_colors(num_colors=self._groupby.ngroups, colormap=colormap)
+        return iter(
+            get_standard_colors(num_colors=self._groupby.ngroups, colormap=colormap)
+        )
+
+    @staticmethod
+    def _set_group_color(kwargs: dict[str, Any], colors: Iterator | None) -> None:
+        # GH#56697: give this group the next color instead of the colormap
+        if colors is not None:
+            kwargs["color"] = next(colors)
+            kwargs.pop("colormap", None)
+            kwargs.pop("cmap", None)
 
     def __call__(self, *args, **kwargs):
         colors = self._get_group_colors(kwargs)
-        color_iter = iter(colors) if colors is not None else None
 
         def plot_group(group, key):
             local_kwargs = kwargs.copy()
             # ax and title can also be passed positionally after x, y, kind
             if len(args) <= 3:
                 GroupByPlot._set_default_title(local_kwargs, group, key)
-            if color_iter is not None:
-                local_kwargs["color"] = next(color_iter)
-                local_kwargs.pop("colormap", None)
-                local_kwargs.pop("cmap", None)
+            GroupByPlot._set_group_color(local_kwargs, colors)
             return group.plot(*args, **local_kwargs)
 
         plot_group.__name__ = "plot"
@@ -224,7 +230,6 @@ class GroupByPlot(PandasObject):
     def __getattr__(self, name: str):
         def attr(*args, **kwargs):
             colors = self._get_group_colors({**kwargs, "kind": name})
-            color_iter = iter(colors) if colors is not None else None
 
             def plot_group(group, key):
                 local_kwargs = kwargs.copy()
@@ -232,10 +237,7 @@ class GroupByPlot(PandasObject):
 
                 if name == "scatter" and kwargs.get("legend"):
                     local_kwargs.setdefault("label", key)
-                if color_iter is not None:
-                    local_kwargs["color"] = next(color_iter)
-                    local_kwargs.pop("colormap", None)
-                    local_kwargs.pop("cmap", None)
+                GroupByPlot._set_group_color(local_kwargs, colors)
 
                 return getattr(group.plot, name)(*args, **local_kwargs)
 
