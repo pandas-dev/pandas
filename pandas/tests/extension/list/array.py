@@ -119,6 +119,7 @@ class ListArray(ExtensionArray):
         else:
             return np.array(self.data, dtype=dtype, copy=copy)
 
+    # no axis keyword, to test third-party EAs that lack it (GH#47514)
     @classmethod
     def _concat_same_type(cls, to_concat):
         data = np.concatenate([x.data for x in to_concat])

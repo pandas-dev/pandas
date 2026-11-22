@@ -1154,11 +1154,13 @@ def value_counts_arraylike(
     -------
     uniques : np.ndarray
     counts : np.ndarray[np.int64]
+    na_pos : int
+        Position of the masked NA entry in uniques, -1 if there is none.
     """
     original = values
     values = _ensure_data(values)
 
-    keys, counts, na_counter = htable.value_count(values, dropna, mask=mask)
+    keys, counts, na_pos = htable.value_count(values, dropna, mask=mask)
 
     if needs_i8_conversion(original.dtype):
         # datetime, timedelta, or period
@@ -1168,7 +1170,7 @@ def value_counts_arraylike(
             keys, counts = keys[mask], counts[mask]
 
     res_keys = _reconstruct_data(keys, original.dtype, original)
-    return res_keys, counts, na_counter
+    return res_keys, counts, na_pos
 
 
 def duplicated(
@@ -1967,6 +1969,7 @@ def map_array(
     arr: ArrayLike,
     mapper,
     na_action: Literal["ignore"] | None = None,
+    convert: bool = True,
 ) -> np.ndarray | ExtensionArray | Index:
     """
     Map values using an input mapping or function.
@@ -1978,6 +1981,9 @@ def map_array(
     na_action : {None, 'ignore'}, default None
         If 'ignore', propagate NA values, without passing them to the
         mapping correspondence.
+    convert : bool, default True
+        If False, skip dtype inference on the result so that None is not
+        turned into NaN; keys absent from a dict or Series mapper become None.
 
     Returns
     -------
@@ -2016,13 +2022,15 @@ def map_array(
             from pandas import Series
 
             if len(mapper) == 0:
-                mapper = Series(mapper, dtype=np.float64)
+                mapper = Series(mapper, dtype=np.float64 if convert else object)
             elif isinstance(mapper, dict):
                 mapper = Series(
-                    mapper.values(), index=Index(mapper.keys(), tupleize_cols=False)
+                    mapper.values(),
+                    index=Index(mapper.keys(), tupleize_cols=False),
+                    dtype=None if convert else object,
                 )
-            else:
-                mapper = Series(mapper)
+            elif not isinstance(mapper, ABCSeries):
+                mapper = Series(mapper, dtype=None if convert else object)
 
     if isinstance(mapper, ABCSeries):
         if na_action == "ignore":
@@ -2031,9 +2039,12 @@ def map_array(
         # Since values were input this means we came from either
         # a dict or a series and mapper should be an index
         indexer = mapper.index.get_indexer(arr)
-        new_values = take_nd(mapper._values, indexer)
-
-        return new_values
+        mapper_values = mapper._values
+        if not convert and isinstance(mapper_values, np.ndarray):
+            new_values = take_nd(mapper_values.astype(object), indexer)
+            new_values[indexer == -1] = None
+            return new_values
+        return take_nd(mapper_values, indexer)
 
     if not len(arr):
         return arr.copy()
@@ -2041,6 +2052,8 @@ def map_array(
     # we must convert to python types
     values = arr.astype(object, copy=False)
     if na_action is None:
-        return lib.map_infer(values, mapper)
+        return lib.map_infer(values, mapper, convert=convert)
     else:
-        return lib.map_infer_mask(values, mapper, mask=isna(values).view(np.uint8))
+        return lib.map_infer_mask(
+            values, mapper, mask=isna(values).view(np.uint8), convert=convert
+        )

@@ -1305,6 +1305,20 @@ results in ``ValueError``.
     pd.Timestamp("2014-08-01 09:00") + bh
     pd.Timestamp("2014-08-01 18:00") + bh
 
+Each business hour is 60 minutes of business time; any part of an hour that
+does not fit before closing continues from the next opening. If the business
+hours are not a whole number of hours long, a ``date_range`` therefore no
+longer lines up with the opening time after the first day.
+
+.. ipython:: python
+
+    bh = pd.offsets.BusinessHour(start="09:30", end="16:00")
+    pd.date_range("2014-08-01 09:30", periods=9, freq=bh)
+
+A 24-hour business day cannot be expressed with ``BusinessHour``. For hourly
+timestamps around the clock on weekdays only, filter an hourly range instead,
+e.g. ``dti[dti.day_of_week < 5]``.
+
 Passing ``start`` time later than ``end`` represents midnight business hour.
 In this case, business hour exceeds midnight and overlap to the next day.
 Valid business hours are distinguished by whether it started from valid ``BusinessDay``.

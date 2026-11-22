@@ -539,7 +539,7 @@ class BaseGroupBy(PandasObject, SelectionMixin[NDFrameT], GroupByIndexingMixin):
         Notes
         -----
         See more `here
-        <https://pandas.pydata.org/pandas-docs/stable/user_guide/groupby.html#piping-function-calls>`_
+        <https://pandas.pydata.org/docs/user_guide/groupby.html#piping-function-calls>`_
 
         Examples
         --------
@@ -1004,17 +1004,15 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             result = result.set_axis(index, axis=0)
             return result
 
-        # row order is scrambled => sort the rows by position in original index
-        original_positions = Index(self._grouper.result_ilocs, copy=False)
-        result = result.set_axis(original_positions, axis=0)
-        result = result.sort_index(axis=0)
+        # row order is scrambled => invert the permutation given by result_ilocs;
+        # rows dropped due to dropna get -1 and are filled with NA
         if self._grouper.has_dropped_na:
-            # Add back in any missing rows due to dropna - index here is integral
-            # with values referring to the row of the input so can use RangeIndex
-            result = result.reindex(default_index(len(index)), axis=0)
-        result = result.set_axis(index, axis=0)
-
-        return result
+            indexer = np.full(len(index), -1, dtype=np.intp)
+        else:
+            indexer = np.empty(len(index), dtype=np.intp)
+        result_ilocs = self._grouper.result_ilocs
+        indexer[result_ilocs] = np.arange(len(result_ilocs))
+        return result._reindex_with_indexers({0: (index, indexer)}, allow_dups=True)
 
     @final
     @property
@@ -3399,11 +3397,18 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         )
 
     @final
-    def ohlc(self) -> DataFrame:
+    def ohlc(self, numeric_only: bool = False) -> DataFrame:
         """
         Compute open, high, low and close values of a group, excluding missing values.
 
         For multiple groupings, the result index will be a MultiIndex
+
+        Parameters
+        ----------
+        numeric_only : bool, default False
+            Include only float, int, boolean columns.
+
+            .. versionadded:: 3.2.0
 
         Returns
         -------
@@ -3496,6 +3501,11 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             obj = self._selected_obj
 
             is_numeric = is_numeric_dtype(obj.dtype)
+            if numeric_only and not is_numeric:
+                raise TypeError(
+                    f"Cannot use numeric_only=True with {type(self).__name__}.ohlc "
+                    "and non-numeric dtypes."
+                )
             if not is_numeric:
                 raise DataError("No numeric types to aggregate")
 
@@ -3511,7 +3521,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 result = result.reset_index()
             return result
 
-        result = self._apply_to_column_groupbys(lambda sgb: sgb.ohlc())
+        result = self._apply_to_column_groupbys(
+            lambda sgb: sgb.ohlc(), numeric_only=numeric_only
+        )
         return result
 
     def describe(

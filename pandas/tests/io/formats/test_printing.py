@@ -93,6 +93,14 @@ class TestPPrintThing:
         with cf.option_context("display.precision", 3):
             assert printing.pprint_thing([3.14159265, 3.14159265]) == "[3.142, 3.142]"
 
+    def test_repr_seq_float_full_precision(self):
+        # GH#71509
+        with cf.option_context("display.precision", 3):
+            result = printing.pprint_thing(
+                [3.14159265, {"a": 1 + 1.5e-9j}], use_display_precision=False
+            )
+        assert result == "[3.14159265, {'a': (1+1.5e-09j)}]"
+
     def test_repr_seq_complex_precision(self):
         # GH#25920
         with cf.option_context("display.precision", 3):

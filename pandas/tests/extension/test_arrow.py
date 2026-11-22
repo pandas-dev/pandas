@@ -31,7 +31,6 @@ import pytest
 
 from pandas.compat import (
     PY312,
-    pa_version_under20p0,
     pa_version_under21p0,
 )
 
@@ -368,9 +367,6 @@ class TestArrowArray(base.ExtensionTests):
         self.check_accumulate(ser, op_name, skipna)
 
     def _supports_reduction(self, ser: pd.Series, op_name: str) -> bool:
-        if pa_version_under20p0 and op_name in ("skew", "kurt"):
-            return False
-
         dtype = ser.dtype
         # error: Item "dtype[Any]" of "dtype[Any] | ExtensionDtype" has
         # no attribute "pyarrow_dtype"
@@ -498,15 +494,6 @@ class TestArrowArray(base.ExtensionTests):
     @pytest.mark.parametrize("skipna", [True, False])
     def test_reduce_series_numeric(self, data, all_numeric_reductions, skipna):
         return super().test_reduce_series_numeric(data, all_numeric_reductions, skipna)
-
-    @pytest.mark.parametrize("skipna", [True, False])
-    def test_reduce_frame(self, data, all_numeric_reductions, skipna, request):
-        op_name = all_numeric_reductions
-        if op_name in ("skew", "kurt") and pa_version_under20p0:
-            if data.dtype._is_numeric:
-                mark = pytest.mark.xfail(reason=f"{op_name} not implemented")
-                request.applymarker(mark)
-        return super().test_reduce_frame(data, all_numeric_reductions, skipna)
 
     def test_construct_from_string_own_name(self, dtype, request):
         pa_dtype = dtype.pyarrow_dtype

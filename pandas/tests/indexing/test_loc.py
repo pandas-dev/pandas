@@ -4299,6 +4299,22 @@ class TestLocSetitemDataFrameAlignment:
         )
         tm.assert_frame_equal(df, expected)
 
+    @pytest.mark.parametrize("key", ["var", ["var"]])
+    @pytest.mark.parametrize("dtype", ["float64", object])
+    @pytest.mark.parametrize("multi_block", [True, False])
+    def test_loc_setitem_column_dataframe_aligns_column_labels(
+        self, key, dtype, multi_block
+    ):
+        # GH#47582 a scalar column key aligns the value's columns like a list key
+        df = pd.DataFrame({"var": pd.Series([1.0, 2.0], dtype=dtype)}, index=[1, 2])
+        if multi_block:
+            df["other"] = ["x", "y"]
+        expected = df.copy()
+        expected["var"] = pd.Series([np.nan, np.nan], index=[1, 2], dtype=dtype)
+
+        df.loc[:, key] = pd.DataFrame({"a": [10.0, 11.0]}, index=[2, 3])
+        tm.assert_frame_equal(df, expected)
+
 
 def test_loc_setitem_expansion_incompatible_dtype_warns():
     # GH#62369 silent dtype change during setitem-with-expansion
