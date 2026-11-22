@@ -177,7 +177,7 @@ class GroupByPlot(PandasObject):
         if group.ndim == 2 and kwargs.get("ax") is None:
             kwargs.setdefault("title", pprint_thing(key))
 
-    def _get_group_colors(self, kwargs: dict[str, Any]) -> Iterator | None:
+    def _get_group_colors(self, kwargs: dict[str, Any]) -> Iterator[Any] | None:
         # GH#56697: each group is plotted separately, so a colormap would give
         #  every group its first color. Pick one color per group instead.
         colormap = kwargs.get("colormap")
@@ -218,7 +218,7 @@ class GroupByPlot(PandasObject):
         )
 
     @staticmethod
-    def _set_group_color(kwargs: dict[str, Any], colors: Iterator | None) -> None:
+    def _set_group_color(kwargs: dict[str, Any], colors: Iterator[Any] | None) -> None:
         if colors is not None:
             kwargs["color"] = next(colors)
             kwargs.pop("colormap", None)
