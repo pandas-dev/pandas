@@ -235,7 +235,10 @@ class BinOp(ops.BinOp):
     def dtype_name(self) -> str:
         """the name of the dtype my field was stored from ("" if unrecorded)"""
         field = self.queryables.get(self.lhs.value)
-        name = ensure_decoded(getattr(field, "dtype", None))
+        raw_dtype = getattr(field, "dtype", None)
+        if raw_dtype is None:
+            return ""
+        name = ensure_decoded(raw_dtype)
         return name if isinstance(name, str) else ""
 
     @property
@@ -377,7 +380,7 @@ class BinOp(ops.BinOp):
             # ordinal of the Period the value stands for, at the column's freq
             freq = PeriodDtype.construct_from_string(self.dtype_name).freq
             period = Period(conv_val, freq=freq)
-            if period is NaT:
+            if period is NaT or not isinstance(period, Period):
                 raise ValueError(
                     f"Cannot compare [{self.lhs.value}] to a missing Period"
                 )
@@ -633,7 +636,7 @@ class PyTablesExprVisitor(BaseExprVisitor):
                 # e.g. -(1 + 1): fold the arithmetic of constants
                 try:
                     value = operand(self.env)
-                except Exception as err:
+                except (TypeError, ValueError, ArithmeticError) as err:
                     raise NotImplementedError(
                         "unary minus is only supported on a constant or on "
                         "arithmetic of constants inside an HDFStore 'where'"
