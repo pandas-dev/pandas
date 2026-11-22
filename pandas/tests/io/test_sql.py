@@ -2060,9 +2060,14 @@ def test_api_complex_raises(conn, request):
 )
 def test_api_to_sql_index_label(conn, request, index_name, index_label, expected):
     if "adbc" in conn:
+        if index_label:
+            raises = NotImplementedError
+        else:
+            # pyarrow warns about an index name that is not a string
+            raises = (AssertionError, UserWarning)
         request.node.add_marker(
             pytest.mark.xfail(
-                raises=NotImplementedError if index_label else AssertionError,
+                raises=raises,
                 reason="ADBC does not implement index_label and writes the index "
                 "after the columns, as __index_level_0__ when it has no name",
             )
