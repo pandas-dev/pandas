@@ -1570,12 +1570,19 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
                     freq = self.freq
             else:
                 if is_list_like(loc):
-                    # error: Incompatible types in assignment (expression has
-                    # type "Union[slice, ndarray]", variable has type
-                    # "Union[int, slice, Sequence[int]]")
+                    loc_arr = np.asarray(loc, dtype=np.intp)
+                    loc_arr = np.where(loc_arr < 0, loc_arr + len(self), loc_arr)
                     loc = lib.maybe_indices_to_slice(  # type: ignore[assignment]
-                        np.asarray(loc, dtype=np.intp), len(self)
+                        loc_arr, len(self)
                     )
+                    if not isinstance(loc, slice):
+                        mask = np.ones(len(self), dtype=bool)
+                        mask[loc_arr] = False
+                        rem_slice = lib.maybe_indices_to_slice(
+                            np.flatnonzero(mask), len(self)
+                        )
+                        if isinstance(rem_slice, slice) and rem_slice.step in (1, None):
+                            freq = self.freq
                 if isinstance(loc, slice) and loc.step in (1, None):
                     if loc.start in (0, None) or loc.stop in (len(self), None):
                         freq = self.freq

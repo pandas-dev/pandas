@@ -109,3 +109,27 @@ class TestDelete:
             tm.assert_index_equal(result, expected)
             assert result.name == expected.name
             assert result.freq == expected.freq
+
+    def test_delete_two_sided_preserves_freq(self, unit):
+        # GH#58743
+        idx = pd.date_range(
+            start="2024-05-10", periods=6, freq="D", name="idx", unit=unit
+        )
+        expected = pd.date_range(
+            start="2024-05-11", periods=3, freq="D", name="idx", unit=unit
+        )
+        result = idx.delete([0, 4, 5])
+        tm.assert_index_equal(result, expected)
+        assert result.freq == expected.freq
+
+        result_neg = idx.delete([0, -2, -1])
+        tm.assert_index_equal(result_neg, expected)
+        assert result_neg.freq == expected.freq
+
+        df = pd.DataFrame({"a": [1] * len(idx)}, index=idx)
+        to_drop = df.index[
+            (df.index > pd.Timestamp("2024-05-13"))
+            | (df.index < pd.Timestamp("2024-05-11"))
+        ]
+        res_df = df.drop(index=to_drop)
+        assert res_df.index.freq == idx.freq
