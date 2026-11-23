@@ -24,6 +24,7 @@ from numpy cimport (
     intp_t,
     ndarray,
     uint8_t,
+    uint64_t,
 )
 
 cnp.import_array()
@@ -305,7 +306,7 @@ timedelta-like}
         Py_ssize_t i, n = vals.shape[0]
         Py_ssize_t delta_idx_offset, delta_idx
         int64_t v, left, right, val, new_local, remaining_mins
-        int64_t first_delta, delta
+        int64_t first_delta, delta, adj, w, shifted, out_of_bounds = 0
         int64_t shift_delta = 0
         ndarray[int64_t] result_a, result_b, dst_hours
         int64_t[::1] result
@@ -378,6 +379,23 @@ timedelta-like}
 
     elif info.use_fixed:
         delta = info.delta
+        # Branch-free so the C compiler can vectorize: baseline x86-64 has no
+        #  64-bit "<" for vectors, so detect a result outside [NPY_NAT + 1, INT64_MAX]
+        #  from the sign bits of (v - adj) - delta, where adj = 1 for delta > 0
+        #  also catches a result landing exactly on NPY_NAT.  On any such value,
+        #  redo the loop below to raise the usual error.
+        adj = delta > 0
+        for i in range(n):
+            v = vals[i]
+            w = <int64_t>(<uint64_t>v - <uint64_t>adj)
+            shifted = <int64_t>(<uint64_t>w - <uint64_t>delta)
+            out_of_bounds |= (w ^ delta) & (w ^ shifted)
+            result[i] = (
+                NPY_NAT if v == NPY_NAT
+                else <int64_t>(<uint64_t>shifted + <uint64_t>adj)
+            )
+        if out_of_bounds >= 0:
+            return result.base  # to return underlying ndarray
         for i in range(n):
             v = vals[i]
             if v == NPY_NAT:
