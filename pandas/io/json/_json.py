@@ -474,6 +474,7 @@ def _validate_pyarrow_engine_options(
     convert_axes,
     convert_dates,
     keep_default_dates,
+    precise_float,
     date_unit,
     encoding,
     encoding_errors,
@@ -506,6 +507,8 @@ def _validate_pyarrow_engine_options(
         raise_unsupported("convert_dates")
     if keep_default_dates is not True and keep_default_dates is not lib.no_default:
         raise_unsupported("keep_default_dates")
+    if precise_float is not True:
+        raise_unsupported("precise_float")
     if date_unit is not None:
         raise_unsupported("date_unit")
     if storage_options is not None:
@@ -546,7 +549,7 @@ def read_json(
     convert_axes: bool | None = ...,
     convert_dates: bool | list[str] | lib.NoDefault = ...,
     keep_default_dates: bool | lib.NoDefault = ...,
-    precise_float: bool | lib.NoDefault = ...,
+    precise_float: bool = ...,
     date_unit: str | None = ...,
     encoding: str | None = ...,
     encoding_errors: str | None = ...,
@@ -570,7 +573,7 @@ def read_json(
     convert_axes: bool | None = ...,
     convert_dates: bool | list[str] | lib.NoDefault = ...,
     keep_default_dates: bool | lib.NoDefault = ...,
-    precise_float: bool | lib.NoDefault = ...,
+    precise_float: bool = ...,
     date_unit: str | None = ...,
     encoding: str | None = ...,
     encoding_errors: str | None = ...,
@@ -594,7 +597,7 @@ def read_json(
     convert_axes: bool | None = ...,
     convert_dates: bool | list[str] | lib.NoDefault = ...,
     keep_default_dates: bool | lib.NoDefault = ...,
-    precise_float: bool | lib.NoDefault = ...,
+    precise_float: bool = ...,
     date_unit: str | None = ...,
     encoding: str | None = ...,
     encoding_errors: str | None = ...,
@@ -618,7 +621,7 @@ def read_json(
     convert_axes: bool | None = ...,
     convert_dates: bool | list[str] | lib.NoDefault = ...,
     keep_default_dates: bool | lib.NoDefault = ...,
-    precise_float: bool | lib.NoDefault = ...,
+    precise_float: bool = ...,
     date_unit: str | None = ...,
     encoding: str | None = ...,
     encoding_errors: str | None = ...,
@@ -642,7 +645,7 @@ def read_json(
     convert_axes: bool | None = None,
     convert_dates: bool | list[str] | lib.NoDefault = lib.no_default,
     keep_default_dates: bool | lib.NoDefault = lib.no_default,
-    precise_float: bool | lib.NoDefault = lib.no_default,
+    precise_float: bool = True,
     date_unit: str | None = None,
     encoding: str | None = None,
     encoding_errors: str | None = "strict",
@@ -769,14 +772,13 @@ def read_json(
             Pass ``dtype=False`` to disable type conversion, or parse date
             columns with :func:`~pandas.to_datetime` after reading.
 
-    precise_float : bool, default False
-        Has no effect. Floating point values are always parsed to the closest
-        representable value.
+    precise_float : bool, default True
+        Parse floating point values to the closest representable value. Set to
+        False to use the less precise method that was the default before
+        pandas 3.2.
 
-        .. deprecated:: 3.2.0
-            Floating point values are always parsed to the closest representable
-            value, which previously required ``precise_float=True``. Remove the
-            keyword.
+        .. versionchanged:: 3.2.0
+            The default changed from False to True.
 
     date_unit : str, default None
         The timestamp unit to detect if converting dates. The default behaviour
@@ -851,8 +853,8 @@ def read_json(
         Parser engine to use. The ``"pyarrow"`` engine is only available when
         ``lines=True``, and only supports ``typ="frame"`` with default parsing
         options; passing an option it cannot apply (for example ``convert_dates``,
-        ``date_unit``, ``encoding``, or a non-``ArrowDtype`` ``dtype``) raises
-        ``ValueError``.
+        ``date_unit``, ``precise_float``, ``encoding``, or a non-``ArrowDtype``
+        ``dtype``) raises ``ValueError``.
 
         .. versionadded:: 2.0
 
@@ -954,6 +956,7 @@ def read_json(
             convert_axes=convert_axes,
             convert_dates=convert_dates,
             keep_default_dates=keep_default_dates,
+            precise_float=precise_float,
             date_unit=date_unit,
             encoding=encoding,
             encoding_errors=encoding_errors,
@@ -983,16 +986,6 @@ def read_json(
     else:
         keep_default_dates = True
 
-    if precise_float is not lib.no_default:
-        # GH#62464
-        warnings.warn(
-            "The 'precise_float' keyword in read_json is deprecated and will be "
-            "removed in a future version. Floating point values are always parsed "
-            "to the closest representable value.",
-            Pandas4Warning,
-            stacklevel=find_stack_level(),
-        )
-
     if dtype is None and orient != "table":
         # error: Incompatible types in assignment (expression has type "bool", variable
         # has type "Union[ExtensionDtype, str, dtype[Any], Type[str], Type[float],
@@ -1011,6 +1004,7 @@ def read_json(
         convert_axes=convert_axes,
         convert_dates=convert_dates,
         keep_default_dates=keep_default_dates,
+        precise_float=precise_float,
         date_unit=date_unit,
         encoding=encoding,
         lines=lines,
@@ -1069,6 +1063,8 @@ class JsonReader(abc.Iterator[DataFrame | Series], Generic[FrameSeriesStrT]):
         If parsing dates (``convert_dates`` is not False), then try to parse
         the default datelike columns. See :func:`~pandas.read_json` for the
         criteria used to determine whether a column label is datelike.
+    precise_float : bool
+        Parse floating point values to the closest representable value.
     date_unit : str or None
         The timestamp unit to detect if converting dates. The default
         behaviour is to try and detect the correct precision, but if this
@@ -1135,6 +1131,7 @@ class JsonReader(abc.Iterator[DataFrame | Series], Generic[FrameSeriesStrT]):
         convert_axes: bool | None,
         convert_dates,
         keep_default_dates: bool,
+        precise_float: bool,
         date_unit,
         encoding,
         lines: bool,
@@ -1152,6 +1149,7 @@ class JsonReader(abc.Iterator[DataFrame | Series], Generic[FrameSeriesStrT]):
         self.convert_axes = convert_axes
         self.convert_dates = convert_dates
         self.keep_default_dates = keep_default_dates
+        self.precise_float = precise_float
         self.date_unit = date_unit
         self.encoding = encoding
         self.engine = engine
@@ -1343,6 +1341,7 @@ class JsonReader(abc.Iterator[DataFrame | Series], Generic[FrameSeriesStrT]):
             "convert_axes": self.convert_axes,
             "convert_dates": self.convert_dates,
             "keep_default_dates": self.keep_default_dates,
+            "precise_float": self.precise_float,
             "date_unit": self.date_unit,
             "dtype_backend": self.dtype_backend,
         }
@@ -1464,6 +1463,7 @@ class Parser:
         convert_axes: bool = True,
         convert_dates: bool | list[str] = True,
         keep_default_dates: bool = False,
+        precise_float: bool = True,
         date_unit=None,
         dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
     ) -> None:
@@ -1484,6 +1484,7 @@ class Parser:
         else:
             self.min_stamp = self._MIN_STAMPS["s"]
 
+        self.precise_float = precise_float
         self.convert_axes = convert_axes
         self.convert_dates = convert_dates
         self.date_unit = date_unit
@@ -1791,7 +1792,7 @@ class SeriesParser(Parser):
     _split_keys = ("name", "index", "data")
 
     def _parse(self) -> Series:
-        data = ujson_loads(self.json)
+        data = ujson_loads(self.json, precise_float=self.precise_float)
 
         if self.orient == "split":
             decoded = {str(k): v for k, v in data.items()}
@@ -1817,7 +1818,10 @@ class FrameParser(Parser):
         orient = self.orient
 
         if orient == "split":
-            decoded = {str(k): v for k, v in ujson_loads(json).items()}
+            decoded = {
+                str(k): v
+                for k, v in ujson_loads(json, precise_float=self.precise_float).items()
+            }
             self.check_keys_split(decoded)
             orig_names = [
                 (tuple(col) if isinstance(col, list) else col)
@@ -1830,15 +1834,17 @@ class FrameParser(Parser):
             return DataFrame(dtype=None, **decoded)
         elif orient == "index":
             return DataFrame.from_dict(
-                ujson_loads(json),
+                ujson_loads(json, precise_float=self.precise_float),
                 dtype=None,
                 orient="index",
             )
         elif orient == "table":
-            return parse_table_schema(json)
+            return parse_table_schema(json, precise_float=self.precise_float)
         else:
             # includes orient == "columns"
-            return DataFrame(ujson_loads(json), dtype=None)
+            return DataFrame(
+                ujson_loads(json, precise_float=self.precise_float), dtype=None
+            )
 
     def _try_convert_types(self, obj: DataFrame) -> DataFrame:
         arrays = []

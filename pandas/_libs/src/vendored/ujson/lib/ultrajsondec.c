@@ -82,6 +82,27 @@ static JSOBJ SetError(struct DecoderState *ds, int offset,
   return NULL;
 }
 
+double createDouble(double intNeg, double intValue, double frcValue,
+                    int frcDecimalCount) {
+  static const double g_pow10[] = {1.0,
+                                   0.1,
+                                   0.01,
+                                   0.001,
+                                   0.0001,
+                                   0.00001,
+                                   0.000001,
+                                   0.0000001,
+                                   0.00000001,
+                                   0.000000001,
+                                   0.0000000001,
+                                   0.00000000001,
+                                   0.000000000001,
+                                   0.0000000000001,
+                                   0.00000000000001,
+                                   0.000000000000001};
+  return (intValue + (frcValue * g_pow10[frcDecimalCount])) * intNeg;
+}
+
 static int hasExponent(const char *start, const char *end) {
   for (; start < end; start++) {
     if (*start == 'e' || *start == 'E') {
@@ -91,7 +112,7 @@ static int hasExponent(const char *start, const char *end) {
   return 0;
 }
 
-JSOBJ FASTCALL_MSVC decodeDouble(struct DecoderState *ds) {
+JSOBJ FASTCALL_MSVC decodePreciseFloat(struct DecoderState *ds) {
   const char *end;
   double value;
 
@@ -116,6 +137,10 @@ JSOBJ FASTCALL_MSVC decode_numeric(struct DecoderState *ds) {
   int intNeg = 1;
   JSUINT64 intValue;
   int chr;
+  int decimalCount = 0;
+  double frcValue = 0.0;
+  double expNeg;
+  double expValue;
   char *offset = ds->start;
 
   JSUINT64 overflowLimit = LLONG_MAX;
@@ -164,10 +189,16 @@ JSOBJ FASTCALL_MSVC decode_numeric(struct DecoderState *ds) {
       offset++;
       break;
     }
-    case '.':
+    case '.': {
+      offset++;
+      goto DECODE_FRACTION;
+      break;
+    }
     case 'e':
     case 'E': {
-      return decodeDouble(ds);
+      offset++;
+      goto DECODE_EXPONENT;
+      break;
     }
 
     default: {
@@ -195,13 +226,102 @@ DECODE_BIG:
     offset++;
   }
   if (*offset == '.' || *offset == 'e' || *offset == 'E') {
-    return decodeDouble(ds);
+    return decodePreciseFloat(ds);
   }
   {
     JSOBJ ret = ds->dec->newBigNum(ds->prv, ds->start, offset);
     ds->lastType = JT_INT;
     ds->start = offset;
     return ret;
+  }
+
+DECODE_FRACTION:
+
+  if (ds->dec->preciseFloat) {
+    return decodePreciseFloat(ds);
+  }
+
+  // Scan fraction part
+  frcValue = 0.0;
+  for (;;) {
+    chr = (int)(unsigned char)*(offset);
+
+    switch (chr) {
+    case '0':
+    case '1':
+    case '2':
+    case '3':
+    case '4':
+    case '5':
+    case '6':
+    case '7':
+    case '8':
+    case '9': {
+      if (decimalCount < JSON_DOUBLE_MAX_DECIMALS) {
+        frcValue = frcValue * 10.0 + (double)(chr - 48);
+        decimalCount++;
+      }
+      offset++;
+      break;
+    }
+    case 'e':
+    case 'E': {
+      offset++;
+      goto DECODE_EXPONENT;
+      break;
+    }
+    default: {
+      goto BREAK_FRC_LOOP;
+    }
+    }
+  }
+
+BREAK_FRC_LOOP:
+  ds->lastType = JT_DOUBLE;
+  ds->start = offset;
+  return ds->dec->newDouble(
+      ds->prv,
+      createDouble((double)intNeg, (double)intValue, frcValue, decimalCount));
+
+DECODE_EXPONENT:
+  if (ds->dec->preciseFloat) {
+    return decodePreciseFloat(ds);
+  }
+
+  expNeg = 1.0;
+
+  if (*(offset) == '-') {
+    expNeg = -1.0;
+    offset++;
+  } else if (*(offset) == '+') {
+    expNeg = +1.0;
+    offset++;
+  }
+
+  expValue = 0.0;
+
+  for (;;) {
+    chr = (int)(unsigned char)*(offset);
+
+    switch (chr) {
+    case '0':
+    case '1':
+    case '2':
+    case '3':
+    case '4':
+    case '5':
+    case '6':
+    case '7':
+    case '8':
+    case '9': {
+      expValue = expValue * 10.0 + (double)(chr - 48);
+      offset++;
+      break;
+    }
+    default: {
+      goto BREAK_EXP_LOOP;
+    }
+    }
   }
 
 DECODE_NAN:
@@ -253,6 +373,14 @@ SET_INF_ERROR:
     const char *msg = "Unexpected character found when decoding '-Infinity'";
     return SetError(ds, -1, msg);
   }
+
+BREAK_EXP_LOOP:
+  ds->lastType = JT_DOUBLE;
+  ds->start = offset;
+  return ds->dec->newDouble(
+      ds->prv,
+      createDouble((double)intNeg, (double)intValue, frcValue, decimalCount) *
+          pow(10.0, expValue * expNeg));
 }
 
 JSOBJ FASTCALL_MSVC decode_true(struct DecoderState *ds) {

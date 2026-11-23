@@ -238,6 +238,7 @@ def test_readjson_chunks_closes(chunksize, temp_file):
         convert_axes=True,
         convert_dates=True,
         keep_default_dates=True,
+        precise_float=False,
         date_unit=None,
         encoding=None,
         lines=True,
@@ -626,18 +627,10 @@ def test_pyarrow_engine_date_unit(pyarrow_jsonl):
         pd.read_json(pyarrow_jsonl, lines=True, engine="pyarrow", date_unit="ms")
 
 
-@pytest.mark.parametrize("precise_float", [True, False])
-def test_pyarrow_engine_precise_float(pyarrow_jsonl, precise_float):
-    # GH#62464 precise_float has no effect
-    msg = "The 'precise_float' keyword in read_json is deprecated"
-    # check_stacklevel=False: older pyarrow emits its own Pandas4Warning from
-    #  make_block during to_pandas, which the stacklevel check would trip on.
-    with tm.assert_produces_warning(Pandas4Warning, match=msg, check_stacklevel=False):
-        result = pd.read_json(
-            pyarrow_jsonl, lines=True, engine="pyarrow", precise_float=precise_float
-        )
-    expected = pd.read_json(pyarrow_jsonl, lines=True, engine="pyarrow")
-    tm.assert_frame_equal(result, expected)
+def test_pyarrow_engine_precise_float(pyarrow_jsonl):
+    msg = "The 'precise_float' option is not supported with the 'pyarrow' engine"
+    with pytest.raises(ValueError, match=msg):
+        pd.read_json(pyarrow_jsonl, lines=True, engine="pyarrow", precise_float=False)
 
 
 @pytest.mark.parametrize("convert_axes", [True, False])
@@ -727,7 +720,7 @@ def test_pyarrow_engine_allows_default_options(pyarrow_jsonl, encoding):
             typ="frame",
             convert_dates=True,
             keep_default_dates=True,
-            precise_float=False,
+            precise_float=True,
             date_unit=None,
             encoding=encoding,
             encoding_errors="strict",
@@ -763,6 +756,7 @@ def test_ujson_engine_allows_pyarrow_rejected_options(temp_file):
             convert_dates=False,
             keep_default_dates=False,
             convert_axes=False,
+            precise_float=True,
             date_unit="ms",
             encoding="utf-8",
             encoding_errors="strict",

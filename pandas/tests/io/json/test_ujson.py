@@ -110,13 +110,13 @@ class TestUltraJSONTests:
             if tm.can_set_locale(new_locale, lc_category):
                 with tm.set_locale(new_locale, lc_category):
                     assert ujson.ujson_loads(ujson.ujson_dumps(4.78e60)) == 4.78e60
-                    assert ujson.ujson_loads("4.78") == 4.78
+                    assert ujson.ujson_loads("4.78", precise_float=True) == 4.78
                 break
 
     def test_decimal_decode_test_precise(self):
         sut = {"a": 4.56}
         encoded = ujson.ujson_dumps(sut)
-        decoded = ujson.ujson_loads(encoded)
+        decoded = ujson.ujson_loads(encoded, precise_float=True)
         assert sut == decoded
 
     def test_encode_double_tiny_exponential(self):
@@ -1033,9 +1033,10 @@ class TestPandasJSONTests:
             10**30,
         ],
     )
-    def test_decode_big_int(self, big_num):
+    @pytest.mark.parametrize("precise_float", [True, False])
+    def test_decode_big_int(self, big_num, precise_float):
         # GH#20599
-        result = ujson.ujson_loads(str(big_num))
+        result = ujson.ujson_loads(str(big_num), precise_float=precise_float)
         assert result == big_num
         assert type(result) is int
 
@@ -1048,9 +1049,10 @@ class TestPandasJSONTests:
             "18446744073709551616.5E+3",
         ],
     )
-    def test_decode_float_with_big_int_part(self, float_str):
+    @pytest.mark.parametrize("precise_float", [True, False])
+    def test_decode_float_with_big_int_part(self, float_str, precise_float):
         # GH#20599
-        result = ujson.ujson_loads(float_str)
+        result = ujson.ujson_loads(float_str, precise_float=precise_float)
         assert result == json.loads(float_str)
 
     @pytest.mark.parametrize(
@@ -1077,6 +1079,7 @@ class TestPandasJSONTests:
         assert result == float(float_str)
         assert np.signbit(result) == np.signbit(float(float_str))
 
+    @pytest.mark.parametrize("precise_float", [True, False])
     @pytest.mark.parametrize(
         "float_str, expected",
         [
@@ -1087,14 +1090,17 @@ class TestPandasJSONTests:
             ("[2.e,3]", [2.0, 3]),
         ],
     )
-    def test_decode_float_missing_exponent_digits(self, float_str, expected):
+    def test_decode_float_missing_exponent_digits(
+        self, float_str, expected, precise_float
+    ):
         # GH#62464 an exponent marker with no digits is read as exponent 0
-        assert ujson.ujson_loads(float_str) == expected
+        assert ujson.ujson_loads(float_str, precise_float=precise_float) == expected
 
+    @pytest.mark.parametrize("precise_float", [True, False])
     @pytest.mark.parametrize("float_str", ["1e1e", "1e+1E", "1.5e-2e3"])
-    def test_decode_float_second_exponent_raises(self, float_str):
+    def test_decode_float_second_exponent_raises(self, float_str, precise_float):
         with pytest.raises(ValueError, match="Trailing data"):
-            ujson.ujson_loads(float_str)
+            ujson.ujson_loads(float_str, precise_float=precise_float)
 
     @pytest.mark.parametrize("float_str", ["-.", "-e", "-.e", "-e5", "-E+5", "-e999"])
     def test_decode_float_no_mantissa_digits_raises(self, float_str):

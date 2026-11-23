@@ -145,12 +145,14 @@ PyObject *JSONToObj(PyObject *Py_UNUSED(self), PyObject *args,
                            .realloc = PyObject_Realloc,
                            .errorStr = NULL,
                            .errorOffset = NULL,
+                           .preciseFloat = 1,
                            .prv = NULL};
 
-  char *kwlist[] = {"obj", NULL};
+  char *kwlist[] = {"obj", "precise_float", NULL};
   char *buf;
   Py_ssize_t len;
-  if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s#", kwlist, &buf, &len)) {
+  if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s#|p", kwlist, &buf, &len,
+                                   &dec.preciseFloat)) {
     return NULL;
   }
 

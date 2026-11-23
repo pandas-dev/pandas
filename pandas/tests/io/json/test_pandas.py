@@ -433,14 +433,19 @@ class TestPandasContainer:
         encoded = df.to_json(double_precision=precision)
         assert encoded == f'{{"a_float":{{"0":{expected_val}}}}}'
 
+    @pytest.mark.parametrize("precise_float", [True, False])
     @pytest.mark.parametrize("orient", ["table", "split", "columns"])
-    def test_frame_float_max_roundtrip(self, orient):
+    def test_frame_float_max_roundtrip(self, orient, precise_float):
         # GH#21454
         df = pd.DataFrame({"A": [np.finfo(np.float64).max, -1.7976931348e308]})
-        result = pd.read_json(StringIO(df.to_json(orient=orient)), orient=orient)
+        result = pd.read_json(
+            StringIO(df.to_json(orient=orient)),
+            orient=orient,
+            precise_float=precise_float,
+        )
         # the fewest digits from double_precision=10 up that stay finite
         expected = pd.DataFrame({"A": [1.79769313486e308, -1.7976931348e308]})
-        tm.assert_frame_equal(result, expected, check_exact=True)
+        tm.assert_frame_equal(result, expected, check_exact=precise_float)
 
     def test_frame_to_json_except(self):
         df = pd.DataFrame([1, 2, 3])
@@ -773,16 +778,10 @@ class TestPandasContainer:
         with pytest.raises(ValueError, match=msg):
             s.to_json(orient="garbage")
 
-    @pytest.mark.parametrize("precise_float", [True, False])
-    def test_series_from_json_precise_float_deprecated(self, precise_float):
-        # GH#62464 precise_float has no effect
+    def test_series_from_json_precise_float(self):
         s = pd.Series([4.56, 4.56, 4.56])
-        msg = "The 'precise_float' keyword in read_json is deprecated"
-        with tm.assert_produces_warning(Pandas4Warning, match=msg):
-            result = pd.read_json(
-                StringIO(s.to_json()), typ="series", precise_float=precise_float
-            )
-        tm.assert_series_equal(result, s, check_index_type=False, check_exact=True)
+        result = pd.read_json(StringIO(s.to_json()), typ="series", precise_float=True)
+        tm.assert_series_equal(result, s, check_index_type=False)
 
     def test_series_with_dtype(self):
         # GH 21986
@@ -838,14 +837,10 @@ class TestPandasContainer:
             expected = expected.rename(None)
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize("precise_float", [True, False])
-    def test_frame_from_json_precise_float_deprecated(self, precise_float):
-        # GH#62464 precise_float has no effect
+    def test_frame_from_json_precise_float(self):
         df = pd.DataFrame([[4.56, 4.56, 4.56], [4.56, 4.56, 4.56]])
-        msg = "The 'precise_float' keyword in read_json is deprecated"
-        with tm.assert_produces_warning(Pandas4Warning, match=msg):
-            result = pd.read_json(StringIO(df.to_json()), precise_float=precise_float)
-        tm.assert_frame_equal(result, df, check_exact=True)
+        result = pd.read_json(StringIO(df.to_json()), precise_float=True)
+        tm.assert_frame_equal(result, df)
 
     @pytest.mark.parametrize("typ", ["frame", "series"])
     def test_read_json_floats_closest_value(self, typ):

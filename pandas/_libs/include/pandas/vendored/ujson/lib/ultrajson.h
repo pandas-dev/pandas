@@ -318,6 +318,7 @@ typedef struct __JSONObjectDecoder {
   JSPFN_REALLOC realloc;
   char *errorStr;
   char *errorOffset;
+  int preciseFloat;
   void *prv;
 } JSONObjectDecoder;
 
