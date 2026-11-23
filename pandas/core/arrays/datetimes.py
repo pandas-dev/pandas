@@ -50,7 +50,11 @@ from pandas._libs.tslibs.ccalendar import (
     MONTHS_FULL,
 )
 from pandas._libs.tslibs.dtypes import abbrev_to_npy_unit
-from pandas._libs.tslibs.offsets import RelativeDeltaOffset
+from pandas._libs.tslibs.fields import RoundTo
+from pandas._libs.tslibs.offsets import (
+    RelativeDeltaOffset,
+    validate_floor_ceil_offset,
+)
 from pandas.compat.pyarrow import HAS_PYARROW
 from pandas.errors import (
     Pandas4Warning,
@@ -79,6 +83,7 @@ from pandas.core.arrays import datetimelike as dtl
 from pandas.core.arrays._ranges import (
     generate_daily_offset_range,
     generate_regular_range,
+    trim_range_endpoints,
 )
 import pandas.core.common as com
 
@@ -523,29 +528,13 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
                 #  to overflow and cast to e.g. f8, but if it does we need to cast
                 i8values = i8values.astype("i8")
 
-        if start == end:
-            if not left_inclusive or not right_inclusive:
-                i8values = i8values[1:-1]
-        else:
-            start_i8 = (
-                Timestamp(start)._value
-                if start is not None
-                else i8values[0]
-                if len(i8values)
-                else 0
-            )
-            end_i8 = (
-                Timestamp(end)._value
-                if end is not None
-                else i8values[-1]
-                if len(i8values)
-                else 0
-            )
-            if not left_inclusive or not right_inclusive:
-                if not left_inclusive and len(i8values) and i8values[0] == start_i8:
-                    i8values = i8values[1:]
-                if not right_inclusive and len(i8values) and i8values[-1] == end_i8:
-                    i8values = i8values[:-1]
+        i8values = trim_range_endpoints(
+            i8values,
+            start._value if start is not None else None,
+            end._value if end is not None else None,
+            left_inclusive,
+            right_inclusive,
+        )
 
         dt64_values = i8values.view(f"datetime64[{unit}]")
         dtype = tz_to_dtype(tz, unit=unit)
@@ -1212,6 +1201,37 @@ default 'raise'
         dt64_values = new_values.view(self._ndarray.dtype)
         return type(self)._simple_new(dt64_values, dtype=dt64_values.dtype)
 
+    def _round(self, freq, mode, ambiguous, nonexistent):
+        offset = to_offset(freq)
+        if (
+            # the base class rounds the wall times, which re-enters here
+            self.tz is not None
+            or mode == RoundTo.NEAREST_HALF_EVEN
+            or isinstance(offset, (Tick, Day))
+        ):
+            return super()._round(freq, mode, ambiguous, nonexistent)
+
+        # GH#15303 snap to the midnights that offset is on; keep in sync
+        #  with Timestamp._round
+        validate_floor_ceil_offset(offset)
+        norm = self.normalize()
+        day = Timedelta(days=1).as_unit(self.unit)
+        if (norm.asi8 > lib.i8max - day._value).any():
+            # norm + day would overflow; the scalar path avoids it
+            return type(self)._from_sequence(
+                [ts if ts is NaT else ts._round(offset, mode) for ts in self],
+                dtype=self.dtype,
+            )
+        with warnings.catch_warnings():
+            # the offset arithmetic is internal; don't report it as the user's
+            warnings.simplefilter("ignore", PerformanceWarning)
+            # the last such midnight before the next midnight
+            result = norm + day - offset
+            if mode == RoundTo.PLUS_INFTY:
+                mask = result != self
+                result[mask] = result[mask] + offset
+        return result
+
     def to_period(self, freq=None) -> PeriodArray:
         """
         Cast to PeriodArray/PeriodIndex at a particular frequency.
@@ -1239,6 +1259,12 @@ default 'raise'
         --------
         PeriodIndex: Immutable ndarray holding ordinal values.
         DatetimeIndex.to_pydatetime: Return DatetimeIndex as object.
+
+        Notes
+        -----
+        A multiplied ``freq`` does not bin timestamps: with ``"2h"``, each
+        timestamp maps to the 2-hour period starting at its own hour. For
+        aligned 2-hour bins, use ``floor("2h").to_period("2h")``.
 
         Examples
         --------
@@ -2048,7 +2074,6 @@ default 'raise'
 
         See Also
         --------
-        DatetimeIndex.snap : Snap time stamps to nearest occurring frequency.
         DatetimeIndex.time : Returns numpy array of datetime.time objects.
             The time part of the Timestamps.
 
@@ -3169,21 +3194,11 @@ def _generate_range(
     """
     offset = to_offset(offset)
 
-    start = Timestamp(start)
-    # error: Non-overlapping identity check (left operand type: "Timestamp",
-    # right operand type: "NaTType")
-    if start is not NaT:  # type: ignore[comparison-overlap]
-        start = start.as_unit(unit)
-    else:
-        start = None
+    start_ts = Timestamp(start)
+    start = start_ts.as_unit(unit) if isinstance(start_ts, Timestamp) else None
 
-    end = Timestamp(end)
-    # error: Non-overlapping identity check (left operand type: "Timestamp",
-    # right operand type: "NaTType")
-    if end is not NaT:  # type: ignore[comparison-overlap]
-        end = end.as_unit(unit)
-    else:
-        end = None
+    end_ts = Timestamp(end)
+    end = end_ts.as_unit(unit) if isinstance(end_ts, Timestamp) else None
 
     # GH#64834/GH#65011 When deriving start from (end, periods), roll end onto
     # the offset first so we don't lose a period. For B/bh this is handled by

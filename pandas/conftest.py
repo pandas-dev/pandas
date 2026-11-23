@@ -196,6 +196,7 @@ def pytest_collection_modifyitems(items, config) -> None:
             "Properties.freq",
             "A future version of pandas will return a BaseOffset",
         ),
+        ("DataFrame.iterrows", "DataFrame.iterrows is deprecated"),
     ]
 
     if is_doctest:
@@ -1988,7 +1989,7 @@ def mpl_cleanup_context():
         mpl_units.registry.clear()
         mpl_units.registry.update(orig_units_registry)
         plt.close("all")
-        # https://matplotlib.org/stable/users/prev_whats_new/whats_new_3.6.0.html#garbage-collection-is-no-longer-run-on-figure-close  # noqa: E501
+        # https://matplotlib.org/stable/users/prev_whats_new/whats_new_3.6.0.html#garbage-collection-is-no-longer-run-on-figure-close
         gc.collect(1)
 
 

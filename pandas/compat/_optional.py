@@ -48,7 +48,7 @@ VERSIONS = {
     "scipy": "1.16.1",
     "sqlalchemy": "2.0.42",
     "tables": "3.10.2",
-    "tabulate": "0.9.0",
+    "tabulate": "0.10.0",
     "xarray": "2025.7.1",
     "xlrd": "2.0.2",
     "xlsxwriter": "3.2.5",

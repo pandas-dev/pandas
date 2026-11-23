@@ -8,6 +8,7 @@ import pytest
 
 from pandas._config import using_string_dtype
 
+from pandas.errors import Pandas4Warning
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -488,6 +489,21 @@ def test_array_inference_fails(data):
     tm.assert_extension_array_equal(result, expected)
 
 
+@pytest.mark.parametrize("dtype", [">i8", ">f4"])
+def test_array_inference_non_native_byteorder_raises(dtype):
+    # GH#53234 previously a KeyError
+    with pytest.raises(ValueError, match="Non-native byte order is not supported"):
+        pd.array(np.array([1, 2], dtype=dtype))
+
+
+def test_array_inference_non_native_byteorder_complex_deprecated():
+    # GH#53234
+    arr = np.array([1, 2], dtype=">c16")
+    with tm.assert_produces_warning(Pandas4Warning, match="non-native byte order"):
+        result = pd.array(arr)
+    tm.assert_numpy_array_equal(result.to_numpy(), arr)
+
+
 @pytest.mark.parametrize("data", [np.array(0)])
 def test_nd_raises(data):
     with pytest.raises(ValueError, match="NumpyExtensionArray must be 1-dimensional"):
@@ -506,6 +522,22 @@ def test_pd_array_float_with_nan_to_integer_raises(dtype):
     msg = "Cannot convert non-finite values"
     with pytest.raises(pd.errors.IntCastingNaNError, match=msg):
         pd.array(arr, dtype=dtype)
+
+
+@pytest.mark.parametrize(
+    "data, expected",
+    [
+        ([1.5, np.nan], [1.5, np.nan]),
+        ([1, np.nan], [1.0, np.nan]),
+        ([None, np.nan], [pd.NA, np.nan]),
+    ],
+)
+def test_array_inference_nan_distinguish_nan_and_na(data, expected):
+    # GH#71870 NaN was inferred as NA
+    with pd.option_context("future.distinguish_nan_and_na", True):
+        result = pd.array(data)
+        expected = pd.array(expected, dtype="Float64")
+    tm.assert_extension_array_equal(result, expected)
 
 
 def test_dataframe_raises():
@@ -710,6 +742,31 @@ def test_pd_array_structured_masked_array_raises():
         pd.array(ma_arr)
 
 
+def test_pd_array_structured_ndarray_deprecated():
+    # GH#49388
+    arr = np.array([(1, 2), (2, 3)], dtype="i8,i8")
+    msg = r"compound \(structured\) dtype is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        pd.array(arr)
+
+
+@pytest.mark.parametrize(
+    "data, dtype", [([(1, 2), (2, 3)], "i8,i8"), ([b"abcdefgh"], "V8")]
+)
+def test_pd_array_compound_dtype_deprecated(data, dtype):
+    # GH#49388
+    msg = r"Passing a compound \(structured or void\) dtype to pd.array"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        pd.array(data, dtype=dtype)
+
+
+def test_pd_array_void_series_no_warning():
+    # GH#49388 no warning when the data already has the void dtype
+    ser = pd.Series(np.zeros(3, dtype="V8"))
+    with tm.assert_produces_warning(None):
+        pd.array(ser, dtype="V8")
+
+
 @pytest.mark.parametrize(
     "data, dtype, expected_data",
     [
@@ -735,3 +792,37 @@ def test_numpy_datetime_like_to_string(data, dtype, expected_data):
     )
 
     tm.assert_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "data, dtype",
+    [
+        ([1, 2, None], "Int64"),
+        ([1.5, None], "Float64"),
+        ([True, None], "boolean"),
+        (["a", "b"], "category"),
+        (["a", None], pd.StringDtype("python")),
+        ([1, 0, 0], pd.SparseDtype("int64", 0)),
+        ([pd.Interval(0, 1), pd.Interval(1, 2)], "interval"),
+        (["2020-01-01", None], "M8[ns]"),
+        (["2020-01-01", None], "M8[ns, UTC]"),
+        (["1D", None], "m8[ns]"),
+        (["2020-01", None], "period[M]"),
+        ([1, 2], "object"),
+        pytest.param([1, None], "int64[pyarrow]", marks=td.skip_if_no("pyarrow")),
+        pytest.param(["a", None], "string[pyarrow]", marks=td.skip_if_no("pyarrow")),
+    ],
+)
+def test_concat_same_type_axis_keyword(data, dtype):
+    # GH#47514 every internal EA accepts the base class's axis keyword
+    arr = pd.array(data, dtype=dtype)
+    result = type(arr)._concat_same_type([arr, arr], axis=0)
+    expected = type(arr)._concat_same_type([arr, arr])
+    tm.assert_extension_array_equal(result, expected)
+    assert len(result) == 2 * len(arr)
+    result = type(arr)._concat_same_type([arr, arr], axis=-1)
+    tm.assert_extension_array_equal(result, expected)
+
+    # 1D arrays reject a non-zero axis rather than ignoring it
+    with pytest.raises(ValueError, match="out of bounds"):
+        type(arr)._concat_same_type([arr, arr], axis=1)

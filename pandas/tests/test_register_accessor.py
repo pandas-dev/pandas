@@ -68,6 +68,8 @@ def test_register(obj, registrar):
         registrar("mine")(MyAccessor)
         o = obj([]) if obj is not pd.Series else obj([], dtype=object)
         assert o.mine.prop == "item"
+        # not cached, as documented in the registrar docstrings, GH#32678
+        assert o.mine is not o.mine
         after = set(dir(obj))
         assert (before ^ after) == {"mine"}
         assert "mine" in obj._accessors
@@ -128,8 +130,20 @@ def test_no_circular_reference(klass, registrar):
 def test_cached_accessor_deprecation():
     # GH#66215
     with tm.assert_produces_warning(
-        Pandas4Warning, match="CachedAccessor is deprecated"
+        Pandas4Warning, match="Use pandas.api.extensions.Accessor instead"
     ):
         from pandas.core.accessor import CachedAccessor
 
-    assert CachedAccessor is accessor.Accessor
+    assert CachedAccessor is pd.api.extensions.Accessor
+
+
+def test_accessor_override_on_subclass():
+    # GH#40103
+    class SubFrame(pd.DataFrame):
+        plot = pd.api.extensions.Accessor("plot", MyAccessor)
+
+    sub = SubFrame({"a": [1]})
+    assert isinstance(sub.plot, MyAccessor)
+    assert sub.plot.obj is sub
+    assert SubFrame.plot is MyAccessor
+    assert not isinstance(pd.DataFrame({"a": [1]}).plot, MyAccessor)

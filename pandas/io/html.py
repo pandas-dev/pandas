@@ -852,13 +852,25 @@ def _expand_elements(body) -> None:
         body[ind] += empty * (lens_max - length)
 
 
+def _is_index_names_row(row, index_col) -> bool:
+    """
+    Whether ``row`` has text only in the ``index_col`` positions.
+    """
+    if lib.is_integer(index_col):
+        positions = {index_col}
+    elif is_list_like(index_col):
+        positions = set(index_col)
+    else:
+        return False
+    filled = {i for i, text in enumerate(row) if text}
+    return bool(filled) and filled <= positions
+
+
 def _data_to_frame(**kwargs):
     head, body, foot = kwargs.pop("data")
     header = kwargs.pop("header")
     kwargs["skiprows"] = _get_skiprows(kwargs["skiprows"])
     if head:
-        body = head + body
-
         # Infer header when there is a <thead> or top <th>-only rows
         if header is None:
             if len(head) == 1:
@@ -866,6 +878,25 @@ def _data_to_frame(**kwargs):
             else:
                 # ignore all-empty-text rows
                 header = [i for i, row in enumerate(head) if any(text for text in row)]
+                last = len(head) - 1
+                if header[-2:] == [last - 1, last] and _is_index_names_row(
+                    head[-1], kwargs["index_col"]
+                ):
+                    # The last row holds the index names written by to_html
+                    # (GH#8897). TextParser reads it as index names below several
+                    # column levels; with one level, fold the columns row into it,
+                    # which keeps the row count so skiprows still lines up.
+                    if len(header) == 2:
+                        merged = list(head[-2])
+                        for i, name in enumerate(head[-1][: len(merged)]):
+                            if name:
+                                merged[i] = name
+                        head[-1] = merged
+                        header = last
+                    else:
+                        header.pop()
+
+        body = head + body
 
     if foot:
         body += foot

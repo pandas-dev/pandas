@@ -83,7 +83,7 @@ class BlockManager:
     axes: list[Index]
     _known_consolidated: bool
     _is_consolidated: bool
-    _interleaved_dtype: DtypeObj | None
+    _interleaved_dtype: tuple[tuple[B, ...], DtypeObj | None] | None
     _blknos: np.ndarray
     _blklocs: np.ndarray
     def __init__(

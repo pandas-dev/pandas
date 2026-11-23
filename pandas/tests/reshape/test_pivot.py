@@ -619,8 +619,8 @@ class TestPivotTable:
             pv = pd.pivot(df, index="a", columns="b", values="c")
         assert pv.notna().values.sum() == len(df)
 
-        for _, row in df.iterrows():
-            assert pv.loc[row["a"], row["b"]] == row["c"]
+        for row in df.itertuples():
+            assert pv.loc[row.a, row.b] == row.c
 
         if method:
             result = df.pivot(index="b", columns="a", values="c")
@@ -3373,4 +3373,17 @@ def test_pivot_non_column_label_raises_gh35785():
         index=pd.Index(["one", "two"], name="foo"),
     )
     expected.columns.name = "bar"
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("method", ["pivot", "pivot_table"])
+def test_pivot_complex_missing_cells(method):
+    # GH#25221
+    df = pd.DataFrame({"a": [0, 0, 1], "b": [0, 1, 0], "c": [1 + 2j, 3 + 4j, 5 + 6j]})
+    result = getattr(df, method)(index="a", columns="b", values="c")
+    expected = pd.DataFrame(
+        {0: [1 + 2j, 5 + 6j], 1: [3 + 4j, complex("nan")]},
+        index=pd.Index([0, 1], name="a"),
+        columns=pd.Index([0, 1], name="b"),
+    )
     tm.assert_frame_equal(result, expected)

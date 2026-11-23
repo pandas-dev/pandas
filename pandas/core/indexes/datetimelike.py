@@ -747,6 +747,8 @@ class DatetimeTimedeltaMixin(DatetimeIndexOpsMixin, ABC):
         The values are unchanged; only the ``freq`` attribute differs. Unlike
         assigning to ``freq``, this does not modify the original Index.
 
+        .. versionadded:: 3.2.0
+
         Parameters
         ----------
         freq : str, DateOffset or None

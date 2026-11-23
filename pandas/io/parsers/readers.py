@@ -14,6 +14,7 @@ from collections import (
 from concurrent.futures import ThreadPoolExecutor
 import contextlib
 import csv
+import inspect
 import io
 import mmap
 import os
@@ -75,6 +76,7 @@ from pandas.core.arrays import (
 from pandas.core.frame import DataFrame
 from pandas.core.indexes.api import (
     Index,
+    MultiIndex,
     RangeIndex,
     ensure_index,
 )
@@ -85,6 +87,7 @@ from pandas.io.common import (
     IOHandles,
     get_handle,
     infer_compression,
+    is_potential_multi_index,
     stringify_path,
     validate_header_arg,
 )
@@ -420,8 +423,9 @@ def _read(
         )
 
     # For large local uncompressed files with the C engine, attempt parallel reading.
-    # Each worker gets its own file handle and TextReader so the GIL-free tokenisation
-    # and type-conversion code in parsers.pyx runs truly in parallel.
+    # Each worker gets its own view of the mmapped file and its own TextReader so
+    # the GIL-free tokenisation and type-conversion code in parsers.pyx runs truly
+    # in parallel.
     if not iterator and chunksize is None and nrows is None:
         _n_workers = _default_n_workers()
         if _n_workers > 1 and _can_parallelize_csv(filepath_or_buffer, kwds):
@@ -1071,7 +1075,7 @@ def _read_csv_chunks(
     chunk_failed = threading.Event()
     workers_readers: list[Any] = []
 
-    def _worker() -> None:
+    def _worker(mv: memoryview) -> None:
         reader = TextFileReader(io.BytesIO(b""), **chunk_kwds)
         assert isinstance(reader._engine, CParserWrapper)
         # Buffers are reused across the queued chunks and freed at close;
@@ -1158,10 +1162,15 @@ def _read_csv_chunks(
         mm = mmap.mmap(fh.fileno(), 0, access=mmap.ACCESS_READ)
     try:
         with (
-            memoryview(mm) as mv,
+            contextlib.ExitStack() as views,
             ThreadPoolExecutor(max_workers=n_workers) as pool,
         ):
-            for fut in [pool.submit(_worker) for _ in range(n_workers)]:
+            # One view per worker: slicing a shared memoryview from several
+            # threads races on free-threaded builds (GH#71418).
+            worker_views = [
+                views.enter_context(memoryview(mm)) for _ in range(n_workers)
+            ]
+            for fut in [pool.submit(_worker, mv) for mv in worker_views]:
                 fut.result()
             if chunk_failed.is_set():
                 # Let the serial read raise: a chunk's error can be an artifact
@@ -1295,6 +1304,14 @@ def _read_csv_chunks(
         with contextlib.suppress(BufferError):
             mm.close()
 
+    # Rebuild the MultiIndex that the flattened worker labels lost, as the
+    # serial read does for all-tuple names.
+    column_index = (
+        MultiIndex.from_tuples(cast("list[tuple[Hashable, ...]]", columns))
+        if is_potential_multi_index(columns)
+        else ensure_index(columns)
+    )
+
     index: Index
     if index_engine is not None:
         gathered = _concatenate_chunks(index_dicts, index_labels, warn_mixed=False)
@@ -1311,7 +1328,7 @@ def _read_csv_chunks(
         data = _concatenate_chunks(chunk_dicts, columns, warn_mixed=False)
         return DataFrame(
             wrap_object_columns(data, dtype_arg, index),
-            columns=columns,
+            columns=column_index,
             index=index,
             copy=False,
         )
@@ -1335,7 +1352,7 @@ def _read_csv_chunks(
             block_specs.append((values, np.array([pos], dtype=np.intp)))
 
     block_objs = [_make_block(values, placement) for values, placement in block_specs]
-    mgr = BlockManager(block_objs, [ensure_index(columns), index])
+    mgr = BlockManager(block_objs, [column_index, index])
     return DataFrame._from_mgr(mgr, mgr.axes)
 
 
@@ -1444,7 +1461,7 @@ def read_csv(
     into chunks.
 
     Additional help can be found in the online docs for
-    `IO Tools <https://pandas.pydata.org/pandas-docs/stable/user_guide/io.html>`_.
+    `IO Tools <https://pandas.pydata.org/docs/user_guide/io.html>`_.
 
     Parameters
     ----------
@@ -1479,12 +1496,15 @@ def read_csv(
         line of data rather than the first line of the file. Valid arguments
         are:
 
-        * ``int``: line index at which column labels are read.
+        * ``int``: line index at which column labels are read. Rows above
+          it will be skipped and do not appear in the result.
         * Sequence of ``int``: line indices at which column labels are read
           and combined into a :class:`~pandas.MultiIndex` on the columns,
-          e.g. ``[0, 1, 3]``. Intervening rows that are not specified will
-          be skipped (e.g. row 2 in this example). The levels follow the
-          order of the sequence, so ``[1, 0]`` puts row 1 in level 0.
+          e.g. ``[0, 1, 3]``. Rows above ``min(header)``, as well as
+          intervening rows that are not specified, will be skipped and do
+          not appear in the result (e.g. ``[1, 2, 4]`` skips rows 0 and 3).
+          The levels follow the order of the sequence, so ``[1, 0]`` puts
+          row 1 in level 0.
         * ``None``: no row in the file is interpreted as column labels.
           Columns are labelled by integer position, or by the values passed
           to ``names`` when provided. Use this for files with no header
@@ -2056,7 +2076,7 @@ def read_table(
     into chunks.
 
     Additional help can be found in the online docs for
-    `IO Tools <https://pandas.pydata.org/pandas-docs/stable/user_guide/io.html>`_.
+    `IO Tools <https://pandas.pydata.org/docs/user_guide/io.html>`_.
 
     Parameters
     ----------
@@ -2091,12 +2111,15 @@ def read_table(
         line of data rather than the first line of the file. Valid arguments
         are:
 
-        * ``int``: line index at which column labels are read.
+        * ``int``: line index at which column labels are read. Rows above
+          it will be skipped and do not appear in the result.
         * Sequence of ``int``: line indices at which column labels are read
           and combined into a :class:`~pandas.MultiIndex` on the columns,
-          e.g. ``[0, 1, 3]``. Intervening rows that are not specified will
-          be skipped (e.g. row 2 in this example). The levels follow the
-          order of the sequence, so ``[1, 0]`` puts row 1 in level 0.
+          e.g. ``[0, 1, 3]``. Rows above ``min(header)``, as well as
+          intervening rows that are not specified, will be skipped and do
+          not appear in the result (e.g. ``[1, 2, 4]`` skips rows 0 and 3).
+          The levels follow the order of the sequence, so ``[1, 0]`` puts
+          row 1 in level 0.
         * ``None``: no row in the file is interpreted as column labels.
           Columns are labelled by integer position, or by the values passed
           to ``names`` when provided. Use this for files with no header
@@ -2555,6 +2578,10 @@ def read_table(
     return _read(filepath_or_buffer, kwds)
 
 
+# keywords read_fwf may forward via **kwds, see GH#34953
+_READ_CSV_KWARGS = frozenset(inspect.signature(read_csv).parameters)
+
+
 @overload
 def read_fwf(
     filepath_or_buffer: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str],
@@ -2612,7 +2639,7 @@ def read_fwf(
     into chunks.
 
     Additional help can be found in the `online docs for IO Tools
-    <https://pandas.pydata.org/pandas-docs/stable/user_guide/io.html>`_.
+    <https://pandas.pydata.org/docs/user_guide/io.html>`_.
 
     Parameters
     ----------
@@ -2651,7 +2678,7 @@ def read_fwf(
     chunksize : int, optional
         Number of lines to read from the file per chunk.
     **kwds : optional
-        Optional keyword arguments can be passed to ``TextFileReader``.
+        Additional keyword arguments accepted by :func:`read_csv`.
 
     Returns
     -------
@@ -2668,6 +2695,10 @@ def read_fwf(
     --------
     >>> pd.read_fwf("data.csv")  # doctest: +SKIP
     """
+    for key in kwds:
+        if key not in _READ_CSV_KWARGS:
+            raise TypeError(f"read_fwf() got an unexpected keyword argument '{key}'")
+
     # Check input arguments.
     if colspecs is None and widths is None:
         raise ValueError("Must specify either colspecs or widths")
@@ -3082,6 +3113,17 @@ class TextFileReader(abc.Iterator[DataFrame]):
         if engine not in mapping:
             raise ValueError(
                 f"Unknown engine: {engine} (valid options are {mapping.keys()})"
+            )
+        if (
+            engine == "pyarrow"
+            and self.options.get("encoding_errors", "strict") != "strict"
+            and not isinstance(f, io.TextIOBase)
+        ):
+            # GH#71298 pyarrow ignores encoding_errors when it decodes bytes;
+            # text buffers are fine since pandas encodes those itself.
+            raise ValueError(
+                "The 'encoding_errors' option is not supported with the "
+                "'pyarrow' engine"
             )
         if not isinstance(f, list):
             # open file here

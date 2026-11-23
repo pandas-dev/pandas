@@ -117,7 +117,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
     Notes
     -----
     See the `user guide
-    <https://pandas.pydata.org/pandas-docs/stable/user_guide/advanced.html#categoricalindex>`__
+    <https://pandas.pydata.org/docs/user_guide/advanced.html#categoricalindex>`__
     for more.
 
     Examples
@@ -927,7 +927,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
         False
         """
         # if key is a NaN, check if any NaN is in self.
-        if is_valid_na_for_dtype(key, self.categories.dtype):
+        if is_valid_na_for_dtype(key, self.dtype):
             return self.hasnans
         if self.categories._typ == "rangeindex":
             container: Index | libindex.IndexEngine | libindex.ExtensionEngine = (
@@ -979,7 +979,7 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
         try:
             return self._data._unbox_scalar(key)
         except KeyError:
-            if is_valid_na_for_dtype(key, self.categories.dtype):
+            if is_valid_na_for_dtype(key, self.dtype):
                 return -1
             raise
 
@@ -1035,9 +1035,10 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
         Map values using input an input mapping or function.
 
         Maps the values (their categories, not the codes) of the index to new
-        categories. If the mapping correspondence is one-to-one the result is a
-        :class:`~pandas.CategoricalIndex` which has the same order property as
-        the original, otherwise an :class:`~pandas.Index` is returned.
+        categories. If the mapping correspondence is one-to-one and the new
+        values are hashable, the result is a :class:`~pandas.CategoricalIndex`
+        which has the same order property as the original, otherwise an
+        :class:`~pandas.Index` is returned.
 
         If a `dict` or :class:`~pandas.Series` is used any unmapped category is
         mapped to `NaN`. Note that if this happens an :class:`~pandas.Index`

@@ -56,6 +56,20 @@ A total of %d pull requests were merged for this release.
 """
 
 
+def _is_agent(name):
+    return any(
+        name.startswith(agent)
+        for agent in [
+            "copilot-",
+            "deepseek-",
+            "Claude Fable",
+            "Claude Opus",
+            "Claude Sonnet",
+            "Copilot",
+        ]
+    )
+
+
 def get_authors(revision_range):
     pat = "^.*\\t(.*)$"
     lst_release, cur_release = (r.strip() for r in revision_range.split(".."))
@@ -76,20 +90,37 @@ def get_authors(revision_range):
     # and one for regular commits.
     xpr = re.compile(r"Co-authored-by: (?P<name>[^<\n]+)\s")
     cur = set(
-        xpr.findall(
-            this_repo.git.log("--grep=Co-authored", "--pretty=%b", revision_range)
-        )
+        [
+            name
+            for name in xpr.findall(
+                this_repo.git.log("--grep=Co-authored", "--pretty=%b", revision_range)
+            )
+            if not _is_agent(name)
+        ]
     )
     cur |= set(re.findall(pat, this_repo.git.shortlog("-s", revision_range), re.M))
 
     pre = set(
-        xpr.findall(this_repo.git.log("--grep=Co-authored", "--pretty=%b", lst_release))
+        [
+            name
+            for name in xpr.findall(
+                this_repo.git.log("--grep=Co-authored", "--pretty=%b", lst_release)
+            )
+            if not _is_agent(name)
+        ]
     )
     pre |= set(re.findall(pat, this_repo.git.shortlog("-s", lst_release), re.M))
 
-    # Homu is the author of auto merges, clean him out.
-    cur.discard("Homu")
-    pre.discard("Homu")
+    # Discard various bot authors
+    for bot in [
+        "Homu",
+        "Lumberbot (aka Jack)",
+        "dependabot[bot]",
+        "github-actions[bot]",
+        "pre-commit-ci[bot]",
+    ]:
+        cur.discard(bot)
+        pre.discard(bot)
 
     # Rename contributors according to mapping.
     for old_name, new_name in CONTRIBUTOR_MAPPING.items():

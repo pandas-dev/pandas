@@ -175,6 +175,9 @@ def test_ints_to_pytimedelta_unsupported(unit):
         ("P2D", "day"),
         ("P2DT0H", "hour"),  # the T..H marker forces hour resolution
         ("P1DT1H30M45S", "second"),
+        ("P1W", "day"),
+        ("PT1.5H", "hour"),  # GH#51882 the written unit, as for "1.5min"
+        ("PT1.0000S", "second"),  # GH#51882 as for "1.0000s", not millisecond
     ],
 )
 def test_parse_timedelta_string_reso(label, expected_reso):

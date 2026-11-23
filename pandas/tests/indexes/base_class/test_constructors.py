@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 import pandas._testing as tm
 
@@ -66,3 +68,19 @@ class TestIndexConstructor:
         ser = pd.Series([1, 2], dtype=object)
         idx = pd.Index(ser)
         assert idx._values.flags.writeable
+
+    def test_constructor_structured_ndarray_deprecated(self):
+        # GH#49388
+        arr = np.array([(1.0, 2), (3.0, 4)], dtype=[("x", "f8"), ("y", "i8")])
+        msg = r"compound \(structured\) dtype is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            pd.Index(arr)
+
+    @pytest.mark.parametrize("dtype", [np.dtype([("x", "f8")]), np.dtype("V8")])
+    def test_constructor_compound_dtype_raises(self, dtype):
+        # GH#49388 match the Series and DataFrame constructors
+        msg = "compound dtypes are not implemented in the Index constructor"
+        with pytest.raises(NotImplementedError, match=msg):
+            pd.Index([1, 2], dtype=dtype)
+        with pytest.raises(NotImplementedError, match=msg):
+            pd.Index([1, 2]).astype(dtype)
