@@ -54,6 +54,7 @@ from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
     CategoricalDtypeType,
     ExtensionDtype,
+    IntervalDtype,
 )
 from pandas.core.dtypes.generic import (
     ABCIndex,
@@ -1983,6 +1984,14 @@ class Categorical(NDArrayBackedExtensionArray, PandasObject, ObjectStringArrayMi
         array([ 1.,  2., nan])
         """
         return take_nd(self.categories._values, self._codes)
+
+    def _values_for_json(self) -> np.ndarray:
+        categories = self.categories
+        if isinstance(categories.dtype, IntervalDtype):
+            # Box intervals before taking codes so missing values cannot coerce
+            # integer endpoints to floats and change the strings in the data.
+            return take_nd(categories.to_numpy(dtype=object), self._codes)
+        return super()._values_for_json()
 
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
         result = arraylike.dispatch_where_only_ufunc(

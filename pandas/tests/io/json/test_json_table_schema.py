@@ -460,6 +460,16 @@ class TestTableOrient:
 
         assert result == expected
 
+    def test_to_json_interval_categories_with_missing(self):
+        # GH#55544
+        bins = pd.cut(pd.Series([25, 35, 45]), [20, 30, 40])
+        df = pd.DataFrame({"bin": bins})
+
+        result = json.loads(df.to_json(orient="table", index=False))
+        expected = ["(20, 30]", "(30, 40]"]
+        assert result["schema"]["fields"][0]["constraints"]["enum"] == expected
+        assert [row["bin"] for row in result["data"]] == [*expected, None]
+
     def test_date_format_raises(self, df_table):
         error_msg = (
             "Trying to write with `orient='table'` and `date_format='epoch'`. Table "
