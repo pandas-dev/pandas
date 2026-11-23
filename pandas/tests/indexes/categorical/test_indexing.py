@@ -343,6 +343,29 @@ class TestContains:
         assert 0 not in ci
         assert 1 not in ci
 
+    def test_contains_rangeindex_categories(self):
+        # GH#72247
+        ci = pd.CategoricalIndex(range(1, 11), ordered=True)
+        assert 1 in ci
+        assert 5 in ci
+        assert 10 in ci
+        assert 0 not in ci
+        assert 11 not in ci
+
+        ci = pd.CategoricalIndex(range(10, 20))
+        assert 10 in ci
+        assert 19 in ci
+        assert 9 not in ci
+        assert 20 not in ci
+
+        # Category in categories but absent from index values must return False
+        ci = pd.CategoricalIndex([2], categories=range(5))
+        assert 2 in ci
+        assert 0 not in ci
+        assert 1 not in ci
+        assert 3 not in ci
+        assert 4 not in ci
+
     def test_contains_nan(self):
         ci = pd.CategoricalIndex([*list("aabbca"), np.nan], categories=list("cabdef"))
         assert np.nan in ci
