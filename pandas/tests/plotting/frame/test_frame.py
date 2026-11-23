@@ -958,9 +958,7 @@ class TestDataFramePlots:
         )
 
         ax = df.plot.scatter(x="x", y="y1", color="blue")
-        right_ax = df.plot.scatter(
-            x="x", y="y2", color="red", ax=ax, secondary_y=True
-        )
+        right_ax = df.plot.scatter(x="x", y="y2", color="red", ax=ax, secondary_y=True)
 
         assert len(ax.figure.axes) == 2
         assert len(ax.collections) == 1
