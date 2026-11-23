@@ -17223,6 +17223,21 @@ class DataFrame(NDFrame, OpsMixin):
                             res_values = masked.reshape(ncols, nrows)._reduce(
                                 name, axis=0, skipna=skipna, **kwds
                             )
+                            orig_np_dtype = masked.dtype.numpy_dtype
+                            if (
+                                name in ("sum", "prod")
+                                and orig_np_dtype.kind != "b"
+                                and res_values.dtype != masked.dtype
+                            ):
+                                # Match groupby: restore the input dtype when
+                                # every result fits in it
+                                res_mask = res_values._mask
+                                res_data = np.where(res_mask, 0, res_values._data)
+                                res_data = maybe_downcast_to_dtype(
+                                    res_data, orig_np_dtype
+                                )
+                                if res_data.dtype == orig_np_dtype:
+                                    res_values = type(masked)(res_data, res_mask)
                             if isinstance(arr, ArrowExtensionArray):
                                 res_values = arr._groupby_result_to_arrow(res_values)
                             return Series(res_values, index=df.index)
