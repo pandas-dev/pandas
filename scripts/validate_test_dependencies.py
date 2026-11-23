@@ -101,6 +101,8 @@ def declared_packages(pixi: dict, environments: Iterable[str]) -> set[str]:
         specification = pixi["environments"][environment]
         if isinstance(specification, dict):
             features = specification["features"]
+            packages.update(specification.get("dependencies", {}))
+            packages.update(specification.get("pypi-dependencies", {}))
         else:
             features = specification
         for feature in features:

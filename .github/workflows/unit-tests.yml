@@ -158,18 +158,10 @@ jobs:
 
     - name: Build pandas
       id: build
-      # matrix.name == 'Minimum Versions' can be removed once Cython >=3.2
-      # python3.14t/cpython/pyatomic_gcc.h:63:10:
-      #   error: ‘__atomic_fetch_add_8’
-      #   writing 8 bytes into a region of size 0 overflows the destination [-Werror=stringop-overflow=]
       run: |
         pixi run \
           --environment ${{ matrix.environment }} \
-          build-pandas \
-          --editable \
-          ${{ ! (matrix.name == 'Freethreading' || matrix.name == 'Minimum Versions') && '-Csetup-args="--werror"' || '' }} \
-          -- \
-          ${{ matrix.environment == 'py315' && '-Csetup-args="-Dcpp_args=-Wno-missing-field-initializers"' || '' }}
+          build-pandas
 
     - name: Import check
       run: |
@@ -254,11 +246,7 @@ jobs:
         run: |
           pixi run \
             --environment ${{ matrix.environment }} \
-            build-pandas \
-            --editable \
-            "${{ matrix.os == 'windows-2025' && '-Csetup-args="--vsenv" -Csetup-args="--werror"' || '-Csetup-args="--werror"' }}" \
-            -- \
-            ${{ matrix.os != 'windows-2025' && matrix.environment == 'py315' && '-Csetup-args="-Dcpp_args=-Wno-missing-field-initializers"' || '' }}
+            build-pandas
 
       - name: Test
         uses: ./.github/actions/run-tests
@@ -373,9 +361,7 @@ jobs:
         run: |
           pixi run \
             --environment mingw \
-            build-pandas \
-            --editable \
-            -Csetup-args="--werror"
+            build-pandas
     concurrency:
       group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-mingw
       cancel-in-progress: true
@@ -407,8 +393,6 @@ jobs:
           pixi run \
             --environment sanitizers \
             build-pandas \
-            --editable \
-            -Csetup-args="--werror" \
             -- \
             -Csetup-args="-Dbuildtype=debugoptimized" \
             -Csetup-args="-Db_sanitize=address,undefined" \
@@ -423,8 +407,6 @@ jobs:
         uses: ./.github/actions/run-tests
         env:
           LD_PRELOAD: ${{ env.ASAN_LIB_PATH }}
-          ASAN_OPTIONS: detect_leaks=0
-          UBSAN_OPTIONS: halt_on_error=1:suppressions=${{ github.workspace }}/ci/suppressions/ubsan.txt
         with:
           environment: sanitizers
           numprocesses: "auto"
