@@ -547,3 +547,19 @@ def test_view_to_datetimelike():
     res3 = idx.view("M8[h]")
     expected3 = idx.values.view("M8[h]")
     tm.assert_numpy_array_equal(res3, expected3)
+
+
+@pytest.mark.parametrize(
+    "dtype, value, expected_dtype",
+    [
+        ("int8", 200, "int16"),
+        ("int16", 40000, "int32"),
+        ("int32", 2**31, "int64"),
+        ("int64", 2**64, object),
+    ],
+)
+def test_insert_int_above_signed_range_upcasts(dtype, value, expected_dtype):
+    # GH#72328
+    result = pd.Index([1, 2], dtype=dtype).insert(0, value)
+    expected = pd.Index([value, 1, 2], dtype=expected_dtype)
+    tm.assert_index_equal(result, expected)

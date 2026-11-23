@@ -1383,7 +1383,14 @@ class CoercionTest(SetitemCastingEquivalents):
 
 @pytest.mark.parametrize(
     "val,exp_dtype,raises",
-    [(np.int32(1), np.int8, None), (np.int16(2**9), np.int16, True)],
+    [
+        (np.int32(1), np.int8, None),
+        (np.int16(2**9), np.int16, True),
+        # Above the int8 range, but within uint8, GH#72328
+        (128, np.int16, True),
+        (255, np.int16, True),
+        (200.0, np.int16, True),
+    ],
 )
 class TestCoercionInt8(CoercionTest):
     # previously test_setitem_series_int8 in tests.indexing.test_coercion
@@ -1459,6 +1466,11 @@ class TestCoercionBool(CoercionTest):
         (1.1, np.float64, True),
         (1 + 1j, np.complex128, True),
         (True, object, True),
+        # Above the int64 range, but within uint64, GH#72328
+        (2**63, np.float64, True),
+        (2**64 - 1, np.float64, True),
+        # Above the uint64 range
+        (2**64, object, True),
     ],
 )
 class TestCoercionInt64(CoercionTest):
