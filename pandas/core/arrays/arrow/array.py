@@ -4167,6 +4167,11 @@ class ArrowExtensionArray(
         if isinstance(result, np.ndarray):
             return result
         elif isinstance(result, BaseMaskedArray):
+            if result.ndim == 2:
+                # e.g. ohlc returns one column per statistic; Arrow arrays
+                # are 1D, so return the masked result and let the caller
+                # restore the Arrow dtype (GH#71940)
+                return result
             pa_result = result.__arrow_array__()
             return self._from_pyarrow_array(pa_result)
         else:

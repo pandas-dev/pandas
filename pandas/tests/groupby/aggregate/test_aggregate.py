@@ -661,6 +661,30 @@ def test_ohlc_ea_dtypes(any_numeric_ea_dtype):
     tm.assert_frame_equal(result2, expected2)
 
 
+@pytest.mark.parametrize("dtype", ["int64[pyarrow]", "float64[pyarrow]"])
+def test_ohlc_pyarrow_dtypes(dtype):
+    # GH#71940
+    pytest.importorskip("pyarrow")
+    df = pd.DataFrame(
+        {"a": [1, 1, 2, 3, 4, 4], "b": [22, 11, pd.NA, 10, 20, pd.NA]},
+        dtype=dtype,
+    )
+    gb = df.groupby("a")
+    result = gb.ohlc()
+    expected = pd.DataFrame(
+        [[22, 22, 11, 11], [pd.NA] * 4, [10] * 4, [20] * 4],
+        columns=pd.MultiIndex.from_product([["b"], ["open", "high", "low", "close"]]),
+        index=pd.Index([1, 2, 3, 4], dtype=dtype, name="a"),
+        dtype=dtype,
+    )
+    tm.assert_frame_equal(result, expected)
+
+    gb2 = df.groupby("a", as_index=False)
+    result2 = gb2.ohlc()
+    expected2 = expected.reset_index()
+    tm.assert_frame_equal(result2, expected2)
+
+
 @pytest.mark.parametrize("dtype", [np.int64, np.uint64])
 @pytest.mark.parametrize("how", ["first", "last", "min", "max", "mean", "median"])
 def test_uint64_type_handling(dtype, how):

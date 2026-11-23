@@ -3548,6 +3548,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             result = self.obj._constructor_expanddim(
                 res_values, index=self._grouper.result_index, columns=agg_names
             )
+            if isinstance(obj._values, ArrowExtensionArray):
+                # keep the result Arrow-backed, like the input (GH#71940)
+                result = result.astype(obj.dtype)
             if not self.as_index:
                 result = result.reset_index()
             return result
