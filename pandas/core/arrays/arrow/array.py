@@ -4790,18 +4790,14 @@ class ArrowExtensionArray(
         unit = self._pa_array.type.unit
         unit_per_second = {"s": 1.0, "ms": 1e3, "us": 1e6, "ns": 1e9}
         values = pc.cast(self._pa_array, pa.int64())
-        # GH#71953: pyarrow refuses to convert int64 values larger than 2**53
-        # in magnitude to float64, because they can't be represented exactly.
-        # In that rare case, fall back to the NumPy implementation, which
-        # splits each value into whole seconds plus a remainder to stay precise.
-        min_max = pc.min_max(values)
-        low, high = min_max["min"].as_py(), min_max["max"].as_py()
-        if low is not None and (low < -(2**53) or high > 2**53):
+        try:
+            result = pc.divide(values, unit_per_second[unit])
+        except pa.ArrowInvalid:
+            # GH#71953: pyarrow refuses int64 -> float64 past 2**53; the NumPy
+            # path splits whole seconds and remainder to stay precise
             result = pa.array(
                 self._to_timedeltaarray().total_seconds(), from_pandas=True
             )
-        else:
-            result = pc.divide(values, unit_per_second[unit])
         return self._from_pyarrow_array(result)
 
     def _dt_as_unit(self, unit: str) -> Self:
