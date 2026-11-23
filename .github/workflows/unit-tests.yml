@@ -32,7 +32,7 @@ jobs:
     strategy:
       matrix:
         platform: [ubuntu-24.04, ubuntu-24.04-arm]
-        environment: [py311, py312, py313, py314]
+        environment: [py311, py312, py313, py314, py315]
         # Prevent the include jobs from overriding other jobs
         pytest_marker_expression: [""]
         pandas_future: ["default"]
@@ -167,7 +167,9 @@ jobs:
           --environment ${{ matrix.environment }} \
           build-pandas \
           --editable \
-          ${{ ! (matrix.name == 'Freethreading' || matrix.name == 'Minimum Versions') && '-Csetup-args="--werror"' || '' }}
+          ${{ ! (matrix.name == 'Freethreading' || matrix.name == 'Minimum Versions') && '-Csetup-args="--werror"' || '' }} \
+          -- \
+          ${{ matrix.environment == 'py315' && '-Csetup-args="-Dcpp_args=-Wno-missing-field-initializers"' || '' }}
 
     - name: Import check
       run: |
@@ -221,7 +223,7 @@ jobs:
     strategy:
       matrix:
         os: [macos-15-intel, macos-15, windows-2025]
-        environment: [py311, py312, py313, py314]
+        environment: [py311, py312, py313, py314, py315]
       fail-fast: false
     runs-on: ${{ matrix.os }}
     name: ${{ format('{0} {1}', matrix.os, matrix.environment) }}
@@ -254,7 +256,9 @@ jobs:
             --environment ${{ matrix.environment }} \
             build-pandas \
             --editable \
-            "${{ matrix.os == 'windows-2025' && '-Csetup-args="--vsenv" -Csetup-args="--werror"' || '-Csetup-args="--werror"' }}"
+            "${{ matrix.os == 'windows-2025' && '-Csetup-args="--vsenv" -Csetup-args="--werror"' || '-Csetup-args="--werror"' }}" \
+            -- \
+            ${{ matrix.os != 'windows-2025' && matrix.environment == 'py315' && '-Csetup-args="-Dcpp_args=-Wno-missing-field-initializers"' || '' }}
 
       - name: Test
         uses: ./.github/actions/run-tests
@@ -530,7 +534,7 @@ jobs:
     #    To freeze this file, uncomment out the ``if: false`` condition, and migrate the jobs
     #    to the corresponding posix/windows-macos/sdist etc. workflows.
     # Feel free to modify this comment as necessary.
-    # if: false
+    if: false
     permissions:
       contents: read
     runs-on: ${{ matrix.os }}
@@ -560,7 +564,7 @@ jobs:
       - name: Set up Python Dev Version
         uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
-          python-version: '3.15-dev'
+          python-version: '3.16-dev'
 
       - name: Build Environment
         run: |

@@ -53,6 +53,7 @@ IMPORT_TO_CONDA = {
     "odf": "odfpy",
     "pandas_datareader": "pandas-datareader",
     "python_calamine": "python-calamine",
+    "pytestqt": "pytest-qt",
     "sklearn": "scikit-learn",
     "tables": "pytables",
     "yaml": "pyyaml",
