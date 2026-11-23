@@ -379,11 +379,11 @@ timedelta-like}
 
     elif info.use_fixed:
         delta = info.delta
-        # Branch-free so the C compiler can vectorize: baseline x86-64 has no
-        #  64-bit "<" for vectors, so detect a result outside [NPY_NAT + 1, INT64_MAX]
-        #  from the sign bits of (v - adj) - delta, where adj = 1 for delta > 0
-        #  also catches a result landing exactly on NPY_NAT.  On any such value,
-        #  redo the loop below to raise the usual error.
+        # Branch-free so the C compiler can vectorize.  out_of_bounds is negative
+        #  if any (v - adj) - delta overflowed.  A result equal to NPY_NAT is also
+        #  out of bounds but does not overflow; for delta > 0, using adj = 1 makes
+        #  this case overflow too.  If out_of_bounds is negative, the loop below
+        #  raises OutOfBoundsDatetime for the first out-of-bounds value.
         adj = delta > 0
         for i in range(n):
             v = vals[i]
@@ -404,7 +404,9 @@ timedelta-like}
                 result[i] = _shift_to_utc(v, delta, creso)
                 if result[i] == NPY_NAT:
                     raise_out_of_bounds(v, BS_UNDERFLOW, creso)
-        return result.base  # to return underlying ndarray
+        raise AssertionError(
+            "out_of_bounds flagged a value that _shift_to_utc accepts"
+        )
 
     # Determine whether each date lies left of the DST transition (store in
     # result_a) or right of the DST transition (store in result_b)
