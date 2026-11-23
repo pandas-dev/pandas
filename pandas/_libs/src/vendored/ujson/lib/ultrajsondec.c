@@ -82,12 +82,29 @@ static JSOBJ SetError(struct DecoderState *ds, int offset,
   return NULL;
 }
 
+static int hasExponent(const char *start, const char *end) {
+  for (; start < end; start++) {
+    if (*start == 'e' || *start == 'E') {
+      return 1;
+    }
+  }
+  return 0;
+}
+
 JSOBJ FASTCALL_MSVC decodeDouble(struct DecoderState *ds) {
   const char *end;
   double value;
 
   if (fast_float_strtod(ds->start, ds->end, &value, &end, '.') != 0) {
     return SetError(ds, -1, "Unexpected character found when decoding double");
+  }
+  // fast_float stops at an exponent marker with no digits ("1e", "1e+");
+  // treat the empty exponent as 0
+  if ((*end == 'e' || *end == 'E') && !hasExponent(ds->start, end)) {
+    end++;
+    if (*end == '+' || *end == '-') {
+      end++;
+    }
   }
 
   ds->lastType = JT_DOUBLE;

@@ -546,7 +546,7 @@ def read_json(
     convert_axes: bool | None = ...,
     convert_dates: bool | list[str] | lib.NoDefault = ...,
     keep_default_dates: bool | lib.NoDefault = ...,
-    precise_float: bool = ...,
+    precise_float: bool | lib.NoDefault = ...,
     date_unit: str | None = ...,
     encoding: str | None = ...,
     encoding_errors: str | None = ...,
@@ -570,7 +570,7 @@ def read_json(
     convert_axes: bool | None = ...,
     convert_dates: bool | list[str] | lib.NoDefault = ...,
     keep_default_dates: bool | lib.NoDefault = ...,
-    precise_float: bool = ...,
+    precise_float: bool | lib.NoDefault = ...,
     date_unit: str | None = ...,
     encoding: str | None = ...,
     encoding_errors: str | None = ...,
@@ -594,7 +594,7 @@ def read_json(
     convert_axes: bool | None = ...,
     convert_dates: bool | list[str] | lib.NoDefault = ...,
     keep_default_dates: bool | lib.NoDefault = ...,
-    precise_float: bool = ...,
+    precise_float: bool | lib.NoDefault = ...,
     date_unit: str | None = ...,
     encoding: str | None = ...,
     encoding_errors: str | None = ...,
@@ -618,7 +618,7 @@ def read_json(
     convert_axes: bool | None = ...,
     convert_dates: bool | list[str] | lib.NoDefault = ...,
     keep_default_dates: bool | lib.NoDefault = ...,
-    precise_float: bool = ...,
+    precise_float: bool | lib.NoDefault = ...,
     date_unit: str | None = ...,
     encoding: str | None = ...,
     encoding_errors: str | None = ...,
@@ -642,7 +642,7 @@ def read_json(
     convert_axes: bool | None = None,
     convert_dates: bool | list[str] | lib.NoDefault = lib.no_default,
     keep_default_dates: bool | lib.NoDefault = lib.no_default,
-    precise_float: bool = False,
+    precise_float: bool | lib.NoDefault = lib.no_default,
     date_unit: str | None = None,
     encoding: str | None = None,
     encoding_errors: str | None = "strict",
@@ -773,9 +773,10 @@ def read_json(
         Has no effect. Floating point values are always parsed to the closest
         representable value.
 
-        .. versionchanged:: 3.2.0
+        .. deprecated:: 3.2.0
             Floating point values are always parsed to the closest representable
-            value. Previously this required ``precise_float=True``.
+            value, which previously required ``precise_float=True``. Remove the
+            keyword.
 
     date_unit : str, default None
         The timestamp unit to detect if converting dates. The default behaviour
@@ -981,6 +982,16 @@ def read_json(
         )
     else:
         keep_default_dates = True
+
+    if precise_float is not lib.no_default:
+        # GH#62464
+        warnings.warn(
+            "The 'precise_float' keyword in read_json is deprecated and will be "
+            "removed in a future version. Floating point values are always parsed "
+            "to the closest representable value.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
 
     if dtype is None and orient != "table":
         # error: Incompatible types in assignment (expression has type "bool", variable

@@ -17,7 +17,6 @@ def ujson_dumps(
 ) -> str: ...
 def ujson_loads(
     s: str,
-    precise_float: bool = ...,
     numpy: bool = ...,
     dtype: None = ...,
     labelled: bool = ...,

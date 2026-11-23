@@ -183,6 +183,7 @@ Other deprecations
 - Deprecated the ``columns`` keyword in :meth:`Series.drop`, which was silently ignored; use ``index`` or ``labels`` instead (:issue:`39509`)
 - Deprecated the ``include_start`` and ``include_end`` keywords in :meth:`DatetimeIndex.indexer_between_time`; use ``inclusive`` instead, as in :meth:`DataFrame.between_time` (:issue:`40245`)
 - Deprecated constructing a :class:`DataFrame` column, :class:`Index` or :func:`array` from a NumPy structured (compound) array, and casting to a compound dtype with :meth:`DataFrame.astype`, :meth:`Series.astype` or :func:`array`; these will raise in a future version, as the :class:`Series` constructor already does. Use ``pd.DataFrame(arr)`` for one column per field or ``arr.astype(object)`` for tuples (:issue:`4464`, :issue:`49388`, :issue:`60108`)
+- Deprecated the ``precise_float`` keyword in :func:`read_json`; floating point values are now always parsed to the closest representable value, so the keyword has no effect (:issue:`62464`)
 - Deprecated the undocumented ``how="begin"`` and ``how="finish"`` aliases in :meth:`Period.asfreq`, :meth:`Period.to_timestamp`, and the ``asfreq`` and ``to_timestamp`` methods of other period-holding objects; use ``"start"`` and ``"end"`` instead (:issue:`49132`)
 
 .. ---------------------------------------------------------------------------
@@ -392,7 +393,8 @@ I/O
 - Bug in :func:`read_html` with ``index_col`` reading the index-names row written by :meth:`DataFrame.to_html` as an extra column level instead of as the index names (:issue:`8897`)
 - Bug in :func:`read_html` with the ``bs4`` or ``html5lib`` parser dropping tables that have identical content, so only the first was returned (:issue:`49934`)
 - Bug in :func:`read_json` raising ``ValueError`` on numbers whose integer part does not fit in ``int64`` or ``uint64`` (e.g. ``100000000000000000000.5``), and silently returning a wrong value for some of them (:issue:`20599`)
-- Bug in :func:`read_json` returning floating point values that were not the closest representable value to the number in the JSON (e.g. ``4.56`` read as ``4.5600000000000005``) unless ``precise_float=True`` was passed, and raising ``ValueError`` with ``precise_float=True`` for subnormal values such as ``1e-320``. Floating point values are now always parsed to the closest representable value, and ``precise_float`` has no effect; ``engine="pyarrow"`` therefore no longer raises when it is passed (:issue:`62464`)
+- Bug in :func:`read_json` reading a number with no digits before the exponent, such as ``-.``, ``-e5`` or ``-e999``, as ``-0.0`` or ``NaN`` instead of raising ``ValueError`` (:issue:`62464`)
+- Bug in :func:`read_json` returning floating point values that were not the closest representable value to the number in the JSON (e.g. ``4.56`` read as ``4.5600000000000005``) unless ``precise_float=True`` was passed, and raising ``ValueError`` with ``precise_float=True`` for subnormal values such as ``1e-320``. Floating point values are now always parsed to the closest representable value, and the ``precise_float`` keyword is deprecated (:issue:`62464`)
 - Bug in :func:`read_orc` raising whenever ``filesystem`` was passed (:issue:`58746`)
 - Bug in :func:`read_sas` exhausting memory instead of raising ``ValueError`` on a SAS7BDAT file that claims more rows than it can hold, when read from an uncompressed file, a zip archive, or a ``BytesIO`` (:issue:`70721`)
 - Bug in :func:`read_sas` returning rows that were deleted from an uncompressed SAS7BDAT file (:issue:`15963`)

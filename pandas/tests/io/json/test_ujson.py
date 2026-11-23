@@ -113,12 +113,10 @@ class TestUltraJSONTests:
                     assert ujson.ujson_loads("4.78") == 4.78
                 break
 
-    @pytest.mark.parametrize("precise_float", [True, False])
-    def test_decimal_decode_test_precise(self, precise_float):
-        # GH#62464 precise_float is accepted and has no effect
+    def test_decimal_decode_test_precise(self):
         sut = {"a": 4.56}
         encoded = ujson.ujson_dumps(sut)
-        decoded = ujson.ujson_loads(encoded, precise_float=precise_float)
+        decoded = ujson.ujson_loads(encoded)
         assert sut == decoded
 
     def test_encode_double_tiny_exponential(self):
@@ -1079,9 +1077,30 @@ class TestPandasJSONTests:
         assert result == float(float_str)
         assert np.signbit(result) == np.signbit(float(float_str))
 
-    @pytest.mark.parametrize("float_str", ["1e", "1e+", "1.5e-"])
-    def test_decode_float_missing_exponent_digits_raises(self, float_str):
+    @pytest.mark.parametrize(
+        "float_str, expected",
+        [
+            ("1e", 1.0),
+            ("1E+", 1.0),
+            ("1.5e-", 1.5),
+            ("-.5e", -0.5),
+            ("[2.e,3]", [2.0, 3]),
+        ],
+    )
+    def test_decode_float_missing_exponent_digits(self, float_str, expected):
+        # GH#62464 an exponent marker with no digits is read as exponent 0
+        assert ujson.ujson_loads(float_str) == expected
+
+    @pytest.mark.parametrize("float_str", ["1e1e", "1e+1E", "1.5e-2e3"])
+    def test_decode_float_second_exponent_raises(self, float_str):
         with pytest.raises(ValueError, match="Trailing data"):
+            ujson.ujson_loads(float_str)
+
+    @pytest.mark.parametrize("float_str", ["-.", "-e", "-.e", "-e5", "-E+5", "-e999"])
+    def test_decode_float_no_mantissa_digits_raises(self, float_str):
+        # GH#62464 previously read as -0.0, or NaN for large exponents
+        msg = "Unexpected character found when decoding double"
+        with pytest.raises(ValueError, match=msg):
             ujson.ujson_loads(float_str)
 
     def test_decode_with_trailing_whitespaces(self):

@@ -774,12 +774,14 @@ class TestPandasContainer:
             s.to_json(orient="garbage")
 
     @pytest.mark.parametrize("precise_float", [True, False])
-    def test_series_from_json_precise_float(self, precise_float):
+    def test_series_from_json_precise_float_deprecated(self, precise_float):
         # GH#62464 precise_float has no effect
         s = pd.Series([4.56, 4.56, 4.56])
-        result = pd.read_json(
-            StringIO(s.to_json()), typ="series", precise_float=precise_float
-        )
+        msg = "The 'precise_float' keyword in read_json is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = pd.read_json(
+                StringIO(s.to_json()), typ="series", precise_float=precise_float
+            )
         tm.assert_series_equal(result, s, check_index_type=False, check_exact=True)
 
     def test_series_with_dtype(self):
@@ -837,10 +839,12 @@ class TestPandasContainer:
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("precise_float", [True, False])
-    def test_frame_from_json_precise_float(self, precise_float):
+    def test_frame_from_json_precise_float_deprecated(self, precise_float):
         # GH#62464 precise_float has no effect
         df = pd.DataFrame([[4.56, 4.56, 4.56], [4.56, 4.56, 4.56]])
-        result = pd.read_json(StringIO(df.to_json()), precise_float=precise_float)
+        msg = "The 'precise_float' keyword in read_json is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = pd.read_json(StringIO(df.to_json()), precise_float=precise_float)
         tm.assert_frame_equal(result, df, check_exact=True)
 
     @pytest.mark.parametrize("typ", ["frame", "series"])

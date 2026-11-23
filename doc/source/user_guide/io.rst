@@ -1968,6 +1968,10 @@ is ``None``. To explicitly force ``Series`` parsing, pass ``typ=series``
 
 
 * ``precise_float`` : boolean, default ``False``. Has no effect; floating point values are always parsed to the closest representable value.
+
+  .. deprecated:: 3.2.0
+     The ``precise_float`` keyword is deprecated and will be removed in a future version.
+
 * ``date_unit`` : string, the timestamp unit to detect if converting dates. Default
   None. By default the timestamp precision will be detected, if this is not desired
   then pass one of 's', 'ms', 'us' or 'ns' to force timestamp precision to
