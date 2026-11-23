@@ -1,5 +1,11 @@
 # Note! This file is aimed specifically at pandas.io.formats.printing utility
 # functions, not the general printing of pandas objects.
+from collections import (
+    Counter,
+    OrderedDict,
+    defaultdict,
+    namedtuple,
+)
 from collections.abc import Mapping
 import string
 
@@ -93,6 +99,14 @@ class TestPPrintThing:
         with cf.option_context("display.precision", 3):
             assert printing.pprint_thing([3.14159265, 3.14159265]) == "[3.142, 3.142]"
 
+    def test_repr_seq_float_full_precision(self):
+        # GH#71509
+        with cf.option_context("display.precision", 3):
+            result = printing.pprint_thing(
+                [3.14159265, {"a": 1 + 1.5e-9j}], use_display_precision=False
+            )
+        assert result == "[3.14159265, {'a': (1+1.5e-09j)}]"
+
     def test_repr_seq_complex_precision(self):
         # GH#25920
         with cf.option_context("display.precision", 3):
@@ -101,6 +115,41 @@ class TestPPrintThing:
     def test_repr_0d_array(self):
         # GH#64638 0-d arrays are not iterable and must fall through to str()
         assert printing.pprint_thing(np.array(5)) == "5"
+
+    def test_repr_container_subclass_custom_repr(self):
+        # GH#18843 a subclass's own __repr__ takes precedence
+        class KeysDict(dict):
+            def __repr__(self) -> str:
+                return ",".join(self.keys())
+
+        class ReprMapping(MyMapping):
+            def __repr__(self) -> str:
+                return "ReprMapping()"
+
+        class ReprList(list):
+            def __repr__(self) -> str:
+                return "ReprList()"
+
+        Point = namedtuple("Point", "x,y")
+
+        assert printing.pprint_thing(KeysDict(a=1, b=2)) == "a,b"
+        assert printing.pprint_thing(ReprMapping()) == "ReprMapping()"
+        assert printing.pprint_thing(ReprList([1, 2])) == "ReprList()"
+        assert printing.pprint_thing(Point(7, 3)) == "Point(x=7, y=3)"
+        # also applies to nested values
+        assert printing.pprint_thing([Point(7, 3)]) == "[Point(x=7, y=3)]"
+
+    @pytest.mark.parametrize(
+        "obj, expected",
+        [
+            (OrderedDict(a=1), "{'a': 1}"),
+            (defaultdict(int, a=1), "{'a': 1}"),
+            (Counter("aab"), "{'a': 2, 'b': 1}"),
+        ],
+    )
+    def test_repr_stdlib_dict_subclass(self, obj, expected):
+        # GH#18843 stdlib dict subclasses keep dict-style formatting
+        assert printing.pprint_thing(obj) == expected
 
 
 @pytest.mark.parametrize("box", [pd.Series, pd.Index, pd.DataFrame])
@@ -112,6 +161,16 @@ def test_repr_object_dtype_0d_array(box):
     result = repr(obj)
     assert "5" in result
     assert "array(5)" not in result
+
+
+def test_repr_range():
+    # GH#44799 range objects are shown with their own repr, not as a tuple
+    assert printing.pprint_thing(range(3)) == "range(0, 3)"
+    assert printing.pprint_thing([range(3)]) == "[range(0, 3)]"
+
+    ser = pd.Series([range(3), range(100)])
+    expected = "0      range(0, 3)\n1    range(0, 100)\ndtype: object"
+    assert repr(ser) == expected
 
 
 def test_repr_two_values_wraps_at_display_width():
@@ -132,6 +191,18 @@ def test_repr_two_values_max_seq_items_1():
     with cf.option_context("display.max_seq_items", 1):
         result = repr(pd.array([1, 2]))
     assert result == "<IntegerArray>\n[...\n 2]\nLength: 2, dtype: Int64"
+
+
+def test_frame_repr_dict_subclass_custom_repr():
+    # GH#18843
+    class KeysDict(dict):
+        def __repr__(self) -> str:
+            return ",".join(self.keys())
+
+    df = pd.DataFrame(
+        [["A", 1, KeysDict(alpha="b", beta="c")]], columns=["D", "F", "G"]
+    )
+    assert df.to_string() == "   D  F           G\n0  A  1  alpha,beta"
 
 
 class TestFormatBase:

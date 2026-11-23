@@ -65,7 +65,7 @@ class CSSDict(TypedDict):
 
 
 CSSStyles: TypeAlias = list[CSSDict]
-Subset = slice | Sequence[Any] | Index
+Subset = slice | Sequence[Any] | Index | Callable[[DataFrame], Any]
 
 # Chromium ignores selectors past the 8192nd in a single rule, GH#40913
 _MAX_SELECTORS_PER_RULE = 8192
@@ -1019,15 +1019,24 @@ class StylerRenderer:
             visible_index_levels: list[int] = [
                 i for i in range(index_levels) if not self.hide_index_[i]
             ]
+            index_hidden = not visible_index_levels
+            if index_hidden and data_len:
+                # GH#59877 hidden index still groups rows; draw clines across the data
+                cline_levels = list(range(index_levels))
+            else:
+                cline_levels = visible_index_levels
+            end = len(visible_index_levels) + data_len
             for rn, r in enumerate(visible_row_indexes):
-                for lvln, lvl in enumerate(visible_index_levels):
+                for lvln, lvl in enumerate(cline_levels):
                     if lvl == index_levels - 1 and "skip-last" in clines:
                         continue
                     idx_len = d["index_lengths"].get((lvl, r), None)
                     if idx_len is not None:  # i.e. not a sparsified entry
-                        d["clines"][rn + idx_len].append(
-                            f"\\cline{{{lvln + 1}-{len(visible_index_levels) + data_len}}}"  # noqa: E501
-                        )
+                        start = 1 if index_hidden else lvln + 1
+                        cline = f"\\cline{{{start}-{end}}}"
+                        # with the index hidden, all levels give the same cline
+                        if cline not in d["clines"][rn + idx_len]:
+                            d["clines"][rn + idx_len].append(cline)
 
     def format(
         self,
@@ -1053,7 +1062,7 @@ class StylerRenderer:
         ----------
         formatter : str, callable, dict or None
             Object to define how values are displayed. See notes.
-        subset : label, array-like, IndexSlice, optional
+        subset : label, array-like, IndexSlice, callable, optional
             A valid 2d input to `DataFrame.loc[<subset>]`, or, in the case of a 1d input
             or single key, to `DataFrame.loc[:, <subset>]` where the columns are
             prioritised, to limit ``data`` to *before* applying the function.
@@ -1269,7 +1278,7 @@ class StylerRenderer:
             return self  # clear the formatter / revert to default and avoid looping
 
         subset = slice(None) if subset is None else subset
-        subset = non_reducing_slice(subset)
+        subset = non_reducing_slice(subset, self.data)
         data = self.data.loc[subset]
 
         if not isinstance(formatter, Mapping):
@@ -2095,13 +2104,19 @@ def _maybe_wrap_formatter(
         return lambda x: na_rep if (isna(x) is True) else func_3(x)
 
 
-def non_reducing_slice(slice_: Subset):
+def non_reducing_slice(slice_: Subset, data: DataFrame):
     """
     Ensure that a slice doesn't reduce to a Series or Scalar.
 
     Any user-passed `subset` should have this called on it
     to make sure we're always working with DataFrames.
     """
+    # evaluate callables on `data` as DataFrame.loc does, GH#46685
+    if isinstance(slice_, tuple):
+        slice_ = tuple(com.apply_if_callable(part, data) for part in slice_)
+    else:
+        slice_ = com.apply_if_callable(slice_, data)
+
     # default to column slice, like DataFrame
     # ['A', 'B'] -> IndexSlices[:, ['A', 'B']]
     kinds = (ABCSeries, np.ndarray, Index, list, str)

@@ -1413,6 +1413,34 @@ class TestReadHtml:
         html_df = flavor_read_html(StringIO(html))[0]
         tm.assert_frame_equal(expected_df, html_df)
 
+    @pytest.mark.parametrize(
+        "index, columns",
+        [
+            (pd.Index(["a", "b"], name="idx"), pd.Index(["A", "B"])),
+            (
+                pd.MultiIndex.from_tuples([("a", 1), ("b", 2)], names=["i0", None]),
+                pd.Index(["A", "B"]),
+            ),
+            (
+                pd.Index(["a", "b"], name="idx"),
+                pd.MultiIndex.from_tuples([("X", "A"), ("Y", "B")], names=["c0", "c1"]),
+            ),
+        ],
+    )
+    def test_to_html_roundtrip_index_names(self, flavor_read_html, index, columns):
+        # GH#8897
+        df = pd.DataFrame([[0, 1], [2, 3]], index=index, columns=columns)
+        index_col = 0 if index.nlevels == 1 else list(range(index.nlevels))
+        result = flavor_read_html(StringIO(df.to_html()), index_col=index_col)[0]
+        tm.assert_frame_equal(result, df)
+
+        # skiprows counts the index-names row; skip the first data row
+        nrows = columns.nlevels + 1
+        result = flavor_read_html(
+            StringIO(df.to_html()), index_col=index_col, skiprows=[nrows]
+        )[0]
+        tm.assert_frame_equal(result, df.iloc[1:])
+
     def test_works_on_valid_markup(self, datapath, flavor_read_html):
         filename = datapath("io", "data", "html", "valid_markup.html")
         dfs = flavor_read_html(filename, index_col=0)

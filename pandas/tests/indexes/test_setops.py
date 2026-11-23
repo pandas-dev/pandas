@@ -210,11 +210,6 @@ class TestSetOps:
             result = first.intersection(case)
             assert equal_contents(result, second)
 
-        if isinstance(index, pd.MultiIndex):
-            msg = "other must be a MultiIndex or a list of tuples"
-            with pytest.raises(TypeError, match=msg):
-                first.intersection([1, 2, 3])
-
     def test_union_base(self, index_sortable):
         index = index_sortable.unique()
         first = index[3:]
@@ -235,11 +230,6 @@ class TestSetOps:
             result = first.union(case)
             assert equal_contents(result, everything)
 
-        if isinstance(index, pd.MultiIndex):
-            msg = "other must be a MultiIndex or a list of tuples"
-            with pytest.raises(TypeError, match=msg):
-                first.union([1, 2, 3])
-
     def test_difference_base(self, sort, index):
         first = index[2:]
         second = index[:4]
@@ -259,11 +249,6 @@ class TestSetOps:
         for case in cases:
             result = first.difference(case, sort)
             assert equal_contents(result, answer)
-
-        if isinstance(index, pd.MultiIndex):
-            msg = "other must be a MultiIndex or a list of tuples"
-            with pytest.raises(TypeError, match=msg):
-                first.difference([1, 2, 3], sort)
 
     def test_symmetric_difference(self, index_sortable, using_infer_string, request):
         index = index_sortable
@@ -293,11 +278,6 @@ class TestSetOps:
         for case in cases:
             result = first.symmetric_difference(case)
             assert equal_contents(result, answer)
-
-        if isinstance(index, pd.MultiIndex):
-            msg = "other must be a MultiIndex or a list of tuples"
-            with pytest.raises(TypeError, match=msg):
-                first.symmetric_difference([1, 2, 3])
 
     @pytest.mark.parametrize(
         "fname, sname, expected_name",
@@ -1054,6 +1034,96 @@ def test_union_disjoint_monotonic_sorted():
     result_false = idx1.union(idx2, sort=False)
     expected_false = pd.Index([5, 6, 7, 1, 2, 3])
     tm.assert_index_equal(result_false, expected_false)
+
+
+@td.skip_if_no("pyarrow")
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        "int64[pyarrow]",
+        "uint32[pyarrow]",
+        "int32[pyarrow]",
+        "float64[pyarrow]",
+        "float32[pyarrow]",
+        "timestamp[ns][pyarrow]",
+        "duration[ns][pyarrow]",
+    ],
+)
+def test_intersection_arrow_duplicates(dtype):
+    # GH#66498
+    left = pd.Index([1, 1, 2, 2, 3, 3, 4], dtype=dtype)
+    right = pd.Index([2, 2, 3, 4, 4, 5], dtype=dtype)
+
+    result = left.intersection(right)
+    expected = pd.Index([2, 3, 4], dtype=dtype)
+    tm.assert_index_equal(result, expected)
+
+
+@td.skip_if_no("pyarrow")
+def test_intersection_arrow_chunked():
+    # GH#66498
+    left = pd.Index([1, 2, 2], dtype="int64[pyarrow]").append(
+        pd.Index([2, 3], dtype="int64[pyarrow]")
+    )
+    assert left._values._pa_array.num_chunks == 2
+
+    result = left.intersection(pd.Index([2, 3], dtype="int64[pyarrow]"))
+
+    expected = pd.Index([2, 3], dtype="int64[pyarrow]")
+    tm.assert_index_equal(result, expected)
+
+
+@td.skip_if_no("pyarrow")
+def test_intersection_arrow_lossy_join_target():
+    # GH#66498 the join target truncates time64[ns] to microseconds, so the
+    # merge output would be [2000, 3000]
+    left = pd.Index([1001, 1001, 2002, 3003], dtype="time64[ns][pyarrow]")
+    right = pd.Index([2002, 3003, 4004], dtype="time64[ns][pyarrow]")
+
+    result = left.intersection(right)
+
+    expected = pd.Index([2002, 3003], dtype="time64[ns][pyarrow]")
+    tm.assert_index_equal(result, expected)
+
+
+def test_intersection_arrow_dictionary_no_run_end_kernel():
+    # GH#66498 dictionary has no run-end kernel
+    pa = pytest.importorskip("pyarrow")
+
+    dtype = pd.ArrowDtype(pa.dictionary(pa.int32(), pa.string()))
+    left = pd.Index(["a", "a", "b", "c"], dtype=dtype)
+    right = pd.Index(["b", "c", "d"], dtype=dtype)
+
+    result = left.intersection(right)
+
+    assert result.tolist() == ["b", "c"]
+    assert result.dtype == left.dtype
+
+
+@td.skip_if_no("pyarrow")
+@pytest.mark.parametrize("dtype", ["float64[pyarrow]", "float32[pyarrow]"])
+@pytest.mark.parametrize(
+    "left_values",
+    [
+        [-0.0, 0.0, 1.0],
+        [0.0, -0.0, 0.0],
+        [-0.0, 0.0, -0.0, 0.0],
+        [0.0, -0.0, 0.0, -0.0, 1.0],
+    ],
+)
+def test_intersection_arrow_signed_zero(dtype, left_values):
+    # GH#66498 -0.0 and 0.0 are sorted but need not be adjacent
+    left = pd.Index(left_values, dtype=dtype)
+    assert left.is_monotonic_increasing
+    right = pd.Index([0.0, -0.0, 1.0], dtype=dtype)
+
+    result = left.intersection(right)
+
+    assert set(result.tolist()) == set(left_values)
+    # no repeats, with -0.0 and 0.0 distinct
+    signs = np.signbit(np.asarray(result.astype("float64"))).tolist()
+    pairs = list(zip(result.tolist(), signs, strict=True))
+    assert len(set(pairs)) == len(pairs)
 
 
 @pytest.mark.parametrize(

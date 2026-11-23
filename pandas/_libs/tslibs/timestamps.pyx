@@ -113,7 +113,12 @@ from pandas._libs.tslibs.np_datetime import (
     OutOfBoundsTimedelta,
 )
 
-from pandas._libs.tslibs.offsets cimport to_offset
+from pandas._libs.tslibs.offsets cimport (
+    is_day_object,
+    is_tick_object,
+    to_offset,
+    validate_floor_ceil_offset,
+)
 from pandas._libs.tslibs.timedeltas cimport (
     _Timedelta,
     get_unit_for_round,
@@ -1597,6 +1602,29 @@ cdef class _Timestamp(ABCTimestamp):
     # -----------------------------------------------------------------
     # Rendering Methods
 
+    cdef datetime _pydatetime_for_tzinfo(self):
+        """
+        The datetime to hand to tzinfo methods: this Timestamp, or, if it is
+        outside the range of the stdlib datetime, its wall time in a year with
+        the same calendar, which the time zone treats the same (GH#68009).
+
+        ZoneInfo reads the year of the stdlib base, which is then a placeholder,
+        and calls ``toordinal``, which raises for such a Timestamp.
+        """
+        if 1 <= self._year <= 9999:
+            return self
+        return datetime(
+            ccalendar.pydatetime_equivalent_year(self._year),
+            self.month,
+            self.day,
+            self.hour,
+            self.minute,
+            self.second,
+            self.microsecond,
+            self.tzinfo,
+            fold=self.fold,
+        )
+
     def isoformat(self, sep: str = "T", timespec: str = "auto") -> str:
         """
         Return the time formatted according to ISO 8601.
@@ -1639,8 +1667,10 @@ cdef class _Timestamp(ABCTimestamp):
         '2020-03-14T15:32:52.192548'
         """
         base_ts = "microseconds" if timespec == "nanoseconds" else timespec
-        base = super(_Timestamp, self).isoformat(sep=sep, timespec=base_ts)
-        # We need to replace the fake year 1970 with our real year
+        base = datetime.isoformat(
+            self._pydatetime_for_tzinfo(), sep=sep, timespec=base_ts
+        )
+        # We need to replace a placeholder year with our real year
         year_str = f"{self._year:04d}"
         base = year_str + "-" + base.split("-", 1)[1]
 
@@ -1971,6 +2001,12 @@ cdef class _Timestamp(ABCTimestamp):
         Period : Represents a span of time.
         to_period : Converts an object to a Period.
 
+        Notes
+        -----
+        A multiplied ``freq`` does not bin timestamps: with ``"2h"``, the
+        result is the 2-hour period starting at this timestamp's hour. For an
+        aligned 2-hour bin, use ``ts.floor("2h").to_period("2h")``.
+
         Examples
         --------
         >>> ts = pd.Timestamp('2020-03-14T15:32:52.192548651')
@@ -2041,8 +2077,7 @@ class Timestamp(_Timestamp):
         valid values are 'W', 'D', 'h', 'm', 's', 'ms', 'us', and 'ns'. For
         example, 's' means seconds and 'ms' means milliseconds.
 
-        For float inputs, the result will be stored in nanoseconds, and
-        the unit attribute will be set as ``'ns'``.
+        Float inputs with a fractional part are stored with unit ``'ns'``.
     fold : {0, 1}, default None, keyword-only
         Due to daylight saving time, one wall clock time can occur twice
         when shifting from summer to winter time; fold describes whether the
@@ -2470,6 +2505,11 @@ class Timestamp(_Timestamp):
         >>> ts.strftime('%Y-%m-%dT%H:%M:%S.%N')
         '2020-03-14T15:32:52.192548651'
         """
+        if not isinstance(format, str):
+            raise TypeError(
+                f"strftime() argument 1 must be str, not {type(format).__name__}"
+            )
+
         # Handle %N (nanoseconds) before delegating to datetime.strftime.
         # Replace %% with a placeholder first so that %%N is not misidentified.
         nano_placeholder = "^`NS`^"
@@ -2598,7 +2638,7 @@ class Timestamp(_Timestamp):
         >>> ts.dst()
         datetime.timedelta(seconds=3600)
         """
-        return super().dst()
+        return datetime.dst((<_Timestamp>self)._pydatetime_for_tzinfo())
 
     def isocalendar(self):
         """
@@ -2653,7 +2693,7 @@ class Timestamp(_Timestamp):
         >>> ts.tzname()
         'CET'
         """
-        return super().tzname()
+        return datetime.tzname((<_Timestamp>self)._pydatetime_for_tzinfo())
 
     @property
     def tzinfo(self):
@@ -2711,7 +2751,7 @@ class Timestamp(_Timestamp):
         >>> ts.utcoffset()
         datetime.timedelta(seconds=3600)
         """
-        return super().utcoffset()
+        return datetime.utcoffset((<_Timestamp>self)._pydatetime_for_tzinfo())
 
     def utctimetuple(self):
         """
@@ -3181,6 +3221,26 @@ class Timestamp(_Timestamp):
             int64_t nanos
 
         freq = to_offset(freq, is_period=False)
+        if (
+            mode != RoundTo.NEAREST_HALF_EVEN
+            and not is_tick_object(freq)
+            and not is_day_object(freq)
+        ):
+            # GH#15303 snap to the midnights that freq is on; keep in sync
+            #  with DatetimeArray._round
+            validate_floor_ceil_offset(freq)
+            naive = self.tz_localize(None)
+            norm = naive.normalize()
+            # the last such midnight at or before norm
+            result = norm if freq.is_on_offset(norm) else norm - freq
+            if mode == RoundTo.PLUS_INFTY and result != naive:
+                result = result + freq
+            if self.tz is not None:
+                result = result.tz_localize(
+                    self.tz, ambiguous=ambiguous, nonexistent=nonexistent
+                )
+            return result
+
         nanos = get_unit_for_round(freq, self._creso)
         if nanos == 0:
             if freq.nanos == 0:
@@ -3335,8 +3395,10 @@ timedelta}, default 'raise'
 
         Parameters
         ----------
-        freq : str or timedelta
+        freq : str, timedelta or DateOffset
             Frequency string or timedelta value indicating the flooring resolution.
+            Also accepts a single step of a date-anchored frequency like
+            'MS' (month start).
         ambiguous : bool or {'raise', 'NaT'}, default 'raise'
             The behavior is as follows:
 
@@ -3439,8 +3501,10 @@ timedelta}, default 'raise'
 
         Parameters
         ----------
-        freq : str or timedelta
+        freq : str, timedelta or DateOffset
             Frequency string or timedelta value indicating the ceiling resolution.
+            Also accepts a single step of a date-anchored frequency like
+            'MS' (month start).
         ambiguous : bool or {'raise', 'NaT'}, default 'raise'
             The behavior is as follows:
 

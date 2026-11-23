@@ -49,6 +49,7 @@ from pandas._libs.algos import (
 )
 
 from pandas._libs.dtypes cimport (
+    numeric_object_complex_t,
     numeric_object_t,
     numeric_t,
 )
@@ -1590,12 +1591,6 @@ def group_quantile(
 # ----------------------------------------------------------------------
 # group_nth, group_last, group_rank
 # ----------------------------------------------------------------------
-
-ctypedef fused numeric_object_complex_t:
-    numeric_object_t
-    complex64_t
-    complex128_t
-
 
 cdef bint _treat_as_na(numeric_object_complex_t val,
                        bint is_datetimelike) noexcept nogil:

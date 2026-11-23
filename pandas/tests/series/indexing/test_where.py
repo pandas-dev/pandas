@@ -416,6 +416,16 @@ def test_where_datetimetz():
     tm.assert_series_equal(rs, expected)
 
 
+def test_where_other_list_of_nested_tuples():
+    # GH#43780
+    key1 = (("a1", "a2"), ("b1", "b2"))
+    key2 = (("x1", "x2"), ("y1", "y2"))
+    ser = pd.Series([key1, key1])
+    result = ser.where([True, False], [key2, key2])
+    expected = pd.Series([key1, key2])
+    tm.assert_series_equal(result, expected)
+
+
 def test_where_sparse():
     # GH#17198 make sure we dont get an AttributeError for sp_index
     ser = pd.Series(pd.arrays.SparseArray([1, 2]))
@@ -525,4 +535,27 @@ def test_mask_nullable_na_cond_from_self(dtype):
     ser = pd.Series([1, 2, None, 4], dtype=dtype)
     result = ser.mask(ser <= 2, -99)
     expected = pd.Series([-99, -99, None, 4], dtype=dtype)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "dtype", [*tm.ALL_INT_EA_DTYPES, *tm.FLOAT_EA_DTYPES, "boolean"]
+)
+@pytest.mark.parametrize("method", ["where", "mask"])
+def test_where_mask_masked_other_same_dtype(method, dtype):
+    # NA in the values and in other is kept where it is picked
+    def make(values):
+        if dtype == "boolean":
+            values = [None if val is None else val > 10 for val in values]
+        return pd.Series(values, dtype=dtype)
+
+    ser = make([1, None, 3, None])
+    other = make([None, 20, 30, None])
+    cond = np.array([True, False, False, True])
+
+    result = getattr(ser, method)(cond, other)
+    if method == "where":
+        expected = make([1, 20, 30, None])
+    else:
+        expected = make([None, None, 3, None])
     tm.assert_series_equal(result, expected)
