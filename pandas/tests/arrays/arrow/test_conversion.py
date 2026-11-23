@@ -466,6 +466,31 @@ def test_to_numpy_without_dtype():
     tm.assert_numpy_array_equal(result, expected)
 
 
+@pytest.mark.parametrize("np_dtype", [str, "S"])
+@pytest.mark.parametrize(
+    "dtype, values, expected",
+    [
+        ("string[pyarrow]", ["abc", None], ["abc", "<NA>"]),
+        (pd.StringDtype("pyarrow", na_value=np.nan), ["abc", None], ["abc", "nan"]),
+        ("int64[pyarrow]", [12345, None], ["12345", "<NA>"]),
+        ("float32[pyarrow]", [1.2, None], ["1.2", "<NA>"]),
+    ],
+)
+def test_to_numpy_unsized_str_dtype_with_na(dtype, values, expected, np_dtype):
+    # the result of an unsized string dtype is as wide as the longest value
+    ser = pd.Series(values, dtype=dtype)
+    result = ser.to_numpy(dtype=np_dtype)
+    tm.assert_numpy_array_equal(result, np.array(expected, dtype=np_dtype))
+
+
+@pytest.mark.parametrize("pa_type", [pa.binary(), pa.large_binary(), pa.binary(6)])
+def test_to_numpy_unsized_bytes_dtype_with_na_keeps_trailing_nulls(pa_type):
+    ser = pd.Series([b"abcde\x00", None], dtype=ArrowDtype(pa_type))
+    result = ser.to_numpy(dtype="S")
+    expected = np.array([b"abcde\x00", b"<NA>"], dtype="S")
+    tm.assert_numpy_array_equal(result, expected)
+
+
 def test_from_arrow_respecting_given_dtype():
     date_array = pa.array(
         [pd.Timestamp("2019-12-31"), pd.Timestamp("2019-12-31")], type=pa.date32()

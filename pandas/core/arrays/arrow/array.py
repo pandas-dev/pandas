@@ -2720,10 +2720,20 @@ class ArrowExtensionArray(
                     dtype = empty.dtype
                 else:
                     dtype = np.object_
-            result = np.empty(len(data), dtype=dtype)
+            dtype = np.dtype(dtype)
+            # an unsized string dtype holds a single character, so fill an
+            # object array and let astype size the result from the values
+            unsized = dtype.kind in "SU" and dtype.itemsize == 0
+            result = np.empty(len(data), dtype=object if unsized else dtype)
             mask = data.isna()
             result[mask] = na_value
-            result[~mask] = data[~mask]._pa_array.to_numpy()
+            values = data[~mask]._pa_array.to_numpy()
+            if unsized and values.dtype != object:
+                # format numbers as the path without missing values does
+                values = values.astype(dtype)
+            result[~mask] = values
+            if unsized:
+                result = result.astype(dtype)
         return result
 
     def duplicated(
