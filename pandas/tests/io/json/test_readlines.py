@@ -238,7 +238,6 @@ def test_readjson_chunks_closes(chunksize, temp_file):
         convert_axes=True,
         convert_dates=True,
         keep_default_dates=True,
-        precise_float=False,
         date_unit=None,
         encoding=None,
         lines=True,
@@ -627,10 +626,14 @@ def test_pyarrow_engine_date_unit(pyarrow_jsonl):
         pd.read_json(pyarrow_jsonl, lines=True, engine="pyarrow", date_unit="ms")
 
 
-def test_pyarrow_engine_precise_float(pyarrow_jsonl):
-    msg = "The 'precise_float' option is not supported with the 'pyarrow' engine"
-    with pytest.raises(ValueError, match=msg):
-        pd.read_json(pyarrow_jsonl, lines=True, engine="pyarrow", precise_float=True)
+@pytest.mark.parametrize("precise_float", [True, False])
+def test_pyarrow_engine_precise_float(pyarrow_jsonl, precise_float):
+    # GH#62464 precise_float has no effect
+    result = pd.read_json(
+        pyarrow_jsonl, lines=True, engine="pyarrow", precise_float=precise_float
+    )
+    expected = pd.read_json(pyarrow_jsonl, lines=True, engine="pyarrow")
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize("convert_axes", [True, False])

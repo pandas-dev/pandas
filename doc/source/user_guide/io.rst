@@ -1967,7 +1967,7 @@ is ``None``. To explicitly force ``Series`` parsing, pass ``typ=series``
      Pass ``dtype=False`` to disable type conversion, or parse date columns with :func:`~pandas.to_datetime` after reading.
 
 
-* ``precise_float`` : boolean, default ``False``. Set to enable usage of higher precision (strtod) function when decoding string to double values. Default (``False``) is to use fast but less precise builtin functionality.
+* ``precise_float`` : boolean, default ``False``. Has no effect; floating point values are always parsed to the closest representable value.
 * ``date_unit`` : string, the timestamp unit to detect if converting dates. Default
   None. By default the timestamp precision will be detected, if this is not desired
   then pass one of 's', 'ms', 'us' or 'ns' to force timestamp precision to

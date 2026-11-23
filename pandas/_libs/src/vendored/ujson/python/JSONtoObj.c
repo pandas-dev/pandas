@@ -145,14 +145,16 @@ PyObject *JSONToObj(PyObject *Py_UNUSED(self), PyObject *args,
                            .realloc = PyObject_Realloc,
                            .errorStr = NULL,
                            .errorOffset = NULL,
-                           .preciseFloat = 0,
                            .prv = NULL};
 
+  // precise_float is accepted for backward compatibility; doubles are always
+  // parsed with correct rounding
   char *kwlist[] = {"obj", "precise_float", NULL};
   char *buf;
   Py_ssize_t len;
-  if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s#|b", kwlist, &buf, &len,
-                                   &dec.preciseFloat)) {
+  int preciseFloat = 0;
+  if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s#|p", kwlist, &buf, &len,
+                                   &preciseFloat)) {
     return NULL;
   }
 

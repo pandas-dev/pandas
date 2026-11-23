@@ -354,7 +354,7 @@ def build_table_schema(
     return schema
 
 
-def parse_table_schema(json, precise_float: bool) -> DataFrame:
+def parse_table_schema(json) -> DataFrame:
     """
     Builds a DataFrame from a given schema
 
@@ -362,9 +362,6 @@ def parse_table_schema(json, precise_float: bool) -> DataFrame:
     ----------
     json :
         A JSON table schema
-    precise_float : bool
-        Flag controlling precision when decoding string to double values, as
-        dictated by ``read_json``
 
     Returns
     -------
@@ -393,7 +390,7 @@ def parse_table_schema(json, precise_float: bool) -> DataFrame:
     build_table_schema : Inverse function.
     pandas.read_json
     """
-    table = ujson_loads(json, precise_float=precise_float)
+    table = ujson_loads(json)
     schema = table["schema"]
     names = [field["name"] for field in schema["fields"]]
     keys = [str(name) for name in names]
@@ -415,9 +412,8 @@ def parse_table_schema(json, precise_float: bool) -> DataFrame:
     df.columns = range(len(names))
 
     if dict_records:
-        # a float name can miss its "data" key if the default parser perturbed it
-        #  (0.3 -> 0.30000000000000004) or to_json rounded it to double_precision;
-        #  raise rather than return NaN
+        # a float name can miss its "data" key if to_json rounded it to
+        #  double_precision; raise rather than return NaN
         unmatched = [
             key
             for pos, (name, key) in enumerate(zip(names, keys, strict=True))
@@ -427,14 +423,9 @@ def parse_table_schema(json, precise_float: bool) -> DataFrame:
             present = set().union(*data)
             missing = [key for key in unmatched if key not in present]
             if missing:
-                hint = (
-                    "they may have been rounded by to_json's double_precision"
-                    if precise_float
-                    else "try precise_float=True"
-                )
                 raise ValueError(
                     f'Float field names {missing} have no matching key in "data"; '
-                    f"{hint}"
+                    "they may have been rounded by to_json's double_precision"
                 )
 
     dtypes = {

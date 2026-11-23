@@ -110,13 +110,15 @@ class TestUltraJSONTests:
             if tm.can_set_locale(new_locale, lc_category):
                 with tm.set_locale(new_locale, lc_category):
                     assert ujson.ujson_loads(ujson.ujson_dumps(4.78e60)) == 4.78e60
-                    assert ujson.ujson_loads("4.78", precise_float=True) == 4.78
+                    assert ujson.ujson_loads("4.78") == 4.78
                 break
 
-    def test_decimal_decode_test_precise(self):
+    @pytest.mark.parametrize("precise_float", [True, False])
+    def test_decimal_decode_test_precise(self, precise_float):
+        # GH#62464 precise_float is accepted and has no effect
         sut = {"a": 4.56}
         encoded = ujson.ujson_dumps(sut)
-        decoded = ujson.ujson_loads(encoded, precise_float=True)
+        decoded = ujson.ujson_loads(encoded, precise_float=precise_float)
         assert sut == decoded
 
     def test_encode_double_tiny_exponential(self):
@@ -1033,10 +1035,9 @@ class TestPandasJSONTests:
             10**30,
         ],
     )
-    @pytest.mark.parametrize("precise_float", [True, False])
-    def test_decode_big_int(self, big_num, precise_float):
+    def test_decode_big_int(self, big_num):
         # GH#20599
-        result = ujson.ujson_loads(str(big_num), precise_float=precise_float)
+        result = ujson.ujson_loads(str(big_num))
         assert result == big_num
         assert type(result) is int
 
@@ -1049,11 +1050,39 @@ class TestPandasJSONTests:
             "18446744073709551616.5E+3",
         ],
     )
-    @pytest.mark.parametrize("precise_float", [True, False])
-    def test_decode_float_with_big_int_part(self, float_str, precise_float):
+    def test_decode_float_with_big_int_part(self, float_str):
         # GH#20599
-        result = ujson.ujson_loads(float_str, precise_float=precise_float)
+        result = ujson.ujson_loads(float_str)
         assert result == json.loads(float_str)
+
+    @pytest.mark.parametrize(
+        "float_str",
+        [
+            "4.56",
+            "-4.56",
+            "0.1",
+            "1.7976931348623157e308",
+            "2.2250738585072011e-308",
+            "1e-320",
+            "1e400",
+            "-1e400",
+            "1e-400",
+            "-0.0",
+            "3.14159265358979323846264338327950288",
+            "1.",
+            "-.5",
+        ],
+    )
+    def test_decode_float_closest_value(self, float_str):
+        # GH#62464
+        result = ujson.ujson_loads(float_str)
+        assert result == float(float_str)
+        assert np.signbit(result) == np.signbit(float(float_str))
+
+    @pytest.mark.parametrize("float_str", ["1e", "1e+", "1.5e-"])
+    def test_decode_float_missing_exponent_digits_raises(self, float_str):
+        with pytest.raises(ValueError, match="Trailing data"):
+            ujson.ujson_loads(float_str)
 
     def test_decode_with_trailing_whitespaces(self):
         assert {} == ujson.ujson_loads("{}\n\t ")

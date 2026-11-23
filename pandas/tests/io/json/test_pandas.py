@@ -433,19 +433,14 @@ class TestPandasContainer:
         encoded = df.to_json(double_precision=precision)
         assert encoded == f'{{"a_float":{{"0":{expected_val}}}}}'
 
-    @pytest.mark.parametrize("precise_float", [True, False])
     @pytest.mark.parametrize("orient", ["table", "split", "columns"])
-    def test_frame_float_max_roundtrip(self, orient, precise_float):
+    def test_frame_float_max_roundtrip(self, orient):
         # GH#21454
         df = pd.DataFrame({"A": [np.finfo(np.float64).max, -1.7976931348e308]})
-        result = pd.read_json(
-            StringIO(df.to_json(orient=orient)),
-            orient=orient,
-            precise_float=precise_float,
-        )
+        result = pd.read_json(StringIO(df.to_json(orient=orient)), orient=orient)
         # the fewest digits from double_precision=10 up that stay finite
         expected = pd.DataFrame({"A": [1.79769313486e308, -1.7976931348e308]})
-        tm.assert_frame_equal(result, expected, check_exact=precise_float)
+        tm.assert_frame_equal(result, expected, check_exact=True)
 
     def test_frame_to_json_except(self):
         df = pd.DataFrame([1, 2, 3])
@@ -778,10 +773,14 @@ class TestPandasContainer:
         with pytest.raises(ValueError, match=msg):
             s.to_json(orient="garbage")
 
-    def test_series_from_json_precise_float(self):
+    @pytest.mark.parametrize("precise_float", [True, False])
+    def test_series_from_json_precise_float(self, precise_float):
+        # GH#62464 precise_float has no effect
         s = pd.Series([4.56, 4.56, 4.56])
-        result = pd.read_json(StringIO(s.to_json()), typ="series", precise_float=True)
-        tm.assert_series_equal(result, s, check_index_type=False)
+        result = pd.read_json(
+            StringIO(s.to_json()), typ="series", precise_float=precise_float
+        )
+        tm.assert_series_equal(result, s, check_index_type=False, check_exact=True)
 
     def test_series_with_dtype(self):
         # GH 21986
@@ -837,10 +836,32 @@ class TestPandasContainer:
             expected = expected.rename(None)
         tm.assert_series_equal(result, expected)
 
-    def test_frame_from_json_precise_float(self):
+    @pytest.mark.parametrize("precise_float", [True, False])
+    def test_frame_from_json_precise_float(self, precise_float):
+        # GH#62464 precise_float has no effect
         df = pd.DataFrame([[4.56, 4.56, 4.56], [4.56, 4.56, 4.56]])
-        result = pd.read_json(StringIO(df.to_json()), precise_float=True)
-        tm.assert_frame_equal(result, df)
+        result = pd.read_json(StringIO(df.to_json()), precise_float=precise_float)
+        tm.assert_frame_equal(result, df, check_exact=True)
+
+    @pytest.mark.parametrize("typ", ["frame", "series"])
+    def test_read_json_floats_closest_value(self, typ):
+        # GH#62464
+        strs = [
+            "4.56",
+            "0.1",
+            "1.7976931348623157e308",
+            "2.2250738585072011e-308",
+            "1e-320",
+            "1e400",
+            "-1e-400",
+            "3.14159265358979323846264338327950288",
+        ]
+        data = "[" + ",".join(strs) + "]"
+        result = pd.read_json(StringIO(data), typ=typ)
+        expected = pd.Series([float(x) for x in strs])
+        if typ == "frame":
+            expected = expected.to_frame(0)
+        tm.assert_equal(result, expected, check_exact=True)
 
     def test_typ(self):
         s = pd.Series(range(6), index=["a", "b", "c", "d", "e", "f"], dtype="int64")
