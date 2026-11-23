@@ -278,13 +278,20 @@ def _rename_multiindex_entries(
     ]
     if not tuple_keys:
         return new_index
-    positions = np.flatnonzero(ax.isin(tuple_keys))
+    # Match with get_indexer rather than looking up ``mapper[ax[pos]]``: index
+    # matching treats NaN as equal to NaN, while a dict lookup does not.
+    keys = MultiIndex.from_tuples(tuple_keys)
+    unique_keys = ~keys.duplicated(keep="last")
+    keys = keys[unique_keys]
+    tuple_keys = [key for key, keep in zip(tuple_keys, unique_keys) if keep]
+    key_positions = keys.get_indexer(ax)
+    positions = np.flatnonzero(key_positions != -1)
     if not len(positions):
         return new_index
 
     entries = list(new_index)
     for pos in positions:
-        key = ax[pos]
+        key = tuple_keys[key_positions[pos]]
         value = mapper[key]
         if not isinstance(value, tuple) or len(value) != ax.nlevels:
             raise ValueError(

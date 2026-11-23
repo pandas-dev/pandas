@@ -512,6 +512,21 @@ class TestRename:
             result = obj.T.rename(columns=mapper)
             tm.assert_index_equal(result.columns, expected_index)
 
+    @pytest.mark.parametrize("nan", [np.nan, float("nan")])
+    def test_rename_multiindex_full_tuple_key_with_nan(self, frame_or_series, nan):
+        # GH#4160
+        mi = pd.MultiIndex.from_tuples([("a", np.nan), ("b", 1.0)])
+        obj = frame_or_series([1, 2], index=mi)
+
+        result = obj.rename({("a", nan): ("A", 0.0)})
+        expected = frame_or_series(
+            [1, 2], index=pd.MultiIndex.from_tuples([("A", 0.0), ("b", 1.0)])
+        )
+        tm.assert_equal(result, expected)
+
+        result = obj.rename(index={("a", nan): ("A", 0.0)}, errors="raise")
+        tm.assert_equal(result, expected)
+
     def test_rename_multiindex_full_tuple_key_scalar_value_raises(self):
         # GH#4160
         mi = pd.MultiIndex.from_tuples([("Quantity", "Carl"), ("Quantity", "Mark")])
