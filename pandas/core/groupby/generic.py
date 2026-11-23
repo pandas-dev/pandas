@@ -989,17 +989,18 @@ class SeriesGroupBy(GroupBy[Series]):
 
         # GH#72276: preserve the integer dtype family of the input,
         #  mirroring the wrapping in BaseGroupBy.count
+        res_values: ArrayLike = res
         if isinstance(val, BaseMaskedArray):
-            res = IntegerArray(res, mask=np.zeros(len(res), dtype=np.bool_))
+            res_values = IntegerArray(res, mask=np.zeros(len(res), dtype=np.bool_))
         elif isinstance(val, ArrowExtensionArray) and not isinstance(
             val.dtype, StringDtype
         ):
             dtype = pandas_dtype("int64[pyarrow]")
-            res = type(val)._from_sequence(res, dtype=dtype)
+            res_values = type(val)._from_sequence(res, dtype=dtype)
 
         ri = self._grouper.result_index
         result: Series | DataFrame = self.obj._constructor(
-            res, index=ri, name=self.obj.name
+            res_values, index=ri, name=self.obj.name
         )
         if not self.as_index:
             result = self._insert_inaxis_grouper(result)
