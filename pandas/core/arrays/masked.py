@@ -1855,12 +1855,6 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     ):
         if min_count == 0 and skipna and isinstance(result, np.ndarray):
             return self._maybe_mask_result(result, np.zeros(result.shape, dtype=bool))
-        if min_count > 1 and isinstance(result, np.ndarray):
-            if skipna:
-                mask = (~self._mask).sum(axis=axis) < min_count
-            else:
-                mask = self._mask.any(axis=axis) | (self.shape[axis] < min_count)
-            return self._maybe_mask_result(result, mask)
         return self._wrap_reduction_result(name, result, skipna=skipna, axis=axis)
 
     def sum(
@@ -2261,7 +2255,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         if op.kind != "aggregate":
             result_mask = mask.copy()
         else:
-            result_mask = np.zeros(ngroups, dtype=bool)
+            result_mask = np.zeros((*self.shape[:-1], ngroups), dtype=bool)
 
         if how == "rank" and kwargs.get("na_option") in ["top", "bottom"]:
             result_mask[:] = False
