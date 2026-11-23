@@ -1347,6 +1347,8 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         key (the value of the grouping for that group). This is useful for
         identifying the current group, for example when grouping by an external
         grouper rather than by a column of the object.
+        If the group DataFrame contains a column named ``name``, access it with
+        ``group["name"]``. The ``group.name`` attribute gives the group key.
 
         Examples
         --------
