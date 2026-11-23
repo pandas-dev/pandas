@@ -1359,6 +1359,81 @@ def test_nunique():
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "values, dtype, expected_dtype",
+    [
+        pytest.param(
+            [1, 2, None],
+            "Int64[pyarrow]",
+            "int64[pyarrow]",
+            marks=td.skip_if_no("pyarrow"),
+        ),
+        ([1, 2, None], "Int64", "Int64"),
+        ([True, False, None], "boolean", "Int64"),
+        ([1.0, 2.0, None], "Float64", "Int64"),
+        pytest.param(
+            [1.0, 2.0, None],
+            "double[pyarrow]",
+            "int64[pyarrow]",
+            marks=td.skip_if_no("pyarrow"),
+        ),
+    ],
+)
+@pytest.mark.parametrize("dropna", [True, False])
+def test_groupby_nunique_extension_dtype(values, dtype, expected_dtype, dropna):
+    # GH#72276: nunique should return the same dtype as count() for
+    #  extension-dtype input, instead of always returning plain int64
+    df = pd.DataFrame({"a": pd.array(values, dtype=dtype), "b": [4, 4, 6]})
+    gb = df.groupby("b")
+
+    # group 4 has two distinct non-NA values; group 6 has only an NA value
+    expected_values = [2, 0] if dropna else [2, 1]
+    expected = pd.Series(
+        expected_values,
+        index=pd.Index([4, 6], name="b"),
+        name="a",
+        dtype=expected_dtype,
+    )
+
+    result = gb["a"].nunique(dropna=dropna)
+    tm.assert_series_equal(result, expected)
+    assert result.dtype == gb["a"].count().dtype
+
+    result = gb.nunique(dropna=dropna)
+    tm.assert_frame_equal(result, expected.to_frame())
+    assert result["a"].dtype == gb.count()["a"].dtype
+
+
+@td.skip_if_no("pyarrow")
+def test_groupby_nunique_pyarrow_backed_frame():
+    # GH#72276, the reproducer reported in the issue
+    df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 4, 6]}, dtype="Int64[pyarrow]")
+
+    result = df.groupby("b")["a"].nunique()
+    expected = pd.Series(
+        [2, 1],
+        index=pd.Index([4, 6], dtype="Int64[pyarrow]", name="b"),
+        name="a",
+        dtype="int64[pyarrow]",
+    )
+    tm.assert_series_equal(result, expected)
+
+    result = df.groupby("b").nunique()
+    tm.assert_frame_equal(result, expected.to_frame())
+
+
+def test_groupby_nunique_non_extension_dtype_unchanged():
+    # GH#72276: numpy and string inputs keep returning plain int64
+    df = pd.DataFrame(
+        {"a": [1, 2, 3], "b": [4, 4, 6], "c": ["x", "y", "x"]},
+    )
+    result = df.groupby("b").nunique()
+    expected = pd.DataFrame(
+        {"a": [2, 1], "c": [2, 1]}, index=pd.Index([4, 6], name="b")
+    )
+    tm.assert_frame_equal(result, expected)
+
+
 def test_nunique_with_object():
     # GH 11077
     data = pd.DataFrame(
