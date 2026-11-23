@@ -87,42 +87,47 @@ class TestSeriesSearchSorted:
     )
     @pytest.mark.parametrize("na_value", [pd.NA, None])
     @pytest.mark.parametrize("side", ["left", "right"])
-    def test_searchsorted_na_value_numeric(self, dtype, na_value, side):
+    @pytest.mark.parametrize(
+        "box",
+        [
+            list,
+            tuple,
+            lambda x: np.array(x, dtype=object),
+            lambda x: pd.array(x, dtype="Int64"),
+        ],
+        ids=["list", "tuple", "object-ndarray", "Int64-array"],
+    )
+    def test_searchsorted_na_value_numeric(self, dtype, na_value, side, box):
         # GH#30944 missing values in the search value sort last, like np.nan
         ser = pd.Series([1, 2, 3], dtype=dtype)
         assert ser.searchsorted(na_value, side=side) == 3
 
         expected = np.array([1 if side == "left" else 2, 3], dtype=np.intp)
-        for value in [
-            [2, na_value],
-            (2, na_value),
-            np.array([2, na_value], dtype=object),
-            pd.array([2, na_value], dtype="Int64"),
-        ]:
-            result = ser.searchsorted(value, side=side)
-            tm.assert_numpy_array_equal(result, expected)
+        result = ser.searchsorted(box([2, na_value]), side=side)
+        tm.assert_numpy_array_equal(result, expected)
 
     @pytest.mark.parametrize("dtype", ["int64", "Int64", "string"])
-    def test_searchsorted_na_value_routes_and_sorter(self, dtype):
+    @pytest.mark.parametrize("as_array", [False, True])
+    def test_searchsorted_na_value_routes_and_sorter(self, dtype, as_array):
         # GH#30944
         values = [3, 1, 2] if dtype != "string" else ["c", "a", "b"]
-        obj = pd.Index(values, dtype=dtype)
+        haystack = pd.Index(values, dtype=dtype)
+        if as_array:
+            haystack = haystack.array
         sorter = np.array([1, 2, 0])
-        expected = np.array([1, 3], dtype=np.intp)
-        for haystack in [obj, obj.array]:
-            assert haystack.searchsorted(pd.NA, sorter=sorter) == 3
-            result = haystack.searchsorted([values[2], pd.NA], sorter=sorter)
-            tm.assert_numpy_array_equal(result, expected)
+        assert haystack.searchsorted(pd.NA, sorter=sorter) == 3
+        result = haystack.searchsorted([values[2], pd.NA], sorter=sorter)
+        tm.assert_numpy_array_equal(result, np.array([1, 3], dtype=np.intp))
 
     @pytest.mark.parametrize("side", ["left", "right"])
-    def test_searchsorted_na_value_float_with_nan(self, side):
+    @pytest.mark.parametrize("na_value", [np.nan, pd.NA])
+    def test_searchsorted_na_value_float_with_nan(self, side, na_value):
         # GH#30944 pd.NA is placed where np.nan is
         ser = pd.Series([1.0, 2.0, np.nan])
         expected = np.array([1, 2] if side == "left" else [2, 3], dtype=np.intp)
-        for value in [[2.0, np.nan], [2.0, pd.NA]]:
-            result = ser.searchsorted(value, side=side)
-            tm.assert_numpy_array_equal(result, expected)
-        assert ser.searchsorted(pd.NA, side=side) == expected[1]
+        result = ser.searchsorted([2.0, na_value], side=side)
+        tm.assert_numpy_array_equal(result, expected)
+        assert ser.searchsorted(na_value, side=side) == expected[1]
 
     @pytest.mark.parametrize("side", ["left", "right"])
     def test_searchsorted_nan_value_pyarrow_float(self, side):

@@ -623,3 +623,11 @@ class TestGetSliceBounds:
         index = pd.Index(range(6))
         result = index.get_slice_bound(bound, side=side)
         assert result == expected
+
+    @pytest.mark.parametrize("dtype", ["int64", "float64", "Int64", "boolean"])
+    def test_get_slice_bound_none_raises(self, dtype):
+        # GH#30944 searchsorted places None last, but it is not a slice bound
+        index = pd.Index([0, 1], dtype=dtype)
+        msg = "cannot do slice indexing on Index with these indexers"
+        with pytest.raises(TypeError, match=msg):
+            index.get_slice_bound(None, side="left")
