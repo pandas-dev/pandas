@@ -1818,13 +1818,18 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         else:
             return result
 
-    def _wrap_reduction_result(self, name: str, result, *, skipna, axis):
+    def _wrap_reduction_result(
+        self, name: str, result, *, skipna, axis, ddof: int | None = None
+    ):
         if isinstance(result, np.ndarray):
             if skipna:
                 # we only retain mask for all-NA rows/columns
                 mask = self._mask.all(axis=axis)
             else:
                 mask = self._mask.any(axis=axis)
+            if ddof is not None:
+                # GH#72259 var/std with no more valid values than ddof are NA
+                mask |= self._mask.shape[axis] - self._mask.sum(axis=axis) <= ddof
 
             return self._maybe_mask_result(result, mask)
         return result
@@ -1944,7 +1949,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             axis=axis,
             ddof=ddof,
         )
-        return self._wrap_reduction_result("var", result, skipna=skipna, axis=axis)
+        return self._wrap_reduction_result(
+            "var", result, skipna=skipna, axis=axis, ddof=ddof
+        )
 
     def std(
         self, *, skipna: bool = True, axis: AxisInt | None = 0, ddof: int = 1, **kwargs
@@ -1957,7 +1964,9 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             axis=axis,
             ddof=ddof,
         )
-        return self._wrap_reduction_result("std", result, skipna=skipna, axis=axis)
+        return self._wrap_reduction_result(
+            "std", result, skipna=skipna, axis=axis, ddof=ddof
+        )
 
     def min(self, *, skipna: bool = True, axis: AxisInt | None = 0, **kwargs):
         nv.validate_min((), kwargs)

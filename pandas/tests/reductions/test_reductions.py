@@ -1976,7 +1976,9 @@ def test_ea_reduction_method_ddof(any_numeric_ea_and_arrow_dtype, op_name, ddof)
 @pytest.mark.parametrize("op_name", ["var", "std"])
 @pytest.mark.parametrize("dtype", ["Int64", "Float64", "boolean"])
 @pytest.mark.parametrize("data", [[1, 0], [1, None, 0]])
-def test_masked_var_std_nobs_le_ddof(frame_or_series, op_name, dtype, data, skipna):
+def test_masked_var_std_nobs_le_ddof(
+    frame_or_series, op_name, dtype, data, skipna, using_nan_is_na
+):
     # GH#72259 NA, not inf, when there are no more valid values than ddof
     obj = frame_or_series(pd.array(data, dtype=dtype))
     result = getattr(obj, op_name)(ddof=2, skipna=skipna)
@@ -1988,7 +1990,7 @@ def test_masked_var_std_nobs_le_ddof(frame_or_series, op_name, dtype, data, skip
 
 @pytest.mark.parametrize("op_name", ["var", "std"])
 @pytest.mark.parametrize("dtype", ["Int64", "Float64", "boolean"])
-def test_masked_var_std_2d_nobs_le_ddof(op_name, dtype, skipna):
+def test_masked_var_std_2d_nobs_le_ddof(op_name, dtype, skipna, using_nan_is_na):
     # GH#72259
     # [[1, 0],
     #  [0, 1],
