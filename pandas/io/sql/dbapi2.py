@@ -47,10 +47,6 @@ if TYPE_CHECKING:
         Mapping,
     )
 
-    from pandas.core.api import (
-        DataFrame,
-    )
-
     from sqlalchemy.sql.expression import (
         Select,
         TextClause,
@@ -59,6 +55,10 @@ if TYPE_CHECKING:
     from pandas._typing import (
         DtypeArg,
         DtypeBackend,
+    )
+
+    from pandas.core.api import (
+        DataFrame,
     )
 
 
