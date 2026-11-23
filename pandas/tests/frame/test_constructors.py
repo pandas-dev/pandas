@@ -7,6 +7,7 @@ from collections import (
     namedtuple,
 )
 from collections.abc import Iterator
+import ctypes
 from dataclasses import (
     dataclass,
     make_dataclass,
@@ -2643,6 +2644,42 @@ class TestDataFrameConstructors:
         msg = "a str or bytes row after a list-like row is deprecated"
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             pd.DataFrame([first_row, str_row])
+
+    @pytest.mark.parametrize("first_row", [[1, 2], np.array([1, 2]), {1, 2}], ids=type)
+    @pytest.mark.parametrize(
+        "row",
+        [3, np.int64(3), np.array(3), np.nan, None, pd.Timestamp("2020-01-01")],
+    )
+    def test_construct_listlike_then_scalar_row_raises(self, first_row, row):
+        # GH#29213
+        msg = "the row at position 2 has type"
+        with pytest.raises(TypeError, match=msg):
+            pd.DataFrame([first_row, first_row, row])
+
+    @pytest.mark.parametrize(
+        "row", [3, np.int64(3), np.array(3), pd.Timestamp("2020-01-01")]
+    )
+    def test_construct_tuple_then_scalar_row_raises(self, row):
+        # GH#29213 null rows are padded, see test_construct_tuple_then_null_row_padded
+        msg = "the row at position 2 has type"
+        with pytest.raises(TypeError, match=msg):
+            pd.DataFrame([(1, 2), (1, 2), row])
+
+    @pytest.mark.parametrize("row", [np.nan, None])
+    def test_construct_tuple_then_null_row_padded(self, row):
+        # GH#29213 a null row after a tuple row is still padded with NaN
+        msg = "mismatched lengths is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = pd.DataFrame([(1, 2), (1, 2), row])
+        expected = pd.DataFrame([[1.0, 2.0], [1.0, 2.0], [np.nan, np.nan]])
+        tm.assert_frame_equal(result, expected)
+
+    def test_construct_listlike_then_iterable_row(self):
+        # GH#29213 a row that is iterable but not list-like is still accepted
+        row = (ctypes.c_int * 2)(5, 6)
+        result = pd.DataFrame([np.array([1, 2]), row])
+        expected = pd.DataFrame([[1, 2], [5, 6]])
+        tm.assert_frame_equal(result, expected)
 
     def test_constructor_categorical_series(self):
         items = [1, 2, 3, 1]

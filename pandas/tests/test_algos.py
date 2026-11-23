@@ -2125,6 +2125,61 @@ class TestIsMonotonic:
         assert algos.is_monotonic(values) == (True, False, True)
         assert algos.is_monotonic(values[::-1]) == (False, True, True)
 
+    @pytest.mark.parametrize("dtype", ["int64", "float64"])
+    @pytest.mark.parametrize("position", [1024, 1025, 2999])
+    @pytest.mark.parametrize(
+        "change, expected",
+        [
+            ("duplicate", (True, False, False)),
+            ("decrease", (False, False, False)),
+        ],
+    )
+    @pytest.mark.parametrize("reverse", [True, False])
+    def test_long(self, dtype, position, change, expected, reverse):
+        # GH#72122
+        values = np.arange(2, 6002, 2, dtype=dtype)
+        if change == "duplicate":
+            values[position] = values[position - 1]
+        else:
+            values[position] = values[position - 1] - 1
+        if reverse:
+            values = values[::-1].copy()
+            expected = (expected[1], expected[0], expected[2])
+        assert algos.is_monotonic(values) == expected
+
+    @pytest.mark.parametrize(
+        "arr",
+        [
+            [np.nan, 1, 2],
+            [1, np.nan, 3],
+            [1, 2, np.nan],
+            [np.nan, 2, 1],
+            [3, np.nan, 1],
+            [2, 1, np.nan],
+        ],
+    )
+    def test_nan(self, arr):
+        # GH#72122
+        values = np.array(arr, dtype="float64")
+        assert algos.is_monotonic(values) == (False, False, False)
+
+    @pytest.mark.parametrize(
+        "arr",
+        [
+            [1, 2, None],
+            [1, None, 3],
+            [2, 1, None],
+            [3, None, 1],
+        ],
+    )
+    def test_nat(self, arr):
+        # GH#72122
+        nat = np.iinfo(np.int64).min
+        values = np.array([nat if x is None else x for x in arr], dtype="int64").view(
+            "datetime64[ns]"
+        )
+        assert algos.is_monotonic(values) == (False, False, False)
+
     def test_complex_raises(self):
         # https://github.com/pandas-dev/pandas/pull/65803
         # complex is not orderable

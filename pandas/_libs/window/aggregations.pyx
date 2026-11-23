@@ -2320,8 +2320,8 @@ def ewm(const float64_t[:] vals, const int64_t[:] start, const int64_t[:] end,
                             if normalize:
                                 # avoid numerical errors on constant series
                                 if weighted != cur:
-                                    if not adjust and com == 1:
-                                        # update in case of irregular-interval series
+                                    if use_deltas and not adjust:
+                                        # times: weight by elapsed interval, GH#54328
                                         new_wt = 1. - old_wt
                                     weighted = old_wt * weighted + new_wt * cur
                                     weighted /= (old_wt + new_wt)

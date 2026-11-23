@@ -220,6 +220,11 @@ class TestFromRecords:
         expected = pd.DataFrame.from_records(tups)
         tm.assert_frame_equal(result, expected)
 
+    def test_from_records_non_iterable_first_record(self):
+        # GH#29213 a non-list-like first record keeps the original error
+        with pytest.raises(TypeError, match="'object' object is not iterable"):
+            pd.DataFrame.from_records([object(), object()])
+
     def test_from_records_len0_with_columns(self):
         # GH#2633
         result = pd.DataFrame.from_records([], index="foo", columns=["foo", "bar"])

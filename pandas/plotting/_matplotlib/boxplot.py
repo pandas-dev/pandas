@@ -300,6 +300,16 @@ def _grouped_plot_by_column(
         if not isinstance(by, (list, tuple)):
             by = [by]
         columns = data._get_numeric_data().columns.difference(by)
+
+    # label with the grouping keys' names, not ``by`` itself, which may be an
+    # array (GH#23007)
+    names = grouped._grouper.names
+    if all(name is None for name in names):
+        by_label = title_label = None
+    else:
+        # as a string, so a falsy name like 0 still survives ``xlabel or by_label``
+        by_label = pprint_thing(names if isinstance(by, list) else names[0])
+        title_label = names[0] if len(names) == 1 else names
     naxes = len(columns)
     fig, axes = create_subplots(
         naxes=naxes,
@@ -313,9 +323,9 @@ def _grouped_plot_by_column(
     # GH 45465: move the "by" label based on "vert"
     xlabel, ylabel = kwargs.pop("xlabel", None), kwargs.pop("ylabel", None)
     if kwargs.get("vert", True):
-        xlabel = xlabel or by
+        xlabel = xlabel or by_label
     else:
-        ylabel = ylabel or by
+        ylabel = ylabel or by_label
 
     ax_values = []
 
@@ -333,8 +343,8 @@ def _grouped_plot_by_column(
     if return_type is None:
         result = axes
 
-    byline = by[0] if len(by) == 1 else by  # pyright: ignore[reportOptionalSubscript]
-    fig.suptitle(f"Boxplot grouped by {byline}")
+    if title_label is not None:
+        fig.suptitle(f"Boxplot grouped by {title_label}")
     maybe_adjust_figure(fig, bottom=0.15, top=0.9, left=0.1, right=0.9, wspace=0.2)
 
     return result

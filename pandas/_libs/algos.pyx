@@ -50,6 +50,7 @@ from pandas._libs.khash cimport (
     kh_int64_t,
     kh_put_int64,
     kh_resize_int64,
+    khash_set_alloc_fail_countdown,
     khiter_t,
 )
 from pandas._libs.missing cimport (
@@ -145,7 +146,9 @@ cpdef ndarray[int64_t, ndim=1] unique_deltas(const int64_t[:] arr):
         ndarray[int64_t, ndim=1] result
 
     table = kh_init_int64()
-    kh_resize_int64(table, 10)
+    if kh_resize_int64(table, 10) < 0:
+        kh_destroy_int64(table)
+        raise MemoryError()
 
     # n - 1 is the max possible number of unique deltas
     if n > 1:
@@ -159,6 +162,10 @@ cpdef ndarray[int64_t, ndim=1] unique_deltas(const int64_t[:] arr):
         k = kh_get_int64(table, val)
         if k == table.n_buckets:
             kh_put_int64(table, val, &ret)
+            if ret < 0:
+                kh_destroy_int64(table)
+                free(uniques)
+                raise MemoryError()
             uniques[num_uniques] = val
             num_uniques += 1
     kh_destroy_int64(table)
@@ -938,6 +945,82 @@ def backfill_2d_inplace(numeric_object_t[:, :] values,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
+cdef inline bint _is_monotonic_contiguous(
+    const numeric_t* ptr,
+    Py_ssize_t n,
+    bint timelike,
+    bint* is_monotonic_inc,
+    bint* is_monotonic_dec,
+) noexcept nogil:
+    # Blockwise counting for vectorization.
+    # Returns whether the values are strictly monotonic.
+    cdef:
+        Py_ssize_t i, start, end, n_bad
+        bint descending
+        Py_ssize_t n_lt = 0, n_gt = 0, n_eq = 0
+
+    # Fast path for strictly monotonic values, likely the most common case.
+    descending = ptr[1] < ptr[0]
+    start = 1
+    if descending:
+        while start < n:
+            end = min(start + 1024, n)
+            n_bad = 0
+            for i in range(start, end):
+                n_bad += not (ptr[i] < ptr[i - 1])
+            if n_bad > 0:
+                break
+            start = end
+    else:
+        while start < n:
+            end = min(start + 1024, n)
+            n_bad = 0
+            for i in range(start, end):
+                n_bad += not (ptr[i] > ptr[i - 1])
+            if n_bad > 0:
+                break
+            start = end
+
+    # All pairs before start are strictly monotonic.
+    if descending:
+        n_lt = start - 1
+    else:
+        n_gt = start - 1
+    while start < n:
+        end = min(start + 1024, n)
+        for i in range(start, end):
+            n_lt += ptr[i] < ptr[i - 1]
+            n_gt += ptr[i] > ptr[i - 1]
+        if numeric_t is float32_t or numeric_t is float64_t:
+            for i in range(start, end):
+                n_eq += ptr[i] == ptr[i - 1]
+            if n_lt + n_gt + n_eq != end - 1:
+                # NaN: all three comparisons are False
+                is_monotonic_inc[0] = 0
+                is_monotonic_dec[0] = 0
+                return 0
+        if n_lt > 0 and n_gt > 0:
+            is_monotonic_inc[0] = 0
+            is_monotonic_dec[0] = 0
+            return 0
+        start = end
+
+    # NaT is the smallest int64 and the caller checked that ptr[0] is not NaT.
+    # So increasing values contain no NaT and decreasing values contain NaT
+    # only if the last value is NaT.
+    if numeric_t is int64_t:
+        if timelike and ptr[n - 1] == NPY_NAT:
+            is_monotonic_inc[0] = 0
+            is_monotonic_dec[0] = 0
+            return 0
+
+    is_monotonic_inc[0] = n_lt == 0
+    is_monotonic_dec[0] = n_gt == 0
+    return (n_lt == 0 or n_gt == 0) and n_lt + n_gt == n - 1
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
 def is_monotonic(const numeric_object_t[:] arr, bint timelike):
     """
     Returns
@@ -969,6 +1052,17 @@ def is_monotonic(const numeric_object_t[:] arr, bint timelike):
 
     if timelike and <int64_t>arr[0] == NPY_NAT:
         return False, False, False
+
+    if (
+        numeric_object_t is not object
+        and (numeric_object_t is int64_t or not timelike)
+        and arr.strides[0] == sizeof(numeric_object_t)
+    ):
+        with nogil:
+            is_strict_monotonic = _is_monotonic_contiguous(
+                &arr[0], n, timelike, &is_monotonic_inc, &is_monotonic_dec
+            )
+        return is_monotonic_inc, is_monotonic_dec, is_strict_monotonic
 
     with nogil(numeric_object_t is not object):
         prev = arr[0]
@@ -2151,3 +2245,8 @@ def nancorr_kendall(const float64_t[:, :] mat, Py_ssize_t minp=1):
 # generated from template
 include "algos_common_helper.pxi"
 include "algos_take_helper.pxi"
+
+
+def _set_khash_alloc_fail_countdown(int countdown) -> int:
+    # for tests: fail the khash allocation in this module that takes this to 0
+    return khash_set_alloc_fail_countdown(countdown)

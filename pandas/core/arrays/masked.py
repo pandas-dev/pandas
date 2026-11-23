@@ -885,6 +885,12 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     _HANDLED_TYPES: tuple[type, ...]
 
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
+        result = arraylike.dispatch_where_only_ufunc(
+            self, ufunc, method, *inputs, **kwargs
+        )
+        if result is not NotImplemented:
+            return result
+
         # For MaskedArray inputs, we apply the ufunc to ._data
         # and mask the result.
 
