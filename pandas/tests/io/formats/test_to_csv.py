@@ -5,6 +5,7 @@ from datetime import (
 )
 import io
 import os
+import re
 import sys
 from zipfile import ZipFile
 
@@ -847,6 +848,16 @@ z
         with open(temp_file, mode="w+b") as handle:
             df.to_csv(handle, mode=mode)
         tm.assert_frame_equal(df, pd.read_csv(temp_file, index_col=0))
+
+    @pytest.mark.parametrize("mode", ["b", "wb", "ab", "xb", "w+b"])
+    @pytest.mark.parametrize("compression", ["infer", "gzip"])
+    @pytest.mark.parametrize("box", [pd.DataFrame, pd.Series])
+    def test_to_csv_binary_mode_no_path_raises(self, mode, compression, box):
+        # GH#44409
+        obj = box([1, 2])
+        msg = f"mode='{re.escape(mode)}' is not supported when path_or_buf is None"
+        with pytest.raises(ValueError, match=msg):
+            obj.to_csv(mode=mode, compression=compression)
 
     @pytest.mark.parametrize("mode", ["wb", "w"])
     def test_to_csv_encoding_binary_handle(self, mode, temp_file):

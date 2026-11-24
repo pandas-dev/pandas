@@ -48,6 +48,20 @@ def test_declared_packages_accepts_a_bare_feature_list() -> None:
     }
 
 
+def test_declared_packages_includes_inline_environment_dependencies() -> None:
+    pixi = {
+        "feature": {"test-base": {"dependencies": {"pytest": ">=8.3.4"}}},
+        "environments": {
+            "downstream": {
+                "features": ["test-base"],
+                "dependencies": {"dask": "*"},
+                "pypi-dependencies": {"numpy": "*"},
+            },
+        },
+    }
+    assert declared_packages(pixi, ["downstream"]) == {"pytest", "dask", "numpy"}
+
+
 def test_environments_running_tests_reads_the_workflow_matrix() -> None:
     environments = environments_running_tests()
     # the plain matrix entries, and one that only appears under `include`

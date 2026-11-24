@@ -643,6 +643,7 @@ def test_lazy_imports_read_csv():
         [sys.executable, "-X", "lazy_imports=normal", "-c", code],
         capture_output=True,
         text=True,
+        encoding="utf-8",
         check=False,
     )
     assert result.returncode == 0, result.stderr
@@ -671,6 +672,7 @@ def test_lazy_imports_io_namespace():
         [sys.executable, "-X", "lazy_imports=normal", "-c", code],
         capture_output=True,
         text=True,
+        encoding="utf-8",
         check=False,
     )
     assert result.returncode == 0, result.stderr

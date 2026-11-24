@@ -1,9 +1,9 @@
-# Cannot define these sections in pyproject.toml yet due to
-# https://github.com/prefix-dev/pixi/issues/1801
 [workspace]
 channels = ["conda-forge"]
-platforms = ["linux-64", "linux-aarch64", "osx-64", "osx-arm64", "win-64"]
+# pixi's default macOS is too old for psycopg2's Python 3.15 builds (libpq >=18.6 needs macOS >=13.3)
+platforms = ["linux-64", "linux-aarch64", { platform = "osx-64", macos = "13.3" }, { platform = "osx-arm64", macos = "13.3" }, "win-64"]
 name = "pandas"
+requires-pixi = ">=0.82.1"
 
 [dependencies]
 # Build dependencies
@@ -23,40 +23,8 @@ python-dateutil = ">=2.9.0"
 c-compiler = "*"
 cxx-compiler = "*"
 
-[feature.mingw-compiler]
-platforms = ["win-64"]
-activation = { env = { CC = "gcc", CXX = "g++" } }
-
-[feature.mingw-compiler.dependencies]
-# Pinned due to https://github.com/conda-forge/m2w64-sysroot-feedstock/issues/23
-gcc = { version = "==16.1.0", build = "hb5e953d_1" }
-gxx = { version = "==16.1.0", build = "h1f05005_1" }
-libwinpthread = { version = "==12.0.0.r4.gg4f2fc60ca", build = "h57928b3_10" }
-m2w64-sysroot_win-64 = { version = "==12.0.0.r4.gg4f2fc60ca", build = "hd8ed1ab_10" }
-mingw-w64-ucrt-x86_64-crt-git = { version = "==12.0.0.r4.gg4f2fc60ca", build = "hd8ed1ab_10" }
-mingw-w64-ucrt-x86_64-headers-git = { version = "==12.0.0.r4.gg4f2fc60ca", build = "hd8ed1ab_10" }
-mingw-w64-ucrt-x86_64-winpthreads-git = { version = "==12.0.0.r4.gg4f2fc60ca", build = "hd8ed1ab_10" }
-
-[feature.sanitizers]
-platforms = ["linux-64"]
-dependencies = { clang = "*", clangxx = "*", compiler-rt = "*" }
-activation = { env = { CC = "clang", CXX = "clang++" } }
-
-# test latest 4 releases + nightly of numpy across the 4 tested Python versions
 [feature.numpy.dependencies]
 numpy = ">=2.0.2,<3"
-
-[feature.numpy22.dependencies]
-numpy = "2.2.*"
-
-[feature.numpy23.dependencies]
-numpy = "2.3.*"
-
-[feature.numpy24.dependencies]
-numpy = "2.4.*"
-
-[feature.numpy-nightly.pypi-dependencies]
-numpy = { version = "*", index = "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" }
 
 [target.win.dependencies]
 tzdata = ">=2023.3"
@@ -73,8 +41,8 @@ python = "3.13.*"
 [feature.py314.dependencies]
 python = "3.14.*"
 
-[feature.py314-freethreading.dependencies]
-python-freethreading = "3.14.*"
+[feature.py315.dependencies]
+python = "3.15.*"
 
 [feature.test-base.dependencies]
 pytest = ">=8.3.4"
@@ -88,30 +56,16 @@ pytest-localserver = ">=0.9.0"
 boto3 = ">=1.40.46"
 botocore = ">=1.40.46"
 
+[feature.test-clipboard]
+activation = { env = { QT_QPA_PLATFORM = "offscreen" } }
+
 [feature.test-clipboard.dependencies]
 pytest-qt = ">=4.4.0"
 pyqt = ">=5.15.11"
 qtpy = ">=2.4.3"
 
-# test latest 4 releases + nightly of pyarrow, see numpy for how this is tested
 [feature.pyarrow.dependencies]
 pyarrow = ">=16.0.0"
-
-[feature.pyarrow22.dependencies]
-pyarrow = "22.*"
-
-[feature.pyarrow23.dependencies]
-pyarrow = "23.*"
-
-[feature.pyarrow24.dependencies]
-pyarrow = "24.*"
-
-# To avoid pyarrow=24 for typing
-[feature.pyarrow25.dependencies]
-pyarrow = "25.*"
-
-[feature.pyarrow-nightly.pypi-dependencies]
-pyarrow = { version = "*", index = "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" }
 
 [feature.optional-dependencies.dependencies]
 adbc-driver-postgresql = ">=1.7.0"
@@ -119,7 +73,6 @@ adbc-driver-sqlite = ">=1.7.0"
 beautifulsoup4 = ">=4.13.4"
 blosc = ">=1.21.3"
 bottleneck = ">=1.5.0"
-fastparquet = ">=2024.11.0"
 fsspec = ">=2025.7.0"
 html5lib = ">=1.1"
 gcsfs = ">=2025.7.0"
@@ -132,7 +85,6 @@ numexpr = ">=2.11.0,!=2.14.1"
 odfpy = ">=1.4.1"
 openpyxl = ">=3.1.5"
 psycopg2 = ">=2.9.10"
-pyiceberg = ">=0.9.1"
 pymysql = ">=1.1.1"
 pyreadstat = ">=1.3.0"
 pytables = ">=3.10.2"
@@ -148,14 +100,45 @@ xlrd = ">=2.0.2"
 xlsxwriter = ">=3.2.5"
 zstandard = ">=0.23.0"
 
-[feature.minimum-versions]
+# TODO: Move these back to optional-dependencies once these packages support Python 3.15
+[feature.optional-dependencies-no-py315.dependencies]
+fastparquet = ">=2024.11.0"
+pyiceberg = ">=0.9.1"
+
+# Test latest N releases of pyarrow and numpy across the tested Python versions
+# The latest Python release should test the latest pyarrow and numpy version (unpinned)
+[environments]
+py311 = { features = ["py311", "test-base", "test-clipboard", "test-network", "optional-dependencies", "optional-dependencies-no-py315", "default-compiler"], dependencies = { numpy = "2.1.*", pyarrow = "22.*" } }
+py312 = { features = ["py312", "test-base", "test-clipboard", "test-network", "optional-dependencies", "optional-dependencies-no-py315", "default-compiler"], dependencies = { numpy = "2.2.*", pyarrow = "23.*" } }
+py313 = { features = ["py313", "test-base", "test-clipboard", "test-network", "optional-dependencies", "optional-dependencies-no-py315", "default-compiler"], dependencies = { numpy = "2.3.*", pyarrow = "24.*" } }
+py314 = { features = ["py314", "test-base", "test-clipboard", "test-network", "optional-dependencies", "optional-dependencies-no-py315", "default-compiler"], dependencies = { numpy = "2.4.*", pyarrow = "25.*" } }
+py315 = { features = ["py315", "numpy", "test-base", "test-network", "pyarrow", "optional-dependencies", "default-compiler"] }
+no-pyarrow = { features = ["py313", "numpy", "test-base", "test-clipboard", "test-network", "optional-dependencies", "optional-dependencies-no-py315", "default-compiler"] }
+
+[environments.minimum-versions]
+features = ["py311", "numpy", "test-base", "test-clipboard", "test-network", "pyarrow", "optional-dependencies", "optional-dependencies-no-py315", "default-compiler"]
 solve-strategy = "lowest-direct"
 
-[feature.minimum-versions.dependencies]
+[environments.minimum-versions.dependencies]
 # Avoid <3.11.5, soupsieve>=3.0 (for bs4) uses regex pattern supported by Python 3.11.5
 python = ">=3.11.5,<3.12"
 
-[feature.downstream.dependencies]
+[environments.py314-freethreading]
+features = ["numpy", "test-base", "default-compiler"]
+dependencies = { python-freethreading = "3.14.*" }
+
+[environments.numpy-nightly]
+features = ["py313", "test-base", "pyarrow", "default-compiler"]
+pypi-dependencies = { numpy = { version = "*", index = "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" } }
+
+[environments.pyarrow-nightly]
+features = ["py313", "numpy", "test-base", "default-compiler"]
+pypi-dependencies = { pyarrow = { version = "*", index = "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" } }
+
+[environments.downstream]
+features = ["py313", "numpy", "test-base", "default-compiler"]
+
+[environments.downstream.dependencies]
 cftime = "*"
 dask = "*"
 seaborn = "*"
@@ -165,11 +148,41 @@ pandas-datareader = "*"
 pyyaml = "*"
 xarray = ">=2025.7.1"
 
-[feature.benchmarks.dependencies]
+[environments.asv]
+features = ["py313", "numpy", "pyarrow", "optional-dependencies", "optional-dependencies-no-py315", "default-compiler"]
+
+[environments.asv.dependencies]
 asv = ">=0.6.6"
 py-rattler = "*"  # for environment_type in asv.conf.json
 
-[feature.documentation.dependencies]
+[environments.doctests]
+features = ["py313", "numpy", "test-base", "pyarrow", "optional-dependencies", "optional-dependencies-no-py315", "default-compiler"]
+
+[environments.doctests.dependencies]
+pytest-cython = ">=0.4.0"
+natsort = "*" # DataFrame.sort_values doctest
+tokenize-rt = "*" # scripts/check_for_inconsistent_pandas_namespace.py
+pyyaml = "*" # scripts/tests/test_validate_min_versions_in_sync.py
+
+[environments.typing]
+features = ["py313", "numpy", "test-base", "optional-dependencies", "optional-dependencies-no-py315", "default-compiler"]
+
+[environments.typing.dependencies]
+# To avoid pyarrow=24 for typing
+pyarrow = "25.*"
+pre-commit = ">=4.2.0"
+ipython = "*"
+mypy = "==2.4.0"
+scipy-stubs = "*"
+types-python-dateutil = "*"
+types-PyMySQL = "*"
+types-pytz = "*"
+types-PyYAML = "*"
+
+[environments.docs-and-web]
+features = ["py312", "numpy", "pyarrow", "optional-dependencies", "optional-dependencies-no-py315", "default-compiler"]
+
+[environments.docs-and-web.dependencies]
 gitpython = "*" # obtain contributors from git for whatsnew
 ipykernel = "*" # used in doc/source/user_guide/style.ipynb
 ipywidgets = "*" # used in doc/source/user_guide/style.ipynb
@@ -184,8 +197,6 @@ sphinx = "*"
 sphinx-design = ">=0.8.0"
 sphinx-copybutton = "*"
 pydata-sphinx-theme = "==0.20.0"
-
-[feature.website.dependencies]
 feedparser = "*"
 jinja2 = "*"
 jupyterlite-core = "*"
@@ -197,66 +208,68 @@ pytest = "*"
 pyyaml = "*"
 requests = "*"
 
-[feature.doctests.dependencies]
-pytest-cython = ">=0.4.0"
-natsort = "*" # DataFrame.sort_values doctest
-tokenize-rt = "*" # scripts/check_for_inconsistent_pandas_namespace.py
-pyyaml = "*" # scripts/tests/test_validate_min_versions_in_sync.py
+[environments.mingw]
+features = ["py313", "numpy", "test-base", "test-clipboard", "test-network", "pyarrow", "optional-dependencies", "optional-dependencies-no-py315"]
+platforms = ["win-64"]
+activation = { env = { CC = "gcc", CXX = "g++" } }
 
-[feature.typing.dependencies]
-pre-commit = ">=4.2.0"
-ipython = "*"
-mypy = "==2.4.0"
-scipy-stubs = "*"
-types-python-dateutil = "*"
-types-PyMySQL = "*"
-types-pytz = "*"
-types-PyYAML = "*"
+[environments.mingw.dependencies]
+# Pinned due to https://github.com/conda-forge/m2w64-sysroot-feedstock/issues/23
+gcc = { version = "==16.1.0", build = "hb5e953d_1" }
+gxx = { version = "==16.1.0", build = "h1f05005_1" }
+libwinpthread = { version = "==12.0.0.r4.gg4f2fc60ca", build = "h57928b3_10" }
+m2w64-sysroot_win-64 = { version = "==12.0.0.r4.gg4f2fc60ca", build = "hd8ed1ab_10" }
+mingw-w64-ucrt-x86_64-crt-git = { version = "==12.0.0.r4.gg4f2fc60ca", build = "hd8ed1ab_10" }
+mingw-w64-ucrt-x86_64-headers-git = { version = "==12.0.0.r4.gg4f2fc60ca", build = "hd8ed1ab_10" }
+mingw-w64-ucrt-x86_64-winpthreads-git = { version = "==12.0.0.r4.gg4f2fc60ca", build = "hd8ed1ab_10" }
 
-[environments]
-py311 = { features = ["py311", "numpy22", "test-base", "test-clipboard", "test-network", "pyarrow22", "optional-dependencies", "default-compiler"] }
-py312 = { features = ["py312", "numpy23", "test-base", "test-clipboard", "test-network", "pyarrow23", "optional-dependencies", "default-compiler"] }
-py313 = { features = ["py313", "numpy24", "test-base", "test-clipboard", "test-network", "pyarrow24", "optional-dependencies", "default-compiler"] }
-py314 = { features = ["py314", "numpy", "test-base", "test-clipboard", "test-network", "pyarrow", "optional-dependencies", "default-compiler"] }
-no-pyarrow = { features = ["py313", "numpy", "test-base", "test-clipboard", "test-network", "optional-dependencies", "default-compiler"] }
-minimum-versions = { features = ["py311", "numpy", "test-base", "test-clipboard", "test-network", "pyarrow", "optional-dependencies", "minimum-versions", "default-compiler"] }
-py314-freethreading = { features = ["py314-freethreading", "numpy", "test-base", "default-compiler"] }
-numpy-nightly = { features = ["py313", "numpy-nightly", "test-base", "pyarrow", "default-compiler"] }
-pyarrow-nightly = { features = ["py313", "numpy", "test-base", "pyarrow-nightly", "default-compiler"] }
-downstream = { features = ["py313", "numpy", "test-base", "downstream", "default-compiler"] }
-asv = { features = ["py313", "numpy", "pyarrow", "optional-dependencies", "benchmarks", "default-compiler"] }
-doctests = { features = ["py313", "numpy", "test-base", "pyarrow", "optional-dependencies", "doctests", "default-compiler"] }
-typing = { features = ["py313", "numpy", "test-base", "pyarrow25", "optional-dependencies", "typing", "default-compiler"] }
-docs-and-web = { features = ["py312", "numpy", "pyarrow", "optional-dependencies", "documentation", "website", "default-compiler"] }
-mingw = { features = ["py313", "numpy", "test-base", "test-clipboard", "test-network", "pyarrow", "optional-dependencies", "mingw-compiler"] }
-sanitizers = { features = ["py313", "numpy", "test-base", "pyarrow", "optional-dependencies", "sanitizers"] }
+[environments.sanitizers]
+features = ["py313", "numpy", "test-base", "pyarrow", "optional-dependencies", "optional-dependencies-no-py315"]
+platforms = ["linux-64"]
+dependencies = { clang = "*", clangxx = "*", compiler-rt = "*" }
+activation = { env = { CC = "clang", CXX = "clang++", ASAN_OPTIONS = "detect_leaks=0", UBSAN_OPTIONS = "halt_on_error=1:suppressions=$PIXI_PROJECT_ROOT/ci/suppressions/ubsan.txt" } }
 
 
 [tasks]
 [tasks.uninstall-pandas]
+description = "Uninstall pandas from the selected environment"
 cmd = "python -m pip uninstall -y pandas || true"
 
 [tasks.build-pandas]
-args = [
-  { "arg" = "editable", "default" = "" },
-  { "arg" = "werror", "default" = "" },
-]
-cmd = "python -m pip install --verbose {{ editable }} . --no-build-isolation --no-deps --config-settings builddir=build/$PIXI_ENVIRONMENT_NAME {{ werror }}"
+description = "Build pandas in editable mode into the selected environment"
+args = [{ arg = "werror", default = "true", choices = ["true", "false"] }]
+# py314-freethreading and minimum-versions: Cython <3.2 triggers
+#   pyatomic_gcc.h __atomic_fetch_add_8 -Werror=stringop-overflow; remove once Cython >=3.2
+cmd = """\
+python -m pip install --verbose --editable . --no-build-isolation --no-deps \
+--config-settings builddir=build/$PIXI_ENVIRONMENT_NAME \
+{% if werror == 'true' and pixi.environment.name not in ['py314-freethreading', 'minimum-versions'] %}-Csetup-args=--werror{% endif %} \
+{% if pixi.is_win and pixi.environment.name != 'mingw' %}-Csetup-args=--vsenv{% endif %} \
+{% if pixi.environment.name == 'py315' and not pixi.is_win %}-Csetup-args=-Dcpp_args=-Wno-missing-field-initializers{% endif %}"""
 depends-on = ["uninstall-pandas"]
 
 [tasks.ci-test-pandas]
+description = "Run the pandas test suite as CI does"
+# pandas_future sets PANDAS_FUTURE: "default" uses the default value of every
+# future config, "legacy" sets configs whose default has changed back to their
+# old values, and "upcoming" enables configs whose default has not yet changed.
+# Configs whose non-default values do not yet pass the test suite are exempt;
+# see _register_future_option in pandas/core/config_init.py.
 args = [
-  { "arg" = "pytest_flags" },
-  { "arg" = "numprocesses", "default" = "auto" },
-  { "arg" = "pytest_target", "default" = "pandas" },
+  { arg = "marker_expression", default = "not single_cpu" },
+  { arg = "numprocesses", default = "auto" },
+  { arg = "pytest_target", default = "pandas" },
+  { arg = "pandas_future", default = "default", choices = ["default", "legacy", "upcoming"] },
 ]
+env = { PANDAS_FUTURE = "{{ pandas_future }}", PYTHONDEVMODE = "1", PYTHONWARNDEFAULTENCODING = "1", MESONPY_EDITABLE_VERBOSE = "1" }
 cmd = [
   "python",
   "-m",
   "pytest",
   "-r",
   "fE",
-  "{{ pytest_flags }}",
+  "-m",
+  "{{ marker_expression }}",
   "--numprocesses={{ numprocesses }}",
   "--dist=worksteal",
   "--capture=no",
@@ -267,6 +280,7 @@ cmd = [
 ]
 
 [tasks.ci-doctests]
+description = "Run the docstring examples as doctests"
 # Avoids NumPy scalar reprs in docstrings.
 env = { PANDAS_FUTURE_PYTHON_SCALARS = "1" }
 cmd = [
@@ -281,6 +295,7 @@ cmd = [
 default-environment = "doctests"
 
 [tasks.ci-check-import]
+description = "Check that import pandas does not import optional dependencies"
 cmd = [
   "python",
   "-W",
@@ -289,6 +304,7 @@ cmd = [
 ]
 
 [tasks.ci-typing]
+description = "Run the type checkers (manual stage pre-commit hooks)"
 cmd = [
   "pre-commit",
   "run",
@@ -300,6 +316,7 @@ cmd = [
 default-environment = "typing"
 
 [tasks.ci-scripts-tests]
+description = "Run the tests of the scripts directory"
 cmd = [
   "python",
   "-m",
@@ -309,10 +326,9 @@ cmd = [
 default-environment = "doctests"
 
 [tasks.ci-asv]
+description = "Run each ASV benchmark once to check that it works"
+cwd = "asv_bench"
 cmd = [
-  "cd",
-  "asv_bench",
-  "&&",
   "python",
   "-m",
   "asv",
@@ -337,6 +353,7 @@ cmd = [
 default-environment = "asv"
 
 [tasks.ci-test-single-page-doc]
+description = "Build one documentation page with warnings as errors"
 args = [
   { "arg" = "page_to_build" }
 ]
@@ -355,24 +372,24 @@ cmd = [
 default-environment = "docs-and-web"
 
 [tasks.ci-test-nbconvert-doc-notebooks]
-args = [
-  { "arg" = "notebooks" }
-]
+description = "Execute the notebooks in the documentation"
 cmd = [
   "python",
   "-m",
   "jupyter",
   "nbconvert",
   "--execute",
-  "{{ notebooks }}",
+  "doc/source/**/*.ipynb",
   "--to",
   "notebook",
   "--stdout",
-  ">/dev/null",
+  ">",
+  "/dev/null",
 ]
 default-environment = "docs-and-web"
 
 [tasks.ci-build-documentation]
+description = "Build the documentation with warnings as errors"
 args = [
   { "arg" = "doc_type", "choices" = ["html", "zip_html"] }
 ]
@@ -385,6 +402,7 @@ cmd = [
 default-environment = "docs-and-web"
 
 [tasks.ci-test-website]
+description = "Run the tests of the website"
 cmd = [
   "python",
   "-m",
@@ -394,6 +412,7 @@ cmd = [
 default-environment = "docs-and-web"
 
 [tasks.ci-build-website]
+description = "Build the website into web/build"
 cmd = [
   "python",
   "web/pandas_web.py",
@@ -403,6 +422,7 @@ cmd = [
 default-environment = "docs-and-web"
 
 [tasks.ci-build-interactive_terminal]
+description = "Build the JupyterLite interactive terminal of the website"
 cmd = [
   "python",
   "-m",

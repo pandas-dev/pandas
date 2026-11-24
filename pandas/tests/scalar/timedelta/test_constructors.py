@@ -709,6 +709,26 @@ def test_construction_out_of_bounds_td64s(val, unit):
         ("PT-6H3M", pd.Timedelta(hours=-6, minutes=3)),
         ("-PT6H3M", pd.Timedelta(hours=-6, minutes=-3)),
         ("-PT-6H+3M", pd.Timedelta(hours=6, minutes=-3)),
+        # GH#48122, GH#51882 more than two digits, fractions on any unit, comma
+        ("PT100H", pd.Timedelta(hours=100)),
+        ("PT001H", pd.Timedelta(hours=1)),
+        ("PT100M", pd.Timedelta(minutes=100)),
+        ("P0DT999H999M999S", pd.Timedelta(hours=999, minutes=999, seconds=999)),
+        ("PT3.5H", pd.Timedelta(hours=3.5)),
+        ("PT3,5H", pd.Timedelta(hours=3.5)),
+        ("PT1.5M", pd.Timedelta(seconds=90)),
+        ("PT1,5S", pd.Timedelta(seconds=1.5)),
+        ("P1.5D", pd.Timedelta(days=1, hours=12)),
+        ("P0.5W", pd.Timedelta(days=3, hours=12)),
+        ("PT-0.25H", pd.Timedelta(minutes=-15)),
+        ("-PT0.1H", pd.Timedelta(minutes=-6)),
+        ("PT-0.1234S", pd.Timedelta(seconds=-0.1234)),
+        # 0.72ns rounds to 1ns
+        ("PT0.0000000000002H", pd.Timedelta(nanoseconds=1)),
+        ("-PT0.0000000000002H", pd.Timedelta(nanoseconds=-1)),
+        # more than nanosecond precision rounds, as for "1.0000000005s"
+        ("PT1.0000000005S", pd.Timedelta(seconds=1, nanoseconds=1)),
+        ("P1DT0H0M0.0000000000000S", pd.Timedelta(days=1)),
     ],
 )
 def test_iso_constructor(fmt, exp):
@@ -720,11 +740,28 @@ def test_iso_constructor(fmt, exp):
     [
         "PPPPPPPPPPPP",
         "PDTHMS",
-        "P0DT999H999M999S",
-        "P1DT0H0M0.0000000000000S",
         "P1DT0H0M0.S",
         "P",
         "-P",
+        "P1Y",
+        "P1DT-1H",  # "-" only on the first component
+        # GH#51882 these used to parse, some to a wrong value
+        "P1M",  # months, not minutes
+        "P1",
+        "PT1S1S",
+        "PT1H1H",
+        "PT1M1H",
+        "PT1.5H30M",  # only the last component may have a fraction
+        "P1.5DT1H",
+        "PT.1S",
+        "P1H",
+        "P1S",
+        "PT1D",
+        "P1DT",
+        "PTTT1H",
+        "P1TD",
+        "P1PD",
+        "-P-P1D",
     ],
 )
 def test_iso_constructor_raises(fmt):
@@ -963,9 +1000,9 @@ def test_construction_comma_separator(value, expected):
         #  the total is checked
         ("1000000 days", "cannot convert input 1000000.0 with the unit 'D'"),
         ("99999999999999999999ns", "cannot convert input 1e+20 with the unit 'ns'"),
-        ("P106752D", "cannot convert input 106752.0 with the unit 'D'"),
-        ("-P200000D", "cannot convert input 200000.0 with the unit 'D'"),
         # the total is out of range
+        ("P106752D", "Out of bounds nanosecond timedelta: 'P106752D'"),
+        ("-P200000D", "Out of bounds nanosecond timedelta: '-P200000D'"),
         (
             "99999999999999999999:00:00",
             "Out of bounds nanosecond timedelta: '99999999999999999999:00:00'",
@@ -1011,6 +1048,8 @@ def test_construction_string_out_of_bounds(value, msg):
         ("-2562047:47:16.854775807", pd.Timedelta(-(2**63) + 1, "ns")),
         ("106751 days 23:47:16.854775807", pd.Timedelta(2**63 - 1, "ns")),
         ("P106751DT23H47M16.854775807S", pd.Timedelta(2**63 - 1, "ns")),
+        # GH#51882 Timedelta.min, as isoformat writes it
+        ("P-106752DT0H12M43.145224193S", pd.Timedelta(-(2**63) + 1, "ns")),
         # GH#68560 the leading "-" applies to every term until the first ":",
         #  so the running total can leave the range and be brought back
         (

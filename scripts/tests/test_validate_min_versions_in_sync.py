@@ -139,6 +139,9 @@ def test_get_versions_from_ci_parses_pixi_toml() -> None:
         blosc = ">=1.21.3"
         pytables = ">=3.10.1"
         zstandard = ">=0.23.0"
+
+        [feature.optional-dependencies-no-py315.dependencies]
+        fastparquet = ">=2024.11.0"
         """
     ).splitlines()
 
@@ -150,6 +153,7 @@ def test_get_versions_from_ci_parses_pixi_toml() -> None:
     }
     assert optional == {
         "beautifulsoup4": "4.12.3",
+        "fastparquet": "2024.11.0",
         "pyarrow": "16.0.0",
         "pytest": "8.3.4",
         "pytables": "3.10.1",

@@ -124,6 +124,15 @@ def test_table_labels(frame_or_series, kwargs, expected_rows, expected_columns):
     assert columns == expected_columns
 
 
+def _tick_labels_visible(axis):
+    # [any label1 visible, any label2 visible] over the major ticks
+    ticks = axis.get_major_ticks()
+    return [
+        any(getattr(tick, label).get_visible() for tick in ticks)
+        for label in ["label1", "label2"]
+    ]
+
+
 class TestSeriesPlots:
     def test_autocorrelation_plot(self):
         ser = pd.Series(
@@ -712,6 +721,56 @@ class TestDataFramePlots:
         assert not plots[0][0].xaxis.get_label().get_visible()
         assert plots[0][1].xaxis.get_label().get_visible()
         assert not plots[0][2].xaxis.get_label().get_visible()
+
+    def test_shared_axes_leaves_other_axes_tick_labels(self):
+        # GH#27052 plotting into one axes must not re-hide tick labels the
+        # user turned back on in a sibling axes
+        df = pd.DataFrame(np.random.default_rng(2).random((10, 2)))
+        fig, axes = mpl.pyplot.subplots(2, 2, sharex=True, sharey=True)
+        for ax, col in zip(axes[0], df.columns, strict=True):
+            df[col].plot(ax=ax)
+            ax.tick_params(labelleft=True, labelright=True, labelbottom=True)
+        # plotted with matplotlib directly, so pandas must not touch it
+        axes[1, 1].plot(df[0])
+        axes[1, 1].tick_params(labelleft=True)
+        df[1].plot(ax=axes[1, 0])
+
+        assert _tick_labels_visible(axes[0, 0].xaxis) == [True, False]
+        assert _tick_labels_visible(axes[0, 1].xaxis) == [True, False]
+        assert _tick_labels_visible(axes[0, 1].yaxis) == [True, True]
+        assert _tick_labels_visible(axes[1, 1].yaxis) == [True, False]
+
+    def test_shared_axes_explicit_sharex_hides_other_axes_labels(self):
+        # GH#27052 explicit sharex=True with ax still alters every axes in the
+        # figure, as documented
+        df = pd.DataFrame({"a": [1.0, 2.0], "b": [3.0, 4.0]})
+        fig = mpl.pyplot.figure()
+        ax1 = fig.add_subplot(211)
+        df.plot(ax=ax1, sharex=True)
+        ax2 = fig.add_subplot(212)
+        df.plot(ax=ax2, sharex=True)
+        assert _tick_labels_visible(ax1.xaxis) == [False, False]
+        assert _tick_labels_visible(ax2.xaxis) == [True, False]
+
+    def test_shared_axes_subplots_secondary_y_hides_primary_labels(self):
+        # GH#27052 with subplots=True the plotted axes is the twin, but the
+        # x labels to hide are on its primary axes
+        df = pd.DataFrame({"a": [1.0, 2.0], "b": [3.0, 4.0]})
+        fig, axes = mpl.pyplot.subplots(2, 1, sharex=True)
+        for ax in axes:
+            ax.tick_params(labelbottom=True)
+        df.plot(subplots=True, ax=axes, secondary_y=True)
+        assert _tick_labels_visible(axes[0].xaxis) == [False, False]
+
+    def test_shared_axes_gridspec_gap_hides_labels(self):
+        # GH#27052 a gap row sends the layout check down the is_last_row
+        # path, which must not depend on which axes is plotted on
+        fig = mpl.pyplot.figure()
+        gs = fig.add_gridspec(3, 1)
+        top = fig.add_subplot(gs[0])
+        fig.add_subplot(gs[2], sharex=top)
+        pd.Series([1.0, 2.0]).plot(ax=top)
+        assert _tick_labels_visible(top.xaxis) == [False, False]
 
     def test_plot_bar_axis_units_timestamp_conversion(self):
         # GH 38736
