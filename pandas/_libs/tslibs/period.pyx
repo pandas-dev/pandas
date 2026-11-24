@@ -2014,7 +2014,9 @@ cdef class PeriodMixin:
 
         Returns
         -------
-        Timestamp
+        Timestamp or Series
+            A Timestamp for a Period, or a Series of datetimes when called
+            through ``Series.dt``.
 
         See Also
         --------
@@ -2025,6 +2027,8 @@ cdef class PeriodMixin:
 
         Examples
         --------
+        For Period:
+
         >>> period = pd.Period('2012-1-1', freq='D')
         >>> period
         Period('2012-01-01', 'D')
@@ -2034,6 +2038,15 @@ cdef class PeriodMixin:
 
         >>> period.end_time
         Timestamp('2012-01-01 23:59:59.999999')
+
+        For Series:
+
+        >>> ser = pd.Series(pd.period_range("2020-01", periods=3, freq="M"))
+        >>> ser.dt.start_time
+        0   2020-01-01
+        1   2020-02-01
+        2   2020-03-01
+        dtype: datetime64[us]
         """
         return self.to_timestamp(how="start")
 
@@ -2048,7 +2061,9 @@ cdef class PeriodMixin:
 
         Returns
         -------
-        Timestamp
+        Timestamp or Series
+            A Timestamp for a Period, or a Series of datetimes when called
+            through ``Series.dt``.
 
         See Also
         --------

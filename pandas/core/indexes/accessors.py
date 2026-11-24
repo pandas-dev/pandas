@@ -466,7 +466,7 @@ class DatetimeProperties(Properties):
 
         See Also
         --------
-        Series.dt.to_period : Cast to PeriodArray/PeriodIndex at a particular
+        Series.dt.to_period : Cast the datetimes to periods at a particular
             frequency.
 
         Notes
