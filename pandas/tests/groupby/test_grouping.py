@@ -1492,3 +1492,15 @@ def test_gh61943_categorical_sort_precedence(
     ).sum()
 
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("as_list", [True, False])
+def test_gh61943_grouper_positional_freq(as_list):
+    # GH#61943
+    df = pd.DataFrame({"k": [3, 1, 2], "A": [1, 2, 3]})
+    grouper = pd.Grouper("k", None, "D")
+
+    result = df.groupby([grouper] if as_list else grouper).sum()
+    expected = df.groupby("k").sum()
+
+    tm.assert_frame_equal(result, expected)
