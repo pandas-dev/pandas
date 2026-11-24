@@ -8,7 +8,6 @@ from decimal import Decimal
 from typing import (
     TYPE_CHECKING,
     Any,
-    TypeVar,
     cast,
     overload,
 )
@@ -69,7 +68,6 @@ if TYPE_CHECKING:
 isposinf_scalar = libmissing.isposinf_scalar
 isneginf_scalar = libmissing.isneginf_scalar
 
-_ArrLikeT = TypeVar("_ArrLikeT", "Series", "Index", np.ndarray)
 
 _dtype_object = np.dtype("object")
 _dtype_str = np.dtype(str)
@@ -666,7 +664,9 @@ def na_value_for_dtype(dtype: DtypeObj, compat: bool = True) -> Scalar:
     return np.nan
 
 
-def remove_na_arraylike(arr: _ArrLikeT) -> _ArrLikeT:
+def remove_na_arraylike[ArrLikeT: ("Series", "Index", np.ndarray)](
+    arr: ArrLikeT,
+) -> ArrLikeT:
     """
     Return array-like containing only true/non-NaN values, possibly empty.
     """

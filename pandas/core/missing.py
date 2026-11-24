@@ -50,7 +50,6 @@ from pandas.core.dtypes.missing import (
 
 if TYPE_CHECKING:
     from collections.abc import Callable
-    from typing import TypeAlias
 
     from pandas._typing import (
         ArrayLike,
@@ -62,7 +61,7 @@ if TYPE_CHECKING:
 
     from pandas import Index
 
-    _CubicBC: TypeAlias = Literal["not-a-knot", "clamped", "natural", "periodic"]
+    type _CubicBC = Literal["not-a-knot", "clamped", "natural", "periodic"]
 
 
 def check_value_size(value, mask: npt.NDArray[np.bool_], length: int):

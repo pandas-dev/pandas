@@ -13,7 +13,6 @@ import functools
 from typing import (
     TYPE_CHECKING,
     Any,
-    Generic,
     final,
 )
 import warnings
@@ -26,13 +25,6 @@ from pandas._libs import (
     lib,
 )
 import pandas._libs.groupby as libgroupby
-from pandas._typing import (
-    ArrayLike,
-    AxisInt,
-    NDFrameT,
-    Shape,
-    npt,
-)
 from pandas.errors import (
     AbstractMethodError,
     Pandas4Warning,
@@ -78,6 +70,14 @@ if TYPE_CHECKING:
         Generator,
         Hashable,
         Iterator,
+    )
+
+    from pandas._typing import (
+        ArrayLike,
+        AxisInt,
+        NDFrameT,
+        Shape,
+        npt,
     )
 
     from pandas.core.generic import NDFrame
@@ -1448,7 +1448,7 @@ def _is_indexed_like(obj, axes) -> bool:
 # Splitting / application
 
 
-class DataSplitter(Generic[NDFrameT]):
+class DataSplitter[NDFrameT: NDFrame]:
     def __init__(
         self,
         data: NDFrameT,

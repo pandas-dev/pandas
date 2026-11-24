@@ -24,7 +24,6 @@ from typing import (
     Literal,
     NoReturn,
     Self,
-    TypeAlias,
     cast,
     final,
     overload,
@@ -228,7 +227,7 @@ if TYPE_CHECKING:
     from pandas.core.indexers.objects import BaseIndexer
     from pandas.core.resample import Resampler
 
-    _StylerKwargs: TypeAlias = dict[str, Any] | list[dict[str, Any]]
+    type _StylerKwargs = dict[str, Any] | list[dict[str, Any]]
 
 
 def _is_np_bool_backed(obj: NDFrame) -> bool:

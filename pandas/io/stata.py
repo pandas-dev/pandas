@@ -24,7 +24,6 @@ import sys
 from typing import (
     IO,
     TYPE_CHECKING,
-    AnyStr,
     Final,
     Self,
 )
@@ -2324,7 +2323,7 @@ def _set_endianness(endianness: str) -> str:
         raise ValueError(f"Endianness {endianness} not understood")
 
 
-def _pad_bytes(name: AnyStr, length: int) -> AnyStr:
+def _pad_bytes[AnyStr: (bytes, str)](name: AnyStr, length: int) -> AnyStr:
     """
     Take a char string and pads it with null bytes until it's length chars.
     """

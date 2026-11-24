@@ -6,7 +6,6 @@ from __future__ import annotations
 
 from typing import (
     TYPE_CHECKING,
-    Generic,
     Literal,
     cast,
     final,
@@ -41,7 +40,6 @@ if TYPE_CHECKING:
     from pandas._typing import (
         DtypeObj,
         IndexLabel,
-        NDFrameT,
     )
 
     from pandas import (
@@ -49,17 +47,17 @@ if TYPE_CHECKING:
         Index,
         Series,
     )
+    from pandas.core.generic import NDFrame
 else:
     # Generic[...] requires a non-str, provide it with a plain TypeVar at
     # runtime to avoid circular imports
     from pandas._typing import T
 
-    NDFrameT = T
     DataFrame = T
     Series = T
 
 
-class SelectN(Generic[NDFrameT]):
+class SelectN[NDFrameT: NDFrame]:
     def __init__(
         self, obj: NDFrameT, n: int, keep: Literal["first", "last", "all"]
     ) -> None:

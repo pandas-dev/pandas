@@ -20,7 +20,6 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Concatenate,
-    TypeVar,
     cast,
     overload,
 )
@@ -60,7 +59,6 @@ if TYPE_CHECKING:
         AnyArrayLike,
         ArrayLike,
         NpDtype,
-        P,
         RandomState,
         T,
     )
@@ -490,20 +488,17 @@ def random_state(
         )
 
 
-_T = TypeVar("_T")  # Secondary TypeVar for use in pipe's type hints
-
-
 @overload
-def pipe(
-    obj: _T,
-    func: Callable[Concatenate[_T, P], T],
+def pipe[ObjT, **P, T](
+    obj: ObjT,
+    func: Callable[Concatenate[ObjT, P], T],
     *args: P.args,
     **kwargs: P.kwargs,
 ) -> T: ...
 
 
 @overload
-def pipe(
+def pipe[T](
     obj: Any,
     func: tuple[Callable[..., T], str],
     *args: Any,
@@ -511,9 +506,9 @@ def pipe(
 ) -> T: ...
 
 
-def pipe(
-    obj: _T,
-    func: Callable[Concatenate[_T, P], T] | tuple[Callable[..., T], str],
+def pipe[ObjT, **P, T](
+    obj: ObjT,
+    func: Callable[Concatenate[ObjT, P], T] | tuple[Callable[..., T], str],
     *args: Any,
     **kwargs: Any,
 ) -> T:

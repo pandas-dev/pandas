@@ -27,7 +27,6 @@ from typing import (
     Concatenate,
     Literal,
     Self,
-    TypeAlias,
     TypeVar,
     cast,
     final,
@@ -203,7 +202,7 @@ class GroupByPlot(PandasObject):
         return attr
 
 
-_KeysArgType: TypeAlias = (
+type _KeysArgType = (
     Hashable
     | list[Hashable]
     | Callable[[Hashable], Hashable]

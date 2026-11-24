@@ -11,7 +11,6 @@ from typing import (
     ClassVar,
     Literal,
     Self,
-    TypeAlias,
     overload,
 )
 
@@ -32,7 +31,7 @@ from pandas._typing import (
     TimeUnit,
 )
 
-_TimeZones: TypeAlias = str | _tzinfo | int | None
+type _TimeZones = str | _tzinfo | int | None
 
 def integer_op_not_supported(obj: object) -> TypeError: ...
 

@@ -12,7 +12,6 @@ from collections.abc import (
 from typing import (
     TYPE_CHECKING,
     Any,
-    TypeVar,
     overload,
 )
 import warnings
@@ -31,9 +30,6 @@ from pandas.core.dtypes.common import (
 
 if TYPE_CHECKING:
     from pandas._typing import DtypeBackend
-
-BoolishT = TypeVar("BoolishT", bool, int)
-BoolishNoneT = TypeVar("BoolishNoneT", bool, int, None)
 
 
 def _check_arg_length(
@@ -257,7 +253,7 @@ def validate_args_and_kwargs(
     validate_kwargs(fname, kwargs, compat_args)
 
 
-def validate_bool_kwarg(
+def validate_bool_kwarg[BoolishNoneT: (bool, int, None)](
     value: BoolishNoneT,
     arg_name: str,
     none_allowed: bool = True,
@@ -388,14 +384,16 @@ def validate_percentile(q: float | Iterable[float]) -> np.ndarray:
 
 
 @overload
-def validate_ascending(ascending: BoolishT) -> BoolishT: ...
+def validate_ascending[BoolishT: (bool, int)](ascending: BoolishT) -> BoolishT: ...
 
 
 @overload
-def validate_ascending(ascending: Sequence[BoolishT]) -> list[BoolishT]: ...
+def validate_ascending[BoolishT: (bool, int)](
+    ascending: Sequence[BoolishT],
+) -> list[BoolishT]: ...
 
 
-def validate_ascending(
+def validate_ascending[BoolishT: (bool, int)](
     ascending: bool | int | Sequence[BoolishT],
 ) -> bool | int | list[BoolishT]:
     """Validate ``ascending`` kwargs for ``sort_index`` method."""

@@ -7,7 +7,6 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Self,
-    TypeAlias,
     TypeVar,
     cast,
     final,
@@ -121,17 +120,15 @@ if TYPE_CHECKING:
     from pandas.core.arrays import ExtensionArray
     from pandas.core.base import IndexOpsMixin
 
-    _IndexSliceTuple: TypeAlias = tuple[
-        IndexOpsMixin | Scalar | Sequence[Any] | slice, ...
-    ]
+    type _IndexSliceTuple = tuple[IndexOpsMixin | Scalar | Sequence[Any] | slice, ...]
 
-    _IndexSliceUnion: TypeAlias = (
+    type _IndexSliceUnion = (
         Scalar | Sequence[Any] | slice | _IndexSliceTuple | tuple[_IndexSliceTuple, ...]
     )
 
     _IndexSliceUnionT = TypeVar("_IndexSliceUnionT", bound=_IndexSliceUnion)
 
-    _NDFrameIndexerBase: TypeAlias = NDFrameIndexerBase[Any]
+    _NDFrameIndexerBase = NDFrameIndexerBase[Any]
 else:
     # the cdef class is not subscriptable at runtime
     _NDFrameIndexerBase = NDFrameIndexerBase

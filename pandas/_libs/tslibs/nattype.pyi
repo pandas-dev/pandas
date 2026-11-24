@@ -8,7 +8,6 @@ from typing import (
     Literal,
     NoReturn,
     Self,
-    TypeAlias,
     overload,
 )
 
@@ -27,8 +26,8 @@ NaT: NaTType
 iNaT: int
 nat_strings: set[str]
 
-_TimeLike: TypeAlias = datetime | timedelta | Period | np.datetime64 | np.timedelta64
-_TimeDelta: TypeAlias = timedelta | np.timedelta64
+type _TimeLike = datetime | timedelta | Period | np.datetime64 | np.timedelta64
+type _TimeDelta = timedelta | np.timedelta64
 
 class NaTType:
     _value: int

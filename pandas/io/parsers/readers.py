@@ -26,7 +26,6 @@ from typing import (
     IO,
     TYPE_CHECKING,
     Any,
-    Generic,
     Literal,
     Self,
     TypedDict,
@@ -134,7 +133,9 @@ if TYPE_CHECKING:
         UsecolsArgType,
     )
 
-    class _read_shared(TypedDict, Generic[HashableT, HashableT2], total=False):
+    class _read_shared[HashableT: Hashable, HashableT2: Hashable](
+        TypedDict, total=False
+    ):
         # annotations shared between read_csv/fwf/table's overloads
         # NOTE: Keep in sync with the annotations of the implementation
         sep: str | lib.NoDefault | None

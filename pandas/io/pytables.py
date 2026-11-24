@@ -21,7 +21,6 @@ from typing import (
     Final,
     Literal,
     Self,
-    TypeAlias,
     cast,
     overload,
 )
@@ -141,7 +140,7 @@ if TYPE_CHECKING:
 
     from pandas.core.internals import Block
 
-    _WhereArg: TypeAlias = dict[Any, Any] | list[Any] | tuple[Any, ...] | str
+    type _WhereArg = dict[Any, Any] | list[Any] | tuple[Any, ...] | str
 
 
 # encoding
@@ -168,7 +167,7 @@ def _ensure_str(name):
     return name
 
 
-Term: TypeAlias = PyTablesExpr
+Term = PyTablesExpr
 
 
 def _ensure_term(where, scope_level: int):

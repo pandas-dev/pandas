@@ -9,10 +9,8 @@ from itertools import islice
 from typing import (
     TYPE_CHECKING,
     Any,
-    Generic,
     Literal,
     Self,
-    TypeVar,
     final,
     overload,
 )
@@ -100,8 +98,6 @@ if TYPE_CHECKING:
     )
 
     from pandas.core.generic import NDFrame
-
-FrameSeriesStrT = TypeVar("FrameSeriesStrT", bound=Literal["frame", "series"])
 
 
 def _has_dt_accessor(dtype: DtypeObj) -> bool:
@@ -1021,7 +1017,9 @@ def read_json(
 
 
 @set_module("pandas.api.typing")
-class JsonReader(abc.Iterator[DataFrame | Series], Generic[FrameSeriesStrT]):
+class JsonReader[FrameSeriesStrT: Literal["frame", "series"]](
+    abc.Iterator[DataFrame | Series]
+):
     """
     JsonReader provides an interface for reading in a JSON file.
 

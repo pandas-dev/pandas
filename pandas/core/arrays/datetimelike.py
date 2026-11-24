@@ -11,7 +11,6 @@ from typing import (
     Any,
     Literal,
     Self,
-    TypeAlias,
     cast,
     final,
     overload,
@@ -157,7 +156,7 @@ if TYPE_CHECKING:
         TimedeltaArray,
     )
 
-DTScalarOrNaT: TypeAlias = DatetimeLikeScalar | NaTType
+type DTScalarOrNaT = DatetimeLikeScalar | NaTType
 
 
 def _make_unpacked_invalid_op(op_name: str):

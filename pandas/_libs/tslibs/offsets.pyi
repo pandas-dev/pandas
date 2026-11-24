@@ -22,7 +22,6 @@ from pandas._typing import (
     npt,
 )
 
-_BaseOffsetT = TypeVar("_BaseOffsetT", bound=BaseOffset)
 _DatetimeT = TypeVar("_DatetimeT", bound=datetime)
 _TimedeltaT = TypeVar("_TimedeltaT", bound=timedelta)
 
@@ -112,7 +111,9 @@ class SingleConstructorOffset(BaseOffset):
 @overload
 def to_offset(freq: None, is_period: bool = ...) -> None: ...
 @overload
-def to_offset(freq: _BaseOffsetT, is_period: bool = ...) -> _BaseOffsetT: ...
+def to_offset[BaseOffsetT: BaseOffset](
+    freq: BaseOffsetT, is_period: bool = ...
+) -> BaseOffsetT: ...
 @overload
 def to_offset(
     freq: timedelta | str | PeriodDtypeBase, is_period: bool = ...

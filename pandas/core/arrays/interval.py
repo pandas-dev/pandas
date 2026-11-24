@@ -10,7 +10,6 @@ from typing import (
     Any,
     Literal,
     Self,
-    TypeAlias,
     cast,
     overload,
 )
@@ -126,8 +125,8 @@ if TYPE_CHECKING:
     )
 
 
-IntervalSide: TypeAlias = TimeArrayLike | np.ndarray
-IntervalOrNA: TypeAlias = "Interval[Any] | float"
+type IntervalSide = TimeArrayLike | np.ndarray
+type IntervalOrNA = Interval[Any] | float
 
 # Fixed salts for the four VALID_CLOSED values, used in _hash_pandas_object so
 # the result is deterministic across processes (unlike the builtin str hash).

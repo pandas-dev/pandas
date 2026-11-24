@@ -20,7 +20,6 @@ import sys
 from typing import (
     TYPE_CHECKING,
     Any,
-    TypeAlias,
     TypeVar,
 )
 from unicodedata import east_asian_width
@@ -45,7 +44,7 @@ from pandas.io.formats.console import get_console_size
 
 if TYPE_CHECKING:
     from pandas._typing import ListLike
-EscapeChars: TypeAlias = Mapping[str, str] | Iterable[str]
+type EscapeChars = Mapping[str, str] | Iterable[str]
 _KT = TypeVar("_KT")
 _VT = TypeVar("_VT")
 

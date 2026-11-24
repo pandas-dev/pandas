@@ -35,8 +35,6 @@ from typing import (
     IO,
     TYPE_CHECKING,
     Any,
-    AnyStr,
-    Generic,
     Literal,
     TypeVar,
     cast,
@@ -110,7 +108,7 @@ class IOArgs:
 
 
 @dataclasses.dataclass
-class IOHandles(Generic[AnyStr]):
+class IOHandles[AnyStr: (bytes, str)]:
     """
     Return value of io/common.py:get_handle
 
@@ -182,10 +180,14 @@ def _expand_user(filepath_or_buffer: str) -> str: ...
 
 
 @overload
-def _expand_user(filepath_or_buffer: BaseBufferT) -> BaseBufferT: ...
+def _expand_user[BaseBufferT: BaseBuffer](
+    filepath_or_buffer: BaseBufferT,
+) -> BaseBufferT: ...
 
 
-def _expand_user(filepath_or_buffer: str | BaseBufferT) -> str | BaseBufferT:
+def _expand_user[BaseBufferT: BaseBuffer](
+    filepath_or_buffer: str | BaseBufferT,
+) -> str | BaseBufferT:
     """
     Return the argument with an initial component of ~ or ~user
     replaced by that user's home directory.
@@ -240,12 +242,12 @@ def stringify_path(
 
 
 @overload
-def stringify_path(
+def stringify_path[BaseBufferT: BaseBuffer](
     filepath_or_buffer: BaseBufferT, convert_file_like: bool = ...
 ) -> BaseBufferT: ...
 
 
-def stringify_path(
+def stringify_path[BaseBufferT: BaseBuffer](
     filepath_or_buffer: FilePath | BaseBufferT,
     convert_file_like: bool = False,
 ) -> str | BaseBufferT:

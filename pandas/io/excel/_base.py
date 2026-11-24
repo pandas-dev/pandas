@@ -16,10 +16,8 @@ from typing import (
     IO,
     TYPE_CHECKING,
     Any,
-    Generic,
     Literal,
     Self,
-    TypeVar,
     cast,
     overload,
 )
@@ -563,11 +561,8 @@ def read_excel(
     return data
 
 
-_WorkbookT = TypeVar("_WorkbookT")
-
-
-class BaseExcelReader(Generic[_WorkbookT]):
-    book: _WorkbookT
+class BaseExcelReader[WorkbookT]:
+    book: WorkbookT
 
     def __init__(
         self,
@@ -602,10 +597,10 @@ class BaseExcelReader(Generic[_WorkbookT]):
             )
 
     @property
-    def _workbook_class(self) -> type[_WorkbookT]:
+    def _workbook_class(self) -> type[WorkbookT]:
         raise NotImplementedError
 
-    def load_workbook(self, filepath_or_buffer, engine_kwargs) -> _WorkbookT:
+    def load_workbook(self, filepath_or_buffer, engine_kwargs) -> WorkbookT:
         raise NotImplementedError
 
     def close(self) -> None:
@@ -1000,7 +995,7 @@ class BaseExcelReader(Generic[_WorkbookT]):
 
 
 @set_module("pandas")
-class ExcelWriter(Generic[_WorkbookT]):
+class ExcelWriter[WorkbookT]:
     """
     Class for writing DataFrame objects into excel sheets.
 
@@ -1271,7 +1266,7 @@ class ExcelWriter(Generic[_WorkbookT]):
         raise NotImplementedError
 
     @property
-    def book(self) -> _WorkbookT:
+    def book(self) -> WorkbookT:
         """
         Book instance. Class type will depend on the engine used.
 
