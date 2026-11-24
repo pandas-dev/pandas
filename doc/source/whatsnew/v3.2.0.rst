@@ -256,9 +256,9 @@ Timedelta
 
 Timezones
 ^^^^^^^^^
+- Bug in :func:`concat` and :class:`DatetimeIndex` set operations (:meth:`Index.union`, :meth:`Index.intersection`, :meth:`Index.symmetric_difference`) falling back to ``object`` dtype or needlessly converting to UTC when inputs had different time units and semantically equal timezones from different timezone types, such as ``datetime.timezone.utc`` and ``zoneinfo.ZoneInfo("UTC")`` (:issue:`72318`)
 - Bug in :meth:`DataFrame.query` and :meth:`DataFrame.eval` comparing a timezone-aware datetime column to a string without a UTC offset raising ``TypeError`` or returning incorrect results; the string is now localized to the column's timezone, as in ``df["col"] < "2000-01-02"`` (:issue:`26236`)
 - Bug in timezone-aware datetimes outside the range of :class:`datetime.datetime` with a ``zoneinfo`` time zone, where localizing, converting or displaying them and :meth:`Timestamp.utcoffset` raised ``NotImplementedError``, for example after adding a large :class:`Timedelta`; they now follow the time zone's rules (:issue:`68009`)
--
 
 Numeric
 ^^^^^^^

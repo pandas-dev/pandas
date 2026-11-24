@@ -4,6 +4,7 @@ from datetime import (
     timedelta,
     timezone,
 )
+import zoneinfo
 
 import numpy as np
 import pytest
@@ -295,6 +296,68 @@ class TestDatetimeIndexSetOps:
         result = idx1.symmetric_difference(idx4)
         expected = pd.DatetimeIndex(["2000-01-01", "2000-01-04"], tz=tz).as_unit("ns")
         tm.assert_index_equal(result, expected)
+
+    def test_setops_equivalent_tz_different_units(self):
+        idx1 = pd.DatetimeIndex(
+            ["2000-01-01", "2000-01-03"], tz=zoneinfo.ZoneInfo("UTC")
+        ).as_unit("ns")
+        idx2 = pd.DatetimeIndex(["2000-01-03", "2000-01-06"], tz=UTC).as_unit("us")
+
+        expected_union = pd.DatetimeIndex(
+            ["2000-01-01", "2000-01-03", "2000-01-06"], tz="UTC"
+        ).as_unit("ns")
+        expected_inter = pd.DatetimeIndex(["2000-01-03"], tz="UTC").as_unit("ns")
+        expected_sym = pd.DatetimeIndex(["2000-01-01", "2000-01-06"], tz="UTC").as_unit(
+            "ns"
+        )
+
+        for left, right in [(idx1, idx2), (idx2, idx1)]:
+            for res, exp in [
+                (left.union(right), expected_union),
+                (left.intersection(right), expected_inter),
+                (left.symmetric_difference(right), expected_sym),
+            ]:
+                assert res.tz == left.tz
+                tm.assert_index_equal(res, exp)
+
+        diff1 = idx1.difference(idx2)
+        assert diff1.tz == idx1.tz
+        tm.assert_index_equal(
+            diff1, pd.DatetimeIndex(["2000-01-01"], tz="UTC").as_unit("ns")
+        )
+        diff2 = idx2.difference(idx1)
+        assert diff2.tz == idx2.tz
+        tm.assert_index_equal(
+            diff2, pd.DatetimeIndex(["2000-01-06"], tz="UTC").as_unit("us")
+        )
+
+    @pytest.mark.parametrize("zi_unit, pytz_unit", [("ns", "us"), ("us", "ns")])
+    def test_setops_pytz_zoneinfo_different_units_preserve_tz(self, zi_unit, pytz_unit):
+        pytz = pytest.importorskip("pytz")
+        idx_zi = pd.DatetimeIndex(
+            ["2000-01-01", "2000-01-03"], tz=zoneinfo.ZoneInfo("US/Eastern")
+        ).as_unit(zi_unit)
+        idx_pytz = pd.DatetimeIndex(
+            ["2000-01-03", "2000-01-06"], tz=pytz.timezone("US/Eastern")
+        ).as_unit(pytz_unit)
+
+        for left, right, diff_dates in [
+            (idx_zi, idx_pytz, ["2000-01-01"]),
+            (idx_pytz, idx_zi, ["2000-01-06"]),
+        ]:
+            for result, expected_dates in [
+                (left.union(right), ["2000-01-01", "2000-01-03", "2000-01-06"]),
+                (left.intersection(right), ["2000-01-03"]),
+                (left.symmetric_difference(right), ["2000-01-01", "2000-01-06"]),
+            ]:
+                expected = pd.DatetimeIndex(expected_dates, tz=left.tz).as_unit("ns")
+                assert result.tz == left.tz
+                tm.assert_index_equal(result, expected)
+
+            diff_res = left.difference(right)
+            expected_diff = pd.DatetimeIndex(diff_dates, tz=left.tz).as_unit(left.unit)
+            assert diff_res.tz == left.tz
+            tm.assert_index_equal(diff_res, expected_diff)
 
     # TODO: moved from test_datetimelike; de-duplicate with version below
     def test_intersection2(self):

@@ -980,7 +980,9 @@ class DatetimeTZDtype(PandasExtensionDtype):
         self._unit = state["unit"]
 
     def _get_common_dtype(self, dtypes: list[DtypeObj]) -> DtypeObj | None:
-        if all(isinstance(t, DatetimeTZDtype) and t.tz == self.tz for t in dtypes):
+        if all(
+            isinstance(t, DatetimeTZDtype) and tz_compare(t.tz, self.tz) for t in dtypes
+        ):
             np_dtype = np.max(
                 [cast("DatetimeTZDtype", t).base for t in [self, *dtypes]]
             )
@@ -2562,7 +2564,16 @@ class ArrowDtype(StorageExtensionDtype):
 
         new_dtype = find_common_type(unwrapped)
         if isinstance(new_dtype, DatetimeTZDtype):
-            return type(self)(pa.timestamp(new_dtype.unit, tz=new_dtype.tz))
+            # timezones.is_utc avoids passing e.g. a dateutil tzfile path to
+            #  pyarrow; pyarrow compute also cannot resolve pandas' "dateutil/" names
+            tz = (
+                "UTC"
+                if timezones.is_utc(new_dtype.tz)
+                else timezones.get_timezone(new_dtype.tz)
+            )
+            if tz is None or (isinstance(tz, str) and tz.startswith("dateutil/")):
+                return None
+            return type(self)(pa.timestamp(new_dtype.unit, tz=tz))
         if not isinstance(new_dtype, np.dtype):
             return None
         try:

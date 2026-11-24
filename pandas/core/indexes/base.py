@@ -3195,7 +3195,7 @@ class Index(IndexOpsMixin, PandasObject):
         ):
             # GH#39328, GH#45357, GH#60080
             # If both timezones are the same, no need to convert to UTC
-            if self.tz == other.tz:
+            if tz_compare(self.tz, other.tz):
                 return self, other
             else:
                 left = self.tz_convert("UTC")

@@ -1,5 +1,6 @@
 import datetime as dt
 from datetime import datetime
+import zoneinfo
 
 import dateutil
 import numpy as np
@@ -591,6 +592,69 @@ class TestTimezoneConcat:
         )
         expected = pd.DataFrame(pd.date_range("2000", periods=1, tz="UTC"))
         tm.assert_frame_equal(result, expected)
+
+    def test_concat_equivalent_utc_tz_different_units(self):
+        dti_ns = pd.DatetimeIndex(
+            ["2024-01-01", "2024-01-02"], tz=zoneinfo.ZoneInfo("UTC")
+        ).as_unit("ns")
+        dti_us = pd.DatetimeIndex(["2024-01-03", "2024-01-04"], tz=dt.UTC).as_unit("us")
+        dti_du = pd.DatetimeIndex(
+            ["2024-01-05", "2024-01-06"], tz=dateutil.tz.tzutc()
+        ).as_unit("ms")
+
+        for left_idx, right_idx in [
+            (dti_ns, dti_us),
+            (dti_us, dti_ns),
+            (dti_ns, dti_du),
+            (dti_du, dti_us),
+        ]:
+            expected_unit = "ns" if "ns" in (left_idx.unit, right_idx.unit) else "us"
+            expected_idx = pd.DatetimeIndex(
+                [*left_idx.tolist(), *right_idx.tolist()], tz="UTC"
+            ).as_unit(expected_unit)
+
+            idx_res = left_idx.append(right_idx)
+            assert idx_res.tz == left_idx.tz
+            tm.assert_index_equal(idx_res, expected_idx)
+
+            ser_res = pd.concat([pd.Series(left_idx), pd.Series(right_idx)])
+            assert ser_res.dt.tz == left_idx.tz
+            expected_ser = pd.Series(expected_idx, index=[0, 1, 0, 1])
+            tm.assert_series_equal(ser_res, expected_ser)
+
+            df_left = pd.DataFrame({"ts": left_idx, "v": [1, 2]})
+            df_right = pd.DataFrame({"ts": right_idx, "v": [3, 4]})
+            df_res = pd.concat([df_left, df_right])
+            assert df_res["ts"].dt.tz == left_idx.tz
+            expected_df = pd.DataFrame(
+                {"ts": expected_idx, "v": [1, 2, 3, 4]}, index=[0, 1, 0, 1]
+            )
+            tm.assert_frame_equal(df_res, expected_df)
+
+    def test_concat_pytz_zoneinfo_different_units(self):
+        pytz = pytest.importorskip("pytz")
+        dti_us = pd.DatetimeIndex(
+            ["2024-01-01", "2024-01-02"], tz=pytz.timezone("US/Eastern")
+        ).as_unit("us")
+        dti_ns = pd.DatetimeIndex(
+            ["2024-01-03", "2024-01-04"], tz=zoneinfo.ZoneInfo("US/Eastern")
+        ).as_unit("ns")
+
+        for left_idx, right_idx in [(dti_us, dti_ns), (dti_ns, dti_us)]:
+            expected_idx = pd.DatetimeIndex(
+                [*left_idx.tolist(), *right_idx.tolist()]
+            ).as_unit("ns")
+            res = pd.concat([pd.Series(left_idx), pd.Series(right_idx)])
+            assert res.dt.tz == left_idx.tz
+            tm.assert_series_equal(res, pd.Series(expected_idx, index=[0, 1, 0, 1]))
+
+            df_res = pd.concat(
+                [pd.DataFrame({"ts": left_idx}), pd.DataFrame({"ts": right_idx})]
+            )
+            assert df_res["ts"].dt.tz == left_idx.tz
+            tm.assert_frame_equal(
+                df_res, pd.DataFrame({"ts": expected_idx}, index=[0, 1, 0, 1])
+            )
 
 
 class TestPeriodConcat:

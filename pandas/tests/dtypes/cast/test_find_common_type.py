@@ -1,3 +1,7 @@
+from datetime import UTC
+import zoneinfo
+
+import dateutil.tz
 import numpy as np
 import pytest
 
@@ -92,6 +96,44 @@ def test_categorical_dtype(dtypes, exp_type):
 def test_datetimetz_dtype_match():
     dtype = DatetimeTZDtype(unit="ns", tz="US/Eastern")
     assert find_common_type([dtype, dtype]) == "datetime64[ns, US/Eastern]"
+
+
+@pytest.mark.parametrize(
+    "tz1, tz2",
+    [
+        (zoneinfo.ZoneInfo("UTC"), UTC),
+        (UTC, zoneinfo.ZoneInfo("UTC")),
+        (dateutil.tz.tzutc(), zoneinfo.ZoneInfo("UTC")),
+    ],
+)
+def test_datetimetz_dtype_equivalent_tz_different_units(tz1, tz2):
+    dt1 = DatetimeTZDtype(unit="ns", tz=tz1)
+    dt2 = DatetimeTZDtype(unit="us", tz=tz2)
+
+    result = find_common_type([dt1, dt2])
+    assert result == DatetimeTZDtype(unit="ns", tz=tz1)
+    assert result.tz == tz1
+
+    result_rev = find_common_type([dt2, dt1])
+    assert result_rev == DatetimeTZDtype(unit="ns", tz=tz2)
+    assert result_rev.tz == tz2
+
+
+def test_datetimetz_dtype_pytz_zoneinfo_different_units():
+    pytz = pytest.importorskip("pytz")
+    tz_pytz = pytz.timezone("US/Eastern")
+    tz_zi = zoneinfo.ZoneInfo("US/Eastern")
+
+    dt1 = DatetimeTZDtype(unit="us", tz=tz_pytz)
+    dt2 = DatetimeTZDtype(unit="ns", tz=tz_zi)
+
+    res1 = find_common_type([dt1, dt2])
+    assert res1 == DatetimeTZDtype(unit="ns", tz=tz_pytz)
+    assert res1.tz == tz_pytz
+
+    res2 = find_common_type([dt2, dt1])
+    assert res2 == DatetimeTZDtype(unit="ns", tz=tz_zi)
+    assert res2.tz == tz_zi
 
 
 @pytest.mark.parametrize(
