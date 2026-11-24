@@ -543,9 +543,7 @@ class StorageExtensionDtype(ExtensionDtype):
 
 
 @set_module("pandas.api.extensions")
-def register_extension_dtype[ExtensionDtypeT: "ExtensionDtype"](
-    cls: type_t[ExtensionDtypeT],
-) -> type_t[ExtensionDtypeT]:
+def register_extension_dtype(cls: type_t[ExtensionDtypeT]) -> type_t[ExtensionDtypeT]:
     """
     Register an ExtensionType with pandas as class decorator.
 

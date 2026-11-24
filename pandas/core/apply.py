@@ -9,6 +9,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Literal,
+    TypeAlias,
     cast,
 )
 import warnings
@@ -100,7 +101,7 @@ if TYPE_CHECKING:
     from pandas.core.resample import Resampler
     from pandas.core.window.rolling import BaseWindow
 
-type ResType = dict[int, Any]
+ResType: TypeAlias = dict[int, Any]
 
 # DataFrame methods that reduce column-wise to a Series indexed by the
 # columns, making them eligible for the fast path in

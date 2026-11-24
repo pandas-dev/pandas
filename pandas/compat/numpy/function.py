@@ -21,6 +21,7 @@ from __future__ import annotations
 from typing import (
     TYPE_CHECKING,
     Any,
+    TypeVar,
     cast,
     overload,
 )
@@ -44,6 +45,8 @@ if TYPE_CHECKING:
         Axis,
         AxisInt,
     )
+
+    AxisNoneT = TypeVar("AxisNoneT", Axis, None)
 
 
 class CompatValidator:
@@ -177,12 +180,12 @@ def validate_clip_with_axis(
 
 
 @overload
-def validate_clip_with_axis[AxisNoneT: (Axis, None)](
+def validate_clip_with_axis(
     axis: AxisNoneT, args: tuple[Any, ...], kwargs: dict[str, Any]
 ) -> AxisNoneT: ...
 
 
-def validate_clip_with_axis[AxisNoneT: (Axis, None)](
+def validate_clip_with_axis(
     axis: ndarray | AxisNoneT, args: tuple[Any, ...], kwargs: dict[str, Any]
 ) -> AxisNoneT | None:
     """

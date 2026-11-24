@@ -3,6 +3,7 @@ from typing import (
     ClassVar,
     Literal,
     Self,
+    TypeAlias,
     overload,
 )
 
@@ -22,7 +23,7 @@ from pandas._typing import (
 
 # This should be kept consistent with the keys in the dict timedelta_abbrevs
 # in pandas/_libs/tslibs/timedeltas.pyx
-type UnitChoices = Literal[
+UnitChoices: TypeAlias = Literal[
     "Y",
     "y",
     "M",

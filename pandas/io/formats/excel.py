@@ -49,6 +49,7 @@ if TYPE_CHECKING:
         Mapping,
         Sequence,
     )
+    from typing import TypeAlias
 
     from pandas._typing import (
         Axes,
@@ -61,7 +62,7 @@ if TYPE_CHECKING:
 
     from pandas import ExcelWriter
 
-    type _StyleConverter = Callable[
+    _StyleConverter: TypeAlias = Callable[
         [str | frozenset[tuple[str, str]]], dict[str, dict[str, Any]]
     ]
 

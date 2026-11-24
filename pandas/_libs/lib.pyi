@@ -9,6 +9,7 @@ from typing import (
     Any,
     Final,
     Literal,
+    TypeAlias,
     TypeGuard,
     overload,
 )
@@ -30,7 +31,7 @@ class _NoDefault(Enum):
     no_default = ...
 
 no_default: Final = _NoDefault.no_default
-type NoDefault = Literal[_NoDefault.no_default]
+NoDefault: TypeAlias = Literal[_NoDefault.no_default]
 
 i8max: int
 u8max: int

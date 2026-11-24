@@ -12,6 +12,7 @@ import re
 from typing import (
     TYPE_CHECKING,
     Any,
+    TypeAlias,
     TypedDict,
 )
 from uuid import uuid4
@@ -47,15 +48,15 @@ if TYPE_CHECKING:
         Level,
     )
 
-    type _LevelLengths = Mapping[tuple[int, int], int]
+    _LevelLengths: TypeAlias = Mapping[tuple[int, int], int]
 jinja2 = import_optional_dependency("jinja2", extra="DataFrame.style requires jinja2.")
 from markupsafe import escape as escape_html  # markupsafe is jinja2 dependency
 
-type BaseFormatter = str | Callable[..., Any]
-type ExtFormatter = BaseFormatter | Mapping[Any, BaseFormatter | None]
-type CSSPair = tuple[str, str | float]
-type CSSList = list[CSSPair]
-type CSSProperties = str | CSSList
+BaseFormatter: TypeAlias = str | Callable[..., Any]
+ExtFormatter: TypeAlias = BaseFormatter | Mapping[Any, BaseFormatter | None]
+CSSPair: TypeAlias = tuple[str, str | float]
+CSSList: TypeAlias = list[CSSPair]
+CSSProperties: TypeAlias = str | CSSList
 
 
 class CSSDict(TypedDict):
@@ -63,7 +64,7 @@ class CSSDict(TypedDict):
     props: CSSProperties
 
 
-type CSSStyles = list[CSSDict]
+CSSStyles: TypeAlias = list[CSSDict]
 Subset = slice | Sequence[Any] | Index | Callable[[DataFrame], Any]
 
 # Chromium ignores selectors past the 8192nd in a single rule, GH#40913

@@ -1,5 +1,6 @@
 from typing import (
     Any,
+    Generic,
     TypeVar,
     overload,
 )
@@ -17,6 +18,7 @@ VALID_CLOSED: frozenset[str]
 
 _OrderableScalarT = TypeVar("_OrderableScalarT", int, float)
 _OrderableTimesT = TypeVar("_OrderableTimesT", Timestamp, Timedelta)
+_OrderableT = TypeVar("_OrderableT", int, float, Timestamp, Timedelta)
 
 class _LengthDescriptor:
     @overload
@@ -49,19 +51,19 @@ class IntervalMixin:
     def is_empty(self) -> bool: ...
     def _check_closed_matches(self, other: IntervalMixin, name: str = ...) -> None: ...
 
-class Interval[OrderableT: (int, float, Timestamp, Timedelta)](IntervalMixin):
+class Interval(IntervalMixin, Generic[_OrderableT]):
     @property
-    def left(self: Interval[OrderableT]) -> OrderableT: ...
+    def left(self: Interval[_OrderableT]) -> _OrderableT: ...
     @property
-    def right(self: Interval[OrderableT]) -> OrderableT: ...
+    def right(self: Interval[_OrderableT]) -> _OrderableT: ...
     @property
     def closed(self) -> IntervalClosedType: ...
     mid: _MidDescriptor
     length: _LengthDescriptor
     def __init__(
         self,
-        left: OrderableT,
-        right: OrderableT,
+        left: _OrderableT,
+        right: _OrderableT,
         closed: IntervalClosedType = ...,
     ) -> None: ...
     def __hash__(self) -> int: ...
@@ -143,7 +145,7 @@ class Interval[OrderableT: (int, float, Timestamp, Timedelta)](IntervalMixin):
     ) -> Interval[_OrderableScalarT]: ...
     @overload
     def __floordiv__(self: Interval[float], y: float, /) -> Interval[float]: ...
-    def overlaps(self: Interval[OrderableT], other: Interval[OrderableT]) -> bool: ...
+    def overlaps(self: Interval[_OrderableT], other: Interval[_OrderableT]) -> bool: ...
 
 def intervals_to_interval_bounds(
     intervals: np.ndarray, validate_closed: bool = ...

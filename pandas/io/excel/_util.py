@@ -12,6 +12,7 @@ from typing import (
     Any,
     Literal,
     TypeGuard,
+    TypeVar,
     overload,
 )
 
@@ -26,6 +27,7 @@ if TYPE_CHECKING:
     from pandas.io.excel._base import ExcelWriter
 
     ExcelWriter_t = type[ExcelWriter[Any]]
+    usecols_func = TypeVar("usecols_func", bound=Callable[[Hashable], object])
 
 _writers: MutableMapping[str, ExcelWriter_t] = {}
 
@@ -174,16 +176,14 @@ def maybe_convert_usecols(usecols: list[str]) -> list[str]: ...
 
 
 @overload
-def maybe_convert_usecols[usecols_func: Callable[[Hashable], object]](
-    usecols: usecols_func,
-) -> usecols_func: ...
+def maybe_convert_usecols(usecols: usecols_func) -> usecols_func: ...
 
 
 @overload
 def maybe_convert_usecols(usecols: None) -> None: ...
 
 
-def maybe_convert_usecols[usecols_func: Callable[[Hashable], object]](
+def maybe_convert_usecols(
     usecols: str | list[int] | list[str] | usecols_func | None,
 ) -> list[int] | list[str] | usecols_func | None:
     """

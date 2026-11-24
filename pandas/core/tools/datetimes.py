@@ -7,6 +7,7 @@ from itertools import islice
 from typing import (
     TYPE_CHECKING,
     Any,
+    TypeAlias,
     TypedDict,
     Union,
     cast,
@@ -112,12 +113,12 @@ if TYPE_CHECKING:
 # ---------------------------------------------------------------------
 # types used in annotations
 
-type ArrayConvertible = list[Any] | tuple[Any, ...] | AnyArrayLike
-type Scalar = float | str
-type DatetimeScalar = Scalar | date | np.datetime64
+ArrayConvertible: TypeAlias = list[Any] | tuple[Any, ...] | AnyArrayLike
+Scalar: TypeAlias = float | str
+DatetimeScalar: TypeAlias = Scalar | date | np.datetime64
 
-type DatetimeScalarOrArrayConvertible = DatetimeScalar | ArrayConvertible
-type DatetimeDictArg = list[Scalar] | tuple[Scalar, ...] | AnyArrayLike
+DatetimeScalarOrArrayConvertible: TypeAlias = DatetimeScalar | ArrayConvertible
+DatetimeDictArg: TypeAlias = list[Scalar] | tuple[Scalar, ...] | AnyArrayLike
 
 
 class YearMonthDayDict(TypedDict, total=True):

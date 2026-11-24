@@ -7,6 +7,7 @@ from __future__ import annotations
 from typing import (
     TYPE_CHECKING,
     Any,
+    Generic,
     Literal,
     Self,
     cast,
@@ -20,6 +21,14 @@ import numpy as np
 from pandas._config import using_python_scalars
 
 from pandas._libs import lib
+from pandas._typing import (
+    AxisInt,
+    DtypeObj,
+    IndexLabel,
+    NDFrameT,
+    Shape,
+    npt,
+)
 from pandas.compat import PYPY
 from pandas.compat.numpy import function as nv
 from pandas.errors import (
@@ -74,15 +83,10 @@ if TYPE_CHECKING:
     )
 
     from pandas._typing import (
-        AxisInt,
         DropKeep,
-        DtypeObj,
-        IndexLabel,
         NumpySorter,
         NumpyValueArrayLike,
         ScalarLike_co,
-        Shape,
-        npt,
     )
 
     from pandas import (
@@ -90,7 +94,6 @@ if TYPE_CHECKING:
         Index,
         Series,
     )
-    from pandas.core.generic import NDFrame
 
 
 class PandasObject(DirNamesMixin):
@@ -174,7 +177,7 @@ class NoNewAttributesMixin:
         object.__setattr__(self, key, value)
 
 
-class SelectionMixin[NDFrameT: NDFrame]:
+class SelectionMixin(Generic[NDFrameT]):
     """
     mixin implementing the selection & aggregation interface on a group-like
     object sub-classes need to define: obj, exclusions

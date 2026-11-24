@@ -8,6 +8,7 @@ from datetime import (
 from typing import (
     TYPE_CHECKING,
     Self,
+    TypeVar,
     cast,
     overload,
 )
@@ -114,6 +115,9 @@ if TYPE_CHECKING:
     from pandas import DataFrame
     from pandas.core.arrays import PeriodArray
     from pandas.core.arrays.string_arrow import ArrowStringArray
+
+    _TimestampNoneT1 = TypeVar("_TimestampNoneT1", Timestamp, None)
+    _TimestampNoneT2 = TypeVar("_TimestampNoneT2", Timestamp, None)
 
 
 @overload
@@ -3110,12 +3114,9 @@ def _infer_tz_from_endpoints(
     return tz
 
 
-def _maybe_normalize_endpoints[
-    TimestampNoneT1: (Timestamp, None),
-    TimestampNoneT2: (Timestamp, None),
-](
-    start: TimestampNoneT1, end: TimestampNoneT2, normalize: bool
-) -> tuple[TimestampNoneT1, TimestampNoneT2]:
+def _maybe_normalize_endpoints(
+    start: _TimestampNoneT1, end: _TimestampNoneT2, normalize: bool
+) -> tuple[_TimestampNoneT1, _TimestampNoneT2]:
     if normalize:
         if start is not None:
             start = start.normalize()
