@@ -204,6 +204,7 @@ Performance improvements
 - Performance improvement in :meth:`DataFrame.to_csv` and ``astype(str)`` with timezone-aware datetime data (:issue:`44764`)
 - Performance improvement in :meth:`DataFrame.where` and :meth:`DataFrame.mask` when ``other`` is a :class:`DataFrame` whose columns have the same extension dtype, such as PyArrow-backed strings, categorical or interval data, which are no longer converted to an object array (:issue:`72120`)
 - Performance improvement in :meth:`DataFrameGroupBy.pct_change` and :meth:`SeriesGroupBy.pct_change` (:issue:`70972`)
+- Performance improvement and reduced memory usage in :meth:`.DataFrameGroupBy.quantile` and :meth:`.SeriesGroupBy.quantile`, which no longer copy the data in group order (:issue:`???`)
 - Performance improvement in :meth:`DataFrameGroupBy.transform` and :meth:`SeriesGroupBy.transform` with a user-defined function when the input rows are not already ordered by group or NA group keys are dropped (:issue:`71957`)
 - Performance improvement in :meth:`DatetimeIndex.strftime`, :meth:`Series.dt.strftime`, and :meth:`DataFrame.to_csv` with a ``date_format`` built from ``%Y``, ``%m``, ``%d``, ``%H``, ``%M``, ``%S``, ``%f`` and ``%N`` (:issue:`44764`)
 - Performance improvement in :meth:`Index.intersection` for monotonic Arrow-backed indexes (:issue:`66498`)

@@ -134,8 +134,8 @@ def group_ohlc(
 def group_quantile(
     out: npt.NDArray[np.float64],
     values: np.ndarray,  # ndarray[numeric, ndim=1]
-    labels: npt.NDArray[np.intp],
-    mask: npt.NDArray[np.uint8],
+    sort_idx: npt.NDArray[np.intp] | None,
+    mask: npt.NDArray[np.uint8] | None,
     qs: npt.NDArray[np.float64],  # const
     starts: npt.NDArray[np.int64],
     ends: npt.NDArray[np.int64],
