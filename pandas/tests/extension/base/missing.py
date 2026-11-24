@@ -3,6 +3,7 @@ import pytest
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.tests.extension.base.base import skip_if_list_like
 
 
 class BaseMissingTests:
@@ -73,6 +74,7 @@ class BaseMissingTests:
         tm.assert_frame_equal(result, expected)
 
     def test_fillna_scalar(self, data_missing):
+        skip_if_list_like(data_missing[1])
         valid = data_missing[1]
         result = data_missing.fillna(valid)
         expected = data_missing.fillna(valid)
@@ -137,6 +139,7 @@ class BaseMissingTests:
         tm.assert_extension_array_equal(result, data)
 
     def test_fillna_readonly(self, data_missing):
+        skip_if_list_like(data_missing[1])
         data = data_missing.copy()
         data._readonly = True
 
@@ -152,6 +155,7 @@ class BaseMissingTests:
             tm.assert_extension_array_equal(data, data_missing)
 
     def test_fillna_series(self, data_missing):
+        skip_if_list_like(data_missing[1])
         fill_value = data_missing[1]
         ser = pd.Series(data_missing)
 
@@ -187,6 +191,7 @@ class BaseMissingTests:
         tm.assert_series_equal(result, expected)
 
     def test_fillna_frame(self, data_missing):
+        skip_if_list_like(data_missing[1])
         fill_value = data_missing[1]
 
         result = pd.DataFrame({"A": data_missing, "B": [1, 2]}).fillna(fill_value)

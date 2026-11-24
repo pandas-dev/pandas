@@ -5,6 +5,7 @@ from pandas.core.dtypes.common import is_hashable
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.tests.extension.base.base import skip_if_list_like
 
 
 class BaseSetitemTests:
@@ -115,6 +116,7 @@ class BaseSetitemTests:
         assert arr[0] == data[1]
 
     def test_setitem_loc_scalar_mixed(self, data):
+        skip_if_list_like(data[1], dtype=data.dtype)
         df = pd.DataFrame({"A": np.arange(len(data)), "B": data})
         df.loc[0, "B"] = data[1]
         assert df.loc[0, "B"] == data[1]
@@ -125,11 +127,13 @@ class BaseSetitemTests:
         assert df.loc[10, "B"] == data[1]
 
     def test_setitem_loc_scalar_multiple_homogoneous(self, data):
+        skip_if_list_like(data[1], dtype=data.dtype)
         df = pd.DataFrame({"A": data, "B": data})
         df.loc[10, "B"] = data[1]
         assert df.loc[10, "B"] == data[1]
 
     def test_setitem_iloc_scalar_mixed(self, data):
+        skip_if_list_like(data[1], dtype=data.dtype)
         df = pd.DataFrame({"A": np.arange(len(data)), "B": data})
         df.iloc[0, 1] = data[1]
         assert df.loc[0, "B"] == data[1]
@@ -140,6 +144,7 @@ class BaseSetitemTests:
         assert df.loc[9, "B"] == data[1]
 
     def test_setitem_iloc_scalar_multiple_homogoneous(self, data):
+        skip_if_list_like(data[1], dtype=data.dtype)
         df = pd.DataFrame({"A": data, "B": data})
         df.iloc[9, 1] = data[1]
         assert df.loc[9, "B"] == data[1]
@@ -157,6 +162,7 @@ class BaseSetitemTests:
         arr = data[:5].copy()
         expected = arr.take([0, 0, 0, 3, 4])
         if box_in_series:
+            skip_if_list_like(data[0])
             arr = pd.Series(arr)
             expected = pd.Series(expected)
         arr[mask] = data[0]
@@ -182,6 +188,7 @@ class BaseSetitemTests:
         mask[3:5] = pd.NA
 
         if box_in_series:
+            skip_if_list_like(data[0])
             data = pd.Series(data)
 
         data[mask] = data[0]
@@ -198,6 +205,7 @@ class BaseSetitemTests:
         expected = data.take([0, 0, 0, 3, 4])
 
         if box_in_series:
+            skip_if_list_like(data[0])
             arr = pd.Series(arr)
             expected = pd.Series(expected)
 
@@ -272,6 +280,7 @@ class BaseSetitemTests:
 
     @pytest.mark.parametrize("setter", ["loc", None])
     def test_setitem_mask_broadcast(self, data, setter):
+        skip_if_list_like(data[9])
         ser = pd.Series(data)
         mask = np.zeros(len(data), dtype=bool)
         mask[:2] = True
@@ -347,6 +356,7 @@ class BaseSetitemTests:
         arr = data[:5].copy()
         expected = data.take([0, 0, 0, 3, 4])
         if box_in_series:
+            skip_if_list_like(data[0])
             arr = pd.Series(arr)
             expected = pd.Series(expected)
 
@@ -354,6 +364,7 @@ class BaseSetitemTests:
         tm.assert_equal(arr, expected)
 
     def test_setitem_loc_iloc_slice(self, data):
+        skip_if_list_like(data[0])
         arr = data[:5].copy()
         s = pd.Series(arr, index=["a", "b", "c", "d", "e"])
         expected = pd.Series(data.take([0, 0, 0, 3, 4]), index=s.index)

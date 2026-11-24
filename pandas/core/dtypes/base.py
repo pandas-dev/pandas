@@ -190,7 +190,7 @@ class ExtensionDtype:
 
         This is used in e.g. ExtensionArray.take. This should be the
         user-facing "boxed" version of the NA value, not the physical NA value
-        for storage.  e.g. for JSONArray, this is an empty dictionary.
+        for storage.
         """
         return np.nan
 

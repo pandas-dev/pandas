@@ -22,6 +22,7 @@ from pandas.core.dtypes.missing import na_value_for_dtype
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.sorting import nargsort
+from pandas.tests.extension.base.base import skip_if_list_like
 
 # GH#24433 methods whose default implementation may cast to object, mapped to
 # the methods an EA must override (any one of) to avoid it; map is left out
@@ -474,6 +475,7 @@ class BaseMethodsTests:
 
     def test_fillna_limit_frame(self, data_missing):
         # GH#58001
+        skip_if_list_like(data_missing[1])
         df = pd.DataFrame({"A": data_missing.take([0, 1, 0, 1])})
         expected = pd.DataFrame({"A": data_missing.take([1, 1, 0, 1])})
         result = df.fillna(value=data_missing[1], limit=1)
@@ -481,12 +483,14 @@ class BaseMethodsTests:
 
     def test_fillna_limit_series(self, data_missing):
         # GH#58001
+        skip_if_list_like(data_missing[1])
         ser = pd.Series(data_missing.take([0, 1, 0, 1]))
         expected = pd.Series(data_missing.take([1, 1, 0, 1]))
         result = ser.fillna(value=data_missing[1], limit=1)
         tm.assert_series_equal(result, expected)
 
     def test_fillna_copy_frame(self, data_missing):
+        skip_if_list_like(data_missing[1])
         arr = data_missing.take([1, 1])
         df = pd.DataFrame({"A": arr})
         df_orig = df.copy()
@@ -499,6 +503,7 @@ class BaseMethodsTests:
         tm.assert_frame_equal(df, df_orig)
 
     def test_fillna_copy_series(self, data_missing):
+        skip_if_list_like(data_missing[1])
         arr = data_missing.take([1, 1])
         ser = pd.Series(arr, copy=False)
         ser_orig = ser.copy()
@@ -755,6 +760,7 @@ class BaseMethodsTests:
         assert data_for_sorting.searchsorted(a, sorter=sorter) == 0
 
     def test_where_series(self, data, na_value, as_frame):
+        skip_if_list_like(na_value)
         assert data[0] != data[1]
         cls = type(data)
         a, b = data[:2]
