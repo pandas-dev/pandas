@@ -1703,12 +1703,25 @@ class BlockManager(libinternals.BlockManager, BaseBlockManager):
         self, pieces: list[tuple[npt.NDArray[np.intp], Sequence[Block]]]
     ) -> Self:
         """
-        Replace the columns at the given positions with the columns of other blocks.
+        Return a new manager with some columns taken from other blocks.
 
-        Each piece is ``(positions, blocks)``: a block's ``mgr_locs`` index into
-        ``positions``, and its columns take the place of the columns there. The
-        other columns keep their existing blocks as views, so this is linear in the
-        number of columns.
+        Parameters
+        ----------
+        pieces : list of tuple of (ndarray[intp], sequence of Block)
+            Each piece is a tuple ``(positions, blocks)``, where ``positions``
+            holds column positions in ``self`` and ``blocks`` holds the new
+            columns for them. Each block's ``mgr_locs`` refer to entries of
+            ``positions``, not to columns of ``self``. For example, a block with
+            ``mgr_locs`` ``[0, 2]`` holds the new columns for ``positions[0]``
+            and ``positions[2]``. A position must appear in at most one piece,
+            and the blocks of a piece must cover each of its positions exactly
+            once.
+
+        Returns
+        -------
+        BlockManager
+            Columns not in any ``positions`` are views on the values of
+            ``self``. The result is not consolidated.
         """
         is_replaced = np.zeros(self.shape[0], dtype=bool)
         for locs, _ in pieces:

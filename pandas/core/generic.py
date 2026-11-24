@@ -6787,7 +6787,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 return self.astype(new_type, errors=errors)
 
             # GH#44417 a Series of target dtypes, reindexed to the columns below,
-            #  copes with duplicated column names
+            #  to handle duplicated column names
             from pandas import Series
 
             dtype_ser = Series(dtype, dtype=object)
@@ -6838,11 +6838,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     continue
                 by_column[i] = False
                 if current[locs[i]] != target:
-                    # a column already of the target dtype stays as it is, a view
+                    # columns already of the target dtype are left out and kept as views
                     batches.setdefault(target, []).append(locs[i])
 
             if errors not in ("raise", "ignore"):
-                # let Series.astype reject an invalid errors value, as before
+                # let Series.astype reject an invalid errors value
                 batches.clear()
                 by_column[:] = True
             try:
@@ -6861,8 +6861,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         )
                     )
             except Exception:
-                # Redo every column on its own, so the error (or errors="ignore")
-                #  is the same as when casting column by column.
+                # Fall back to casting column by column, so a failure is raised
+                #  (or ignored) for the first failing column in column order.
                 pieces = [(locs, cast_by_column(locs, column_dtypes))]
 
             new_mgr = mgr.replace_columns(pieces)

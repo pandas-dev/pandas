@@ -8,7 +8,6 @@ from __future__ import annotations
 import inspect
 from typing import (
     TYPE_CHECKING,
-    Any,
     overload,
 )
 import warnings
@@ -394,20 +393,33 @@ def astype_is_view(dtype: DtypeObj, new_dtype: DtypeObj) -> bool:
     return True
 
 
-def block_cast_dtype(dtype: Any) -> np.dtype | None:
+def block_cast_dtype(dtype: object) -> np.dtype | None:
     """
-    The numeric or bool numpy dtype ``dtype`` names, or None.
+    Resolve a target dtype for casting several columns at once, if possible.
 
-    Several columns going to such a dtype can be cast as one block with the same
-    result as casting each column on its own.
+    Casting a 2D array to a numeric or bool numpy dtype gives the same result as
+    casting each of its columns separately. Other targets, such as string,
+    datetime or extension dtypes, can give a result that depends on each column's
+    values, so they do not qualify.
+
+    Parameters
+    ----------
+    dtype : object
+        A target dtype as given by the user, e.g. ``"float32"``, ``np.int64`` or
+        ``pd.CategoricalDtype()``.
+
+    Returns
+    -------
+    np.dtype or None
+        The resolved numpy dtype if it qualifies, otherwise None.
     """
     if isinstance(dtype, type) and issubclass(dtype, ExtensionDtype):
-        # Series.astype rejects a class; pandas_dtype would instantiate it
+        # Can't resolve to a numpy dtype; avoid pandas_dtype warning below.
         return None
     try:
         resolved = pandas_dtype(dtype)
     except Exception:
-        # Series.astype raises it, in column order
+        # Anything pandas_dtype can't resolve is not a numpy dtype.
         return None
     if not isinstance(resolved, np.dtype) or resolved.kind not in "biufc":
         return None
