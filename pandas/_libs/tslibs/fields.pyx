@@ -760,8 +760,7 @@ def _get_locale_names(name_type: str, locale: object = None):
     -------
     list of locale names
     """
-    # Not _strptime.LocaleTime, which lowercases the names; "İ".lower() is two
-    #  code points, so capitalizing it back does not round-trip. GH#22342
+    # GH#22342
     with set_locale(locale, LC_TIME):
         # calendar names are looked up lazily, so materialize under the locale
         return list(getattr(calendar, name_type))
