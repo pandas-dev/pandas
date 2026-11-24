@@ -771,9 +771,7 @@ class TestGetLoc:
 
     def test_get_loc_groupby_dropna_false_na_in_level(self):
         # GH#62903 groupby(dropna=False) must keep a non-negative code for NA
-        df = pd.DataFrame(
-            {"a": [1, 2, pd.NA], "b": [1, pd.NA, pd.NA], "c": [4, 5, 6]}
-        )
+        df = pd.DataFrame({"a": [1, 2, pd.NA], "b": [1, pd.NA, pd.NA], "c": [4, 5, 6]})
         result = df.groupby(["a", "b"], dropna=False).sum()
         assert (result.index.codes[1] >= 0).all()
 
