@@ -78,11 +78,6 @@ cnp.import_array()
 from pandas._libs.interval import Interval
 
 
-cdef extern from "Python.h":
-    int Py_EnterRecursiveCall(const char *where) except -1
-    void Py_LeaveRecursiveCall()
-
-
 cdef extern from "pandas/parser/pd_parser.h":
     int floatify(object, float64_t *result, int *maybe_int) except -1
     void PandasParser_IMPORT()
@@ -711,7 +706,12 @@ def maybe_booleans_to_slice(ndarray[uint8_t, ndim=1] mask):
         return slice(start, end)
 
 
-cdef bint _sequences_equivalent(object x, object y):
+# Each nesting level costs far more C stack than a level of list.__eq__, so
+#  cap it explicitly rather than relying on the interpreter's recursion limit.
+cdef int _MAX_SEQUENCE_DEPTH = 100
+
+
+cdef bint _sequences_equivalent(object x, object y, int depth):
     # tuple/list == treats distinct NaN objects as unequal, so compare
     #  elementwise with NaN-awareness, see GH#45945. strict_nan=True so None
     #  inside a tuple does not start matching NaN.
@@ -734,19 +734,18 @@ cdef bint _sequences_equivalent(object x, object y):
         # assign elementwise so nested sequences are stored as objects
         left[i] = x[i]
         right[i] = y[i]
-    # raise RecursionError instead of crashing on self-referential sequences
-    Py_EnterRecursiveCall(" in array_equivalent_object")
+    if depth >= _MAX_SEQUENCE_DEPTH:
+        # e.g. self-referential lists; raise like list.__eq__ does
+        raise RecursionError(
+            "maximum recursion depth exceeded in array_equivalent_object"
+        )
     try:
-        return array_equivalent_object(left, right, strict_nan=True)
+        return _array_equivalent_object(left, right, True, depth + 1)
     except (ValueError, TypeError):
         # x == y already returned False; don't raise on a pair it never reached
         return False
-    finally:
-        Py_LeaveRecursiveCall()
 
 
-@cython.wraparound(False)
-@cython.boundscheck(False)
 def array_equivalent_object(ndarray left, ndarray right, bint strict_nan=False) -> bool:
     """
     Perform an element by element comparison on N-d object arrays
@@ -755,6 +754,14 @@ def array_equivalent_object(ndarray left, ndarray right, bint strict_nan=False) 
     If strict_nan, NaN and None are considered different, also inside
     nested arrays.
     """
+    return _array_equivalent_object(left, right, strict_nan, 0)
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cdef bint _array_equivalent_object(
+    ndarray left, ndarray right, bint strict_nan, int depth
+):
     # left and right both have object dtype, but we cannot annotate that
     #  without limiting ndim.
     cdef:
@@ -776,7 +783,7 @@ def array_equivalent_object(ndarray left, ndarray right, bint strict_nan=False) 
                 if x.shape != y.shape:
                     return False
                 if x.dtype == y.dtype == object:
-                    if not array_equivalent_object(x, y, strict_nan):
+                    if not _array_equivalent_object(x, y, strict_nan, depth):
                         return False
                 else:
                     # Circular import isn't great, but so it goes.
@@ -793,7 +800,7 @@ def array_equivalent_object(ndarray left, ndarray right, bint strict_nan=False) 
             elif not (
                 PyObject_RichCompareBool(x, y, Py_EQ)
                 or is_matching_na(x, y, nan_matches_none=not strict_nan)
-                or _sequences_equivalent(x, y)
+                or _sequences_equivalent(x, y, depth)
             ):
                 return False
         except (ValueError, TypeError):
