@@ -207,16 +207,16 @@ class Accessor:
 
     The ``register_*_accessor`` decorators use this to attach accessors.
     Use it directly to add or override an accessor on a single class, such as
-    a subclass of :class:`DataFrame`, without changing any other class.
+    a :class:`DataFrame` subclass or :class:`pandas.api.typing.DataFrameGroupBy`.
 
     Parameters
     ----------
     name : str
         Name of the accessor. Should match the attribute name it is assigned to.
     accessor : type
-        Class with the extension methods. Its ``__init__`` receives the
-        ``Series``, ``DataFrame`` or ``Index`` the attribute is accessed on.
-        A new instance is created on every attribute access.
+        Class with the extension methods. Its ``__init__`` receives the object
+        the attribute is accessed on. A new instance is created on every
+        attribute access.
 
     See Also
     --------
