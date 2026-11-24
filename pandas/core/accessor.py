@@ -8,6 +8,7 @@ that can be mixed into or pinned onto other pandas classes.
 from __future__ import annotations
 
 import functools
+import inspect
 from typing import (
     TYPE_CHECKING,
     final,
@@ -114,10 +115,17 @@ class PandasDelegate:
             _getter.__name__ = name
             _setter.__name__ = name
 
+            delegate_attr = getattr(delegate, accessor_mapping(name))
+            # GH#53667 let inspect.unwrap (the docs' source link) reach the delegate;
+            # functions only, since inspect.signature raises on cython getsets
+            wrapped = getattr(delegate_attr, "fget", delegate_attr)
+            if inspect.isfunction(wrapped):
+                _getter.__wrapped__ = wrapped  # type: ignore[attr-defined]
+
             return property(
                 fget=_getter,
                 fset=_setter,
-                doc=getattr(delegate, accessor_mapping(name)).__doc__,
+                doc=delegate_attr.__doc__,
             )
 
         def _create_delegator_method(name: str):
