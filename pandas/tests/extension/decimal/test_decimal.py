@@ -291,6 +291,45 @@ def test_scalar_ops_from_sequence_raises():
     tm.assert_numpy_array_equal(result, expected)
 
 
+class DecimalArrayInferFromNonNA(DecimalArray):
+    """Infers its dtype from non-NA scalars only, like pint-pandas."""
+
+    @classmethod
+    def _from_sequence(cls, scalars, *, dtype=None, copy=False):
+        if dtype is None and all(pd.isna(x) for x in scalars):
+            raise ValueError("Cannot infer dtype")
+        return cls(scalars)
+
+
+@pytest.mark.parametrize(
+    "values, qs",
+    [
+        ([decimal.Decimal("NaN")] * 3, [0.25, 0.5]),
+        ([], [0.25, 0.5]),
+        ([decimal.Decimal(1)], []),
+    ],
+)
+def test_quantile_dtype_not_inferable(values, qs):
+    # GH#45968
+    arr = DecimalArrayInferFromNonNA(values)
+    result = pd.Series(arr).quantile(qs)
+    expected = pd.Series(
+        DecimalArrayInferFromNonNA([decimal.Decimal("NaN")] * len(qs)),
+        index=pd.Index(qs, dtype=np.float64),
+    )
+    tm.assert_series_equal(result, expected)
+
+    result = pd.DataFrame({"a": arr}).quantile(qs)
+    tm.assert_frame_equal(result, expected.to_frame("a"))
+
+
+@pytest.mark.parametrize("values", [[decimal.Decimal("NaN")] * 3, []])
+def test_quantile_scalar_all_na_dtype_not_inferable(values):
+    # GH#45968
+    ser = pd.Series(DecimalArrayInferFromNonNA(values))
+    assert ser.quantile(0.5).is_nan()
+
+
 @pytest.mark.parametrize(
     "reverse, expected_div, expected_mod",
     [(False, [0, 1, 1, 2], [1, 0, 1, 0]), (True, [2, 1, 0, 0], [0, 0, 2, 2])],
@@ -425,6 +464,14 @@ def test_indexing_no_materialize(monkeypatch):
     df[s > 0.5]
     s.at[0]
     df.at[0, "a"]
+
+
+def test_index_is_monotonic_does_not_build_engine():
+    # GH#72260 the engine holds the array as Python objects
+    idx = pd.Index(to_decimal([1, 2]))
+    assert idx.is_monotonic_increasing
+    assert not idx.is_monotonic_decreasing
+    assert "_engine" not in idx._cache
 
 
 def test_to_numpy_keyword():

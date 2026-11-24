@@ -50,7 +50,7 @@ from pandas.errors import (
 )
 from pandas.util._decorators import set_module
 from pandas.util._validators import (
-    validate_endpoints,
+    validate_inclusive,
     validate_min_count,
 )
 
@@ -77,7 +77,10 @@ from pandas.core import (
 )
 from pandas.core.array_algos import datetimelike_accumulations
 from pandas.core.arrays import datetimelike as dtl
-from pandas.core.arrays._ranges import generate_regular_range
+from pandas.core.arrays._ranges import (
+    generate_regular_range,
+    trim_range_endpoints,
+)
 from pandas.core.arrays.integer import IntegerArray
 import pandas.core.common as com
 from pandas.core.construction import extract_array
@@ -90,6 +93,7 @@ if TYPE_CHECKING:
         AxisInt,
         DateTimeErrorChoices,
         DtypeObj,
+        IntervalClosedType,
         NpDtype,
         TimeUnit,
         npt,
@@ -299,7 +303,14 @@ class TimedeltaArray(dtl.TimelikeOps):
 
     @classmethod
     def _generate_range(
-        cls, start, end, periods, freq, closed=None, *, unit: TimeUnit
+        cls,
+        start,
+        end,
+        periods,
+        freq,
+        inclusive: IntervalClosedType = "both",
+        *,
+        unit: TimeUnit,
     ) -> Self:
         periods = dtl.validate_periods(periods)
         if freq is None and any(x is None for x in [periods, start, end]):
@@ -325,17 +336,25 @@ class TimedeltaArray(dtl.TimelikeOps):
         if end is not None and unit is not None:
             end = end.as_unit(unit, round_ok=False)
 
-        left_closed, right_closed = validate_endpoints(closed)
+        left_inclusive, right_inclusive = validate_inclusive(inclusive)
 
         if freq is not None:
             index = generate_regular_range(start, end, periods, freq, unit=unit)
+            start_i8 = start._value if start is not None else None
+            end_i8 = end._value if end is not None else None
         else:
             index = np.linspace(start._value, end._value, periods).astype("i8")
+            # float64 rounding can move the first/last values off start/end, so
+            #  trim by position; a single value stands for start, not end
+            if start == end:
+                start_i8 = end_i8 = start._value
+            else:
+                start_i8 = None
+                end_i8 = None if periods > 1 else end._value
 
-        if not left_closed:
-            index = index[1:]
-        if not right_closed:
-            index = index[:-1]
+        index = trim_range_endpoints(
+            index, start_i8, end_i8, left_inclusive, right_inclusive
+        )
 
         td64values = index.view(f"m8[{unit}]")
         return cls._simple_new(td64values, dtype=td64values.dtype)

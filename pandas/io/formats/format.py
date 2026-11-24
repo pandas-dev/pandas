@@ -5,6 +5,8 @@ and latex files. This module also applies to display formatting.
 
 from __future__ import annotations
 
+__lazy_modules__ = ("pandas.io.common",)
+
 from collections.abc import (
     Callable,
     Generator,
@@ -1003,7 +1005,7 @@ class DataFrameRenderer:
         path_or_buf: FilePath | WriteBuffer[bytes] | WriteBuffer[str] | None = None,
         encoding: str | None = None,
         sep: str = ",",
-        columns: Sequence[Hashable] | None = None,
+        columns: Axes | None = None,
         index_label: IndexLabel | None = None,
         mode: str = "w",
         compression: CompressionOptions = "infer",
@@ -1023,6 +1025,11 @@ class DataFrameRenderer:
         from pandas.io.formats.csvs import CSVFormatter
 
         if path_or_buf is None:
+            if "b" in mode:
+                raise ValueError(
+                    f"mode={mode!r} is not supported when path_or_buf is None. "
+                    "To get bytes, pass an io.BytesIO as path_or_buf."
+                )
             created_buffer = True
             path_or_buf = StringIO()
         else:

@@ -24,6 +24,7 @@ from pandas._config.config import _global_config as config
 from pandas._libs import lib
 from pandas._libs.tslibs import (
     NaT,
+    Timedelta,
     Timestamp,
     to_offset,
 )
@@ -322,6 +323,19 @@ class PeriodConverter(mdates.DateConverter):
                 # Return ordinals directly; asfreq would create Period[B].
                 return values.asi8
             return values.asfreq(freq).asi8
+        elif (
+            isinstance(values, DatetimeIndex)
+            and FreqGroup.from_period_dtype_code(dtype_code).value
+            >= FreqGroup.FR_DAY.value
+            and freq.base.nanos % Timedelta(1, unit=values.unit).value == 0
+        ):
+            # vectorized _get_datevalue, with the same float arithmetic
+            base = freq.base.nanos // Timedelta(1, unit=values.unit).value
+            i8values = values.tz_localize(None).asi8
+            ordinals = i8values // base
+            result = ordinals + (i8values - ordinals * base) / base
+            result[values.isna()] = np.nan
+            return result
         elif isinstance(values, Index):
             return values.map(lambda x: _get_datevalue(x, freq))
         elif isinstance(values, np.ndarray) and values.dtype.kind in "iuf":
@@ -366,7 +380,15 @@ def _get_datevalue(date, freq):
             # wall-clock time, matching how tz-aware indexes become periods;
             # avoids Period's tz-dropping warning
             date = date.replace(tzinfo=None)
-        return Period(date, freq).ordinal  # pyright: ignore[reportAttributeAccessIssue]
+        period = Period(date, freq)
+        if FreqGroup.from_period_dtype_code(dtype_code).value < FreqGroup.FR_DAY.value:
+            # Coarser axes keep flooring: their own data and user ticks sit
+            #  at the period that contains them.
+            return period.ordinal  # pyright: ignore[reportAttributeAccessIssue]
+        # GH#18467 place off-period dates between ordinals instead of flooring;
+        #  a string can still carry a tz, and Period used its wall time
+        offset = Timestamp(date).tz_localize(None) - period.start_time
+        return period.ordinal + offset.value / freq_obj.base.nanos
     elif is_integer(date) or is_float(date):
         return date
     elif date is None:
@@ -422,6 +444,10 @@ class DatetimeConverter(mdates.DateConverter):
                 values = tools.to_datetime(values)
             except Exception:
                 pass
+
+            if isinstance(values, DatetimeIndex) and values.tz is not None:
+                # date2num converts tz-aware values elementwise, which fails on NaT
+                values = values.tz_convert(None)
 
             values = mdates.date2num(values)
 
@@ -1218,6 +1244,20 @@ class TimeSeries_DateFormatter(mpl.ticker.Formatter):  # pyright: ignore[reportA
             # so label each one in full, GH#18881
             ordinal = round(x)
             if abs(x - ordinal) > 1e-6:
+                if (
+                    isinstance(
+                        self.axis.get_major_locator(),
+                        mpl.ticker.FixedLocator,  # pyright: ignore[reportAttributeAccessIssue]
+                    )
+                    and freq_group.value >= FreqGroup.FR_DAY.value
+                ):
+                    # a user's datetime between periods, placed exactly by
+                    #  _get_datevalue (GH#18467): label its own time
+                    floor = int(np.floor(x))
+                    # whole microseconds drop float error, e.g. 03:19:59.99999993
+                    offset = int(round((x - floor) * self.freq.base.nanos, -3))
+                    start = Period(ordinal=floor, freq=self.freq).start_time
+                    return str(start + Timedelta(offset, "ns"))
                 # e.g. MaxNLocator after zooming in; between periods, so no label
                 return ""
             if is_bday:

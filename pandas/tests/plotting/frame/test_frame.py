@@ -728,6 +728,21 @@ class TestDataFramePlots:
         with pytest.raises(AttributeError, match="unexpected keyword"):
             df.plot.area(**kwargs)
 
+    def test_area_timedelta_stacked(self):
+        # GH#52246
+        df = pd.DataFrame(
+            {
+                "a": pd.to_timedelta([1, 2, 3], unit="s"),
+                "b": pd.to_timedelta([4, None, 6], unit="s"),
+            }
+        )
+        ax = df.plot.area()
+        a = df["a"].astype(np.int64).to_numpy(dtype=np.float64)
+        b = df["b"].fillna(pd.Timedelta(0)).astype(np.int64).to_numpy(dtype=np.float64)
+        tm.assert_numpy_array_equal(ax.lines[0].get_ydata(), a)
+        tm.assert_numpy_array_equal(ax.lines[1].get_ydata(), a + b)
+        assert ax.get_ylim()[0] == 0
+
     @pytest.mark.parametrize("stacked", [True, False])
     def test_bar_linewidth(self, stacked):
         df = pd.DataFrame(np.random.default_rng(2).standard_normal((5, 5)))
@@ -1324,6 +1339,42 @@ class TestDataFramePlots:
         _check_axes_shape(axes, axes_num=4, layout=(4, 1))
         _check_ax_scales(axes, yaxis="log")
 
+    @pytest.mark.parametrize("sharex", [True, False, None])
+    def test_hist_df_subplots_bins(self, sharex):
+        # GH#13489 subplots without a shared x-axis bin each column separately;
+        # sharex defaults to False when ax is passed
+        df = pd.DataFrame(
+            {
+                "a": [0.0, 1.0, 2.0, 3.0, 4.0],
+                "b": ["x", "y", "z", "w", "v"],
+                "c": [100.0, 300.0, 500.0, 700.0, 900.0],
+            }
+        )
+        if sharex is None:
+            _, ax = plt.subplots(2)
+            axes = df.plot.hist(bins=4, subplots=True, ax=ax)
+        else:
+            axes = df.plot.hist(bins=4, subplots=True, sharex=sharex)
+        edges = [
+            [patch.get_x() for patch in ax.patches]
+            + [ax.patches[-1].get_x() + ax.patches[-1].get_width()]
+            for ax in axes
+        ]
+        if sharex:
+            expected = [np.linspace(0.0, 900.0, 5)] * 2
+        else:
+            expected = [np.linspace(0.0, 4.0, 5), np.linspace(100.0, 900.0, 5)]
+        tm.assert_almost_equal(edges, expected)
+
+    def test_hist_df_subplots_groups_bins(self):
+        # GH#13489 columns sharing an axis share bins
+        df = pd.DataFrame(
+            {"a": [0.0, 4.0], "b": [2.0, 8.0], "c": [100.0, 900.0]},
+        )
+        axes = df.plot.hist(bins=2, subplots=[("a", "b")], sharex=False)
+        edges = [sorted({patch.get_x() for patch in ax.patches}) for ax in axes]
+        tm.assert_almost_equal(edges, [[0.0, 4.0], [100.0, 500.0]])
+
     def test_hist_df_series(self):
         series = pd.Series(np.random.default_rng(2).random(10))
         axes = series.plot.hist(rot=40)
@@ -1548,6 +1599,15 @@ class TestDataFramePlots:
         for idx, line in enumerate(ax.get_lines()[: len(markers)]):
             assert line.get_marker() == markers[idx]
 
+    @pytest.mark.parametrize(
+        "box", [tuple, np.array, lambda x: pd.Series(x, index=["x", "y"])]
+    )
+    def test_style_list_like(self, box):
+        # GH#46289 non-list list-likes were plotted as data
+        df = pd.DataFrame(np.random.default_rng(2).random((10, 2)))
+        ax = df.plot(style=box(["--", "-."]))
+        assert [line.get_linestyle() for line in ax.get_lines()] == ["--", "-."]
+
     def test_line_label_none(self):
         s = pd.Series([1, 2])
         ax = s.plot()
@@ -1701,6 +1761,33 @@ class TestDataFramePlots:
         df = pd.DataFrame({"A": [1, 2], "B": [3, 4]})
         df.columns = colnames
         _check_plot_works(df.plot, x=x, y=y)
+
+    @pytest.mark.parametrize(
+        "y,labels",
+        [
+            ("A", "A"),
+            (["A", "B"], ["A", "B"]),
+            (["B", "A"], ["B", "A"]),
+            (0, "A"),
+            ([0, 1], ["A", "B"]),
+        ],
+    )
+    def test_plot_y_includes_x(self, y, labels):
+        # GH#22088 a column may be plotted against itself
+        df = pd.DataFrame({"A": [1, 2, 3], "B": [3, 1, 2]})
+        expected = df.set_index(df["A"])[labels].plot()
+        _check_data(df.plot(x="A", y=y), expected)
+
+    @pytest.mark.parametrize("err", ["xerr", "yerr"])
+    def test_plot_errorbar_names_x(self, err):
+        # GH#22088
+        df = pd.DataFrame({"A": [1, 2, 3], "B": [3, 1, 2]})
+        result = df.plot(x="A", y="B", **{err: "A"})
+        expected = df.set_index(df["A"]).plot(y="B", **{err: df["A"].to_numpy()})
+        tm.assert_numpy_array_equal(
+            np.asarray(result.collections[0].get_segments()),
+            np.asarray(expected.collections[0].get_segments()),
+        )
 
     def test_hexbin_basic(self):
         df = pd.DataFrame(
@@ -2357,7 +2444,7 @@ class TestDataFramePlots:
         ax = df.plot(kind=kind, **args)
         # https://github.com/pandas-dev/pandas/issues/9003#issuecomment-70544889
         if kind in ["line", "area"]:
-            for i, (cached_data, _, _) in enumerate(ax._plot_data):
+            for i, (cached_data, *_) in enumerate(ax._plot_data):
                 ser = df.iloc[:, i]
                 assert not tm.shares_memory(ser, cached_data)
                 tm.assert_numpy_array_equal(ser._values, cached_data._values)

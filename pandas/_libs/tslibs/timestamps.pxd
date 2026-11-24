@@ -28,6 +28,7 @@ cdef class _Timestamp(ABCTimestamp):
     cdef _get_date_name_field(self, str field, object locale)
     cdef int64_t _maybe_convert_value_to_local(self) except? -1
     cdef bint _can_compare(self, datetime other)
+    cdef datetime _pydatetime_for_tzinfo(self)
     cpdef to_datetime64(self)
     cpdef datetime to_pydatetime(_Timestamp self, bint warn=*)
     cdef bint _compare_outside_nanorange(_Timestamp self, datetime other,

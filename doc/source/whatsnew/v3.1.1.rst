@@ -40,4 +40,4 @@ Build
 Contributors
 ~~~~~~~~~~~~
 
-.. contributors:: v3.1.0..v3.1.1|HEAD
+.. contributors:: v3.1.0..v3.1.1

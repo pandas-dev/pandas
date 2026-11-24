@@ -30,13 +30,25 @@ class TestDataFrameLogicalOperators:
                 [True, False, np.nan],
                 [True, False, True],
                 operator.or_,
-                [True, False, False],
+                [True, False, True],
             ),
             (
                 [True, False, True],
                 [True, False, np.nan],
                 operator.or_,
                 [True, False, True],
+            ),
+            (
+                [True, False, np.nan],
+                [True, False, True],
+                operator.xor,
+                [False, False, True],
+            ),
+            (
+                [True, False, True],
+                [True, False, np.nan],
+                operator.xor,
+                [False, False, True],
             ),
         ],
     )
@@ -156,7 +168,7 @@ class TestDataFrameLogicalOperators:
         # GH4947
         # bool comparisons should return bool
         result = d["a"] | d["b"]
-        expected = pd.Series([False, True])
+        expected = pd.Series([True, True])
         tm.assert_series_equal(result, expected)
 
         # GH4604, automatic casting here
@@ -166,6 +178,13 @@ class TestDataFrameLogicalOperators:
         result = d["a"].fillna(False) | d["b"]
         expected = pd.Series([True, True])
         tm.assert_series_equal(result, expected)
+
+    def test_logical_ops_object_na_left_2d(self):
+        # GH#51267
+        df = pd.DataFrame({"a": [True, np.nan], "b": [None, False]}, dtype=object)
+        result = df | np.array([[False, False], [True, False]])
+        expected = pd.DataFrame({"a": [True, True], "b": [False, False]})
+        tm.assert_frame_equal(result, expected)
 
     def test_logical_ops_categorical_columns(self):
         # GH#38367
