@@ -1209,7 +1209,7 @@ class PeriodDtype(PeriodDtypeBase, PandasExtensionDtype):
         import pyarrow
 
         from pandas.core.arrays import PeriodArray
-        from pandas.core.arrays.arrow._arrow_utils import (
+        from pandas.core.arrays.arrow.util import (
             pyarrow_array_to_numpy_and_mask,
         )
 

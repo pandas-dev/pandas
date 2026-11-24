@@ -180,7 +180,7 @@ numpydoc = "*"
 pandoc = "*"
 seaborn = "*" # used in doc/source/user_guide/style.ipynb
 sphinx = "*"
-sphinx-design = "*"
+sphinx-design = ">=0.8.0"
 sphinx-copybutton = "*"
 pydata-sphinx-theme = "==0.20.0"
 
