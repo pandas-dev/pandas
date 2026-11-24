@@ -7,6 +7,7 @@ from io import (
 from lzma import LZMAError
 import os
 from tarfile import ReadError
+import tracemalloc
 from urllib.error import HTTPError
 from xml.etree.ElementTree import ParseError
 from zipfile import BadZipFile
@@ -26,7 +27,10 @@ import pandas as pd
 import pandas._testing as tm
 
 from pandas.io.common import get_handle
-from pandas.io.xml import read_xml
+from pandas.io.xml import (
+    _Utf8Reader,
+    read_xml,
+)
 
 # CHECK LIST
 
@@ -1171,8 +1175,7 @@ def test_parser_consistency_with_encoding(xml_baby_names):
     tm.assert_frame_equal(df_iter_lxml, df_iter_etree)
 
 
-def test_wrong_encoding_for_lxml():
-    pytest.importorskip("lxml")
+def test_none_encoding(parser):
     # GH#45133
     data = """<data>
   <row>
@@ -1180,20 +1183,114 @@ def test_wrong_encoding_for_lxml():
   </row>
 </data>
 """
-    with pytest.raises(TypeError, match="encoding None"):
-        read_xml(StringIO(data), parser="lxml", encoding=None)
-
-
-def test_none_encoding_etree():
-    # GH#45133
-    data = """<data>
-  <row>
-    <a>c</a>
-  </row>
-</data>
-"""
-    result = read_xml(StringIO(data), parser="etree", encoding=None)
+    result = read_xml(StringIO(data), parser=parser, encoding=None)
     expected = pd.DataFrame({"a": ["c"]})
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "encoding, text",
+    [
+        ("ISO-8859-1", "é"),
+        ("UTF-16", "é"),
+        ("utf-16-le", "é"),
+        ("utf-8-sig", "é"),
+        ("cp932", "\uff5e\u2225"),
+    ],
+)
+def test_decodes_with_python_codec(tmp_path, parser, encoding, text):
+    # GH#59447 both parsers decode with Python's codec, and a file spanning
+    # many reads decodes the same throughout
+    path = tmp_path / "data.xml"
+    rows = "".join(f"<row><a>{i}</a><b>{text}</b></row>" for i in range(5000))
+    path.write_text(
+        f'<?xml version="1.0" encoding="{encoding}"?><data>{rows}</data>',
+        encoding=encoding,
+    )
+
+    result = read_xml(path, encoding=encoding, parser=parser)
+
+    expected = pd.DataFrame({"a": range(5000), "b": [text] * 5000})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_lxml_does_not_read_file_into_memory(tmp_path):
+    # GH#59447 libxml2 < 2.12 fails on in-memory inputs over ~1GB when given an
+    # encoding
+    pytest.importorskip("lxml")
+    path = tmp_path / "data.xml"
+    padding = ("<pad>" + "x" * 1000 + "</pad>") * 5000
+    path.write_text(
+        f'<?xml version="1.0" encoding="UTF-8"?>'
+        f"<data><row><a>1</a></row>{padding}</data>",
+        encoding="utf-8",
+    )
+
+    tracemalloc.start()
+    try:
+        result = read_xml(path, xpath="//row", parser="lxml")
+        peak = tracemalloc.get_traced_memory()[1]
+    finally:
+        tracemalloc.stop()
+
+    tm.assert_frame_equal(result, pd.DataFrame({"a": [1]}))
+    assert peak < os.path.getsize(path) // 2
+
+
+@pytest.mark.parametrize("size", [-1, 3])
+@pytest.mark.parametrize(
+    "decl, expected",
+    [
+        (
+            "<?xml version='1.0' encoding='cp932'?>",
+            "<?xml version='1.0'                 ?>",
+        ),
+        (
+            '<?xml version="1.0" encoding="cp932" standalone="no" ?>',
+            '<?xml version="1.0"                  standalone="no" ?>',
+        ),
+        ("\ufeff<?xml version='1.0'?>", "<?xml version='1.0'?>"),
+        # malformed, left for libxml2 to reject
+        ("<?xml version='1.0' encoding='1x'?>", None),
+        ("<?xml version='1.0' standalone='no' encoding='cp932'?>", None),
+        ("<?xml version='1.0' encoding='cp932' encoding='cp932'?>", None),
+    ],
+)
+def test_utf8_reader_blanks_declared_encoding(size, decl, expected):
+    # GH#59447 libxml2 < 2.12 would decode the input after the declaration with
+    # the declared encoding, though lxml is given UTF-8
+    reader = _Utf8Reader(StringIO(f"{decl}<a>é</a>"), "utf-8")
+    result = b"".join(iter(lambda: reader.read(size), b"")).decode("utf-8")
+    assert result == f"{expected or decl}<a>é</a>"
+
+
+@pytest.mark.parametrize(
+    "decl", ["encoding='1x'", "encoding=''", "standalone='no' encoding='utf-8'"]
+)
+def test_malformed_declaration_raises(parser, decl):
+    # GH#59447
+    doc = f"<?xml version='1.0' {decl}?><data><row><a>1</a></row></data>"
+    msg = "|".join(["declaration", "encoding name"])
+    with pytest.raises(SyntaxError, match=msg):
+        read_xml(StringIO(doc), parser=parser)
+
+
+class _ByteReader:
+    # not an io class, so get_handle takes it for a text handle
+    def __init__(self, data: bytes) -> None:
+        self.data = BytesIO(data)
+
+    def read(self, size: int = -1) -> bytes:
+        return self.data.read(1)
+
+
+@pytest.mark.parametrize("encoding", ["utf-8", "UTF-16", None])
+def test_bytes_reader(parser, encoding):
+    # GH#59447 one-byte reads also split characters
+    codec = encoding or "utf-8"
+    doc = f'<?xml version="1.0" encoding="{codec}"?><data><row><a>é€</a></row></data>'
+    result = read_xml(_ByteReader(doc.encode(codec)), encoding=encoding, parser=parser)
+    expected = pd.DataFrame({"a": ["é€"]})
     tm.assert_frame_equal(result, expected)
 
 
