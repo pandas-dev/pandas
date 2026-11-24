@@ -71,6 +71,7 @@ from pandas.core import (
 from pandas.core.accessor import DirNamesMixin
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays import ExtensionArray
+from pandas.core.arrays._utils import warn_unitless_to_numpy_dtype
 from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
     extract_array,
@@ -726,6 +727,7 @@ class IndexOpsMixin(OpsMixin):
             raise TypeError(
                 f"to_numpy() got an unexpected keyword argument '{bad_keys}'"
             )
+        warn_unitless_to_numpy_dtype(dtype)
 
         fillna = (
             na_value is not lib.no_default

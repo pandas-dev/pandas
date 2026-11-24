@@ -2,6 +2,8 @@ import numpy as np
 import pytest
 
 from pandas.compat import HAS_PYARROW
+from pandas.errors import Pandas4Warning
+import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
@@ -679,6 +681,44 @@ def test_to_numpy_dataframe_single_block_no_mutate():
     expected = pd.DataFrame(np.array([1.0, 2.0, np.nan]))
     result.to_numpy(na_value=0.0)
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("kind", ["datetime64", "timedelta64"])
+@pytest.mark.parametrize("tz", [None, "US/Eastern"])
+@pytest.mark.parametrize("box", [pd.Series, pd.Index, pd.DataFrame, pd.array])
+def test_to_numpy_unitless_dtype_datetime(box, tz, unit, kind):
+    # GH#59772 tz-aware data raised with NaT and truncated to microseconds otherwise
+    dti = pd.to_datetime(["2000-01-01 00:00:00.123456789", None]).as_unit(unit)
+    obj = box(dti.tz_localize(tz))
+    expected = obj.to_numpy(f"{kind}[{unit}]")
+
+    msg = f"Passing a unit-less dtype '{kind}' to to_numpy is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = obj.to_numpy(kind)
+    tm.assert_numpy_array_equal(result, expected)
+
+
+@pytest.mark.parametrize("dtype", ["datetime64", np.datetime64, "m8"])
+@pytest.mark.parametrize(
+    "values_dtype",
+    [
+        "int64",
+        "Int64",
+        pytest.param("int64[pyarrow]", marks=td.skip_if_no("pyarrow")),
+        pytest.param("timestamp[ns][pyarrow]", marks=td.skip_if_no("pyarrow")),
+        "datetime64[ns]",
+        "timedelta64[ns]",
+        "category",
+    ],
+)
+@pytest.mark.parametrize("box", [pd.Series, pd.Index, pd.DataFrame, pd.array])
+def test_to_numpy_unitless_dtype_deprecated(values_dtype, box, dtype):
+    # GH#59772 warns exactly once on each to_numpy path
+    obj = box(pd.Series([1, 2], dtype=values_dtype))
+    msg = "Passing a unit-less dtype '(datetime|timedelta)64' to to_numpy"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg) as w:
+        obj.to_numpy(dtype)
+    assert len(w) == 1
 
 
 class TestAsArray:

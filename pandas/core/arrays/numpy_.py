@@ -43,6 +43,7 @@ from pandas.core import (
 )
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays._mixins import NDArrayBackedExtensionArray
+from pandas.core.arrays._utils import warn_unitless_to_numpy_dtype
 from pandas.core.construction import ensure_wrapped_if_datetimelike
 from pandas.core.strings.object_array import ObjectStringArrayMixin
 
@@ -640,6 +641,7 @@ class NumpyExtensionArray(
         copy: bool = False,
         na_value: object = lib.no_default,
     ) -> np.ndarray:
+        warn_unitless_to_numpy_dtype(dtype)
         if na_value is not lib.no_default and (mask := self.isna()).any():
             result = self._ndarray.copy()
             result[mask] = na_value

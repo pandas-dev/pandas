@@ -4,6 +4,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
 )
+import warnings
 
 import numpy as np
 
@@ -11,7 +12,12 @@ from pandas._config import is_nan_na
 
 from pandas._libs import lib
 from pandas._libs.missing import NA
-from pandas.errors import LossySetitemError
+from pandas._libs.tslibs import is_unitless
+from pandas.errors import (
+    LossySetitemError,
+    Pandas4Warning,
+)
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import np_can_hold_element
 from pandas.core.dtypes.common import is_numeric_dtype
@@ -75,3 +81,29 @@ def to_numpy_dtype_inference(
         except LossySetitemError:
             result_dtype = np.dtype(np.object_)
     return result_dtype, na_value
+
+
+def warn_unitless_to_numpy_dtype(dtype: npt.DTypeLike | None) -> bool:
+    """
+    Warn if ``dtype`` is a unit-less datetime64 or timedelta64 dtype.
+
+    Returns whether it warned.
+    """
+    if dtype is None:
+        return False
+    try:
+        dtype = np.dtype(dtype)
+    except TypeError:
+        # not a numpy dtype, so not unit-less; any error is raised by the caller
+        return False
+    if dtype.kind in "mM" and is_unitless(dtype):
+        # GH#59772
+        warnings.warn(
+            f"Passing a unit-less dtype '{dtype.name}' to to_numpy is deprecated "
+            "and will raise in a future version. "
+            f"Pass e.g. '{dtype.name}[ns]' instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        return True
+    return False

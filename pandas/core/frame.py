@@ -146,6 +146,7 @@ from pandas.core.arrays import (
     PeriodArray,
     TimedeltaArray,
 )
+from pandas.core.arrays._utils import warn_unitless_to_numpy_dtype
 from pandas.core.arrays.sparse import SparseFrameAccessor
 from pandas.core.arrays.string_ import StringDtype
 from pandas.core.computation.parsing import clean_column_name
@@ -1899,6 +1900,11 @@ class DataFrame(NDFrame, OpsMixin):
         """
         if dtype is not None:
             dtype = np.dtype(dtype)
+            if dtype.kind in "mM" and not any(
+                blk.is_extension for blk in self._mgr.blocks
+            ):
+                # extension blocks warn in their own to_numpy
+                warn_unitless_to_numpy_dtype(dtype)
         result = self._mgr.as_array(dtype=dtype, copy=copy, na_value=na_value)
         if result.dtype is not dtype:
             result = np.asarray(result, dtype=dtype)

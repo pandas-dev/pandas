@@ -85,6 +85,7 @@ from pandas.core.arrays._ranges import (
     generate_regular_range,
     trim_range_endpoints,
 )
+from pandas.core.arrays._utils import warn_unitless_to_numpy_dtype
 import pandas.core.common as com
 
 from pandas.tseries.frequencies import get_period_alias
@@ -663,6 +664,18 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
 
     # ----------------------------------------------------------------
     # Array-Like / EA-Interface Methods
+
+    def to_numpy(
+        self,
+        dtype: npt.DTypeLike | None = None,
+        copy: bool = False,
+        na_value: object = lib.no_default,
+    ) -> np.ndarray:
+        if warn_unitless_to_numpy_dtype(dtype):
+            # numpy passes dtype=None to __array__ for a unit-less request, which for
+            # tz-aware data means converting via Timestamp objects, GH#59772
+            dtype = np.dtype(f"{np.dtype(dtype).kind}8[{self.unit}]")
+        return super().to_numpy(dtype=dtype, copy=copy, na_value=na_value)
 
     def __array__(self, dtype=None, copy=None) -> np.ndarray:
         if dtype is None and self.tz:
