@@ -2171,6 +2171,7 @@ Backward resample
 Instead of adjusting the beginning of bins, sometimes we need to fix the end of the bins to make a backward resample with a given ``freq``. The backward resample sets ``closed`` to ``'right'`` by default since the last value should be considered as the edge point for the last bin.
 
 We can set ``origin`` to ``'end'``. The value for a specific ``Timestamp`` index stands for the resample result from the current ``Timestamp`` minus ``freq`` to the current ``Timestamp`` with a right close.
+If ``origin`` is ignored for the given ``freq`` (e.g. ``"MS"``), ``closed`` and ``label`` keep their usual defaults.
 
 .. ipython:: python
 

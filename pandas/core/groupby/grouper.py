@@ -123,6 +123,12 @@ class Grouper:
         - 'end': `origin` is the last value of the timeseries
         - 'end_day': `origin` is the ceiling midnight of the last day
 
+        .. note::
+
+            Only takes effect for Tick-frequencies (i.e. fixed frequencies
+            like hours and minutes) and, on a timezone-naive DatetimeIndex, for
+            day frequencies; not for months or quarters.
+
     offset : Timedelta or str, default None
         An offset timedelta added to the origin.
 

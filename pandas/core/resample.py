@@ -2511,6 +2511,10 @@ class TimeGrouper(Grouper):
                     stacklevel=find_stack_level(),
                 )
 
+        # set when the "right" defaults come only from origin; see _get_resampler
+        closed_from_origin = False
+        label_from_origin = False
+
         end_types = {"ME", "YE", "QE", "BME", "BYE", "BQE", "W"}
         rule = _rule_code(freq)
         if rule in end_types or ("-" in rule and rule[: rule.find("-")] in end_types):
@@ -2524,11 +2528,15 @@ class TimeGrouper(Grouper):
         # specific ``Timestamp`` index stands for the resample result from
         # the current ``Timestamp`` minus ``freq`` to the current
         # ``Timestamp`` with a right close.
-        elif origin in ["end", "end_day"]:
+        # GH#47653: not when origin is ignored; for Day that depends on the
+        # axis, so _get_resampler revisits it.
+        elif origin in ["end", "end_day"] and isinstance(freq, (Tick, Day)):
             if closed is None:
                 closed = "right"
+                closed_from_origin = True
             if label is None:
                 label = "right"
+                label_from_origin = True
         else:
             if closed is None:
                 closed = "left"
@@ -2537,6 +2545,8 @@ class TimeGrouper(Grouper):
 
         self.closed = closed
         self.label = label
+        self._closed_from_origin = closed_from_origin
+        self._label_from_origin = label_from_origin
         self.convention = convention if convention is not None else "e"
         self.how = how
         self.fill_method = fill_method
@@ -2600,9 +2610,10 @@ class TimeGrouper(Grouper):
         # GH#44996: with a Day freq, origin/offset take effect only on a
         # tz-naive DatetimeIndex (where Day is equivalent to 24h), except
         # that offset also takes effect in _get_time_delta_bins.
-        if isinstance(self.freq, Day) and not (
+        origin_inert = isinstance(self.freq, Day) and not (
             isinstance(ax, DatetimeIndex) and ax.tz is None
-        ):
+        )
+        if origin_inert:
             if self.offset is not None and not isinstance(ax, TimedeltaIndex):
                 warnings.warn(
                     "The 'offset' keyword does not take effect when resampling "
@@ -2619,6 +2630,15 @@ class TimeGrouper(Grouper):
                     RuntimeWarning,
                     stacklevel=find_stack_level(),
                 )
+
+        # GH#47653: where origin is ignored, don't let it flip the defaults.
+        # Re-resolved per call since a Grouper may be reused on another axis;
+        # a TimedeltaIndex keeps "right" so "D" matches "24h" (GH#44996).
+        use_left = origin_inert and not isinstance(ax, TimedeltaIndex)
+        if self._closed_from_origin:
+            self.closed = "left" if use_left else "right"
+        if self._label_from_origin:
+            self.label = "left" if use_left else "right"
 
         if isinstance(ax, DatetimeIndex):
             return DatetimeIndexResampler(

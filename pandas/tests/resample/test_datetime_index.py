@@ -2423,6 +2423,60 @@ def test_resample_day_origin_period_index_warns():
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize("freq", ["MS", "QS", "YS", "B", "W", "ME"])
+@pytest.mark.parametrize("origin", ["end", "end_day"])
+def test_resample_origin_end_non_tick_freq_ignored(freq, origin):
+    # GH#47653: origin is ignored with a non-Tick freq, so an origin of
+    # "end"/"end_day" must not flip the closed/label defaults to "right"
+    index = date_range("2022-01-01", periods=60, freq="D")
+    ser = pd.Series(range(60), index=index)
+    msg = "The 'origin' keyword does not take effect"
+
+    expected = ser.resample(freq).size()
+    with tm.assert_produces_warning(RuntimeWarning, match=msg):
+        result = ser.resample(freq, origin=origin).size()
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("origin", ["end", "end_day"])
+def test_resample_origin_end_day_freq_tz_aware_ignored(origin):
+    # GH#47653: with a Day freq origin is ignored on a tz-aware index, so it
+    # must not flip the closed/label defaults either
+    index = date_range("2022-01-01", periods=10, freq="6h", tz="US/Eastern")
+    ser = pd.Series(range(10), index=index)
+    msg = "The 'origin' keyword does not take effect"
+
+    expected = ser.resample("D").size()
+    with tm.assert_produces_warning(RuntimeWarning, match=msg):
+        result = ser.resample("D", origin=origin).size()
+    tm.assert_series_equal(result, expected)
+
+    # but on a tz-naive index origin does take effect, matching the
+    # equivalent Tick freq
+    ser_naive = ser.tz_localize(None)
+    with tm.assert_produces_warning(None):
+        result = ser_naive.resample("D", origin=origin).size()
+    expected = ser_naive.resample("24h", origin=origin).size()
+    tm.assert_series_equal(result, expected, check_freq=False)
+
+
+def test_resample_origin_end_grouper_reused_across_indexes():
+    # GH#47653: the closed/label defaults depend on the binning axis, so a
+    # reused Grouper must not be affected by an earlier call
+    naive = pd.DataFrame(
+        {"a": range(10)}, index=date_range("2022-01-01", periods=10, freq="6h")
+    )
+    aware = naive.tz_localize("US/Eastern")
+    grouper = Grouper(freq="D", origin="end")
+    msg = "The 'origin' keyword does not take effect"
+
+    expected = naive.groupby(grouper).size()
+    with tm.assert_produces_warning(RuntimeWarning, match=msg):
+        aware.groupby(grouper).size()
+    result = naive.groupby(grouper).size()
+    tm.assert_series_equal(result, expected)
+
+
 def test_resample_D_closed_right_no_extra_bin():
     # GH#62200: resample("D", closed="right") should not produce an extra
     # trailing empty bin when last value falls exactly on a Day boundary.
