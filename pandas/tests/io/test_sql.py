@@ -4038,7 +4038,7 @@ def test_read_sql_table_empty_dtype_backend(
     )
     df.to_sql(name=table, con=conn, index=False, if_exists="replace")
 
-    result = pd.read_sql_table(table, conn, dtype_backend=dtype_backend)
+    result = sql.read_sql_table(table, conn, dtype_backend=dtype_backend)
     expected = pd.DataFrame(
         {
             "a": pd.Series([], dtype=expected_dtypes[0]),
