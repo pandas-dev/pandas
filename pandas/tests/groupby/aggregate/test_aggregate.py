@@ -1161,7 +1161,9 @@ def test_groupby_agg_list_no_columns_to_aggregate(as_index, kwargs):
     result = df.groupby("g", as_index=as_index).agg(["min", "mean"], **kwargs)
     expected = pd.DataFrame(
         index=pd.Index([1, 2], name="g"),
-        columns=pd.MultiIndex.from_arrays([[], []], names=["foo", None]),
+        columns=pd.MultiIndex.from_arrays(
+            [df.columns[:0], pd.Index([])], names=["foo", None]
+        ),
     )
     if not as_index:
         expected = expected.reset_index()

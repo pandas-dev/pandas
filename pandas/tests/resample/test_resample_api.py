@@ -454,6 +454,7 @@ def test_agg_list_no_columns_to_aggregate(kwargs, groupby):
     df = pd.DataFrame({"s": ["w", "x", "y", "z"]}, index=index)
     if not kwargs:
         df = df[[]]
+    expected_columns = pd.MultiIndex.from_arrays([df.columns[:0], pd.Index([])])
     expected_index = date_range("2020-01-01", periods=2, freq="2h")
     if groupby:
         df["g"] = [1, 1, 2, 2]
@@ -462,10 +463,7 @@ def test_agg_list_no_columns_to_aggregate(kwargs, groupby):
             [[1, 2], expected_index], names=["g", None]
         )
     result = df.resample("2h").agg(["sum", "mean"], **kwargs)
-    expected = pd.DataFrame(
-        index=expected_index,
-        columns=pd.MultiIndex.from_arrays([[], []]),
-    )
+    expected = pd.DataFrame(index=expected_index, columns=expected_columns)
     tm.assert_frame_equal(result, expected)
 
 

@@ -579,8 +579,11 @@ class Apply(metaclass=abc.ABCMeta):
                         index=index, columns=Index([])
                     )
                 # (column, func) levels, as in a non-empty result
-                names = [*selected.columns.names, None]
-                columns = MultiIndex.from_arrays([[]] * len(names), names=names)
+                cols = selected.columns[:0]
+                arrays = [cols.get_level_values(i) for i in range(cols.nlevels)]
+                columns = MultiIndex.from_arrays(
+                    [*arrays, Index([])], names=[*cols.names, None]
+                )
                 return selected._constructor(index=index, columns=columns)
 
         try:
