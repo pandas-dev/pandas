@@ -29,9 +29,6 @@ numpy = ">=2.0.2,<3"
 [target.win.dependencies]
 tzdata = ">=2023.3"
 
-[feature.py311.dependencies]
-python = "3.11.*"
-
 [feature.py312.dependencies]
 python = "3.12.*"
 
@@ -108,7 +105,6 @@ pyiceberg = ">=0.9.1"
 # Test latest N releases of pyarrow and numpy across the tested Python versions
 # The latest Python release should test the latest pyarrow and numpy version (unpinned)
 [environments]
-py311 = { features = ["py311", "test-base", "test-clipboard", "test-network", "optional-dependencies", "optional-dependencies-no-py315", "default-compiler"], dependencies = { numpy = "2.1.*", pyarrow = "22.*" } }
 py312 = { features = ["py312", "test-base", "test-clipboard", "test-network", "optional-dependencies", "optional-dependencies-no-py315", "default-compiler"], dependencies = { numpy = "2.2.*", pyarrow = "23.*" } }
 py313 = { features = ["py313", "test-base", "test-clipboard", "test-network", "optional-dependencies", "optional-dependencies-no-py315", "default-compiler"], dependencies = { numpy = "2.3.*", pyarrow = "24.*" } }
 py314 = { features = ["py314", "test-base", "test-clipboard", "test-network", "optional-dependencies", "optional-dependencies-no-py315", "default-compiler"], dependencies = { numpy = "2.4.*", pyarrow = "25.*" } }
@@ -116,12 +112,8 @@ py315 = { features = ["py315", "numpy", "test-base", "test-network", "pyarrow", 
 no-pyarrow = { features = ["py313", "numpy", "test-base", "test-clipboard", "test-network", "optional-dependencies", "optional-dependencies-no-py315", "default-compiler"] }
 
 [environments.minimum-versions]
-features = ["py311", "numpy", "test-base", "test-clipboard", "test-network", "pyarrow", "optional-dependencies", "optional-dependencies-no-py315", "default-compiler"]
+features = ["py312", "numpy", "test-base", "test-clipboard", "test-network", "pyarrow", "optional-dependencies", "optional-dependencies-no-py315", "default-compiler"]
 solve-strategy = "lowest-direct"
-
-[environments.minimum-versions.dependencies]
-# Avoid <3.11.5, soupsieve>=3.0 (for bs4) uses regex pattern supported by Python 3.11.5
-python = ">=3.11.5,<3.12"
 
 [environments.py314-freethreading]
 features = ["numpy", "test-base", "default-compiler"]
