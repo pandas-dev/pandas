@@ -128,7 +128,7 @@ Consult the `docs <https://github.com/pyenv/pyenv>`_ for setting up pyenv.
 
    # Create a virtual environment
    # Use an ENV_DIR of your choice. We'll use ~/.pyenv/versions/pandas-dev
-   pyenv virtualenv 3.11 pandas-dev
+   pyenv virtualenv 3.12 pandas-dev
 
    # Activate the virtualenv
    pyenv activate pandas-dev
