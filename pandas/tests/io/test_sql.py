@@ -4016,7 +4016,7 @@ def test_read_sql_dtype_backend_table(
             tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("conn", ["sqlite"])
+@pytest.mark.parametrize("conn", ["sqlite_engine"])
 @pytest.mark.parametrize(
     "dtype_backend, expected_dtypes",
     [
