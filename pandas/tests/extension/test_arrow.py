@@ -29,10 +29,7 @@ import re
 import numpy as np
 import pytest
 
-from pandas.compat import (
-    PY312,
-    pa_version_under21p0,
-)
+from pandas.compat import pa_version_under21p0
 
 from pandas.core.dtypes.common import pandas_dtype
 from pandas.core.dtypes.dtypes import (
@@ -613,7 +610,7 @@ class TestArrowArray(base.ExtensionTests):
                     reason=f"pyarrow.compute.invert does support {pa_dtype}",
                 )
             )
-        if PY312 and pa.types.is_boolean(pa_dtype):
+        if pa.types.is_boolean(pa_dtype):
             with tm.assert_produces_warning(
                 DeprecationWarning, match="Bitwise inversion", check_stacklevel=False
             ):

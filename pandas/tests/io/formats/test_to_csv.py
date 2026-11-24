@@ -21,8 +21,8 @@ from pandas.core.arrays import FloatingArray
 from pandas.core.indexes.base import get_values_for_csv
 
 skip_if_bare_cr_unquoted = pytest.mark.skipif(
-    sys.version_info < (3, 11, 9) or (3, 12) <= sys.version_info < (3, 12, 3),
-    reason="csv.writer quotes a bare '\\r' only from CPython 3.11.9 and 3.12.3, "
+    sys.version_info < (3, 12, 3),
+    reason="csv.writer quotes a bare '\\r' only from CPython 3.12.3, "
     "see python/cpython#67044",
 )
 
