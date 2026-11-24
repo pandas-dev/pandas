@@ -305,6 +305,21 @@ See more in the `Arrow documentation <https://arrow.apache.org/docs/python/exten
 Those methods have been implemented for the nullable integer and string extension
 dtypes included in pandas, and ensure roundtrip to pyarrow and the Parquet file format.
 
+.. _extending.extension.sql:
+
+Writing to SQL databases
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+For an ``ExtensionArray`` column whose ``dtype.kind`` is not ``"M"`` or
+``"m"``, :meth:`DataFrame.to_sql` writes the objects returned by
+``ExtensionArray.astype(object)`` and infers the SQL column type from them.
+The database driver must be able to store these objects:
+if it cannot, convert the column before writing, or register an adapter with
+the driver (for example :func:`sqlite3.register_adapter`). Pass ``dtype`` to
+:meth:`DataFrame.to_sql` to override the inferred column type. ADBC
+connections instead convert the column to Arrow, see
+:ref:`extending.extension.arrow`.
+
 .. _extension dtype dtypes: https://github.com/pandas-dev/pandas/blob/main/pandas/core/dtypes/dtypes.py
 .. _extension dtype source: https://github.com/pandas-dev/pandas/blob/main/pandas/core/dtypes/base.py
 .. _extension array source: https://github.com/pandas-dev/pandas/blob/main/pandas/core/arrays/base.py

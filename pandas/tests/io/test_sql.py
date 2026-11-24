@@ -34,6 +34,7 @@ import pandas.util._test_decorators as td
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.tests.extension.array_with_attr import FloatAttrArray
 from pandas.util.version import Version
 
 from pandas.io import sql
@@ -2413,6 +2414,28 @@ def test_api_categorical(conn, request):
     tm.assert_frame_equal(res, df)
 
 
+@pytest.mark.parametrize("conn", [*sqlalchemy_connectable, "sqlite_buildin"])
+@pytest.mark.parametrize(
+    "values, expected",
+    [
+        (pd.Categorical([1, 2, 1]), [1, 2, 1]),
+        (FloatAttrArray(np.array([1.5, np.nan])), [1.5, np.nan]),
+    ],
+    ids=["categorical", "third-party-ea"],
+)
+def test_api_column_type_from_values(conn, request, values, expected):
+    # GH#43783 the SQL column type is inferred from the values, not TEXT
+    conn = request.getfixturevalue(conn)
+    if sql.has_table("test_column_type", conn):
+        with sql.SQLDatabase(conn, need_transaction=True) as pandasSQL:
+            pandasSQL.drop_table("test_column_type")
+
+    pd.DataFrame({"a": values}).to_sql(name="test_column_type", con=conn, index=False)
+    result = sql.read_sql_query("SELECT * FROM test_column_type", conn)
+
+    tm.assert_frame_equal(result, pd.DataFrame({"a": expected}))
+
+
 @pytest.mark.parametrize("conn", all_connectable)
 def test_api_unicode_column_name(conn, request):
     # GH 11431
@@ -2698,6 +2721,22 @@ def test_sqlalchemy_integer_mapping(conn, request, integer, expected):
     # GH35076 Map pandas integer to optimal SQLAlchemy integer type
     conn = request.getfixturevalue(conn)
     df = pd.DataFrame([0, 1], columns=["a"], dtype=integer)
+    with sql.SQLDatabase(conn) as db:
+        table = sql.SQLTable("test_type", db, frame=df)
+
+        result = str(table.table.c.a.type)
+    assert result == expected
+
+
+@pytest.mark.parametrize("conn", sqlalchemy_connectable)
+@pytest.mark.parametrize(
+    "integer, expected", [("int8", "SMALLINT"), ("int32", "INTEGER")]
+)
+def test_sqlalchemy_categorical_mapping(conn, request, integer, expected):
+    # GH#43783 a categorical is mapped like its categories
+    conn = request.getfixturevalue(conn)
+    cat = pd.Categorical(np.array([0, 1], dtype=integer))
+    df = pd.DataFrame({"a": cat})
     with sql.SQLDatabase(conn) as db:
         table = sql.SQLTable("test_type", db, frame=df)
 

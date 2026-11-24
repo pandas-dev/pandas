@@ -40,6 +40,7 @@ from pandas.io.sql.base import (
     PandasSQL,
     SQLTable,
     get_unicode_name,
+    infer_column_type,
     wrap_result,
 )
 
@@ -235,9 +236,7 @@ class SQLiteTable(SQLTable):
             if col.name in dtype:
                 return dtype[col.name]
 
-        # Infer type of column, while ignoring missing values.
-        # Needed for inserting typed data containing NULLs, GH 8778.
-        col_type = lib.infer_dtype(col, skipna=True)
+        _, col_type = infer_column_type(col)
 
         if col_type == "timedelta64":
             warnings.warn(

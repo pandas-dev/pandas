@@ -42,7 +42,10 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_string_dtype,
 )
-from pandas.core.dtypes.dtypes import DatetimeTZDtype
+from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
+    DatetimeTZDtype,
+)
 from pandas.core.dtypes.missing import isna
 
 from pandas.core.api import (
@@ -228,6 +231,24 @@ def wrap_result(
         frame = frame.set_index(index_col)
 
     return frame
+
+
+def infer_column_type(col: Index | Series) -> tuple[Index | Series, str]:
+    """
+    Infer the type of the values in ``col``, ignoring missing values.
+
+    A categorical column is mapped like its categories, so those are returned
+    in place of ``col`` for any further dtype checks.
+    """
+    # empty categories (e.g. all-NA) may have an arbitrary default dtype
+    if isinstance(col.dtype, CategoricalDtype) and len(col.dtype.categories):
+        col = col.dtype.categories
+    # skipna needed for inserting typed data containing NULLs, GH 8778
+    col_type = lib.infer_dtype(col, skipna=True)
+    if col_type == "unknown-array":
+        # GH#43783 e.g. a third-party EA; infer from the values insert_data writes
+        col_type = lib.infer_dtype(col._values.astype(object), skipna=True)
+    return col, col_type
 
 
 def get_unicode_name(name: object) -> str:
@@ -679,9 +700,7 @@ class SQLTable(PandasObject):
             if col.name in dtype:
                 return dtype[col.name]
 
-        # Infer type of column, while ignoring missing values.
-        # Needed for inserting typed data containing NULLs, GH 8778.
-        col_type = lib.infer_dtype(col, skipna=True)
+        col, col_type = infer_column_type(col)
 
         from sqlalchemy.dialects import mysql
         from sqlalchemy.types import (
