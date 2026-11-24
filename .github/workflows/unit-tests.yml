@@ -32,7 +32,7 @@ jobs:
     strategy:
       matrix:
         platform: [ubuntu-24.04, ubuntu-24.04-arm]
-        environment: [py311, py312, py313, py314, py315]
+        environment: [py312, py313, py314, py315]
         # Prevent the include jobs from overriding other jobs
         pytest_marker_expression: [""]
         pandas_future: ["default"]
@@ -215,7 +215,7 @@ jobs:
     strategy:
       matrix:
         os: [macos-15-intel, macos-15, windows-2025]
-        environment: [py311, py312, py313, py314, py315]
+        environment: [py312, py313, py314, py315]
       fail-fast: false
     runs-on: ${{ matrix.os }}
     name: ${{ format('{0} {1}', matrix.os, matrix.environment) }}
