@@ -341,6 +341,13 @@ ignore = [
   "RUF043",
   # implicit-string-concatenation-in-collection-litera
   "ISC004",
+  # TODO: Adopt the PEP 695 syntax for type aliases and type parameters
+  # non-pep695-type-alias
+  "UP040", # 139 errors
+  # non-pep695-generic-class
+  "UP046", # 10 errors
+  # non-pep695-generic-function
+  "UP047", # 20 errors
 ]
 
 exclude = [
