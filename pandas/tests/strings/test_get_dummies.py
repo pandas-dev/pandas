@@ -50,10 +50,12 @@ def test_get_dummies_index():
     ],
 )
 def test_get_dummies_with_dtype(any_string_dtype, dtype):
-    s = pd.Series(["a|b", "a|c", np.nan], dtype=any_string_dtype)
+    # GH#72087
+    index = pd.Index(["x", "y", "z"], name="tags")
+    s = pd.Series(["a|b", "a|c", np.nan], index=index, dtype=any_string_dtype)
     result = s.str.get_dummies("|", dtype=dtype)
     expected = pd.DataFrame(
-        [[1, 1, 0], [1, 0, 1], [0, 0, 0]], columns=list("abc"), dtype=dtype
+        [[1, 1, 0], [1, 0, 1], [0, 0, 0]], columns=list("abc"), index=index, dtype=dtype
     )
     tm.assert_frame_equal(result, expected)
 
