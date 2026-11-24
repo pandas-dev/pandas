@@ -22,7 +22,6 @@ python-dateutil = ">=2.9.0"
 c-compiler = "*"
 cxx-compiler = "*"
 
-# test latest 4 releases + nightly of numpy across the 4 tested Python versions
 [feature.numpy.dependencies]
 numpy = ">=2.0.2,<3"
 
@@ -67,7 +66,6 @@ pytest-qt = ">=4.4.0"
 pyqt = ">=5.15.11"
 qtpy = ">=2.4.3"
 
-# test latest 4 releases + nightly of pyarrow, see numpy for how this is tested
 [feature.pyarrow.dependencies]
 pyarrow = ">=16.0.0"
 
@@ -103,16 +101,19 @@ xlrd = ">=2.0.2"
 xlsxwriter = ">=3.2.5"
 zstandard = ">=0.23.0"
 
+# TODO: Move these back to optional-dependencies once these packages support Python 3.15
 [feature.optional-dependencies-no-py315.dependencies]
 fastparquet = ">=2024.11.0"
 psycopg2 = ">=2.9.10"
 pyiceberg = ">=0.9.1"
 
+# Test latest N releases of pyarrow and numpy across the tested Python versions
+# The latest Python release should test the latest pyarrow and numpy version (unpinned)
 [environments]
-py311 = { features = ["py311", "test-base", "test-clipboard", "test-network", "optional-dependencies", "optional-dependencies-no-py315", "default-compiler"], dependencies = { numpy = "2.2.*", pyarrow = "22.*" } }
-py312 = { features = ["py312", "test-base", "test-clipboard", "test-network", "optional-dependencies", "optional-dependencies-no-py315", "default-compiler"], dependencies = { numpy = "2.3.*", pyarrow = "23.*" } }
-py313 = { features = ["py313", "test-base", "test-clipboard", "test-network", "optional-dependencies", "optional-dependencies-no-py315", "default-compiler"], dependencies = { numpy = "2.4.*", pyarrow = "24.*" } }
-py314 = { features = ["py314", "numpy", "test-base", "test-clipboard", "test-network", "pyarrow", "optional-dependencies", "optional-dependencies-no-py315", "default-compiler"] }
+py311 = { features = ["py311", "test-base", "test-clipboard", "test-network", "optional-dependencies", "optional-dependencies-no-py315", "default-compiler"], dependencies = { numpy = "2.1.*", pyarrow = "22.*" } }
+py312 = { features = ["py312", "test-base", "test-clipboard", "test-network", "optional-dependencies", "optional-dependencies-no-py315", "default-compiler"], dependencies = { numpy = "2.2.*", pyarrow = "23.*" } }
+py313 = { features = ["py313", "test-base", "test-clipboard", "test-network", "optional-dependencies", "optional-dependencies-no-py315", "default-compiler"], dependencies = { numpy = "2.3.*", pyarrow = "24.*" } }
+py314 = { features = ["py314", "test-base", "test-clipboard", "test-network", "optional-dependencies", "optional-dependencies-no-py315", "default-compiler"], dependencies = { numpy = "2.4.*", pyarrow = "25.*" } }
 py315 = { features = ["py315", "numpy", "test-base", "test-network", "pyarrow", "optional-dependencies", "default-compiler"] }
 no-pyarrow = { features = ["py313", "numpy", "test-base", "test-clipboard", "test-network", "optional-dependencies", "optional-dependencies-no-py315", "default-compiler"] }
 
