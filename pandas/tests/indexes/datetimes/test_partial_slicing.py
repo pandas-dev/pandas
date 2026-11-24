@@ -519,7 +519,11 @@ class TestSlicing:
         start = str(start)
         end = str(end)
         with pytest.raises(ValueError, match="Both dates must"):
-            df[start : end[:-4] + "1:00"]
+            df[start : end[:-6]]
+
+        # GH#29856 differing offsets are fine
+        result = df[start:"2018-12-02 22:52:00+01:00"]
+        tm.assert_frame_equal(result, expected)
 
         df = df.tz_localize(None)
         with pytest.raises(ValueError, match="The index must be timezone"):
@@ -590,3 +594,17 @@ def test_partial_slice_quarter_generic_dateoffset_freq(offset, reverse):
     ):
         result = ser["2022Q1"]
     tm.assert_series_equal(result, ser)
+
+
+@pytest.mark.parametrize("box", [pd.Timestamp, lambda ts: ts.to_pydatetime(), str])
+def test_slice_bounds_with_different_timezones(tz_aware_fixture, box):
+    # GH#29856 aware bounds need not share a tz; each is an exact instant
+    idx = pd.date_range("2019-01-01", periods=48, freq="h", tz="Europe/Brussels")
+    ser = pd.Series(np.arange(48), index=idx)
+    start = pd.Timestamp("2019-01-01 05:00", tz="Europe/Brussels")
+    end = box(pd.Timestamp("2019-01-02 03:00", tz="UTC").tz_convert(tz_aware_fixture))
+
+    expected = ser.iloc[5:29]
+    tm.assert_series_equal(ser.loc[start:end], expected)
+    tm.assert_series_equal(ser.loc[str(start) : end], expected)
+    tm.assert_series_equal(ser.iloc[::-1].loc[end:start], expected.iloc[::-1])
