@@ -1,4 +1,8 @@
 import re
+from typing import (
+    TYPE_CHECKING,
+    assert_type,
+)
 
 import numpy as np
 import pytest
@@ -6,6 +10,9 @@ import pytest
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays import SparseArray
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
 
 
 class TestGetitem:
@@ -568,3 +575,51 @@ class TestGetitemDeprecatedIndexers:
         )
         with pytest.raises(TypeError, match="as an indexer is not supported"):
             df[key]
+
+
+def test_getitem_annotated_return_types() -> None:
+    # GH#46616 the overloads of DataFrame.__getitem__ must match the runtime
+    # types; assert_type is checked by mypy
+    df = pd.DataFrame({"a": [1, 2], "b": [3, 4]})
+    dup = pd.DataFrame([[1, 2]], columns=["a", "a"])
+    mi = pd.DataFrame([[1, 2]], columns=pd.MultiIndex.from_tuples([("a", 1), ("a", 2)]))
+    names = pd.DataFrame({"a": [1], "c": ["a"]})
+    ranged = pd.DataFrame([[1, 2]], columns=pd.Index([range(1), 0], dtype=object))
+    zero_dim: np.ndarray[tuple[()], np.dtype[np.str_]] = np.array("a")
+    labels: Iterable[str] = ["a"]
+
+    def pick(frame: pd.DataFrame) -> list[str]:
+        return ["a"]
+
+    # the key's type alone does not determine the result type
+    unions = [
+        (assert_type(df["a"], pd.Series | pd.DataFrame), pd.Series),
+        (assert_type(dup["a"], pd.Series | pd.DataFrame), pd.DataFrame),
+        (assert_type(mi["a"], pd.Series | pd.DataFrame), pd.DataFrame),
+        (assert_type(df[zero_dim], pd.Series | pd.DataFrame), pd.Series),
+        (assert_type(df[labels], pd.Series | pd.DataFrame), pd.DataFrame),
+        (assert_type(names[pd.col("c")[0]], pd.Series | pd.DataFrame), pd.Series),
+        (assert_type(df[pd.col("b") > 3], pd.Series | pd.DataFrame), pd.DataFrame),
+        (assert_type(ranged[0], pd.Series | pd.DataFrame), pd.Series),
+        (assert_type(ranged[range(1)], pd.Series | pd.DataFrame), pd.Series),
+        (assert_type(ranged[range(0)], pd.Series | pd.DataFrame), pd.DataFrame),
+    ]
+    for result, expected in unions:
+        assert type(result) is expected
+
+    mask = df["b"].to_numpy() > 3
+    frames = [
+        assert_type(df[["a"]], pd.DataFrame),
+        assert_type(df[1:], pd.DataFrame),
+        assert_type(df[df > 1], pd.DataFrame),
+        assert_type(df[mask], pd.DataFrame),
+        assert_type(df[df["b"] > 3], pd.DataFrame),
+        assert_type(df[pd.Index(["a"])], pd.DataFrame),
+        assert_type(df[iter(["a"])], pd.DataFrame),
+        assert_type(df[{"a": 1}.keys()], pd.DataFrame),
+        assert_type(df[pick], pd.DataFrame),
+        assert_type(dup[["a"]], pd.DataFrame),
+        assert_type(mi[["a"]], pd.DataFrame),
+    ]
+    for result in frames:
+        assert isinstance(result, pd.DataFrame)

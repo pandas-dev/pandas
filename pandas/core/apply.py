@@ -2333,7 +2333,7 @@ def relabel_result(
         # it based on the whole user-provided names.
         if not s.empty:
             s.index = reordered_indexes[idx : idx + len(fun)]
-        reordered_result_in_dict[col] = s.reindex(columns)
+        reordered_result_in_dict[col] = s.reindex(columns)  # type: ignore[assignment]
         idx = idx + len(fun)
     return reordered_result_in_dict
 

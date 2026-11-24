@@ -43,7 +43,7 @@ def preprocess_weights(
         if isinstance(obj, ABCDataFrame):
             if axis == 0:
                 try:
-                    weights = obj[weights]
+                    weights = obj[weights]  # type: ignore[assignment]
                 except KeyError as err:
                     raise KeyError(
                         "String passed to weights not a valid column"

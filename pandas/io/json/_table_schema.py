@@ -421,7 +421,7 @@ def parse_table_schema(json, precise_float: bool) -> DataFrame:
         unmatched = [
             key
             for pos, (name, key) in enumerate(zip(names, keys, strict=True))
-            if isinstance(name, float) and df[pos].isna().all()
+            if isinstance(name, float) and df._ixs(pos, axis=1).isna().all()
         ]
         if unmatched:
             present = set().union(*data)

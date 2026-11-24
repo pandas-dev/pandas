@@ -1267,7 +1267,8 @@ class _MergeOperation:
 
         if names_to_restore:
             index = ensure_index_from_sequences(
-                [result[col] for col in names_to_restore], names_to_restore
+                [result[col] for col in names_to_restore],  # type: ignore[misc]
+                names_to_restore,
             )
             for col in names_to_restore:
                 del result[col]

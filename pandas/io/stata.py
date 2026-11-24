@@ -1946,7 +1946,7 @@ the string values returned are correct."""
             self._lbllist = lbllist  # type: ignore[assignment]
             self._column_selector_set = True
 
-        return data[columns]
+        return data[columns]  # type: ignore[return-value]
 
     def _do_convert_categoricals(
         self,
@@ -2806,8 +2806,8 @@ class StataWriter(StataParser):
         self.fmtlist: list[str] = []
         self.typlist: list[int] = []
         for col, dtype in dtypes.items():
-            self.fmtlist.append(_dtype_to_default_stata_fmt(dtype, self.data[col]))
-            self.typlist.append(_dtype_to_stata_type(dtype, self.data[col]))
+            self.fmtlist.append(_dtype_to_default_stata_fmt(dtype, self.data[col]))  # type: ignore[arg-type]
+            self.typlist.append(_dtype_to_stata_type(dtype, self.data[col]))  # type: ignore[arg-type]
 
     def _prepare_pandas(self, data: DataFrame) -> None:
         # NOTE: we might need a different API / class for pandas objects so
@@ -3817,13 +3817,13 @@ class StataWriter117(StataWriter):
             force_strl = col in self._convert_strl
             fmt = _dtype_to_default_stata_fmt(
                 dtype,
-                self.data[col],
+                self.data[col],  # type: ignore[arg-type]
                 dta_version=self._dta_version,
                 force_strl=force_strl,
             )
             self.fmtlist.append(fmt)
             self.typlist.append(
-                _dtype_to_stata_type_117(dtype, self.data[col], force_strl)
+                _dtype_to_stata_type_117(dtype, self.data[col], force_strl)  # type: ignore[arg-type]
             )
 
 
