@@ -4,3 +4,10 @@ option(
     value: false,
     description: 'Enable UBSan checks beyond the default `undefined` set on the hand-written C/C++ sources. Cython-generated code is excluded because its codegen would drown the results in noise. Only meaningful together with -Db_sanitize=undefined.',
 )
+option(
+    'simd-mode',
+    type: 'combo',
+    choices: ['baseline', 'scalar'],
+    value: 'baseline',
+    description: 'SIMD kernel selection: "baseline" uses the host baseline (SSE2/NEON); "scalar" forces the portable fallback.',
+)

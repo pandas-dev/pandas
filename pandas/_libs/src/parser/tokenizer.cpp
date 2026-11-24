@@ -33,10 +33,9 @@ GitHub. See Python Software Foundation License and BSD licenses for these.
 #include "fast_float/fast_float.h"
 
 // Arch selection comes from the build-time SIMD config (pandas/_libs/simd),
-// which sets exactly one of PANDAS_HAVE_NEON / PANDAS_HAVE_SSE2 /
-// PANDAS_HAVE_SCALAR from the host CPU family. Pull in the matching intrinsics
-// header for whichever applies; the scalar case defines neither and falls back
-// to the byte-at-a-time scan.
+// which defines PANDAS_HAVE_NEON or PANDAS_HAVE_SSE2 when host baseline
+// supports SIMD. Pull in the matching intrinsics header for whichever applies;
+// the scalar case defines neither and falls back to the byte-at-a-time scan.
 #include "pandas_simd_config.h"
 
 #if defined(PANDAS_HAVE_NEON)
