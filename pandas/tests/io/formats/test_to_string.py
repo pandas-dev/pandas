@@ -1329,6 +1329,41 @@ class TestSeriesToString:
         assert "NaT" in result
 
 
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        "float64",
+        "Float64",
+        "object",
+        pytest.param("float64[pyarrow]", marks=td.skip_if_no("pyarrow")),
+    ],
+)
+@pytest.mark.parametrize("float_format", ["%.3e", "{:.3e}", "{:.3e}".format])
+def test_to_string_float_format_str(dtype, float_format):
+    # GH#53675
+    ser = pd.Series([1.1, -2.2], dtype=dtype)
+    assert ser.to_string(float_format=float_format) == "0    1.100e+00\n1   -2.200e+00"
+    df = ser.to_frame("a")
+    assert df.to_string(float_format=float_format) == (
+        "           a\n0  1.100e+00\n1 -2.200e+00"
+    )
+    assert "1.100e+00" in df.to_html(float_format=float_format)
+
+
+def test_to_string_float_format_str_mixed_object():
+    # GH#53675
+    ser = pd.Series([1.5, "a", 2 + 1j, np.nan], dtype=object)
+    result = ser.to_string(float_format="%.2f")
+    expected = dedent(
+        """\
+        0            1.50
+        1               a
+        2    (2.00+1.00j)
+        3             NaN"""
+    )
+    assert result == expected
+
+
 @pytest.mark.parametrize("east_asian_width", [True, False])
 def test_to_string_ansi_escapes_aligned(east_asian_width):
     # GH#55122 escape sequences such as terminal colors should not widen columns
