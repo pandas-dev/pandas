@@ -765,8 +765,7 @@ class BaseMethodsTests:
         cls = type(data)
         a, b = data[:2]
 
-        orig = pd.Series(cls._from_sequence([a, a, b, b], dtype=data.dtype))
-        ser = orig.copy()
+        ser = pd.Series(cls._from_sequence([a, a, b, b], dtype=data.dtype))
         cond = np.array([True, True, False, False])
 
         if as_frame:
@@ -785,8 +784,12 @@ class BaseMethodsTests:
         ser.mask(~cond, inplace=True)
         tm.assert_equal(ser, expected)
 
-        # array other
-        ser = orig.copy()
+    def test_where_series_array_other(self, data, as_frame):
+        assert data[0] != data[1]
+        cls = type(data)
+        a, b = data[:2]
+
+        ser = pd.Series(cls._from_sequence([a, a, b, b], dtype=data.dtype))
         if as_frame:
             ser = ser.to_frame(name="a")
         cond = np.array([True, False, True, True])

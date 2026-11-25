@@ -164,6 +164,10 @@ class TestJSONArray(base.ExtensionTests):
         super().test_combine_first(data)
 
     @pytest.mark.xfail(reason="JSONArray.__setitem__ mishandles a boolean mask")
+    def test_where_series_array_other(self, data, as_frame):
+        super().test_where_series_array_other(data, as_frame)
+
+    @pytest.mark.xfail(reason="JSONArray.__setitem__ mishandles a boolean mask")
     def test_where_series_listlike_other(self, data):
         super().test_where_series_listlike_other(data)
 
