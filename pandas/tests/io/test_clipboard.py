@@ -192,7 +192,7 @@ _LOCALE_AT_IMPORT = locale.setlocale(locale.LC_ALL)
 
 
 @pytest.fixture(scope="session")
-def qapp_restore_locale(qapp):
+def qapp_restore_locale(request):
     """
     ``qapp``, with the process-wide locale it leaked put back.
 
@@ -202,6 +202,8 @@ def qapp_restore_locale(qapp):
     tests then fail on any machine whose locale is not English. Request this
     rather than ``qapp`` directly.
     """
+    pytest.importorskip("pytestqt")
+    qapp = request.getfixturevalue("qapp")
     locale.setlocale(locale.LC_ALL, _LOCALE_AT_IMPORT)
     return qapp
 

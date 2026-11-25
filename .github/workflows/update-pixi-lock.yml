@@ -25,11 +25,8 @@ jobs:
         persist-credentials: false
 
     - name: Install Pixi
-      uses: prefix-dev/setup-pixi@9936258fee697aff89b3fed6ca1f80a382ef694e # v0.11.3
+      uses: ./.github/actions/setup-pixi
       with:
-        pixi-version: v0.82.1
-        log-level: vv
-        manifest-path: pixi.toml
         run-install: false
 
     - name: Update lock files
