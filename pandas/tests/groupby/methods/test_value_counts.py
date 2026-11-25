@@ -1115,6 +1115,31 @@ def test_value_counts_time_grouper(utc, unit):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize("box", [pd.DatetimeIndex, pd.PeriodIndex])
+def test_value_counts_time_grouper_with_nat(box, frame_or_series):
+    # GH#35251
+    idx = box(
+        ["NaT", "2020-01-02", "2020-01-01", "NaT", "2020-01-02", "2020-01-02"],
+        freq="D" if box is pd.PeriodIndex else None,
+    )
+    obj = pd.DataFrame({"v": ["a", "a", "b", "b", "a", "b"]}, index=idx)
+    if frame_or_series is pd.Series:
+        obj = obj["v"]
+
+    result = obj.groupby(pd.Grouper(freq="D")).value_counts()
+    index = pd.MultiIndex.from_arrays(
+        [idx.take([2, 1, 1]), ["b", "a", "b"]], names=[None, "v"]
+    )
+    expected = pd.Series([1, 2, 1], index=index, name="count")
+    tm.assert_series_equal(result, expected)
+
+    # all-NaT
+    result = obj.iloc[[0, 3]].groupby(pd.Grouper(freq="D")).value_counts()
+    expected = obj.iloc[:0].groupby(pd.Grouper(freq="D")).value_counts()
+    # object-dtype level of an empty result may keep unused values
+    tm.assert_series_equal(result, expected, check_index_type=False)
+
+
 def test_value_counts_integer_columns():
     # GH#55627
     df = pd.DataFrame({1: ["a", "a", "a"], 2: ["a", "a", "d"], 3: ["a", "b", "c"]})

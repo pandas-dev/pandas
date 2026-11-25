@@ -89,16 +89,20 @@ class BaseMethodsTests:
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("dropna", [True, False])
-    def test_value_counts_no_sort(self, data_for_grouping, dropna):
+    @pytest.mark.parametrize("sort", [True, False])
+    def test_value_counts_sort(self, data_for_grouping, sort, dropna):
         # GH#23074 sort=False preserves order of first appearance
         # [B, NA, A, A, NA, A]
         data = data_for_grouping.take([0, 2, 4, 5, 3, 4])
-        result = pd.Series(data).value_counts(sort=False, dropna=dropna)
+        result = pd.Series(data).value_counts(sort=sort, dropna=dropna)
 
         if dropna:
             idx, counts = [0, 4], [1, 3]
         else:
             idx, counts = [0, 2, 4], [1, 2, 3]
+        if sort:
+            idx.reverse()
+            counts.reverse()
         tm.assert_index_equal(result.index, pd.Index(data_for_grouping.take(idx)))
         assert list(result) == counts
 

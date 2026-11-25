@@ -854,6 +854,8 @@ def to_arrays(
         has_str_rows = not is_scalar(data[0]) and _warn_if_str_rows(
             set(map(type, data))
         )
+        if is_list_like(data[0]):
+            _validate_scalar_rows(data)
 
         # last ditch effort
         # GH#23985, GH#49593: if all rows are arrays with a uniform
@@ -905,7 +907,11 @@ def _list_to_arrays(
     else:
         if _warn_if_str_rows(row_types):
             check_ragged = False
-        lengths = {1 if is_scalar(row) and isna(row) else len(row) for row in data}
+        null_rows = _validate_scalar_rows(data)
+        lengths = {
+            1 if is_null else len(row)
+            for row, is_null in zip(data, null_rows, strict=True)
+        }
     if check_ragged and len(lengths) > 1:
         warnings.warn(
             "Constructing a DataFrame from a list of sequences with mismatched "
@@ -922,6 +928,29 @@ def _list_to_arrays(
         # list of lists
         content = lib.to_object_array(data)
     return content
+
+
+def _validate_scalar_rows(data: list[Any]) -> list[bool]:
+    # GH#29213 a non-iterable row would otherwise fail later with an opaque error;
+    #  a null row after a tuple row is padded by lib.to_object_array_tuples.
+    #  Returns whether each row is such a null row.
+    allow_null = isinstance(data[0], tuple)
+    null_rows = []
+    for i, row in enumerate(data):
+        is_null = allow_null and is_scalar(row) and isna(row)
+        null_rows.append(is_null)
+        if is_null:
+            continue
+        try:
+            iter(row)
+        except TypeError as err:
+            raise TypeError(
+                "When the first row is list-like, every row must be list-like, "
+                f"but the row at position {i} has type {type(row).__name__}. To "
+                "store list-likes as values of a single column, construct a "
+                "Series and call to_frame() instead."
+            ) from err
+    return null_rows
 
 
 def _warn_if_str_rows(row_types: set[type]) -> bool:

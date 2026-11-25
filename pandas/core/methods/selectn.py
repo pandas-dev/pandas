@@ -24,8 +24,12 @@ from pandas.core.dtypes.common import (
     is_numeric_dtype,
     needs_i8_conversion,
 )
-from pandas.core.dtypes.dtypes import BaseMaskedDtype
+from pandas.core.dtypes.dtypes import (
+    BaseMaskedDtype,
+    CategoricalDtype,
+)
 
+from pandas.core import algorithms
 from pandas.core.indexes.api import default_index
 
 if TYPE_CHECKING:
@@ -84,9 +88,9 @@ class SelectN(Generic[NDFrameT]):
         Helper function to determine if dtype is valid for
         nsmallest/nlargest methods
         """
-        if is_numeric_dtype(dtype):
-            return not is_complex_dtype(dtype)
-        return needs_i8_conversion(dtype)
+        if isinstance(dtype, CategoricalDtype):
+            return bool(dtype.ordered)
+        return not is_complex_dtype(dtype)
 
 
 class SelectNSeries(SelectN[Series]):
@@ -142,8 +146,14 @@ class SelectNSeries(SelectN[Series]):
             arr = arr.view("i8")
         elif isinstance(arr.dtype, BaseMaskedDtype):
             arr = arr._data
-        else:
+        elif is_numeric_dtype(arr.dtype):
             arr = np.asarray(arr)
+        else:
+            # Replace values by their dense rank, ordered as in sort_values
+            codes, uniques = algorithms.factorize(arr)
+            ranks = np.empty(len(uniques), dtype=np.intp)
+            ranks[uniques.argsort(kind="stable")] = np.arange(len(uniques))
+            arr = ranks[codes]
         if arr.dtype.kind == "b":
             arr = arr.view(np.uint8)
 

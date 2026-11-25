@@ -190,8 +190,9 @@ class TestJSONArray(base.ExtensionTests):
         "assert_index_equal fails on JSONDtype index"
     )
     @pytest.mark.parametrize("dropna", [True, False])
-    def test_value_counts_no_sort(self, data_for_grouping, dropna):
-        super().test_value_counts_no_sort(data_for_grouping, dropna)
+    @pytest.mark.parametrize("sort", [True, False])
+    def test_value_counts_sort(self, data_for_grouping, sort, dropna):
+        super().test_value_counts_sort(data_for_grouping, sort, dropna)
 
     @unhashable
     def test_sort_values_frame(self):
