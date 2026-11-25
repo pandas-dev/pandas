@@ -252,6 +252,12 @@ class TestFromDict:
         expected = pd.DataFrame([["A1", "A2"], row], index=["a", "b"])
         tm.assert_frame_equal(result, expected)
 
+    def test_from_dict_orient_index_list_then_scalar_raises(self):
+        # GH#29213
+        msg = "When the first row is list-like, every row must be list-like"
+        with pytest.raises(TypeError, match=msg):
+            pd.DataFrame.from_dict({"a": [1, 2, 3], "b": 1.5}, orient="index")
+
     def test_from_dict_orient_invalid(self):
         msg = (
             "Expected 'index', 'columns' or 'tight' for orient parameter. "

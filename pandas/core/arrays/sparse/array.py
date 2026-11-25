@@ -2835,6 +2835,12 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     _HANDLED_TYPES = (np.ndarray, numbers.Number)
 
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
+        result = arraylike.dispatch_where_only_ufunc(
+            self, ufunc, method, *inputs, **kwargs
+        )
+        if result is not NotImplemented:
+            return result
+
         # this path never reaches ExtensionArray.__array_ufunc__, and a datetimelike
         #  scalar is not in _HANDLED_TYPES, so this has to precede that loop
         ops.disallow_datetimelike_logical_ufunc(ufunc, inputs)
@@ -2920,6 +2926,10 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
         op_name = op.__name__
 
         if isinstance(other, SparseArray):
+            if len(self) != len(other):
+                raise ValueError(
+                    f"operands have mismatched length {len(self)} and {len(other)}"
+                )
             return _sparse_array_op(self, other, op, op_name)
 
         elif is_scalar(other):
@@ -2960,8 +2970,8 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
             other = np.asarray(other)
             with np.errstate(all="ignore"):
                 if len(self) != len(other):
-                    raise AssertionError(
-                        f"length mismatch: {len(self)} vs. {len(other)}"
+                    raise ValueError(
+                        f"operands have mismatched length {len(self)} and {len(other)}"
                     )
                 if not isinstance(other, SparseArray):
                     dtype = getattr(other, "dtype", None)

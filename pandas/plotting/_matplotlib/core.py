@@ -831,6 +831,17 @@ class MPLPlot(ABC):
         if len(self.axes) > 0:
             all_axes = self._get_subplots(fig)
             nrows, ncols = self._get_axes_layout(fig)
+            if self.sharex or self.sharey:
+                # explicit sharex/sharey alter every axes in the figure
+                targets = all_axes
+            else:
+                # only touch the axes this call drew on, not others in the
+                # figure the user may have customized, GH#27052
+                plotted = set(self.axes)
+                for ax in self.axes:
+                    plotted.add(getattr(ax, "left_ax", ax))
+                    plotted.add(getattr(ax, "right_ax", ax))
+                targets = [ax for ax in all_axes if ax in plotted]
             handle_shared_axes(
                 axarr=all_axes,
                 nplots=len(all_axes),
@@ -839,6 +850,7 @@ class MPLPlot(ABC):
                 ncols=ncols,
                 sharex=self.sharex,
                 sharey=self.sharey,
+                targets=targets,
             )
 
         for ax in self.axes:
@@ -1780,12 +1792,13 @@ class LinePlot(MPLPlot):
         # cache the original timestamps so a replot at a finer freq places
         # them correctly (GH#11574)
         cached = data if timestamps is None else data.set_axis(timestamps)
-        # TODO #54485
-        ax._plot_data.append((cached, self._kind, kwds))  # type: ignore[attr-defined]
 
         lines = self._plot(
             ax, data.index, np.asarray(data._values), style=style, **kwds
         )
+        # keep the artist so the entry can be dropped once it leaves the axes
+        # TODO #54485
+        ax._plot_data.append((cached, self._kind, kwds, lines[0]))  # type: ignore[attr-defined]
         # format_dateaxis and xlim are handled once per axis in _make_plot.
         return lines
 
@@ -1909,7 +1922,15 @@ class AreaPlot(LinePlot):
 
     def __init__(self, data, **kwargs) -> None:
         kwargs.setdefault("stacked", True)
-        data = data.fillna(value=0)
+
+        def _fillna(col: Series) -> Series:
+            # GH#52246 plot timedeltas as integers, as matplotlib draws them,
+            #  so they can be filled, stacked and compared with zero
+            if lib.is_np_dtype(col.dtype, "m"):
+                return col.fillna(np.timedelta64(0, "ns")).astype(np.int64)
+            return col.fillna(0)
+
+        data = _fillna(data) if isinstance(data, ABCSeries) else data.apply(_fillna)
         LinePlot.__init__(self, data, **kwargs)
 
         if not self.stacked:

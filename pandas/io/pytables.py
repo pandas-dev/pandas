@@ -1384,7 +1384,9 @@ class HDFStore:
                 worse but allow more flexible operations like searching / selecting
                 subsets of the data.
         index : bool, default True
-            Write DataFrame index as a column.
+            Create PyTables indexes on the stored index and data columns to
+            speed up queries (``format='table'`` only). The object's index is
+            written regardless.
         append : bool, default False
             This will force Table format, append the input data to the existing.
         complib : {'zlib', 'lzo', 'bzip2', 'blosc'}, default None
@@ -1614,8 +1616,10 @@ class HDFStore:
             indexed (appendable) axis: ``[0]`` for the index (the default) or
             ``[1]`` for the columns. Ignored when appending to an existing
             table, which keeps the axes it was created with.
-        index : bool, default True
-            Write DataFrame index as a column.
+        index : bool or list of str, default True
+            Create PyTables indexes on the table's indexed axis and data
+            columns to speed up queries; a list indexes only the named
+            columns. The object's index is written regardless.
         append : bool, default True
             Append the input data to the existing.
         complib : {'zlib', 'lzo', 'bzip2', 'blosc'}, default None

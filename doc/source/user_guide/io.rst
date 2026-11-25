@@ -3725,6 +3725,25 @@ engine. For this, it is important to know which function pandas is using interna
 
 * For the engine odf, pandas is using :func:`odf.opendocument.OpenDocumentSpreadsheet` to write to (``.ods``) files.
 
+.. warning::
+
+   The openpyxl and xlsxwriter engines write strings starting with ``=`` as
+   formulas, which Excel evaluates when the file is opened. Writing untrusted
+   data this way can lead to formula injection, and such strings do not
+   round-trip through :func:`read_excel`. xlsxwriter can write them as text
+   instead (openpyxl has no equivalent option), though it still writes
+   ``{=...}`` strings as array formulas; pass the option where the writer is
+   created:
+
+   .. code-block:: python
+
+      with pd.ExcelWriter(
+          "path_to_file.xlsx",
+          engine="xlsxwriter",
+          engine_kwargs={"options": {"strings_to_formulas": False}},
+      ) as writer:
+          df.to_excel(writer)
+
 Writing Excel files to memory
 +++++++++++++++++++++++++++++
 

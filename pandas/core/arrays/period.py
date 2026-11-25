@@ -972,8 +972,12 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         Parameters
         ----------
         freq : str or DateOffset, optional
-            Target frequency. The default is 'D' for week or longer,
-            's' otherwise.
+            Target frequency. By default the result is exactly the start (or end)
+            of each period. With ``how="start"``, the result is the start of
+            ``asfreq(freq, how="start")``, except that a ``freq`` coarser than
+            daily gives midnight on that period's last day, so
+            ``to_timestamp("M")`` gives month-end dates. With ``how="end"``,
+            ``freq`` only affects the resolution ('ns' gives nanosecond unit).
         how : {'start', 'end', 's', 'e'}, default 'start'
             Whether to use the start or end of the time period being converted.
             Case-insensitive.
@@ -1001,6 +1005,12 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         >>> idx.to_timestamp()
         DatetimeIndex(['2023-01-01', '2023-02-01', '2023-03-01'],
         dtype='datetime64[us]', freq='MS')
+
+        A ``freq`` coarser than daily gives the last day of each period:
+
+        >>> idx.to_timestamp("M")
+        DatetimeIndex(['2023-01-31', '2023-02-28', '2023-03-31'],
+        dtype='datetime64[us]', freq='ME')
 
         The frequency will not be inferred if the index contains less than
         three elements, or if the values of index are not strictly monotonic:
