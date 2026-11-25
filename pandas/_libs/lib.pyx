@@ -707,7 +707,7 @@ def maybe_booleans_to_slice(ndarray[uint8_t, ndim=1] mask):
 
 
 # Each nesting level costs far more C stack than a level of list.__eq__, so
-#  cap it explicitly rather than relying on the interpreter's recursion limit.
+#  cap it explicitly; past the cap, keep the False that x == y returned.
 cdef int _MAX_SEQUENCE_DEPTH = 100
 
 
@@ -725,7 +725,7 @@ cdef bint _sequences_equivalent(object x, object y, int depth):
     ):
         return False
     n = len(x)
-    if len(y) != n:
+    if len(y) != n or depth >= _MAX_SEQUENCE_DEPTH:
         return False
 
     left = np.empty(n, dtype=object)
@@ -734,11 +734,6 @@ cdef bint _sequences_equivalent(object x, object y, int depth):
         # assign elementwise so nested sequences are stored as objects
         left[i] = x[i]
         right[i] = y[i]
-    if depth >= _MAX_SEQUENCE_DEPTH:
-        # e.g. self-referential lists; raise like list.__eq__ does
-        raise RecursionError(
-            "maximum recursion depth exceeded in array_equivalent_object"
-        )
     try:
         return _array_equivalent_object(left, right, True, depth + 1)
     except (ValueError, TypeError):

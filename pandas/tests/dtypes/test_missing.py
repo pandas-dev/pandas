@@ -736,15 +736,25 @@ def test_array_equivalent_nan_in_sequence_type_mismatch(strict_nan):
 
 @pytest.mark.parametrize("strict_nan", [True, False])
 def test_array_equivalent_nan_in_sequence_self_referential(strict_nan):
-    # GH#45945 must raise like list.__eq__, not recurse without bound
+    # GH#45945 must not recurse without bound; left_list == right_list is False
     left_list = [float("nan")]
     left_list.append(left_list)
     right_list = [float("nan")]
     right_list.append(right_list)
-    with pytest.raises(RecursionError, match="maximum recursion depth"):
-        array_equivalent(
-            _nest_object(left_list), _nest_object(right_list), strict_nan=strict_nan
-        )
+    assert not array_equivalent(
+        _nest_object(left_list), _nest_object(right_list), strict_nan=strict_nan
+    )
+
+
+@pytest.mark.parametrize("strict_nan", [True, False])
+def test_array_equivalent_deeply_nested_sequence(strict_nan):
+    # GH#45945 nesting past the depth cap returns False rather than raising
+    left, right = 1, 2
+    for _ in range(150):
+        left, right = (left,), (right,)
+    assert not array_equivalent(
+        _nest_object(left), _nest_object(right), strict_nan=strict_nan
+    )
 
 
 @pytest.mark.parametrize("strict_nan", [True, False])
