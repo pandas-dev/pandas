@@ -930,8 +930,10 @@ class CategoricalIndex(NDArrayBackedExtensionIndex):
         if is_valid_na_for_dtype(key, self.dtype):
             return self.hasnans
         if self.categories._typ == "rangeindex":
-            container: Index | libindex.IndexEngine | libindex.ExtensionEngine = (
-                self.categories
+            # GH#72247: the helper checks the key's code against the container,
+            #  so it needs the used codes, not the category values themselves.
+            container: np.ndarray | libindex.IndexEngine | libindex.ExtensionEngine = (
+                self.codes
             )
         else:
             container = self._engine

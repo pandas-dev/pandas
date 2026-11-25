@@ -1025,6 +1025,11 @@ class DataFrameRenderer:
         from pandas.io.formats.csvs import CSVFormatter
 
         if path_or_buf is None:
+            if "b" in mode:
+                raise ValueError(
+                    f"mode={mode!r} is not supported when path_or_buf is None. "
+                    "To get bytes, pass an io.BytesIO as path_or_buf."
+                )
             created_buffer = True
             path_or_buf = StringIO()
         else:

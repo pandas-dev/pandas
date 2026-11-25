@@ -1079,10 +1079,21 @@ def convert_dtypes(
             if pa_type is not None:
                 inferred_dtype = ArrowDtype(pa_type)
     elif dtype_backend == "numpy_nullable" and isinstance(inferred_dtype, ArrowDtype):
-        # GH 53648
+        # GH#53648, GH#57395 reverse of the pyarrow branch; unmapped types are kept
+        import pyarrow as pa
+
         from pandas.core.arrays.arrow.util import _arrow_dtype_mapping
 
-        inferred_dtype = _arrow_dtype_mapping()[inferred_dtype.pyarrow_dtype]
+        pa_type = inferred_dtype.pyarrow_dtype
+        if pa.types.is_timestamp(pa_type):
+            if pa_type.tz is None:
+                inferred_dtype = np.dtype(f"M8[{pa_type.unit}]")
+            else:
+                inferred_dtype = DatetimeTZDtype(unit=pa_type.unit, tz=pa_type.tz)
+        elif pa.types.is_duration(pa_type):
+            inferred_dtype = np.dtype(f"m8[{pa_type.unit}]")
+        else:
+            inferred_dtype = _arrow_dtype_mapping().get(pa_type, inferred_dtype)
 
     assert not isinstance(inferred_dtype, str)
     return inferred_dtype

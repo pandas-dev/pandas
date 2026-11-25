@@ -9807,8 +9807,8 @@ class DataFrame(NDFrame, OpsMixin):
         Notes
         -----
         This function cannot be used with all column types. For example, when
-        specifying columns with `object` or `category` dtypes, ``TypeError`` is
-        raised.
+        specifying columns with complex or unordered `category` dtypes,
+        ``TypeError`` is raised.
 
         Examples
         --------
@@ -17206,13 +17206,43 @@ class DataFrame(NDFrame, OpsMixin):
                     arr = concat_compat(list(df._iter_column_arrays()))
                     assert isinstance(arr, ExtensionArray)
                     nrows, ncols = df.shape
-                    row_index = np.tile(np.arange(nrows, dtype=np.intp), ncols)
                     if name in ("idxmin", "idxmax"):
                         if not skipna and arr.isna().any():
                             # Match the error raised by GroupBy._idxmax_idxmin
                             raise ValueError(
                                 f"{name} with skipna=False encountered an NA value."
                             )
+                    from pandas.core.arrays.arrow.array import ArrowExtensionArray
+
+                    masked = arr
+                    if isinstance(dtype, ArrowDtype) and dtype.kind in "iufb":
+                        assert isinstance(arr, ArrowExtensionArray)
+                        masked = arr._to_masked()
+                    if isinstance(masked, BaseMaskedArray):
+                        # arr holds the frame's columns one after another;
+                        # reshaping to (ncols, nrows) and transposing gives
+                        # an (nrows, ncols) array matching the frame, and
+                        # _groupby_op with ngroups=1 then reduces each
+                        # frame row as one group
+                        op_kwargs = dict(kwds)
+                        min_count = op_kwargs.pop("min_count", -1)
+                        res_values = (
+                            masked.reshape(ncols, nrows)
+                            .T._groupby_op(
+                                how=name,
+                                has_dropped_na=False,
+                                min_count=min_count,
+                                ngroups=1,
+                                ids=np.zeros(ncols, dtype=np.intp),
+                                skipna=skipna,
+                                **op_kwargs,
+                            )
+                            .reshape(-1)
+                        )
+                        if isinstance(arr, ArrowExtensionArray):
+                            res_values = arr._groupby_result_to_arrow(res_values)
+                        return Series(res_values, index=df.index)
+                    row_index = np.tile(np.arange(nrows, dtype=np.intp), ncols)
                     op_kwargs = dict(kwds)
                     min_count = op_kwargs.pop("min_count", -1)
                     try:

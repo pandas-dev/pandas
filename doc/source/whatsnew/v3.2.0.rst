@@ -37,6 +37,7 @@ Other enhancements
 - :meth:`.DataFrameGroupBy.plot` now titles each group's figure with its group key, unless ``title`` or ``ax`` is passed (:issue:`12452`)
 - :meth:`.DataFrameGroupBy.rank` and :meth:`.SeriesGroupBy.rank` now accept a ``numeric_only`` argument, matching :meth:`DataFrame.rank` (:issue:`44438`)
 - :meth:`.Styler.to_latex` with ``clines="all;data"`` or ``"skip-last;data"`` now adds clines between the groups of a hidden index instead of none (:issue:`59877`)
+- :meth:`DataFrame.nlargest`, :meth:`DataFrame.nsmallest`, :meth:`Series.nlargest` and :meth:`Series.nsmallest` now work on non-numeric data such as strings, objects, intervals, and ordered categoricals instead of raising ``TypeError`` (:issue:`61166`)
 - :meth:`DataFrame.plot.area` and :meth:`Series.plot.area` now accept keyword arguments that only the lines or only the filled areas support, such as ``hatch``, ``edgecolor`` and ``marker``, instead of raising ``AttributeError``; ``hatch`` also accepts a list with one hatch per column (:issue:`12354`)
 - :meth:`DataFrame.to_csv` and other writers now accept an ``os.PathLike`` such as :class:`pathlib.Path` for the ``archive_name`` entry of a zip or tar ``compression`` dict (:issue:`31934`)
 - :meth:`DataFrame.to_html` now accepts a ``min_rows`` argument, matching :meth:`DataFrame.to_string`. The notebook HTML display of a :class:`DataFrame` uses :meth:`DataFrame.to_html` again, as before pandas 0.25.1, so subclasses overriding it change that display too (:issue:`30727`)
@@ -190,6 +191,8 @@ Other deprecations
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 - Performance improvement in :attr:`Index.is_monotonic_increasing`, :attr:`Index.is_monotonic_decreasing` and :attr:`Index.is_unique` for numeric and datetimelike data, and in indexing on large monotonic indexes (:issue:`72122`)
+- Performance improvement in :attr:`Index.is_monotonic_increasing`, :attr:`Index.is_monotonic_decreasing` and their :class:`Series` counterparts for PyArrow-backed date, time and decimal data (:issue:`72260`)
+- Performance improvement in :class:`DataFrame` reductions such as :meth:`DataFrame.sum`, :meth:`DataFrame.mean`, :meth:`DataFrame.std`, :meth:`DataFrame.any` and :meth:`DataFrame.idxmax` with ``axis=1`` for nullable and PyArrow-backed numeric and boolean data (:issue:`71321`)
 - Performance improvement in :meth:`DataFrame.apply` with ``raw=True`` (:issue:`66203`)
 - Performance improvement in :meth:`DataFrame.explode` when exploding multiple columns (:issue:`53967`)
 - Performance improvement in :func:`read_csv` with ``engine="c"`` across the board, in tokenizing and in the machinery shared by all column types; large uncompressed local files are additionally read in parallel across multiple CPU cores by default, see :ref:`above <whatsnew_310.enhancements.read_csv>` (:issue:`64347`, :issue:`64515`, :issue:`65350`, :issue:`66271`, :issue:`66272`, :issue:`66273`, :issue:`66274`, :issue:`66276`, :issue:`66798`, :issue:`68314`, :issue:`69632`, :issue:`69748`, :issue:`70140`)
@@ -205,6 +208,7 @@ Performance improvements
 - Performance improvement in :meth:`DataFrameGroupBy.transform` and :meth:`SeriesGroupBy.transform` with a user-defined function when the input rows are not already ordered by group or NA group keys are dropped (:issue:`71957`)
 - Performance improvement in :meth:`DatetimeIndex.strftime`, :meth:`Series.dt.strftime`, and :meth:`DataFrame.to_csv` with a ``date_format`` built from ``%Y``, ``%m``, ``%d``, ``%H``, ``%M``, ``%S``, ``%f`` and ``%N`` (:issue:`44764`)
 - Performance improvement in :meth:`Index.intersection` for monotonic Arrow-backed indexes (:issue:`66498`)
+- Performance improvement in :meth:`Index.union`, :meth:`Index.join` and alignment of :class:`Series` and :class:`DataFrame` for monotonic indexes with PyArrow-backed numeric, timestamp and duration data (:issue:`72267`)
 - Performance improvement in :meth:`MultiIndex.append` and :func:`concat` when combining many objects with a :class:`MultiIndex` whose levels have few values in common (:issue:`70884`)
 - Performance improvement in :meth:`PeriodIndex.strftime` with a custom ``date_format`` (:issue:`70106`)
 - Performance improvement in :meth:`RangeIndex.isin`, which no longer builds the full integer array of the index when the values are integers or whole-number floats (:issue:`66263`)
@@ -225,6 +229,7 @@ Categorical
 - Bug in :attr:`DataFrame.values`, :meth:`DataFrame.to_numpy` and :meth:`DataFrame.transpose` silently converting missing values in a :class:`Categorical` column with integer or boolean categories to arbitrary integers or ``True`` (:issue:`38240`)
 - Bug in :meth:`Series.clip` and :meth:`DataFrame.clip` with ordered categorical data ordering ``lower`` and ``upper`` by value instead of by category position (:issue:`49217`)
 - Bug in :meth:`Categorical.map`, :meth:`CategoricalIndex.map` and :meth:`Series.map` raising ``TypeError`` or returning incorrect results when the mapper returned unhashable values such as lists or dicts; these now give an object-dtype result (:issue:`40892`, :issue:`54359`)
+- Bug in :meth:`CategoricalIndex.__contains__` returning wrong results when the categories are constructed from a ``range``; values present in the index could be reported missing and unused categories reported as present (:issue:`72247`)
 - Bug in comparing a :class:`Categorical` with an iterator raising ``TypeError`` instead of treating it as a scalar, as with a tuple (:issue:`31646`)
 - Bug in comparing unordered :class:`Categorical` objects with mixed-type categories in a different order raising ``TypeError``; :meth:`Categorical.equals` and :func:`merge` were also affected (:issue:`51543`)
 -
@@ -245,6 +250,7 @@ Datetimelike
 Timedelta
 ^^^^^^^^^
 - Bug in :class:`Timedelta` and :func:`to_timedelta` ignoring a decimal comma in a string, so ``"00:00:01,500"`` parsed as 25 minutes instead of 1.5 seconds (:issue:`71877`)
+- Bug in :class:`Timedelta` and :func:`to_timedelta` parsing ISO 8601 duration strings: fractional components other than seconds gave wrong values, ``"P1M"`` was read as one minute, and malformed strings such as ``"PT1M1H"`` were accepted (:issue:`48122`, :issue:`51882`)
 - Bug in :func:`timedelta_range` with ``closed`` trimming endpoints differently from :func:`date_range`, e.g. ``closed="left"`` dropping the last value when ``end`` was not a multiple of ``freq`` from ``start``, or dropping only one value when ``start`` equals ``end`` (:issue:`40245`)
 -
 
@@ -280,6 +286,7 @@ Conversion
 - Bug in :func:`to_numeric` with ``errors="coerce"`` on :class:`ArrowDtype` string data storing a float ``NaN`` for unparsable values instead of a missing value, and duplicating a parsed value into the position of a failed parse when the input already contained missing values (:issue:`67949`)
 - Bug in :func:`to_numeric` with a datetime-like scalar not matching the result for a :class:`Series` holding the value (:issue:`43280`)
 - Bug in :meth:`DataFrame.compare` and :meth:`Series.compare` upcasting integer and boolean columns when the equal values were only in rows dropped from the result (:issue:`39899`)
+- Bug in :meth:`DataFrame.convert_dtypes` and :meth:`Series.convert_dtypes` with ``dtype_backend="numpy_nullable"`` (the default) raising ``KeyError`` for :class:`ArrowDtype` data other than integer, floating, boolean or string; timestamp and duration data now convert to ``datetime64`` and ``timedelta64``, and other types are left unchanged (:issue:`57395`)
 - Bug in :meth:`DataFrame.from_records` not dropping the ``exclude`` and ``index`` columns when all of their labels were falsy, such as ``0`` (:issue:`18679`)
 - Bug in :meth:`DataFrame.replace` with a dict or list replacing values with ``None`` casting other columns of the same dtype to ``object`` even when they contained no value to replace (:issue:`30512`)
 - Bug in :meth:`DataFrame.to_dict` and :meth:`Series.to_dict` sometimes returning NumPy complex scalars instead of Python ``complex`` (:issue:`27616`)
@@ -356,6 +363,7 @@ MultiIndex
 - Bug in :meth:`MultiIndex.from_tuples` with an object ``ndarray``, :meth:`MultiIndex.append` and :meth:`Index.map` truncating or raising ``IndexError`` on tuples of different lengths; :meth:`MultiIndex.from_tuples` now raises a ``ValueError`` for an ``ndarray`` of tuples of different lengths (:issue:`50293`)
 - Bug in :meth:`MultiIndex.intersection`, :meth:`MultiIndex.union`, :meth:`MultiIndex.difference` and :meth:`MultiIndex.symmetric_difference` with a list-like ``other`` holding non-tuple entries raising ``TypeError`` or splitting a string entry into level values; such entries are now treated like an :class:`Index` ``other`` (:issue:`39699`)
 - Bug in :meth:`MultiIndex.rename` raising ``TypeError`` for the ``name`` keyword documented by :meth:`Index.rename` (:issue:`33778`)
+- Bug in :meth:`MultiIndex.sortlevel` sorting by the order of values in :attr:`MultiIndex.levels` instead of by the values themselves, e.g. after :meth:`MultiIndex.set_levels` or adding columns with :attr:`DataFrame.loc` (:issue:`49016`, :issue:`52683`)
 - Bug in :meth:`MultiIndex.symmetric_difference` raising ``ValueError`` when ``other`` holds non-tuple entries (:issue:`39699`)
 - Bug in :meth:`Series.map`, :meth:`Index.get_indexer`, :meth:`DataFrame.reindex` and :attr:`DataFrame.loc` with a :class:`MultiIndex` raising ``IndexError`` or matching on a prefix when looking up tuples whose length differs from the number of levels (:issue:`50293`)
 - Bug in :meth:`DataFrame.loc` and :meth:`Series.loc` setitem with a partial :class:`MultiIndex` key (e.g. ``df.loc[:, "a"] = df.loc[:, "a"] * 2``) setting ``NaN`` (or raising) instead of the value (:issue:`10440`, :issue:`15310`, :issue:`40186`, :issue:`43719`, :issue:`45751`, :issue:`46837`)
@@ -394,6 +402,7 @@ I/O
 - Bug in :func:`read_sas` returning rows that were deleted from an uncompressed SAS7BDAT file (:issue:`15963`)
 - Bug in :func:`read_sas` with ``format="xport"`` reading zeros as ``5.397605e-79`` (:issue:`50670`)
 - Bug in :func:`read_xml` with ``names`` and an ``iterparse`` list repeating a name, where values were shifted into the wrong column or dropped in large files or when repeated values were equal or empty (:issue:`71275`)
+- Bug in :meth:`DataFrame.to_csv` and :meth:`Series.to_csv` with ``path_or_buf=None`` and a binary ``mode`` such as ``"wb"`` raising an unclear ``TypeError``; this now raises a ``ValueError`` (:issue:`44409`)
 - Bug in :meth:`DataFrame.to_csv` raising ``KeyError`` or writing the wrong columns when ``columns`` is an :class:`Index` whose formatted labels differ from its labels, such as a float :class:`Index`, one containing ``NaN``, or a :class:`DatetimeIndex` with ``date_format`` (:issue:`72199`)
 - Bug in :meth:`DataFrame.to_csv` with :class:`MultiIndex` columns and an unnamed index or ``index_label=False`` where a first row of missing values was read back by :func:`read_csv` as the index names and dropped; an empty index-names line is now written in this case (:issue:`21995`)
 - Bug in :meth:`DataFrame.to_csv`, :meth:`DataFrame.to_json`, :meth:`DataFrame.to_pickle` and similar writers where writing to a ``file://`` URL raised for a new file and silently left an existing file unchanged; writing to other URLs such as ``http://`` now raises instead of silently discarding the data (:issue:`55828`)
@@ -452,12 +461,14 @@ Plotting
 - Bug in :meth:`DataFrame.plot.hist` with ``by`` raising ``TypeError`` when ``bins`` was a sequence of bin edges (:issue:`11483`)
 - Bug in :meth:`DataFrame.plot.hist` with ``subplots=True`` and ``sharex=False`` using the same bins for every subplot, so columns on a smaller scale collapsed into a single bar (:issue:`13489`)
 - Bug in :meth:`DataFrame.plot.pie` and :meth:`Series.plot.pie` silently ignoring ``color`` (:issue:`11228`)
+- Bug in :meth:`DataFrame.plot` and :meth:`Series.plot` drawing a time series offset from the periods of a time series already on the axes (e.g. hourly data labeled at half past) at the start of each period (:issue:`18467`)
 - Bug in :meth:`DataFrame.plot` and :meth:`Series.plot` drawing data indexed by period-end timestamps (e.g. ``freq="ME"`` or ``"W"``) at the start of each period when combined with a higher-frequency series on the same or shared axes (:issue:`11574`)
 - Bug in :meth:`DataFrame.plot` and :meth:`Series.plot` ignoring ``style`` when ``xerr`` or ``yerr`` is passed (:issue:`7023`)
 - Bug in :meth:`DataFrame.plot` and :meth:`Series.plot` ignoring the ``axes.grid.axis`` and ``axes.grid.which`` rcParams, e.g. from a style file, and drawing major gridlines on both axes (:issue:`17725`)
 - Bug in :meth:`DataFrame.plot` and :meth:`Series.plot` raising ``NotImplementedError`` when the index's ``freq`` is a :class:`DateOffset` such as ``pd.DateOffset(days=1)`` or an :class:`~pandas.tseries.offsets.Easter` offset (:issue:`26921`)
 - Bug in :meth:`DataFrame.plot` and :meth:`Series.plot` raising ``ValueError`` when plotting a single series or column with ``color`` as a tuple of three or four colors, instead of treating it like the equivalent list (:issue:`18449`)
 - Bug in :meth:`DataFrame.plot` and :meth:`Series.plot` redrawing time series that were removed with ``ax.clear()`` or ``line.remove()`` when a higher-frequency time series is later plotted on the same axes (:issue:`54485`)
+- Bug in :meth:`DataFrame.plot` and :meth:`Series.plot` with ``ax`` in a figure of shared axes hiding tick labels on the figure's other axes, undoing e.g. ``ax.tick_params(labelright=True)`` (:issue:`27052`)
 - Bug in :meth:`DataFrame.plot` and :meth:`Series.plot` with ``kind="bar"`` or ``kind="barh"`` raising ``TypeError`` on ``timedelta64`` data containing ``NaT`` (:issue:`39320`)
 - Bug in :meth:`DataFrame.plot` and :meth:`Series.plot` with ``style`` as a tuple, ``np.ndarray`` or :class:`Series` plotting the styles as data instead of applying them like the equivalent list (:issue:`46289`)
 - Bug in :meth:`DataFrame.plot` and :meth:`Series.plot` with a :class:`TimedeltaIndex` that has no regular frequency, or with ``x_compat=True``, plotting the points evenly spaced and leaving most x-axis ticks unlabeled (:issue:`19965`)
@@ -482,6 +493,7 @@ Groupby/resample/rolling
 - Bug in :meth:`.DataFrameGroupBy.shift`, :meth:`.SeriesGroupBy.shift`, :meth:`.DataFrameGroupBy.diff`, and :meth:`.SeriesGroupBy.diff` with ``periods=0`` not setting rows with an NA group key to missing (:issue:`70996`)
 - Bug in :meth:`.DataFrameGroupBy.sum`, :meth:`.SeriesGroupBy.sum` and :meth:`DataFrame.sum` with ``axis=1`` ignoring ``min_count`` for :class:`ArrowDtype` string data (:issue:`60861`)
 - Bug in :meth:`.DataFrameGroupBy.transform` with a function returning a scalar for each column casting the results to a common dtype (:issue:`41584`, :issue:`42617`)
+- Bug in :meth:`.DataFrameGroupBy.value_counts` and :meth:`.SeriesGroupBy.value_counts` grouping by a :class:`Grouper` with ``freq`` raising ``ValueError`` when the grouped index or ``key`` column contains ``NaT`` (:issue:`35251`)
 - Bug in :meth:`.GroupBy.median`, :meth:`.GroupBy.skew`, and :meth:`.GroupBy.kurt` on ``complex`` data silently discarding the imaginary part; these now raise ``TypeError`` (:issue:`43770`)
 - Bug in :meth:`.GroupBy.quantile` raising ``NotImplementedError`` with no message, instead of ``TypeError``, on :class:`ArrowDtype` columns it does not support, e.g. binary columns (:issue:`69808`)
 - Bug in :meth:`.GroupBy.std` and :meth:`.GroupBy.sem` on ``complex`` data silently discarding the imaginary part, and :meth:`.GroupBy.var` raising; these now match :meth:`Series.std`, :meth:`Series.sem`, and :meth:`Series.var` (:issue:`43770`)
@@ -544,7 +556,9 @@ Styler
 - Bug in :meth:`.Styler.background_gradient` and :meth:`.Styler.text_gradient` coloring missing values with the lowest colormap color instead of the missing-value color when all valid values in a column, row, or table were equal (:issue:`47695`)
 - Bug in :meth:`.Styler.bar` raising ``TypeError`` for data containing ``pd.NA`` when ``align`` is ``"mean"`` or a callable, or when ``cmap`` is given (:issue:`56425`)
 - Bug in :meth:`.Styler.map`, :meth:`.Styler.apply` and :meth:`.Styler.set_table_styles` truncating CSS values that contain a ``;`` inside quotes or parentheses, such as ``url("data:image/png;base64,...")`` (:issue:`59623`)
+- Bug in :meth:`.Styler.set_tooltips` with ``as_title_attribute=True`` placing tooltips on the wrong cells, or raising ``IndexError``, when rows were hidden with :meth:`.Styler.hide` or the rendered table was trimmed by ``max_rows``, ``max_columns`` or ``max_elements`` (:issue:`71281`)
 - Bug in :meth:`.Styler.to_excel` applying styles to the wrong columns when ``columns`` selects or reorders columns (:issue:`42276`)
+- Bug in :meth:`.Styler.to_excel` where a ``border`` shorthand with some named colors, such as ``1px solid indigo``, came out black or with no border (:issue:`71305`)
 - Bug in :meth:`.Styler.to_html` where Chrome and other Chromium-based browsers did not apply a style shared by more than 8192 cells to the cells beyond the first 8192 (:issue:`40913`)
 
 Other

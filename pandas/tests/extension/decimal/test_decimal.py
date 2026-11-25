@@ -466,6 +466,14 @@ def test_indexing_no_materialize(monkeypatch):
     df.at[0, "a"]
 
 
+def test_index_is_monotonic_does_not_build_engine():
+    # GH#72260 the engine holds the array as Python objects
+    idx = pd.Index(to_decimal([1, 2]))
+    assert idx.is_monotonic_increasing
+    assert not idx.is_monotonic_decreasing
+    assert "_engine" not in idx._cache
+
+
 def test_to_numpy_keyword():
     # test the extra keyword
     values = [decimal.Decimal("1.1111"), decimal.Decimal("2.2222")]
