@@ -147,3 +147,21 @@ def test_accessor_override_on_subclass():
     assert sub.plot.obj is sub
     assert SubFrame.plot is MyAccessor
     assert not isinstance(pd.DataFrame({"a": [1]}).plot, MyAccessor)
+
+
+@pytest.mark.parametrize(
+    "klass, make_obj",
+    [
+        (pd.api.typing.DataFrameGroupBy, lambda df: df.groupby("a")),
+        (pd.api.typing.Rolling, lambda df: df.rolling(2)),
+    ],
+)
+def test_accessor_on_groupby_and_window(klass, make_obj):
+    # GH#35403
+    klass.mine = pd.api.extensions.Accessor("mine", MyAccessor)
+    try:
+        obj = make_obj(pd.DataFrame({"a": [1, 1], "b": [2, 3]}))
+        assert isinstance(obj.mine, MyAccessor)
+        assert obj.mine.obj is obj
+    finally:
+        del klass.mine

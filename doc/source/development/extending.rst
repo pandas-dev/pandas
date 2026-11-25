@@ -100,6 +100,9 @@ The accessor's ``__init__`` then receives the groupby, resample or window object
    )
    df.groupby("key").span()
 
+Unlike the decorators, this assignment does not warn if it replaces an existing
+attribute.
+
 
 .. _extending.extension-types:
 
