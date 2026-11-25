@@ -173,6 +173,45 @@ def generate_daily_offset_range(
     return i8values
 
 
+def trim_range_endpoints(
+    i8values: npt.NDArray[np.int64],
+    start_i8: int | None,
+    end_i8: int | None,
+    left_inclusive: bool,
+    right_inclusive: bool,
+) -> npt.NDArray[np.int64]:
+    """
+    Drop the generated values that sit on an excluded endpoint.
+
+    Parameters
+    ----------
+    i8values : np.ndarray[int64]
+        The generated range, including any values on its endpoints.
+    start_i8, end_i8 : int or None
+        The endpoints as integers in the unit of ``i8values``; None to treat
+        the first/last value as the endpoint.
+    left_inclusive, right_inclusive : bool
+
+    Returns
+    -------
+    np.ndarray[int64]
+    """
+    if left_inclusive and right_inclusive:
+        return i8values
+
+    # NaT endpoints (from nonexistent/ambiguous="NaT") are never equal
+    if start_i8 is not None and start_i8 == end_i8 and start_i8 != iNaT:
+        return i8values[1:-1]
+
+    if not left_inclusive and len(i8values):
+        if start_i8 is None or i8values[0] == start_i8:
+            i8values = i8values[1:]
+    if not right_inclusive and len(i8values):
+        if end_i8 is None or i8values[-1] == end_i8:
+            i8values = i8values[:-1]
+    return i8values
+
+
 def _generate_range_overflow_safe(
     endpoint: int, periods: int, stride: int, side: str = "start"
 ) -> int:

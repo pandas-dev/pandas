@@ -22,6 +22,7 @@ import functools
 from io import StringIO
 import itertools
 import operator
+import reprlib
 import sys
 from typing import (
     TYPE_CHECKING,
@@ -969,6 +970,7 @@ class DataFrame(NDFrame, OpsMixin):
             self._repr_fits_horizontal_() and self._repr_fits_vertical_()
         )
 
+    @reprlib.recursive_repr("...")  # GH#25833
     def __repr__(self) -> str:
         """
         Return a string representation for a particular DataFrame.
@@ -996,32 +998,14 @@ class DataFrame(NDFrame, OpsMixin):
             return f"<pre>{val}</pre>"
 
         if config["display"]["notebook_repr_html"]:
-            max_rows = config["display"]["max_rows"]
-            min_rows = config["display"]["min_rows"]
-            max_cols = config["display"]["max_columns"]
-            show_dimensions = config["display"]["show_dimensions"]
-            show_floats = config["display"]["float_format"]
-
-            formatter = fmt.DataFrameFormatter(
-                self,
-                columns=None,
-                col_space=None,
-                formatters=None,
-                float_format=show_floats,
-                sparsify=None,
-                justify=None,
-                index_names=True,
-                header=True,
-                index=True,
-                bold_rows=True,
-                escape=True,
-                max_rows=max_rows,
-                min_rows=min_rows,
-                max_cols=max_cols,
-                show_dimensions=show_dimensions,
-                decimal=".",
+            # go through to_html so subclass overrides apply here too, GH#30727
+            return self.to_html(
+                max_rows=config["display"]["max_rows"],
+                min_rows=config["display"]["min_rows"],
+                max_cols=config["display"]["max_columns"],
+                show_dimensions=config["display"]["show_dimensions"],
+                notebook=True,
             )
-            return fmt.DataFrameRenderer(formatter).to_html(notebook=True)
         else:
             return None
 
@@ -3177,6 +3161,7 @@ class DataFrame(NDFrame, OpsMixin):
         index_names: bool = ...,
         justify: str | None = ...,
         max_rows: int | None = ...,
+        min_rows: int | None = ...,
         max_cols: int | None = ...,
         show_dimensions: bool | str = ...,
         decimal: str = ...,
@@ -3206,6 +3191,7 @@ class DataFrame(NDFrame, OpsMixin):
         index_names: bool = ...,
         justify: str | None = ...,
         max_rows: int | None = ...,
+        min_rows: int | None = ...,
         max_cols: int | None = ...,
         show_dimensions: bool | str = ...,
         decimal: str = ...,
@@ -3234,6 +3220,7 @@ class DataFrame(NDFrame, OpsMixin):
         index_names: bool = True,
         justify: str | None = None,
         max_rows: int | None = None,
+        min_rows: int | None = None,
         max_cols: int | None = None,
         show_dimensions: bool | str = False,
         decimal: str = ".",
@@ -3302,6 +3289,11 @@ class DataFrame(NDFrame, OpsMixin):
             * unset.
         max_rows : int, optional
             Maximum number of rows to display in the console.
+        min_rows : int, optional
+            The number of rows to display in a truncated table (when number
+            of rows is above `max_rows`).
+
+            .. versionadded:: 3.2.0
         max_cols : int, optional
             Maximum number of columns to display in the console.
         show_dimensions : bool, default False
@@ -3429,6 +3421,7 @@ class DataFrame(NDFrame, OpsMixin):
             escape=escape,
             decimal=decimal,
             max_rows=max_rows,
+            min_rows=min_rows,
             max_cols=max_cols,
             show_dimensions=show_dimensions,
         )
@@ -4796,6 +4789,14 @@ class DataFrame(NDFrame, OpsMixin):
             raise TypeError(
                 "Must pass DataFrame or 2-d ndarray with boolean values only"
             )
+
+        if not key.size:
+            # an empty key may be object dtype, which the align below keeps
+            key = key.astype(bool)
+        # a label missing from key or an NA in it means "do not set" (GH#57083)
+        key = key.align(self, join="right", fill_value=False)[0]
+        if key._mgr.any_extension_types:
+            key = key.fillna(False)
 
         try:
             self._where(-key, value, inplace=True)
@@ -9806,8 +9807,8 @@ class DataFrame(NDFrame, OpsMixin):
         Notes
         -----
         This function cannot be used with all column types. For example, when
-        specifying columns with `object` or `category` dtypes, ``TypeError`` is
-        raised.
+        specifying columns with complex or unordered `category` dtypes,
+        ``TypeError`` is raised.
 
         Examples
         --------
@@ -17205,13 +17206,43 @@ class DataFrame(NDFrame, OpsMixin):
                     arr = concat_compat(list(df._iter_column_arrays()))
                     assert isinstance(arr, ExtensionArray)
                     nrows, ncols = df.shape
-                    row_index = np.tile(np.arange(nrows, dtype=np.intp), ncols)
                     if name in ("idxmin", "idxmax"):
                         if not skipna and arr.isna().any():
                             # Match the error raised by GroupBy._idxmax_idxmin
                             raise ValueError(
                                 f"{name} with skipna=False encountered an NA value."
                             )
+                    from pandas.core.arrays.arrow.array import ArrowExtensionArray
+
+                    masked = arr
+                    if isinstance(dtype, ArrowDtype) and dtype.kind in "iufb":
+                        assert isinstance(arr, ArrowExtensionArray)
+                        masked = arr._to_masked()
+                    if isinstance(masked, BaseMaskedArray):
+                        # arr holds the frame's columns one after another;
+                        # reshaping to (ncols, nrows) and transposing gives
+                        # an (nrows, ncols) array matching the frame, and
+                        # _groupby_op with ngroups=1 then reduces each
+                        # frame row as one group
+                        op_kwargs = dict(kwds)
+                        min_count = op_kwargs.pop("min_count", -1)
+                        res_values = (
+                            masked.reshape(ncols, nrows)
+                            .T._groupby_op(
+                                how=name,
+                                has_dropped_na=False,
+                                min_count=min_count,
+                                ngroups=1,
+                                ids=np.zeros(ncols, dtype=np.intp),
+                                skipna=skipna,
+                                **op_kwargs,
+                            )
+                            .reshape(-1)
+                        )
+                        if isinstance(arr, ArrowExtensionArray):
+                            res_values = arr._groupby_result_to_arrow(res_values)
+                        return Series(res_values, index=df.index)
+                    row_index = np.tile(np.arange(nrows, dtype=np.intp), ncols)
                     op_kwargs = dict(kwds)
                     min_count = op_kwargs.pop("min_count", -1)
                     try:

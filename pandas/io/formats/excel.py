@@ -52,6 +52,7 @@ if TYPE_CHECKING:
     from typing import TypeAlias
 
     from pandas._typing import (
+        Axes,
         ExcelWriterMergeCells,
         FilePath,
         IndexLabel,
@@ -548,7 +549,7 @@ class ExcelFormatter:
         df,
         na_rep: str = "",
         float_format: str | None = None,
-        cols: Sequence[Hashable] | None = None,
+        cols: Axes | None = None,
         header: Sequence[Hashable] | bool = True,
         index: bool = True,
         index_label: IndexLabel | None = None,

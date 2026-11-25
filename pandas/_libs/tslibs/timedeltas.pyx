@@ -633,11 +633,12 @@ cdef int64_t _check_td_ns(object total, str ts) except? -1:
     """
     Range-check a timedelta string's parsed nanosecond total (GH#68560).
 
-    Unit-suffixed terms are already bounded by cast_from_unit, so this catches
-    totals that leave the range while every term is in it -- and, in
-    parse_timedelta_string, one that overshoots and is brought back by a later
-    term. The lower bound is exclusive because a parse landing on INT64_MIN
-    would be indistinguishable from NPY_NAT.
+    In parse_timedelta_string, unit-suffixed terms are already bounded by
+    cast_from_unit, so this catches totals that leave the range while every
+    term is in it, or that overshoot and are brought back by a later term.
+    parse_iso_format_string sums exact integers, so this is its only bound.
+    The lower bound is exclusive because a parse landing on INT64_MIN would
+    be indistinguishable from NPY_NAT.
     """
     if not (-(2**63) < total < 2**63):
         raise OutOfBoundsTimedelta(f"Out of bounds nanosecond timedelta: '{ts}'")
@@ -1297,16 +1298,37 @@ cpdef disallow_ambiguous_unit(unit):
         )
 
 
+# One component of an ISO 8601 duration: an optional sign (a pandas extension,
+#  GH#37172), the integer part, and an optional fraction after "." or ",".
+_iso_number = r"([+-]?)([0-9]+)(?:[.,]([0-9]+))?"
+# -PnWnDTnHnMnS, every component optional; a "T" must be followed by a time
+#  component. Years and months are not supported.
+cdef object _iso_duration_re = re.compile(
+    rf"(-)?P(?:{_iso_number}W)?(?:{_iso_number}D)?"
+    rf"(?:T(?=.)(?:{_iso_number}H)?(?:{_iso_number}M)?(?:{_iso_number}S)?)?"
+)
+# nanoseconds per W, D, H, M, S, in the order the regex captures them
+cdef tuple _iso_unit_ns = (
+    7 * 86400 * 10**9, 86400 * 10**9, 3600 * 10**9, 60 * 10**9, 10**9
+)
+cdef tuple _iso_unit_reso = (
+    c_Resolution.RESO_DAY,
+    c_Resolution.RESO_DAY,
+    c_Resolution.RESO_HR,
+    c_Resolution.RESO_MIN,
+    c_Resolution.RESO_SEC,
+)
+
+
 cdef int64_t parse_iso_format_string(
     str ts, c_Resolution* out_reso=NULL
 ) except? -1:
     """
-    Extracts and cleanses the appropriate values from a match object with
-    groups for each component of an ISO 8601 duration
+    Parse an ISO 8601 duration string into nanoseconds.
 
     Parameters
     ----------
-    ts: str
+    ts : str
         ISO 8601 Duration formatted string
     out_reso : optional pointer that, if non-NULL, receives the finest
         Resolution unit explicitly written in ``ts``.
@@ -1321,112 +1343,52 @@ cdef int64_t parse_iso_format_string(
     ValueError
         If ``ts`` cannot be parsed
     """
-
     cdef:
-        unicode c
-        object result = 0, r
-        int p = 0, sign = 1
-        object dec_unit = "ms", err_msg
-        bint have_dot = 0, have_value = 0, neg = 0
-        list number = [], unit = []
-        str body
-        c_Resolution reso = c_Resolution.RESO_DAY
-        c_Resolution spec_reso = c_Resolution.RESO_DAY
-        c_Resolution* spec_ptr = &spec_reso if out_reso is not NULL else NULL
+        object match, result = 0, value, unit_ns, den
+        tuple groups
+        str whole, frac
+        Py_ssize_t i, last = -1
+        bint have_frac = False
 
     err_msg = f"Invalid ISO 8601 Duration format - {ts}"
 
-    if ts[0] == "-":
-        sign = -1
-        body = ts[1:]
-    else:
-        body = ts
+    match = _iso_duration_re.fullmatch(ts)
+    if match is None:
+        raise ValueError(err_msg)
+    groups = match.groups()
 
-    for c in body:
-        # number (ascii codes)
-        if 48 <= ord(c) <= 57:
+    for i in range(5):
+        whole = groups[3 * i + 2]
+        if whole is None:
+            continue
+        if have_frac:
+            # ISO 8601 allows a fraction only on the smallest component
+            raise ValueError(err_msg)
+        if last != -1 and groups[3 * i + 1] == "-":
+            # "-" only on the first component, the one isoformat negates
+            raise ValueError(err_msg)
+        last = i
+        unit_ns = _iso_unit_ns[i]
+        value = int(whole) * unit_ns
+        frac = groups[3 * i + 3]
+        if frac is not None:
+            have_frac = True
+            # exact integer arithmetic, rounded to the nearest nanosecond
+            den = (<object>10) ** len(frac)
+            value += (2 * int(frac) * unit_ns + den) // (2 * den)
+        if groups[3 * i + 1] == "-":
+            value = -value
+        result += value
 
-            have_value = 1
-            if have_dot:
-                if p == 3 and dec_unit != "ns":
-                    unit.append(dec_unit)
-                    if dec_unit == "ms":
-                        dec_unit = "us"
-                    elif dec_unit == "us":
-                        dec_unit = "ns"
-                    p = 0
-                p += 1
-
-            if not len(unit):
-                number.append(c)
-            else:
-                r = timedelta_from_spec(number, "0", unit, spec_ptr)
-                if spec_reso < reso:
-                    reso = spec_reso
-                result += timedelta_as_neg(r, neg)
-
-                neg = 0
-                unit, number = [], [c]
-        else:
-            if c == "P" or c == "T":
-                pass  # ignore marking characters P and T
-            elif c == "-":
-                if neg or have_value:
-                    raise ValueError(err_msg)
-                else:
-                    neg = 1
-            elif c == "+":
-                pass
-            elif c in ["W", "D", "H", "M"]:
-                if c in ["H", "M"] and len(number) > 2:
-                    raise ValueError(err_msg)
-                if c in ["M", "H"]:
-                    c = c.replace("M", "min").replace("H", "h")
-                unit.append(c)
-                r = timedelta_from_spec(number, "0", unit, spec_ptr)
-                if spec_reso < reso:
-                    reso = spec_reso
-                result += timedelta_as_neg(r, neg)
-
-                neg = 0
-                unit, number = [], []
-            elif c == ".":
-                # append any seconds
-                if len(number):
-                    r = timedelta_from_spec(number, "0", "s")
-                    result += timedelta_as_neg(r, neg)
-                    unit, number = [], []
-                have_dot = 1
-            elif c == "S":
-                # seconds field present (whole and/or fractional); any
-                #  sub-second precision from the fraction is folded in later
-                #  via the parsed value's own resolution.
-                if c_Resolution.RESO_SEC < reso:
-                    reso = c_Resolution.RESO_SEC
-                if have_dot:  # ms, us, or ns
-                    if not len(number) or p > 3:
-                        raise ValueError(err_msg)
-                    # pad to 3 digits as required
-                    pad = 3 - p
-                    while pad > 0:
-                        number.append("0")
-                        pad -= 1
-
-                    r = timedelta_from_spec(number, "0", dec_unit)
-                    result += timedelta_as_neg(r, neg)
-                else:  # seconds
-                    r = timedelta_from_spec(number, "0", "s")
-                    result += timedelta_as_neg(r, neg)
-            else:
-                raise ValueError(err_msg)
-
-    if not have_value:
-        # Received string only - never parsed any values
+    if last == -1:
+        # no components, i.e. "P" or "-P"
         raise ValueError(err_msg)
 
+    if groups[0] is not None:
+        result = -result
     if out_reso is not NULL:
-        out_reso[0] = reso
-    return _check_td_ns(sign*result, ts)
+        out_reso[0] = <c_Resolution><int>_iso_unit_reso[last]
+    return _check_td_ns(result, ts)
 
 
 def parse_timedelta_string_reso(str ts):

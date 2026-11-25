@@ -2835,6 +2835,12 @@ class SparseArray(OpsMixin, PandasObject, ExtensionArray):
     _HANDLED_TYPES = (np.ndarray, numbers.Number)
 
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
+        result = arraylike.dispatch_where_only_ufunc(
+            self, ufunc, method, *inputs, **kwargs
+        )
+        if result is not NotImplemented:
+            return result
+
         # this path never reaches ExtensionArray.__array_ufunc__, and a datetimelike
         #  scalar is not in _HANDLED_TYPES, so this has to precede that loop
         ops.disallow_datetimelike_logical_ufunc(ufunc, inputs)

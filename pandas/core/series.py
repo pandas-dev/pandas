@@ -15,6 +15,7 @@ from collections.abc import (
 )
 import functools
 import operator
+import reprlib
 import sys
 from typing import (
     IO,
@@ -1616,6 +1617,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     # ----------------------------------------------------------------------
     # Rendering Methods
 
+    @reprlib.recursive_repr("...")  # GH#25833
     def __repr__(self) -> str:
         """
         Return a string representation for a particular Series.

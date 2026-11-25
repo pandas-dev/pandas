@@ -7,6 +7,7 @@ class IndexCache:
 
     params = [
         [
+            "ArrowDateIndex",
             "CategoricalIndex",
             "DatetimeIndex",
             "Float64Index",
@@ -45,6 +46,9 @@ class IndexCache:
             self.idx = pd.Index(range(N), dtype="uint64")
         elif index_type == "CategoricalIndex":
             self.idx = pd.CategoricalIndex(range(N), range(N))
+        elif index_type == "ArrowDateIndex":
+            idx = pd.Index(range(N), dtype="int32[pyarrow]")
+            self.idx = idx.astype("date32[pyarrow]")
         else:
             raise ValueError
         assert len(self.idx) == N

@@ -83,6 +83,7 @@ from pandas.core.arrays import datetimelike as dtl
 from pandas.core.arrays._ranges import (
     generate_daily_offset_range,
     generate_regular_range,
+    trim_range_endpoints,
 )
 import pandas.core.common as com
 
@@ -527,29 +528,13 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
                 #  to overflow and cast to e.g. f8, but if it does we need to cast
                 i8values = i8values.astype("i8")
 
-        if start == end:
-            if not left_inclusive or not right_inclusive:
-                i8values = i8values[1:-1]
-        else:
-            start_i8 = (
-                Timestamp(start)._value
-                if start is not None
-                else i8values[0]
-                if len(i8values)
-                else 0
-            )
-            end_i8 = (
-                Timestamp(end)._value
-                if end is not None
-                else i8values[-1]
-                if len(i8values)
-                else 0
-            )
-            if not left_inclusive or not right_inclusive:
-                if not left_inclusive and len(i8values) and i8values[0] == start_i8:
-                    i8values = i8values[1:]
-                if not right_inclusive and len(i8values) and i8values[-1] == end_i8:
-                    i8values = i8values[:-1]
+        i8values = trim_range_endpoints(
+            i8values,
+            start._value if start is not None else None,
+            end._value if end is not None else None,
+            left_inclusive,
+            right_inclusive,
+        )
 
         dt64_values = i8values.view(f"datetime64[{unit}]")
         dtype = tz_to_dtype(tz, unit=unit)
