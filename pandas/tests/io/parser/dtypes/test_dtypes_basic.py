@@ -1173,7 +1173,9 @@ def test_integer_dtype_past_limit_raises(all_parsers, any_int_dtype, bound, requ
             )
         )
 
-    msg = "|".join(["cannot safely", "Overflow", "too large to convert"])
+    msg = "|".join(
+        ["cannot safely", "Overflow", "too large to convert", "too big to convert"]
+    )
     with pytest.raises((ValueError, TypeError, OverflowError), match=msg):
         parser.read_csv(StringIO(f"x\n{value}\n"), dtype={"x": any_int_dtype})
 
