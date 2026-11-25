@@ -1573,9 +1573,9 @@ class FixedWidthReader(abc.Iterator[list[str]]):
                     for start, stop in bounds
                 ]
                 if not any(fields):
-                    # Pass the comment on as a field so the line is handled like
-                    #  one with a comment inside a column, not as a blank line.
-                    return [line[idx:].strip(self.delimiter)]
+                    # Pass on just the comment character so the line is dropped
+                    #  as a comment, not kept as blank or matched to na_values.
+                    return [self.comment]
                 return fields
         # Note: 'colspecs' is a sequence of half-open intervals.
         return [line[from_:to].strip(self.delimiter) for (from_, to) in self.colspecs]

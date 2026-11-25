@@ -910,6 +910,17 @@ def test_comment_line_outside_inferred_colspecs(skip_blank_lines):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("comment_line", ["#NA", "#N/A", "#N/A N/A"])
+def test_comment_line_outside_colspecs_matching_na_value(comment_line):
+    # GH#53922 a comment line reading as a default NA string is still dropped
+    data = f"{comment_line}\n   93.5000    17.9877\n   94.5000    18.0374\n"
+    result = read_fwf(
+        StringIO(data), colspecs=[(3, 10), (14, 21)], comment="#", header=None
+    )
+    expected = pd.DataFrame([[93.5, 17.9877], [94.5, 18.0374]])
+    tm.assert_frame_equal(result, expected)
+
+
 def test_comment_between_colspecs():
     # GH#53922 a comment starting in a gap between columns ends the line
     data = "  1  2    3  4\n  7  8 #N/A#11\n  9# 10   5  6\n"
