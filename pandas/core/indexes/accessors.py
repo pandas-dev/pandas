@@ -103,7 +103,7 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
         # maybe need to upcast (ints)
         if isinstance(result, np.ndarray):
             if is_integer_dtype(result):
-                result = result.astype("int64")
+                result = result.astype("int64", copy=False)
         elif not is_list_like(result):
             return result
 
@@ -113,8 +113,10 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
             index = self.orig.index
         else:
             index = self._parent.index
-        # return the result as a Series
-        return Series(result, index=index, name=self.name).__finalize__(self._parent)
+        # result is newly allocated, see test_dt_accessor_result_independent
+        return Series(result, index=index, name=self.name, copy=False).__finalize__(
+            self._parent
+        )
 
     def _delegate_property_set(self, name: str, value, *args, **kwargs) -> NoReturn:
         raise ValueError(
@@ -133,9 +135,11 @@ class Properties(PandasDelegate, PandasObject, NoNewAttributesMixin):
         if not is_list_like(result):
             return result
 
-        return Series(result, index=self._parent.index, name=self.name).__finalize__(
-            self._parent
-        )
+        # result is newly allocated or an Index that tracks its references,
+        #  see test_dt_accessor_result_independent
+        return Series(
+            result, index=self._parent.index, name=self.name, copy=False
+        ).__finalize__(self._parent)
 
     def shift(self, periods: int = 1, freq: Frequency | None = None) -> Series:
         """

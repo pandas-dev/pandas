@@ -6,6 +6,11 @@ from pandas.errors import Pandas4Warning
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.core.arrays import (
+    DatetimeArray,
+    PeriodArray,
+    TimedeltaArray,
+)
 from pandas.tests.copy_view.util import get_array
 from pandas.util.version import Version
 
@@ -625,6 +630,72 @@ def test_to_period(obj):
     obj2.iloc[0] = 0
     assert not np.shares_memory(get_array(obj2, "a"), get_array(obj, "a"))
     tm.assert_equal(obj, obj_orig)
+
+
+def _dt_series(kind):
+    dti = pd.DatetimeIndex(["2020-01-31 01:02:03.004005", "2021-02-03 04:05:06.007008"])
+    if kind == "datetime":
+        return pd.Series(dti)
+    elif kind == "datetimetz":
+        return pd.Series(dti.tz_localize("UTC"))
+    elif kind == "timedelta":
+        return pd.Series(dti - pd.Timestamp("2019-01-01"))
+    elif kind == "period":
+        return pd.Series(dti.to_period("D"))
+    return pd.Series(dti).astype("category")
+
+
+def _dt_accessor_cases():
+    scalar_ops = {"unit", "tz", "freq"}
+    ops = {
+        "datetime": DatetimeArray._datetimelike_ops,
+        "datetimetz": DatetimeArray._datetimelike_ops,
+        "categorical": DatetimeArray._datetimelike_ops,
+        "timedelta": TimedeltaArray._datetimelike_ops,
+        "period": PeriodArray._datetimelike_ops,
+    }
+    for kind, names in ops.items():
+        for name in names:
+            if name not in scalar_ops:
+                yield pytest.param(kind, name, None, id=f"{kind}-{name}")
+    methods = {
+        "datetime": [
+            ("to_period", ("D",)),
+            ("tz_localize", ("UTC",)),
+            ("normalize", ()),
+            ("strftime", ("%Y",)),
+            ("round", ("us",)),
+            ("floor", ("h",)),
+            ("month_name", ()),
+            ("as_unit", ("us",)),
+            ("as_unit", ("ns",)),
+        ],
+        "datetimetz": [("tz_convert", ("US/Eastern",)), ("tz_localize", (None,))],
+        "timedelta": [("total_seconds", ()), ("round", ("us",)), ("as_unit", ("us",))],
+        "period": [("strftime", ("%Y",)), ("to_timestamp", ()), ("asfreq", ("D",))],
+    }
+    for kind, calls in methods.items():
+        for name, args in calls:
+            yield pytest.param(kind, name, args, id=f"{kind}-{name}{args}")
+
+
+@pytest.mark.parametrize("kind, name, args", list(_dt_accessor_cases()))
+def test_dt_accessor_result_independent(kind, name, args):
+    # GH#52510 the .dt result must not share unreferenced memory with the parent
+    def get_result(ser):
+        result = getattr(ser.dt, name)
+        return result if args is None else result(*args)
+
+    ser = _dt_series(kind)
+    ser_orig = ser.copy()
+    result = get_result(ser)
+    result.iloc[0] = result.iloc[1]
+    tm.assert_series_equal(ser, ser_orig)
+
+    result = get_result(ser)
+    expected = result.copy()
+    ser.iloc[0] = ser.iloc[1]
+    tm.assert_series_equal(result, expected)
 
 
 def test_set_index():
