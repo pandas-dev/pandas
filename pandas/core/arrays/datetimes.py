@@ -1515,11 +1515,8 @@ default 'raise'
 
         See Also
         --------
-        DatetimeIndex.timetz : Returns numpy array of :class:`datetime.time`
-            objects with timezones. The time part of the Timestamps.
-        DatetimeIndex.date : Returns numpy array of python :class:`datetime.date`
-            objects. Namely, the date part of Timestamps without time and timezone
-            information.
+        Series.dt.timetz : Time part of the datetimes, with timezone.
+        Series.dt.date : Date part of the datetimes.
 
         Examples
         --------
@@ -1560,8 +1557,7 @@ default 'raise'
 
         See Also
         --------
-        DatetimeIndex.time : Returns numpy array of :class:`datetime.time` objects.
-            The time part of the Timestamps.
+        Series.dt.time : Time part of the datetimes, without timezone.
         DatetimeIndex.tz : Return the timezone.
 
         Examples
@@ -1599,8 +1595,7 @@ default 'raise'
 
         See Also
         --------
-        DatetimeIndex.time : Returns numpy array of :class:`datetime.time` objects.
-            The time part of the Timestamps.
+        Series.dt.time : Time part of the datetimes.
         DatetimeIndex.year : The year of the datetime.
         DatetimeIndex.month : The month as January=1, December=12.
         DatetimeIndex.day : The day of the datetime.
