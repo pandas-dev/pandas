@@ -2730,13 +2730,20 @@ def test_sqlalchemy_integer_mapping(conn, request, integer, expected):
 
 @pytest.mark.parametrize("conn", sqlalchemy_connectable)
 @pytest.mark.parametrize(
-    "integer, expected", [("int8", "SMALLINT"), ("int32", "INTEGER")]
+    "values, expected",
+    [
+        (np.array([0, 1], dtype="int8"), "SMALLINT"),
+        (np.array([0, 1], dtype="int32"), "INTEGER"),
+        (pd.to_datetime(["2020-01-01", "2020-01-02"]), "DATETIME"),
+        (pd.to_datetime(["2020-01-01", "2020-01-02"]).tz_localize("UTC"), "TIMESTAMP"),
+        # written as Timedelta objects, not the integers a timedelta64 column gets
+        (pd.to_timedelta(["1s", "2s"]), "TEXT"),
+    ],
 )
-def test_sqlalchemy_categorical_mapping(conn, request, integer, expected):
+def test_sqlalchemy_categorical_mapping(conn, request, values, expected):
     # GH#43783 a categorical is mapped like its categories
     conn = request.getfixturevalue(conn)
-    cat = pd.Categorical(np.array([0, 1], dtype=integer))
-    df = pd.DataFrame({"a": cat})
+    df = pd.DataFrame({"a": pd.Categorical(values)})
     with sql.SQLDatabase(conn) as db:
         table = sql.SQLTable("test_type", db, frame=df)
 

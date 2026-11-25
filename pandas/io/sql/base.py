@@ -237,11 +237,16 @@ def infer_column_type(col: Index | Series) -> tuple[Index | Series, str]:
     """
     Infer the type of the values in ``col``, ignoring missing values.
 
-    A categorical column is mapped like its categories, so those are returned
-    in place of ``col`` for any further dtype checks.
+    A categorical column is mapped like its non-timedelta categories, so those
+    are returned in place of ``col`` for any further dtype checks.
     """
-    # empty categories (e.g. all-NA) may have an arbitrary default dtype
-    if isinstance(col.dtype, CategoricalDtype) and len(col.dtype.categories):
+    # empty categories (e.g. all-NA) may have an arbitrary default dtype;
+    # timedelta categories are written as Timedelta objects, not as integers
+    if (
+        isinstance(col.dtype, CategoricalDtype)
+        and len(col.dtype.categories)
+        and col.dtype.categories.dtype.kind != "m"
+    ):
         col = col.dtype.categories
     # skipna needed for inserting typed data containing NULLs, GH 8778
     col_type = lib.infer_dtype(col, skipna=True)
