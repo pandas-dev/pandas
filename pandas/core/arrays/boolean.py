@@ -30,7 +30,7 @@ from pandas.core.dtypes.missing import isna
 from pandas.core import ops
 from pandas.core.array_algos import masked_accumulations
 from pandas.core.array_algos.take import take_nd
-from pandas.core.arrays import ExtensionArray
+from pandas.core.arrays.base import ExtensionArray
 from pandas.core.arrays.masked import (
     BaseMaskedArray,
     BaseMaskedDtype,

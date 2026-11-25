@@ -716,6 +716,7 @@ from pandas._libs.khash cimport (
     kh_needed_n_buckets,
     kh_put_int64,
     kh_resize_int64,
+    khash_set_alloc_fail_countdown,
     khiter_t,
 )
 
@@ -753,7 +754,11 @@ def asof_join_backward_on_X_by_Y(const numeric_t[:] left_values,
 
     if use_hashtable:
         hash_table = kh_init_int64()
-        kh_resize_int64(hash_table, kh_needed_n_buckets(min(right_size, 1 << 20)))
+        if kh_resize_int64(
+            hash_table, kh_needed_n_buckets(min(right_size, 1 << 20))
+        ) < 0:
+            kh_destroy_int64(hash_table)
+            raise MemoryError()
 
     right_pos = 0
     for left_pos in range(left_size):
@@ -769,6 +774,9 @@ def asof_join_backward_on_X_by_Y(const numeric_t[:] left_values,
                     loc = kh_put_int64(
                         hash_table, right_by_values[right_pos], &ret
                     )
+                    if ret < 0:
+                        kh_destroy_int64(hash_table)
+                        raise MemoryError()
                     hash_table.vals[loc] = right_pos
                 right_pos += 1
         else:
@@ -778,6 +786,9 @@ def asof_join_backward_on_X_by_Y(const numeric_t[:] left_values,
                     loc = kh_put_int64(
                         hash_table, right_by_values[right_pos], &ret
                     )
+                    if ret < 0:
+                        kh_destroy_int64(hash_table)
+                        raise MemoryError()
                     hash_table.vals[loc] = right_pos
                 right_pos += 1
         right_pos -= 1
@@ -840,7 +851,11 @@ def asof_join_forward_on_X_by_Y(const numeric_t[:] left_values,
 
     if use_hashtable:
         hash_table = kh_init_int64()
-        kh_resize_int64(hash_table, kh_needed_n_buckets(min(right_size, 1 << 20)))
+        if kh_resize_int64(
+            hash_table, kh_needed_n_buckets(min(right_size, 1 << 20))
+        ) < 0:
+            kh_destroy_int64(hash_table)
+            raise MemoryError()
 
     right_pos = right_size - 1
     for left_pos in range(left_size - 1, -1, -1):
@@ -856,6 +871,9 @@ def asof_join_forward_on_X_by_Y(const numeric_t[:] left_values,
                     loc = kh_put_int64(
                         hash_table, right_by_values[right_pos], &ret
                     )
+                    if ret < 0:
+                        kh_destroy_int64(hash_table)
+                        raise MemoryError()
                     hash_table.vals[loc] = right_pos
                 right_pos -= 1
         else:
@@ -865,6 +883,9 @@ def asof_join_forward_on_X_by_Y(const numeric_t[:] left_values,
                     loc = kh_put_int64(
                         hash_table, right_by_values[right_pos], &ret
                     )
+                    if ret < 0:
+                        kh_destroy_int64(hash_table)
+                        raise MemoryError()
                     hash_table.vals[loc] = right_pos
                 right_pos -= 1
         right_pos += 1
@@ -948,3 +969,8 @@ def asof_join_nearest_on_X_by_Y(const numeric_t[:] left_values,
         left_indexer[i] = bli[i]
 
     return left_indexer, right_indexer
+
+
+def _set_khash_alloc_fail_countdown(int countdown) -> int:
+    # for tests: fail the khash allocation in this module that takes this to 0
+    return khash_set_alloc_fail_countdown(countdown)

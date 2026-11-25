@@ -222,6 +222,23 @@ class TestSeriesSortValues:
         result = sorted_ser.values
         tm.assert_numpy_array_equal(result, expected)
 
+    @pytest.mark.parametrize("values", [["b", "a"], ["a", "b"]])
+    def test_sort_values_object_dtype_preserved(self, values):
+        # GH#71978
+        ser = pd.Series(values, dtype=object)
+        result = ser.sort_values()
+        expected = pd.Series(
+            ["a", "b"], index=[values.index("a"), values.index("b")], dtype=object
+        )
+        tm.assert_series_equal(result, expected)
+
+    def test_sort_values_object_lone_surrogate(self):
+        # GH#71978
+        ser = pd.Series(["\ud800", "a"], dtype=object)
+        result = ser.sort_values()
+        expected = pd.Series(["a", "\ud800"], index=[1, 0], dtype=object)
+        tm.assert_series_equal(result, expected)
+
 
 class TestSeriesSortingKey:
     def test_sort_values_key(self):

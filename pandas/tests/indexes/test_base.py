@@ -1,5 +1,6 @@
 from collections import defaultdict
 from datetime import datetime
+import enum
 from functools import partial
 import math
 import operator
@@ -872,6 +873,42 @@ class TestIndex:
         for drop_me in to_drop[1], [to_drop[1]]:
             with pytest.raises(KeyError, match=msg):
                 removed.drop(drop_me)
+
+    def test_drop_getitem_only_or_bytes_label(self):
+        # GH#11740 single labels that list() would iterate
+        class GetItemOnly:
+            def __getitem__(self, key):
+                raise IndexError
+
+        obj = GetItemOnly()
+        index = Index([obj, b"ab", 97, 98], dtype=object)
+
+        result = index.drop(obj)
+        tm.assert_index_equal(result, Index([b"ab", 97, 98], dtype=object))
+
+        result = index.drop(b"ab")
+        tm.assert_index_equal(result, Index([obj, 97, 98], dtype=object))
+
+        with pytest.raises(KeyError, match="not found in axis"):
+            index[1:].drop(obj)
+
+    def test_drop_enum_label(self):
+        # GH#11740 an Enum class is a single label, not a list of its members
+        class Color(enum.Enum):
+            RED = 1
+            BLUE = 2
+
+        index = Index([Color, Color.RED, Color.BLUE, "c"], dtype=object)
+        result = index.drop(Color)
+        tm.assert_index_equal(result, index[1:])
+
+        result = index.drop(Color.RED)
+        tm.assert_index_equal(result, index[[0, 2, 3]])
+
+        # neither the members nor a tuple of them match the class
+        index = Index([Color.RED, Color.BLUE, (Color.RED, Color.BLUE)], dtype=object)
+        with pytest.raises(KeyError, match="not found in axis"):
+            index.drop(Color)
 
     def test_drop_with_duplicates_in_index(self, index):
         # GH38051
@@ -1923,6 +1960,31 @@ def test_insert_nan_distinguish_nan_and_na(dtype, expected_dtype):
         assert result[1:].tolist() == [1.0, 2.0]
 
 
+@pytest.mark.parametrize(
+    "pa_type, value",
+    [("string", "a"), ("bool", True), ("binary", b"a"), ("list", [1])],
+)
+def test_insert_nan_arrow_non_float_distinguish_nan_and_na(pa_type, value):
+    # follow-up to GH#71870: NaN was stored as e.g. "nan" or True, or raised
+    #  ArrowNotImplementedError
+    pa = pytest.importorskip("pyarrow")
+    pa_type = {
+        "string": pa.string(),
+        "bool": pa.bool_(),
+        "binary": pa.binary(),
+        "list": pa.list_(pa.int64()),
+    }[pa_type]
+    with pd.option_context("future.distinguish_nan_and_na", True):
+        result = Index([value], dtype=pd.ArrowDtype(pa_type)).insert(0, np.nan)
+    assert result.dtype == object
+    assert len(result) == 2
+    assert np.isnan(result[0])
+    if isinstance(value, list):
+        assert list(result[1]) == value
+    else:
+        assert result[1] == value
+
+
 @td.skip_if_no("pyarrow")
 def test_is_monotonic_pyarrow_list_type():
     # GH 57333
@@ -1931,6 +1993,31 @@ def test_is_monotonic_pyarrow_list_type():
     idx = Index([[1], [2, 3]], dtype=pd.ArrowDtype(pa.list_(pa.int64())))
     assert not idx.is_monotonic_increasing
     assert not idx.is_monotonic_decreasing
+
+
+@pytest.mark.parametrize("pa_type", ["date32", "time32", "decimal128", "string"])
+def test_is_monotonic_pyarrow_does_not_build_engine(pa_type):
+    # GH#72260 the engine holds these types as Python objects
+    pa = pytest.importorskip("pyarrow")
+    pa_type = {
+        "date32": pa.date32(),
+        "time32": pa.time32("s"),
+        "decimal128": pa.decimal128(10),
+        "string": pa.string(),
+    }[pa_type]
+    arr = pa.array([1, 2], type=pa.int32()).cast(pa_type)
+    idx = Index(pd.arrays.ArrowExtensionArray(arr))
+    assert idx.is_monotonic_increasing
+    assert not idx.is_monotonic_decreasing
+    assert "_engine" not in idx._cache
+
+
+def test_is_monotonic_string_uses_engine(string_dtype_no_object):
+    # GH#65919 the engine caches the result
+    idx = Index(["a", "b"], dtype=string_dtype_no_object)
+    assert idx.is_monotonic_increasing
+    assert not idx.is_monotonic_decreasing
+    assert "_engine" in idx._cache
 
 
 def test_index_equals_different_string_dtype(string_dtype_no_object):

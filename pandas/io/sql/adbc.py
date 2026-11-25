@@ -13,6 +13,7 @@ from typing import (
     Literal,
 )
 
+from pandas._libs import lib
 from pandas.compat._optional import (
     import_optional_dependency,
 )
@@ -59,7 +60,7 @@ def _wrap_result_adbc(
     index_col=None,
     parse_dates=None,
     dtype: DtypeArg | None = None,
-    dtype_backend: DtypeBackend | Literal["numpy"] = "numpy",
+    dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
 ) -> DataFrame:
     """Wrap result set of a SQLAlchemy query in a DataFrame."""
     if dtype:
@@ -162,7 +163,7 @@ class ADBCDatabase(PandasSQL):
         columns=None,
         schema: str | None = None,
         chunksize: int | None = None,
-        dtype_backend: DtypeBackend | Literal["numpy"] = "numpy",
+        dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
     ) -> DataFrame | Iterator[DataFrame]:
         """
         Read SQL database table into a DataFrame.
@@ -254,7 +255,7 @@ class ADBCDatabase(PandasSQL):
         params=None,
         chunksize: int | None = None,
         dtype: DtypeArg | None = None,
-        dtype_backend: DtypeBackend | Literal["numpy"] = "numpy",
+        dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
     ) -> DataFrame | Iterator[DataFrame]:
         """
         Read SQL query into a DataFrame.

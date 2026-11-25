@@ -1,7 +1,9 @@
+import numpy as np
 import pytest
 
 from pandas._libs.tslibs import to_offset
 from pandas._libs.tslibs.offsets import INVALID_FREQ_ERR_MSG
+from pandas._libs.tslibs.timezones import tz_compare
 
 import pandas as pd
 import pandas._testing as tm
@@ -255,3 +257,164 @@ class TestDatetimeIndexRound:
             assert (result.asi8[diff == unit // 2] % 2 == 0).all(), (
                 "round half to even error"
             )
+
+
+@pytest.mark.parametrize(
+    "freq, values, floors, ceils",
+    [
+        (
+            "ME",
+            ["2017-01-23 12:34:56", "2017-01-31", "2017-01-31 00:00:01"],
+            ["2016-12-31", "2017-01-31", "2017-01-31"],
+            ["2017-01-31", "2017-01-31", "2017-02-28"],
+        ),
+        (
+            "MS",
+            ["2017-01-23 12:34:56", "2017-01-01", "2016-12-31 23:59:59"],
+            ["2017-01-01", "2017-01-01", "2016-12-01"],
+            ["2017-02-01", "2017-01-01", "2017-01-01"],
+        ),
+        (
+            "QE-NOV",
+            ["2017-01-23 12:34:56", "2017-02-28 00:00:01"],
+            ["2016-11-30", "2017-02-28"],
+            ["2017-02-28", "2017-05-31"],
+        ),
+        (
+            "W-SUN",
+            ["2017-01-23 12:34:56", "2017-01-22"],
+            ["2017-01-22", "2017-01-22"],
+            ["2017-01-29", "2017-01-22"],
+        ),
+        (
+            "B",
+            ["2017-01-23 12:34:56", "2017-01-28 09:00"],
+            ["2017-01-23", "2017-01-27"],
+            ["2017-01-24", "2017-01-30"],
+        ),
+        ("YS", ["2017-01-23 12:34:56"], ["2017-01-01"], ["2018-01-01"]),
+        ("SMS", ["2017-01-23 12:34:56"], ["2017-01-15"], ["2017-02-01"]),
+        ("BME", ["2017-01-23 12:34:56"], ["2016-12-30"], ["2017-01-31"]),
+        # the offsets below have no vectorized arithmetic
+        ("WOM-1WED", ["2017-01-23 12:34:56"], ["2017-01-04"], ["2017-02-01"]),
+        ("LWOM-MON", ["2017-01-23 12:34:56"], ["2016-12-26"], ["2017-01-30"]),
+        ("CBMS", ["2017-01-23 12:34:56"], ["2017-01-02"], ["2017-02-01"]),
+        (
+            pd.offsets.CustomBusinessDay(holidays=["2017-01-23"]),
+            ["2017-01-23 12:34:56"],
+            ["2017-01-20"],
+            ["2017-01-24"],
+        ),
+        (
+            pd.offsets.FY5253(weekday=4, startingMonth=12, variation="last"),
+            ["2017-01-23 12:34:56"],
+            ["2016-12-30"],
+            ["2017-12-29"],
+        ),
+        (pd.offsets.Easter(), ["2017-01-23 12:34:56"], ["2016-03-27"], ["2017-04-16"]),
+    ],
+)
+def test_floor_ceil_non_fixed_freq(freq, values, floors, ceils, tz_naive_fixture, unit):
+    # GH#15303
+    tz = tz_naive_fixture
+    dti = pd.DatetimeIndex([*values, pd.NaT], tz=tz).as_unit(unit)
+
+    for method, expected_values in [("floor", floors), ("ceil", ceils)]:
+        expected = pd.DatetimeIndex([*expected_values, pd.NaT], tz=tz).as_unit(unit)
+        result = getattr(dti, method)(freq)
+        tm.assert_index_equal(result, expected)
+        result = getattr(pd.Series(dti).dt, method)(freq)
+        tm.assert_series_equal(result, pd.Series(expected))
+        for ts, exp in zip(dti[:-1], expected[:-1], strict=True):
+            res = getattr(ts, method)(freq)
+            assert res == exp
+            assert res.unit == exp.unit
+            assert tz_compare(res.tz, exp.tz)
+
+
+@pytest.mark.parametrize(
+    "method, value", [("floor", "2017-08-13 12:00"), ("ceil", "2017-08-12 12:00")]
+)
+def test_floor_ceil_non_fixed_freq_nonexistent(method, value):
+    # GH#15303 both snap to Sunday 2017-08-13 00:00, which does not exist here
+    dti = pd.DatetimeIndex([value], tz="America/Santiago")
+    with pytest.raises(ValueError, match="nonexistent"):
+        getattr(dti, method)("W-SUN")
+    with pytest.raises(ValueError, match="nonexistent"):
+        getattr(dti[0], method)("W-SUN")
+
+    expected = pd.DatetimeIndex(["2017-08-13 01:00"], tz="America/Santiago")
+    result = getattr(dti, method)("W-SUN", nonexistent="shift_forward")
+    tm.assert_index_equal(result, expected)
+    assert getattr(dti[0], method)("W-SUN", nonexistent="shift_forward") == expected[0]
+
+
+def test_floor_non_fixed_freq_last_ns_day():
+    # GH#15303 the next midnight after 2262-04-11 is out of nanosecond bounds
+    dti = pd.DatetimeIndex(["2262-04-11 12:00", "2262-04-10 12:00", pd.NaT]).as_unit(
+        "ns"
+    )
+    expected = pd.DatetimeIndex(["2262-04-01", "2262-04-01", pd.NaT]).as_unit("ns")
+    tm.assert_index_equal(dti.floor("MS"), expected)
+    assert dti[0].floor("MS") == expected[0]
+
+
+@pytest.mark.parametrize(
+    "freq",
+    [
+        "2ME",
+        "-1ME",
+        "0MS",
+        pd.offsets.Week(),
+        pd.offsets.Week(n=-1, weekday=2),
+        pd.offsets.DateOffset(months=1),
+        pd.offsets.BusinessHour(),
+    ],
+)
+@pytest.mark.parametrize("method", ["floor", "ceil"])
+def test_floor_ceil_unsupported_non_fixed_freq_raises(freq, method):
+    # GH#15303
+    dti = pd.DatetimeIndex(["2017-01-23 12:34:56"])
+    msg = "floor and ceil support only a single step of a date-anchored frequency"
+    with pytest.raises(ValueError, match=msg):
+        getattr(dti, method)(freq)
+    with pytest.raises(ValueError, match=msg):
+        getattr(dti[0], method)(freq)
+
+
+@pytest.mark.parametrize(
+    "freq",
+    [
+        pd.offsets.BusinessDay(offset=pd.Timedelta(hours=1)),
+        pd.offsets.CustomBusinessDay(offset=pd.Timedelta(days=1)),
+        pd.offsets.CustomBusinessMonthEnd(offset=pd.Timedelta(hours=1)),
+    ],
+)
+@pytest.mark.parametrize("method", ["floor", "ceil"])
+def test_floor_ceil_business_offset_with_offset_raises(freq, method):
+    # GH#15303
+    dti = pd.DatetimeIndex(["2017-01-23 12:34:56"])
+    msg = "floor and ceil do not support .* with a nonzero 'offset'"
+    with pytest.raises(ValueError, match=msg):
+        getattr(dti, method)(freq)
+    with pytest.raises(ValueError, match=msg):
+        getattr(dti[0], method)(freq)
+
+
+@pytest.mark.parametrize("is_dst, utc_offset", [(True, "-04:00"), (False, "-05:00")])
+def test_floor_non_fixed_freq_ambiguous(is_dst, utc_offset):
+    # GH#15303 Sunday 2017-11-05 00:00 is ambiguous here
+    tz = "America/Havana"
+    dti = pd.DatetimeIndex(["2017-11-05 12:00"], tz=tz)
+    msg = "Cannot infer dst time"
+    with pytest.raises(ValueError, match=msg):
+        dti.floor("W-SUN")
+    with pytest.raises(ValueError, match=msg):
+        dti[0].floor("W-SUN")
+
+    expected = pd.Timestamp(f"2017-11-05 00:00{utc_offset}").tz_convert(
+        "America/Havana"
+    )
+    result = dti.floor("W-SUN", ambiguous=np.array([is_dst]))
+    tm.assert_index_equal(result, pd.DatetimeIndex([expected]))
+    assert dti[0].floor("W-SUN", ambiguous=is_dst) == expected

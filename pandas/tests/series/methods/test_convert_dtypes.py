@@ -1,3 +1,5 @@
+import datetime
+import decimal
 from itertools import product
 
 import numpy as np
@@ -311,6 +313,51 @@ class TestSeriesConvertDtypes:
         result = ser.convert_dtypes(dtype_backend="numpy_nullable")
         expected = pd.Series(range(2), dtype="Int32")
         tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "expected",
+        [
+            pd.Series(pd.to_datetime(["2020-01-01", None]).as_unit("s")),
+            pd.Series(
+                pd.to_datetime(["2020-01-01", None])
+                .as_unit("ms")
+                .tz_localize("US/Eastern")
+            ),
+            pd.Series(
+                pd.to_datetime(["2020-01-01", None]).tz_localize(
+                    datetime.timezone(datetime.timedelta(hours=1))
+                )
+            ),
+            pd.Series(pd.to_timedelta([1, None], unit="D").as_unit("us")),
+        ],
+    )
+    def test_convert_dtypes_pyarrow_datetimelike_to_np_nullable(self, expected):
+        # GH#57395 reverses the dtype_backend="pyarrow" conversion
+        pytest.importorskip("pyarrow")
+        ser = expected.convert_dtypes(dtype_backend="pyarrow")
+        assert isinstance(ser.dtype, pd.ArrowDtype)
+        result = ser.convert_dtypes(dtype_backend="numpy_nullable")
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "pa_type",
+        ["dictionary", "date32", "decimal128", "binary", "list", "struct", "null"],
+    )
+    def test_convert_dtypes_pyarrow_unmapped_to_np_nullable(self, pa_type):
+        # GH#57395 unmapped types are left unchanged
+        pa = pytest.importorskip("pyarrow")
+        values = {
+            "dictionary": pa.array(["a", None]).dictionary_encode(),
+            "date32": pa.array([datetime.date(2020, 1, 1), None]),
+            "decimal128": pa.array([decimal.Decimal("1.5"), None]),
+            "binary": pa.array([b"a", None]),
+            "list": pa.array([[1], None]),
+            "struct": pa.array([{"x": 1}, None]),
+            "null": pa.array([None, None]),
+        }[pa_type]
+        ser = pd.Series(pd.arrays.ArrowExtensionArray(values))
+        result = ser.convert_dtypes(dtype_backend="numpy_nullable")
+        tm.assert_series_equal(result, ser)
 
     def test_convert_dtypes_pyarrow_null(self):
         # GH#55346
