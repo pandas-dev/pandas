@@ -1973,6 +1973,41 @@ def test_ea_reduction_method_ddof(any_numeric_ea_and_arrow_dtype, op_name, ddof)
     assert pd.isna(getattr(arr, op_name)(skipna=False, ddof=ddof))
 
 
+@pytest.mark.parametrize("op_name", ["var", "std"])
+@pytest.mark.parametrize("dtype", ["Int64", "Float64", "boolean"])
+@pytest.mark.parametrize("data", [[1, 0], [1, None, 0]])
+def test_masked_var_std_nobs_le_ddof(
+    frame_or_series, op_name, dtype, data, skipna, using_nan_is_na
+):
+    # GH#72259 NA, not inf, when there are no more valid values than ddof
+    obj = frame_or_series(pd.array(data, dtype=dtype))
+    result = getattr(obj, op_name)(ddof=2, skipna=skipna)
+    if frame_or_series is pd.Series:
+        assert result is pd.NA
+    else:
+        tm.assert_series_equal(result, pd.Series([pd.NA], dtype="Float64"))
+
+
+@pytest.mark.parametrize("op_name", ["var", "std"])
+@pytest.mark.parametrize("dtype", ["Int64", "Float64", "boolean"])
+def test_masked_var_std_2d_nobs_le_ddof(op_name, dtype, skipna, using_nan_is_na):
+    # GH#72259
+    # [[1, 0],
+    #  [0, 1],
+    #  [1, NA]]
+    arr2d = pd.array([1, 0, 0, 1, 1, None], dtype=dtype).reshape(3, 2)
+
+    # only the first column has more than ddof valid values
+    result = getattr(arr2d, op_name)(axis=0, ddof=2, skipna=skipna)
+    expected = pd.array(
+        [getattr(np, op_name)([1, 0, 1], ddof=2), pd.NA], dtype="Float64"
+    )
+    tm.assert_extension_array_equal(result, expected)
+
+    result = getattr(arr2d, op_name)(axis=1, ddof=2, skipna=skipna)
+    tm.assert_extension_array_equal(result, pd.array([pd.NA] * 3, dtype="Float64"))
+
+
 @pytest.mark.parametrize("how", ["sum", "prod"])
 @pytest.mark.parametrize(
     "dtype",
