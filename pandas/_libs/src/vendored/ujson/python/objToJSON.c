@@ -65,6 +65,7 @@ int object_is_series_type(PyObject *obj);
 int object_is_index_type(PyObject *obj);
 int object_is_nat_type(PyObject *obj);
 int object_is_na_type(PyObject *obj);
+PyTypeObject *get_interval_type(PyObject *module);
 
 typedef struct __NpyArrContext {
   PyObject *array;
@@ -155,6 +156,7 @@ typedef struct __PyObjectEncoder {
   int originalOutputFormat;
 
   PyObject *defaultHandler;
+  PyTypeObject *intervalType;
 } PyObjectEncoder;
 
 #define GET_TC(__ptrtc) ((TypeContext *)((__ptrtc)->prv))
@@ -462,6 +464,17 @@ static const char *PyUnicodeToUTF8(JSOBJ _obj, JSONTypeContext *tc,
     enc->errorMsg = "Encoding failed.";
   }
   return encoded;
+}
+
+static const char *PyIntervalToUTF8(JSOBJ obj, JSONTypeContext *tc,
+                                    size_t *outLen) {
+  PyObject *str = PyObject_Str(obj);
+  if (str == NULL) {
+    ((JSONObjectEncoder *)tc->encoder)->errorMsg = "Encoding failed.";
+    return NULL;
+  }
+  GET_TC(tc)->newObj = str;
+  return PyUnicodeToUTF8(str, tc, outLen);
 }
 
 /* JSON callback. returns a char* and mutates the pointer to *len */
@@ -2245,6 +2258,12 @@ ISITERABLE:
     goto INVALID;
   }
 
+  if (PyObject_TypeCheck(obj, enc->intervalType)) {
+    pc->PyTypeToUTF8 = PyIntervalToUTF8;
+    tc->type = JT_UTF8;
+    return;
+  }
+
   tc->type = JT_OBJECT;
   pc->iterBegin = Dir_iterBegin;
   pc->iterEnd = Dir_iterEnd;
@@ -2343,8 +2362,7 @@ static const char *Object_iterGetName(JSOBJ obj, JSONTypeContext *tc,
   return GET_TC(tc)->iterGetName(obj, tc, outLen);
 }
 
-PyObject *objToJSON(PyObject *Py_UNUSED(self), PyObject *args,
-                    PyObject *kwargs) {
+PyObject *objToJSON(PyObject *self, PyObject *args, PyObject *kwargs) {
   PyDateTime_IMPORT;
   if (PyDateTimeAPI == NULL) {
     return NULL;
@@ -2410,6 +2428,7 @@ PyObject *objToJSON(PyObject *Py_UNUSED(self), PyObject *args,
       .valueUnit = NPY_FR_ns,
       .outputFormat = COLUMNS,
       .defaultHandler = NULL,
+      .intervalType = get_interval_type(self),
   };
   JSONObjectEncoder *encoder = (JSONObjectEncoder *)&pyEncoder;
 

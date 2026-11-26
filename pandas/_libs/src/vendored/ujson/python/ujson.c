@@ -75,9 +75,14 @@ typedef struct {
   PyObject *type_nat;
   PyObject *type_na;
   PyObject *type_dt64tz_dtype;
+  PyObject *type_interval;
 } modulestate;
 
 #define modulestate(o) ((modulestate *)PyModule_GetState(o))
+
+PyTypeObject *get_interval_type(PyObject *module) {
+  return (PyTypeObject *)modulestate(module)->type_interval;
+}
 
 static int module_traverse(PyObject *m, visitproc visit, void *arg);
 static int module_clear(PyObject *m);
@@ -399,6 +404,7 @@ static int module_traverse(PyObject *m, visitproc visit, void *arg) {
   Py_VISIT(modulestate(m)->type_nat);
   Py_VISIT(modulestate(m)->type_na);
   Py_VISIT(modulestate(m)->type_dt64tz_dtype);
+  Py_VISIT(modulestate(m)->type_interval);
   return 0;
 }
 
@@ -410,6 +416,7 @@ static int module_clear(PyObject *m) {
   Py_CLEAR(modulestate(m)->type_nat);
   Py_CLEAR(modulestate(m)->type_na);
   Py_CLEAR(modulestate(m)->type_dt64tz_dtype);
+  Py_CLEAR(modulestate(m)->type_interval);
   return 0;
 }
 
@@ -486,6 +493,19 @@ PyMODINIT_FUNC PyInit__ujson(void) {
     PyErr_Clear();
   }
 #endif
+
+  PyObject *mod_interval = PyImport_ImportModule("pandas._libs.interval");
+  if (mod_interval == NULL) {
+    Py_DECREF(module);
+    return NULL;
+  }
+  modulestate(module)->type_interval =
+      PyObject_GetAttrString(mod_interval, "Interval");
+  Py_DECREF(mod_interval);
+  if (modulestate(module)->type_interval == NULL) {
+    Py_DECREF(module);
+    return NULL;
+  }
 
   /* Not vendored for now
   JSONDecodeError = PyErr_NewException("ujson.JSONDecodeError",

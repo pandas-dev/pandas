@@ -1568,6 +1568,15 @@ class TestPandasContainer:
         sc = df["B"]
         assert s.to_json() == sc.to_json()
 
+    def test_to_json_interval_categories(self):
+        # GH#55544
+        bins = pd.cut(pd.Series([25.5, 35.5, 45.5]), [20.5, 30.5, 40.5])
+        df = pd.DataFrame({"bins": bins})
+
+        result = json.loads(df.to_json())
+        expected = {"bins": {"0": "(20.5, 30.5]", "1": "(30.5, 40.5]", "2": None}}
+        assert result == expected
+
     def test_datetime_tz(self, unit):
         # GH4377 df.to_json segfaults with non-ndarray blocks
         tz_range = pd.date_range("20130101", periods=3, tz="US/Eastern").as_unit(unit)
