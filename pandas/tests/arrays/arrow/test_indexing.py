@@ -637,7 +637,7 @@ def test_replace_lossy_float_raises(box):
         lambda ser: ser.mask([False, True, False], 1.5),
         lambda ser: ser.fillna(1.5),
         lambda ser: ser.clip(lower=1.5),
-        lambda ser: ser.update(pd.Series([1.5])),
+        lambda ser: ser.update(pd.Series([1.5]), inplace=True),
         lambda ser: ser.reindex([0, 1, 5], fill_value=1.5),
     ],
     ids=["where", "mask", "fillna", "clip", "update", "reindex"],
