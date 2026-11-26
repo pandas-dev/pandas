@@ -3380,6 +3380,16 @@ class TestLocBooleanMask:
         df.loc[np.array([False], dtype=np.bool_), ["a"]] = df["b"].copy()
         tm.assert_frame_equal(df, expected)
 
+    def test_loc_setitem_all_false_mask_with_new_column(self):
+        # GH#72353
+        df = pd.DataFrame({"A": [1, 2, 3]})
+        rhs = pd.DataFrame({"A": [0, 2, 3], "B": [4, 5, 6]})
+
+        df.loc[df["A"] == 0, ["A", "B"]] = rhs
+
+        expected = pd.DataFrame({"A": [1, 2, 3], "B": np.nan})
+        tm.assert_frame_equal(df, expected)
+
     def test_loc_indexer_length_one(self):
         # GH#51435
         df = pd.DataFrame({"a": ["x"], "b": ["y"]}, dtype=object)
