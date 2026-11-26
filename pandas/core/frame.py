@@ -9087,8 +9087,16 @@ class DataFrame(NDFrame, OpsMixin):
             return self._constructor_sliced(False, dtype=bool, index=self.index)
 
         def f(vals) -> tuple[np.ndarray, int]:
-            labels, shape = algorithms.factorize(vals, size_hint=len(self))
-            return labels.astype("i8"), len(shape)
+            uniques: np.ndarray | Index
+            if isinstance(vals, np.ndarray) and vals.dtype == object:
+                # factorize treats all nulls as equal; Series.duplicated
+                # distinguishes None/NaN/NA, see GH#21720
+                labels, uniques = algorithms.factorize_array(
+                    vals, use_na_sentinel=False, size_hint=len(self)
+                )
+            else:
+                labels, uniques = algorithms.factorize(vals, size_hint=len(self))
+            return labels.astype("i8"), len(uniques)
 
         if subset is None:
             subset = self.columns
