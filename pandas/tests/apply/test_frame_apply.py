@@ -1377,7 +1377,7 @@ def test_agg_multiple_mixed():
 
 
 def test_agg_list_udf_and_string_mixed_dtypes():
-    # GH 45800
+    # GH#45800
     df = pd.DataFrame(
         {
             "A": pd.Series([1000, 2000], dtype=int),
@@ -1386,20 +1386,25 @@ def test_agg_list_udf_and_string_mixed_dtypes():
         }
     )
 
-    def mean_or_na(s):
+    # The UDF from the issue: it catches Exception, not just TypeError. Before
+    # Series.agg stopped calling the UDF on each element first (GH#53325), the
+    # AttributeError from int.mean() was swallowed here, the elementwise attempt
+    # "succeeded" and agg raised "cannot combine transform and aggregation
+    # operations".
+    def mean2(s):
         try:
             return s.mean()
-        except TypeError:
+        except Exception:
             return pd.NA
 
-    result = df.agg([mean_or_na, "sum"])
+    result = df.agg([mean2, "sum"])
 
     expected = pd.DataFrame(
         {"A": [1500.0, 3000.0], "B": [1500.0, 3000.0]},
-        index=["mean_or_na", "sum"],
+        index=["mean2", "sum"],
     )
     tm.assert_frame_equal(result[["A", "B"]], expected)
-    assert pd.isna(result.loc["mean_or_na", "C"])
+    assert pd.isna(result.loc["mean2", "C"])
     assert result.loc["sum", "C"] == "ab"
 
 
