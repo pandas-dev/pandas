@@ -90,3 +90,4 @@ Guides
     gotchas
     migration
     cookbook
+    glossary
