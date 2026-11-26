@@ -559,3 +559,51 @@ def test_where_mask_masked_other_same_dtype(method, dtype):
     else:
         expected = make([None, None, 3, None])
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("inplace", [True, False])
+@pytest.mark.parametrize("method", ["where", "mask"])
+def test_where_mask_other_missing_unused_labels(method, inplace):
+    # GH#18409 other lacking labels that are not used must not be upcast
+    big = 2**62 + 1
+    ser = pd.Series([0, 1, 2], index=["a", "b", "c"])
+    other = pd.Series([big, big + 2], index=["c", "a"])
+    cond = np.array([False, True, False])
+    if method == "mask":
+        cond = ~cond
+    expected = pd.Series([big + 2, 1, big], index=["a", "b", "c"])
+
+    result = getattr(ser, method)(cond, other, inplace=inplace)
+    if inplace:
+        result = ser
+    tm.assert_series_equal(result, expected)
+
+
+def test_where_other_missing_unused_labels_bool():
+    # GH#18409 missing unused labels do not cast a bool other to object
+    ser = pd.Series([True, True, True])
+    result = ser.where([True, False, True], pd.Series([False], index=[1]))
+    expected = pd.Series([True, False, True])
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("inplace", [True, False])
+def test_where_other_extra_label_first_not_validated(inplace):
+    # GH#18409 a value of other at a label not in self is never used, so it
+    #  must not be validated against self's dtype
+    ser = pd.Series(pd.Categorical(["a", "b", "c"]))
+    other = pd.Series(["zzz", "b"], index=[99, 1])
+    expected = ser.copy()
+
+    result = ser.where([True, False, True], other, inplace=inplace)
+    if inplace:
+        result = ser
+    tm.assert_series_equal(result, expected)
+
+
+def test_where_other_missing_used_label():
+    # GH#18409 a used label missing from other still gives NaN
+    ser = pd.Series([0, 1])
+    result = ser.where([False, False], pd.Series([5], index=[1]))
+    expected = pd.Series([np.nan, 5.0])
+    tm.assert_series_equal(result, expected)

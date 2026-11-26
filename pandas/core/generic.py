@@ -93,6 +93,7 @@ from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype,
     ExtensionDtype,
     PeriodDtype,
+    SparseDtype,
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -229,6 +230,86 @@ if TYPE_CHECKING:
     from pandas.core.resample import Resampler
 
     _StylerKwargs: TypeAlias = dict[str, Any] | list[dict[str, Any]]
+
+
+def _take_rows_for_where(
+    obj: NDFrame, other: NDFrame, cond: NDFrame, inplace: bool
+) -> NDFrame:
+    """
+    Align ``other``'s rows to ``obj`` for ``where``, without introducing NaNs
+    at rows where ``other`` is not used.
+
+    Reindexing would NaN-fill those rows and upcast e.g. int64 to float64, losing
+    precision in the values that are used (GH#18409).
+    """
+    if other.index.equals(obj.index) or not len(other):
+        return other
+    # the same join align uses, so labels match exactly as they would there
+    join_index, _, indexer = obj.index.join(
+        other.index, how="left", return_indexers=True
+    )
+    if indexer is None or not join_index.equals(obj.index):
+        return other
+    missing = indexer == -1
+    if missing.all():
+        return other
+    # _where inverts cond for inplace, so there it marks where other is used
+    used = cond.to_numpy(dtype=bool)
+    if not inplace:
+        used = ~used
+    if used.ndim == 2:
+        used = used.any(axis=1)
+    if len(used) != len(obj) or used[missing].any():
+        # e.g. cond aligned against duplicate labels
+        return other
+    if inplace and _has_unsafe_int_cast(obj, other):
+        # setting an int array into an int dtype checks only the itemsize,
+        #  whereas the float64 a reindex gives is checked by value
+        return other
+    # these rows are never used; fill them from a matched row, since setting
+    #  validates every value of other and the reindex path validates matched rows too
+    indexer = indexer.copy()
+    indexer[missing] = indexer[~missing][0]
+    return other.take(indexer).set_axis(obj.index, axis=0)
+
+
+def _has_unsafe_int_cast(obj: NDFrame, other: NDFrame) -> bool:
+    """
+    Does a numpy integer column of ``obj`` pair with an integer column of
+    ``other`` that cannot be safely cast to it?
+    """
+    if obj.ndim == 1:
+        pairs = [(obj.dtypes, other.dtypes)]
+    elif obj.columns.is_unique and other.columns.is_unique:
+        common = obj.columns.intersection(other.columns)
+        pairs = list(zip(obj.dtypes[common], other.dtypes[common], strict=True))
+    else:
+        return True
+
+    def as_numpy_int(dtype: DtypeObj) -> np.dtype | None:
+        if isinstance(dtype, SparseDtype):
+            dtype = dtype.subtype
+        # nullable and pyarrow integer dtypes
+        dtype = getattr(dtype, "numpy_dtype", dtype)
+        return dtype if isinstance(dtype, np.dtype) and dtype.kind in "iu" else None
+
+    for own_dtype, other_dtype in pairs:
+        if not (isinstance(own_dtype, np.dtype) and own_dtype.kind in "iu"):
+            continue
+        if obj.ndim == 2 and isinstance(other_dtype, SparseDtype):
+            # a 2D put densifies a Sparse int column to int64
+            return True
+        other_np = as_numpy_int(other_dtype)
+        if (
+            own_dtype.kind == "u"
+            and isinstance(other_dtype, np.dtype)
+            and other_dtype.kind == "i"
+        ):
+            # np_can_hold_element checks these by value
+            continue
+        if other_np is not None and not np.can_cast(other_np, own_dtype):
+            return True
+    return False
 
 
 def _is_np_bool_backed(obj: NDFrame) -> bool:
@@ -10518,6 +10599,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         if isinstance(other, NDFrame):
             # align with me
             if other.ndim <= self.ndim:
+                if other.ndim == self.ndim and level is None and axis in (None, 0):
+                    other = _take_rows_for_where(self, other, cond, inplace)
                 # CoW: Make sure reference is not kept alive
                 other = self.align(
                     other,

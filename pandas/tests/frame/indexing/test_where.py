@@ -3,6 +3,7 @@ from datetime import datetime
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.common import is_scalar
@@ -1488,3 +1489,61 @@ def test_where_object_cond_with_na_independent_of_inplace(inplace):
     if inplace:
         result = df
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("inplace", [True, False])
+def test_where_other_missing_unused_rows(inplace):
+    # GH#18409 other lacking rows that are not used must not be upcast
+    big = 2**62 + 1
+    df = pd.DataFrame({"a": [0, 1, 2], "b": [3, 4, 5]})
+    other = pd.DataFrame({"a": [big], "b": [big + 1]}, index=[1])
+    cond = df != 1
+
+    result = df.where(cond, other, inplace=inplace)
+    if inplace:
+        result = df
+    expected = pd.DataFrame({"a": [0, big, 2], "b": [3, 4, 5]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_setitem_frame_mask_duplicate_index_reordered_partial_other():
+    # GH#18409 a reordered mask on a duplicate index aligns to more rows than self
+    dti = pd.date_range("2000", periods=4)
+    df = pd.DataFrame({"a": dti, "b": dti}, index=[0, 0, 1, 2])
+    expected = df.copy()
+    mask = pd.DataFrame(False, index=df.index, columns=df.columns).iloc[::-1, ::-1]
+    msg = "reindexing with a fill_value that cannot be held"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        df[mask] = pd.DataFrame({"b": dti[:1]}, index=[1])
+    tm.assert_frame_equal(df, expected)
+
+
+@pytest.mark.parametrize(
+    "other_dtype",
+    [
+        "int64",
+        "Int64",
+        "Sparse[int64]",
+        "Sparse[int8]",
+        pytest.param("int64[pyarrow]", marks=td.skip_if_no("pyarrow")),
+    ],
+)
+def test_setitem_frame_mask_partial_wider_int_other(other_dtype):
+    # GH#18409 an int value that fits is still accepted
+    df = pd.DataFrame({"a": np.array([0, 1, 2], dtype="int8")})
+    mask = np.array([False, True, True])
+    # 0 is the Sparse fill value, which widens a Sparse column to int64 in a 2D put
+    other = pd.DataFrame({"a": pd.array([0, 30], dtype=other_dtype)}, index=[1, 2])
+    df[pd.DataFrame({"a": mask})] = other
+    expected = pd.DataFrame({"a": np.array([0, 0, 30], dtype="int8")})
+    tm.assert_frame_equal(df, expected)
+
+
+def test_setitem_frame_mask_partial_other_mixed_int_widths():
+    # GH#18409 an int8 column does not stop an int64 column being set exactly
+    big = 2**62 + 1
+    df = pd.DataFrame({"a": np.array([0, 1, 2], dtype="int8"), "b": [0, 1, 2]})
+    other = pd.DataFrame({"a": np.array([5], dtype="int8"), "b": [big]}, index=[1])
+    df[pd.DataFrame({"a": [False] * 3, "b": [False, True, False]})] = other
+    expected = pd.DataFrame({"a": np.array([0, 1, 2], dtype="int8"), "b": [0, big, 2]})
+    tm.assert_frame_equal(df, expected)
