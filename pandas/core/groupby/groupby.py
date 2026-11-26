@@ -4537,11 +4537,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         b    3.0
         """
         mgr = self._get_data_to_aggregate(numeric_only=numeric_only, name="quantile")
-        obj = self._wrap_agged_manager(mgr)
-        splitter = self._grouper._get_splitter(obj)
-        sdata = splitter._sorted_data
-
-        starts, ends = lib.generate_slices(splitter._slabels, splitter.ngroups)
 
         if is_scalar(q):
             qs = np.array([q], dtype=np.float64)
@@ -4550,16 +4545,25 @@ class GroupBy(BaseGroupBy[NDFrameT]):
             qs = np.asarray(q, dtype=np.float64)
             pass_qs = qs
 
-        ids = self._grouper.ids
-        ngroups = self._grouper.ngroups
-        if self.dropna:
-            # splitter drops NA groups, we need to do the same
-            ids = ids[ids >= 0]
+        # Rather than sorting the data by group, the kernel reads each group's
+        # values through sort_idx; group i is sort_idx[starts[i]:ends[i]].
+        grouper = self._grouper
+        ids = grouper.ids
+        ngroups = grouper.ngroups
+        if grouper.has_dropped_na:
+            counts = np.bincount(ids + 1, minlength=ngroups + 1)[1:]
+        else:
+            counts = np.bincount(ids, minlength=ngroups)
+        ends = np.cumsum(counts, dtype=np.int64)
+        starts = ends - counts
+        sort_idx: npt.NDArray[np.intp] | None = grouper.result_ilocs
+        if lib.is_range_indexer(sort_idx, len(ids)):
+            sort_idx = None
         nqs = len(qs)
 
         func = partial(
             libgroupby.group_quantile,
-            labels=ids,
+            sort_idx=sort_idx,
             qs=qs,
             interpolation=interpolation,
             starts=starts,
@@ -4571,7 +4575,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 return values._groupby_quantile(
                     qs=qs,
                     interpolation=interpolation,
-                    ids=ids,
+                    sort_idx=sort_idx,
                     ngroups=ngroups,
                     starts=starts,
                     ends=ends,
@@ -4587,7 +4591,6 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 # GH#51424 remove to match Series/DataFrame behavior
                 raise TypeError("Cannot use quantile with bool dtype")
 
-            mask = isna(values)
             inference: np.dtype | None = (
                 np.dtype(np.int64) if is_integer_dtype(values.dtype) else None
             )
@@ -4603,7 +4606,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 func(
                     out[0],
                     values=vals,
-                    mask=mask,  # type: ignore[arg-type]
+                    # The kernel treats float NaN as NA; other numpy dtypes
+                    #  that reach here cannot hold NA.
+                    mask=None,
                     result_mask=None,
                     is_datetimelike=False,
                 )
@@ -4612,7 +4617,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                     func(
                         out[i],
                         values=vals[i],
-                        mask=mask[i],
+                        mask=None,
                         result_mask=None,
                         is_datetimelike=False,
                     )
@@ -4630,7 +4635,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
 
             return out
 
-        res_mgr = sdata._mgr.grouped_reduce(blk_func)
+        res_mgr = mgr.grouped_reduce(blk_func)
 
         res = self._wrap_agged_manager(res_mgr)
         return self._wrap_aggregated_output(res, qs=pass_qs)

@@ -1425,7 +1425,7 @@ def group_ohlc(
 def group_quantile(
     float64_t[:, ::1] out,
     ndarray[numeric_t, ndim=1] values,
-    const intp_t[::1] labels,
+    const intp_t[::1] sort_idx,
     const uint8_t[:] mask,
     const float64_t[:] qs,
     const int64_t[::1] starts,
@@ -1443,14 +1443,20 @@ def group_quantile(
         Array of aggregated values that will be written to.
     values : np.ndarray
         Array containing the values to apply the function against.
-    labels : ndarray[np.intp]
-        Array containing the unique group labels.
+    sort_idx : ndarray[np.intp] or None
+        Positions in ``values`` ordered by group, so that group ``i`` is
+        ``values[sort_idx[starts[i]:ends[i]]]``. None if ``values`` is already
+        ordered by group, so that group ``i`` is ``values[starts[i]:ends[i]]``.
+    mask : ndarray[bool] or None
+        True where ``values`` is NA. None if the only NA values are float NaN.
     qs : ndarray[float64_t]
         The quantile values to search for.
     starts : ndarray[int64]
-        Positions at which each group begins.
+        Position in ``sort_idx`` (or ``values`` if ``sort_idx`` is None) at
+        which each group begins.
     ends : ndarray[int64]
-        Positions at which each group ends.
+        Position in ``sort_idx`` (or ``values`` if ``sort_idx`` is None) at
+        which each group ends.
     interpolation : {'linear', 'lower', 'highest', 'nearest', 'midpoint'}
     result_mask : ndarray[bool, ndim=2] or None
     is_datetimelike : bool
@@ -1466,20 +1472,29 @@ def group_quantile(
     NaT-ordering and float NaN comparisons are never an issue.
     """
     cdef:
-        Py_ssize_t i, N = len(labels), ngroups, non_na_sz, k, nqs
+        Py_ssize_t i, ngroups, non_na_sz, k, nqs, pos
         Py_ssize_t idx = 0
-        Py_ssize_t grp_size
+        Py_ssize_t max_grp_size = 0
         InterpolationEnumType interp
         float64_t q_val, q_idx, frac, val, next_val
         bint uses_result_mask = result_mask is not None
+        bint uses_mask = mask is not None
+        bint uses_sort_idx = sort_idx is not None
         Py_ssize_t start, end
         numeric_t* tmp
-        Py_ssize_t j
+        numeric_t v
 
-    assert values.shape[0] == N
+    ngroups = len(out)
     assert starts is not None
     assert ends is not None
-    assert len(starts) == len(ends)
+    assert len(starts) == len(ends) == ngroups
+    if uses_mask:
+        assert len(mask) == len(values)
+    if ngroups > 0:
+        # starts/ends are non-decreasing, so ends[ngroups - 1] is the largest
+        assert ends[ngroups - 1] <= (
+            len(sort_idx) if uses_sort_idx else len(values)
+        )
 
     if any(not (0 <= q <= 1) for q in qs):
         wrong = [x for x in qs if not (0 <= x <= 1)][0]
@@ -1497,95 +1512,92 @@ def group_quantile(
     interp = inter_methods[interpolation]
 
     nqs = len(qs)
-    ngroups = len(out)
 
-    with nogil:
-        for i in range(ngroups):
-            start = starts[i]
-            end = ends[i]
+    for i in range(ngroups):
+        max_grp_size = max(max_grp_size, ends[i] - starts[i])
+    # One buffer reused for every group; at least one element so that malloc
+    # does not return NULL when every group is empty.
+    tmp = <numeric_t*>malloc(max(max_grp_size, 1) * sizeof(numeric_t))
+    if tmp is NULL:
+        raise MemoryError()
 
-            # Count non-NA elements in this group using direct indexing
-            # (avoids memoryview slicing, which is not nogil-safe). A float
-            # NaN that is not flagged by ``mask`` (e.g. a non-null NaN in a
-            # pyarrow/masked float array, GH#64330) must be treated as NA too:
-            # it would corrupt kth_smallest_c's ordering comparisons below.
-            grp_size = end - start
-            non_na_sz = 0
-            for j in range(grp_size):
-                if mask[start + j] == 0:
+    try:
+        with nogil:
+            for i in range(ngroups):
+                start = starts[i]
+                end = ends[i]
+
+                # Copy the group's non-NA values into tmp, so that
+                # kth_smallest_c's comparisons are always valid (no NaN/NaT
+                # values), meaning is_datetimelike needs no special handling.
+                # A float NaN that is not flagged by ``mask`` (e.g. a non-null
+                # NaN in a pyarrow/masked float array, GH#64330) is NA too.
+                non_na_sz = 0
+                for k in range(start, end):
+                    if uses_sort_idx:
+                        pos = sort_idx[k]
+                    else:
+                        pos = k
+                    if uses_mask and mask[pos]:
+                        continue
+                    v = values[pos]
                     if numeric_t is float32_t or numeric_t is float64_t:
-                        if values[start + j] != values[start + j]:
+                        if v != v:
                             continue
+                    tmp[non_na_sz] = v
                     non_na_sz += 1
 
-            if non_na_sz == 0:
-                for k in range(nqs):
-                    if uses_result_mask:
-                        result_mask[i, k] = 1
-                    else:
-                        out[i, k] = NaN
-            else:
-                # Copy non-NA values into a temporary mutable buffer. NAs are
-                # pre-filtered (using the same condition as the count above) so
-                # that kth_smallest_c's comparisons are always valid (no NaN/NaT
-                # values), meaning is_datetimelike needs no special handling.
-                tmp = <numeric_t*>malloc(non_na_sz * sizeof(numeric_t))
-                if tmp is NULL:
-                    raise MemoryError()
+                if non_na_sz == 0:
+                    for k in range(nqs):
+                        if uses_result_mask:
+                            result_mask[i, k] = 1
+                        else:
+                            out[i, k] = NaN
+                else:
+                    for k in range(nqs):
+                        q_val = qs[k]
 
-                j = 0
-                for k in range(grp_size):
-                    if mask[start + k] == 0:
-                        if numeric_t is float32_t or numeric_t is float64_t:
-                            if values[start + k] != values[start + k]:
-                                continue
-                        tmp[j] = values[start + k]
-                        j += 1
+                        # Calculate where to retrieve the desired value.
+                        # Casting to int will intentionally truncate result.
+                        idx = <int64_t>(q_val * <float64_t>(non_na_sz - 1))
 
-                for k in range(nqs):
-                    q_val = qs[k]
+                        # kth_smallest_c is an in-place O(n) quickselect: it
+                        # rearranges tmp so that tmp[idx] holds the idx-th
+                        # smallest element. Calling it again for a different
+                        # index on the same (now partially-sorted) buffer is
+                        # always correct because quickselect is correct on any
+                        # permutation of the values.
+                        val = kth_smallest_c(tmp, idx, non_na_sz)
 
-                    # Calculate where to retrieve the desired value.
-                    # Casting to int will intentionally truncate result.
-                    idx = <int64_t>(q_val * <float64_t>(non_na_sz - 1))
+                        # If requested quantile falls evenly on a particular
+                        # index then write that index's value out. Otherwise
+                        # interpolate.
+                        q_idx = q_val * (non_na_sz - 1)
+                        frac = q_idx % 1
 
-                    # kth_smallest_c is an in-place O(n) quickselect: it
-                    # rearranges tmp so that tmp[idx] holds the idx-th
-                    # smallest element. Calling it again for a different
-                    # index on the same (now partially-sorted) buffer is
-                    # always correct because quickselect is correct on any
-                    # permutation of the values.
-                    val = kth_smallest_c(tmp, idx, non_na_sz)
-
-                    # If requested quantile falls evenly on a particular
-                    # index then write that index's value out. Otherwise
-                    # interpolate.
-                    q_idx = q_val * (non_na_sz - 1)
-                    frac = q_idx % 1
-
-                    if frac == 0.0 or interp == INTERPOLATION_LOWER:
-                        out[i, k] = val
-                    else:
-                        # After the previous partition,
-                        # tmp[idx+1..non_na_sz-1] are all >= tmp[idx], so
-                        # kth_smallest_c correctly finds their minimum (the
-                        # (idx+1)-th order statistic).
-                        next_val = kth_smallest_c(tmp, idx + 1, non_na_sz)
-                        if interp == INTERPOLATION_LINEAR:
-                            out[i, k] = val + (next_val - val) * frac
-                        elif interp == INTERPOLATION_HIGHER:
-                            out[i, k] = next_val
-                        elif interp == INTERPOLATION_MIDPOINT:
-                            out[i, k] = (val + next_val) / 2.0
-                        elif interp == INTERPOLATION_NEAREST:
-                            if frac > .5 or (frac == .5 and idx % 2 == 1):
-                                # If quantile lies in the middle of two
-                                # indexes, take the even index, as np.quantile
+                        if frac == 0.0 or interp == INTERPOLATION_LOWER:
+                            out[i, k] = val
+                        else:
+                            # After the previous partition,
+                            # tmp[idx+1..non_na_sz-1] are all >= tmp[idx], so
+                            # kth_smallest_c correctly finds their minimum (the
+                            # (idx+1)-th order statistic).
+                            next_val = kth_smallest_c(tmp, idx + 1, non_na_sz)
+                            if interp == INTERPOLATION_LINEAR:
+                                out[i, k] = val + (next_val - val) * frac
+                            elif interp == INTERPOLATION_HIGHER:
                                 out[i, k] = next_val
-                            else:
-                                out[i, k] = val
-
-                free(tmp)
+                            elif interp == INTERPOLATION_MIDPOINT:
+                                out[i, k] = (val + next_val) / 2.0
+                            elif interp == INTERPOLATION_NEAREST:
+                                if frac > .5 or (frac == .5 and idx % 2 == 1):
+                                    # If quantile lies in the middle of two
+                                    # indexes, take the even index, as np.quantile
+                                    out[i, k] = next_val
+                                else:
+                                    out[i, k] = val
+    finally:
+        free(tmp)
 
 
 # ----------------------------------------------------------------------

@@ -283,6 +283,25 @@ class SortHighCardinality:
         self.df.groupby("key", sort=sort)["value"].sum()
 
 
+class Quantile:
+    param_names = ["ngroups", "sorted_keys"]
+    params = [[20, 1_000, 100_000], [True, False]]
+
+    def setup(self, ngroups, sorted_keys):
+        N = 10**6
+        key = np.random.randint(0, ngroups, size=N)
+        if sorted_keys:
+            key = np.sort(key)
+        self.df = DataFrame(np.random.randn(N, 4), columns=list("abcd"))
+        self.df["key"] = key
+
+    def time_quantile(self, ngroups, sorted_keys):
+        self.df.groupby("key").quantile(0.5)
+
+    def peakmem_quantile(self, ngroups, sorted_keys):
+        self.df.groupby("key").quantile(0.5)
+
+
 class CountMultiDtype:
     def setup_cache(self):
         n = 10000

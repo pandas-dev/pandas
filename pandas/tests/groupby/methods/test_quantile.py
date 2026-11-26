@@ -519,3 +519,49 @@ def test_groupby_quantile_all_nat_group():
         name="val",
     )
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("keys", ["sorted", "unsorted", "unsorted_with_na"])
+@pytest.mark.parametrize("order", ["C", "F"])
+@pytest.mark.parametrize("dropna", [True, False])
+def test_groupby_quantile_matches_per_group(keys, order, dropna):
+    # Values are read in their original row order through the grouper's sort
+    #  indexer; with dropna=True, rows with NA keys are skipped.
+    rng = np.random.default_rng(2)
+    n = 100
+    key = rng.integers(0, 5, n).astype(float)
+    if keys == "sorted":
+        key = np.sort(key)
+    elif keys == "unsorted_with_na":
+        key[rng.random(n) < 0.2] = np.nan
+    arr = np.asarray(rng.standard_normal((n, 3)), order=order)
+    arr[rng.random((n, 3)) < 0.2] = np.nan
+    df = pd.DataFrame(arr, columns=["a", "b", "c"])
+    df["key"] = key
+    gb = df.groupby("key", dropna=dropna)
+
+    result = gb.quantile([0.25, 0.5])
+    expected = pd.concat(
+        {name: group[["a", "b", "c"]].quantile([0.25, 0.5]) for name, group in gb},
+        names=["key", None],
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_quantile_unobserved_categories():
+    df = pd.DataFrame(
+        {
+            "key": pd.Categorical(["b", "a", "b", "a"], categories=["a", "b", "c"]),
+            "x": [1.0, 2.0, 3.0, 4.0],
+            "y": pd.array([1, None, 3, 4], dtype="Int64"),
+        }
+    )
+    result = df.groupby("key", observed=False).quantile(0.5)
+    expected = pd.DataFrame(
+        {
+            "x": [3.0, 2.0, np.nan],
+            "y": pd.array([4.0, 2.0, None], dtype="Float64"),
+        },
+        index=pd.CategoricalIndex(["a", "b", "c"], name="key"),
+    )
+    tm.assert_frame_equal(result, expected)

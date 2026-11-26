@@ -4268,7 +4268,7 @@ class ArrowExtensionArray(
         *,
         qs: npt.NDArray[np.float64],
         interpolation: Literal["linear", "lower", "higher", "nearest", "midpoint"],
-        ids: npt.NDArray[np.intp],
+        sort_idx: npt.NDArray[np.intp] | None,
         ngroups: int,
         starts: npt.NDArray[np.int64],
         ends: npt.NDArray[np.int64],
@@ -4292,7 +4292,7 @@ class ArrowExtensionArray(
         result = values._groupby_quantile(
             qs=qs,
             interpolation=interpolation,
-            ids=ids,
+            sort_idx=sort_idx,
             ngroups=ngroups,
             starts=starts,
             ends=ends,

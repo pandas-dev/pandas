@@ -2287,7 +2287,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         *,
         qs: npt.NDArray[np.float64],
         interpolation: Literal["linear", "lower", "higher", "nearest", "midpoint"],
-        ids: npt.NDArray[np.intp],
+        sort_idx: npt.NDArray[np.intp] | None,
         ngroups: int,
         starts: npt.NDArray[np.int64],
         ends: npt.NDArray[np.int64],
@@ -2303,7 +2303,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             out,
             values=vals,
             mask=mask,  # type: ignore[arg-type]
-            labels=ids,
+            sort_idx=sort_idx,
             qs=qs,
             interpolation=interpolation,
             starts=starts,

@@ -3316,7 +3316,7 @@ class ExtensionArray:
         *,
         qs: npt.NDArray[np.float64],
         interpolation: Literal["linear", "lower", "higher", "nearest", "midpoint"],
-        ids: npt.NDArray[np.intp],
+        sort_idx: npt.NDArray[np.intp] | None,
         ngroups: int,
         starts: npt.NDArray[np.int64],
         ends: npt.NDArray[np.int64],
@@ -3329,11 +3329,17 @@ class ExtensionArray:
         qs : np.ndarray[float64]
             Quantile(s) to compute.
         interpolation : {'linear', 'lower', 'higher', 'nearest', 'midpoint'}
-        ids : np.ndarray[np.intp]
-            Group labels.
+        sort_idx : np.ndarray[np.intp] or None
+            Positions of ``self`` ordered by group, so that group ``i`` is
+            ``self[sort_idx[starts[i]:ends[i]]]``. None if ``self`` is already
+            ordered by group.
         ngroups : int
         starts : np.ndarray[int64]
+            Position in ``sort_idx`` (or ``self`` if ``sort_idx`` is None) at
+            which each group begins.
         ends : np.ndarray[int64]
+            Position in ``sort_idx`` (or ``self`` if ``sort_idx`` is None) at
+            which each group ends.
 
         Returns
         -------
@@ -3365,7 +3371,7 @@ class ExtensionArray:
             out,
             values=vals,
             mask=mask,  # type: ignore[arg-type]
-            labels=ids,
+            sort_idx=sort_idx,
             qs=qs,
             interpolation=interpolation,
             starts=starts,
