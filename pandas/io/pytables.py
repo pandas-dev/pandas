@@ -198,6 +198,10 @@ def _ensure_term(where, scope_level: int):
         ]
     elif maybe_expression(where):
         where = Term(where, scope_level=level)
+    elif isinstance(where, (np.ndarray, Index, Series)) and not len(where):
+        # an empty array of coordinates selects no rows; it is not the absence
+        # of a where, which would select (or, for remove, delete) every row
+        return np.array([], dtype=np.int64)
     return where if where is None or len(where) else None
 
 
@@ -5638,6 +5642,10 @@ class AppendableTable(Table):
     def delete(
         self, where=None, start: int | None = None, stop: int | None = None
     ) -> int | None:
+        if isinstance(where, (np.ndarray, Index, Series)) and not len(where):
+            # an empty array of coordinates selects no rows
+            return 0
+
         # delete all rows (and return the nrows)
         if where is None or not len(where):
             if start is None and stop is None:
@@ -5660,8 +5668,10 @@ class AppendableTable(Table):
         selection = Selection(self, where, start=start, stop=stop)
         values = selection.select_coords()
 
-        # delete the rows in reverse order
-        sorted_series = Series(values, copy=False).sort_values(ignore_index=True)
+        # delete the rows in reverse order. Sort (and drop repeats of) the
+        # coordinates positionally: the groups below are found through the
+        # labels of this Series, which must therefore be 0..n-1 in order.
+        sorted_series = Series(np.unique(np.asarray(values)))
         ln = len(sorted_series)
 
         if ln:
@@ -6661,14 +6671,24 @@ class Selection:
             # see if we have a passed coordinate like
             inferred = lib.infer_dtype(where, skipna=False)
             if inferred in ("integer", "boolean"):
-                where = np.asarray(where)
+                where = np.array(where)
                 # start/stop are None on the read_coordinates paths, which is how
                 #  an out-of-range coordinate used to reach PyTables unchecked
                 start, stop = _resolve_row_window(
                     self.start, self.stop, self.table.nrows
                 )
                 if where.dtype == np.bool_:
-                    self.coordinates = np.arange(start, stop)[where]
+                    if len(where) == self.table.nrows:
+                        coords = np.flatnonzero(where)
+                        self.coordinates = coords[(coords >= start) & (coords < stop)]
+                    elif len(where) == (stop - start):
+                        self.coordinates = np.arange(start, stop)[where]
+                    else:
+                        raise ValueError(
+                            f"Boolean mask length ({len(where)}) does not match "
+                            f"table row count ({self.table.nrows}) or window length "
+                            f"({stop - start})"
+                        )
                 elif issubclass(where.dtype.type, np.integer):
                     invalid = where[(where < start) | (where >= stop)]
                     if len(invalid):
