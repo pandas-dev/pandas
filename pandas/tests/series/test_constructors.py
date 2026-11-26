@@ -2338,6 +2338,25 @@ def test_constructor_from_series_with_incompatible_dtype_raises():
         pd.Series(ser, dtype=int)
 
 
+@pytest.mark.parametrize("box", [pd.Series, pd.Index])
+@pytest.mark.parametrize("dtype", ["M8[s]", "m8[ns]"])
+def test_constructor_datetimelike_ndarray_int64(box, dtype):
+    # GH#55140 same result as from a DatetimeArray/TimedeltaArray
+    ints = np.array([np.iinfo(np.int64).min, 0, 86400], dtype=np.int64)
+    arr = ints.view(dtype)
+
+    result = box(arr, dtype="int64")
+    tm.assert_equal(result, box(ints))
+    tm.assert_equal(result, box(pd.array(arr), dtype="int64"))
+
+
+def test_constructor_datetimelike_ndarray_int64_unsupported_unit():
+    # GH#55140 the DatetimeArray result is in seconds, not the raw day counts
+    arr = np.array([1, 2], dtype="M8[D]")
+    with pytest.raises(TypeError, match="is not supported"):
+        pd.Series(arr, dtype="int64")
+
+
 @pytest.mark.parametrize("ncols", [1, 2])
 @pytest.mark.parametrize("index", [None, [0, 1, 2], [0, 1]])
 def test_constructor_from_dataframe_raises(ncols, index):
