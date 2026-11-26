@@ -8,7 +8,10 @@ import re
 import numpy as np
 import pytest
 
-from pandas.errors import IndexingError
+from pandas.errors import (
+    IndexingError,
+    Pandas4Warning,
+)
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -2558,7 +2561,9 @@ class TestILocSetItem2DDatetimelikeBlock:
         df = pd.DataFrame(arr.copy().view("M8[s]"), columns=list("abc"))
 
         value = np.array([[100, 101, 102]])
-        df.iloc[1] = value.astype("i8").view("M8[s]")
+        msg = "Setting a 2-D value into a single row is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            df.iloc[1] = value.astype("i8").view("M8[s]")
 
         arr[1] = value
         tm.assert_frame_equal(df, pd.DataFrame(arr.view("M8[s]"), columns=list("abc")))
