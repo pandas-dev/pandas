@@ -1436,3 +1436,44 @@ def test_string_to_time_parsing_cast_meridiem(dtype):
         result = pd.Series(["3:25:00 PM"], dtype=dtype)
         expected = pd.Series(["15:25:00"], dtype=dtype)
         tm.assert_series_equal(result, expected)
+
+
+def _dictionary_series(values, value_type):
+    arr = pa.array(values, type=value_type).dictionary_encode()
+    return pd.Series(arr, dtype=ArrowDtype(arr.type))
+
+
+@pytest.mark.parametrize("prop", ["year", "month", "day", "hour"])
+def test_dt_accessor_dictionary_encoded_timestamp(prop):
+    # GH#69462 - .dt should work on dictionary-encoded timestamps and give the
+    # same values as the plain (decoded) Arrow timestamp dtype
+    values = [
+        datetime(2020, 1, 1, 5),
+        datetime(2021, 6, 2, 7),
+        None,
+        datetime(2020, 1, 1, 5),
+    ]
+    ser = _dictionary_series(values, pa.timestamp("us"))
+    result = getattr(ser.dt, prop)
+    plain = pd.Series(values, dtype=ArrowDtype(pa.timestamp("us")))
+    expected = getattr(plain.dt, prop)
+    tm.assert_series_equal(result, expected)
+
+
+def test_dt_accessor_dictionary_encoded_duration():
+    # GH#69462 - same for dictionary-encoded durations
+    values = [timedelta(days=1), timedelta(hours=5), None, timedelta(days=1)]
+    ser = _dictionary_series(values, pa.duration("us"))
+    result = ser.dt.total_seconds()
+    plain = pd.Series(values, dtype=ArrowDtype(pa.duration("us")))
+    expected = plain.dt.total_seconds()
+    tm.assert_series_equal(result, expected)
+
+
+def test_dt_accessor_dictionary_non_datetime_values_raises():
+    # GH#69462 - a dictionary of non-datetime values should still be rejected
+    ser = pd.Series(
+        ["a", "b", "a"], dtype=ArrowDtype(pa.dictionary(pa.int32(), pa.string()))
+    )
+    with pytest.raises(AttributeError, match="Can only use .dt accessor"):
+        ser.dt
