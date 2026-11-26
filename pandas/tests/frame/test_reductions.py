@@ -867,6 +867,57 @@ class TestDataFrameAnalytics:
         expected = pd.Series(expected, dtype="float64")
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize("subtype", ["int64", "float64"])
+    @pytest.mark.parametrize("fill_value", [0, np.nan])
+    @pytest.mark.parametrize("min_count", [0, 1, 2, 3])
+    def test_axis_1_sum_sparse_does_not_densify(
+        self, subtype, fill_value, skipna, min_count, monkeypatch
+    ):
+        # https://github.com/pandas-dev/pandas/issues/28487
+        dense = pd.DataFrame(
+            {
+                "A": [0, 1, 0, 0, 2, 0],
+                "B": [0, 0, 3, 0, 4, 0],
+                "C": [0, -1, 0, 0, 5, 0],
+            },
+            dtype=subtype,
+        )
+        if subtype == "float64":
+            dense.iloc[1, 0] = np.nan
+            dense.iloc[4, 2] = np.nan
+        sparse = dense.astype(pd.SparseDtype(subtype, fill_value))
+        expected = dense.sum(axis=1, skipna=skipna, min_count=min_count)
+
+        def densify(self):
+            raise AssertionError("SparseArray was densified")
+
+        monkeypatch.setattr(pd.arrays.SparseArray, "_densify", densify)
+        result = sparse.sum(axis=1, skipna=skipna, min_count=min_count)
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "dtype, method",
+        [
+            ("Int64", "sum"),
+            (pd.SparseDtype("float64", 1.0), "sum"),
+            (pd.SparseDtype("float64", 0.0), "max"),
+        ],
+    )
+    def test_axis_1_reduce_axis1_not_implemented(self, dtype, method):
+        # GH#28487 if the EA does not implement _reduce_axis1, the columns are
+        #  concatenated and reduced as before
+        dense = pd.DataFrame({"A": [0.0, 1.0, 2.0], "B": [3.0, 0.0, np.nan]})
+        df = dense.astype(dtype)
+        arrays = [df["A"].array, df["B"].array]
+        with pytest.raises(NotImplementedError, match="does not implement row-wise"):
+            type(arrays[0])._reduce_axis1(method, arrays, skipna=True)
+
+        result = getattr(df, method)(axis=1)
+        expected = getattr(dense, method)(axis=1)
+        if dtype == "Int64":
+            expected = expected.astype("Int64")
+        tm.assert_series_equal(result, expected)
+
     @pytest.mark.parametrize("method, unit", [("sum", 0), ("prod", 1)])
     @pytest.mark.parametrize("numeric_only", [True, False])
     def test_sum_prod_nanops(self, method, unit, numeric_only):

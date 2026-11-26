@@ -202,6 +202,7 @@ Performance improvements
 - Performance improvement in :func:`read_csv` with a dict ``dtype`` on wide files or with a small ``chunksize`` (:issue:`70769`)
 - Performance improvement in :meth:`.DataFrameGroupBy.sum` and :meth:`.SeriesGroupBy.sum` with PyArrow-backed string data (:issue:`60861`)
 - Performance improvement in :meth:`DataFrame.skew` and :meth:`DataFrame.kurt` with types different from ``float64`` (:issue:`66662`)
+- Performance improvement in :meth:`DataFrame.sum` with ``axis=1`` for :class:`SparseDtype` columns with a ``fill_value`` of ``0`` or ``NaN``, which no longer converts the data to dense (:issue:`28487`)
 - Performance improvement in :meth:`DataFrame.to_csv` and ``astype(str)`` with timezone-aware datetime data (:issue:`44764`)
 - Performance improvement in :meth:`DataFrame.where` and :meth:`DataFrame.mask` when ``other`` is a :class:`DataFrame` whose columns have the same extension dtype, such as PyArrow-backed strings, categorical or interval data, which are no longer converted to an object array (:issue:`72120`)
 - Performance improvement in :meth:`DataFrameGroupBy.pct_change` and :meth:`SeriesGroupBy.pct_change` (:issue:`70972`)
