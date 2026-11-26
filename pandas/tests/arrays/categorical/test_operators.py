@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.errors.messages import REDUCTION_MESSAGE
+
 import pandas as pd
 import pandas._testing as tm
 
@@ -402,14 +404,16 @@ class TestCategoricalOps:
         # min/max)
         s = df["value_group"]
         for op in ["kurt", "skew", "var", "std", "mean", "sum", "median"]:
-            msg = f"does not support operation '{op}'"
+            msg = REDUCTION_MESSAGE.format(dtype=".*", name=op)
             with pytest.raises(TypeError, match=msg):
                 getattr(s, op)(numeric_only=False)
 
     def test_numeric_like_ops_series(self):
         # numpy ops
         s = pd.Series(pd.Categorical([1, 2, 3, 4]))
-        with pytest.raises(TypeError, match="does not support operation 'sum'"):
+        with pytest.raises(
+            TypeError, match=REDUCTION_MESSAGE.format(dtype=".*", name="sum")
+        ):
             np.sum(s)
 
     @pytest.mark.parametrize(

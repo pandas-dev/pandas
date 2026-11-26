@@ -63,6 +63,7 @@ from pandas.errors import (
     DataError,
     Pandas4Warning,
 )
+from pandas.errors.messages import REDUCTION_MESSAGE
 from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_min_count
@@ -1583,7 +1584,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 for group in self._grouper._get_splitter(ser)
             ]
         except (TypeError, NotImplementedError) as err:
-            raise TypeError(f"{how} is not supported for {values.dtype} dtype") from err
+            raise TypeError(
+                REDUCTION_MESSAGE.format(dtype=values.dtype, name=how)
+            ) from err
         # rows in a dropped NA group are absent from results and become NA
         res = concat(results) if results else ser.iloc[:0]
         return res.reindex(range(len(ser)))._values
@@ -1631,7 +1634,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 # TODO: shouldn't min_count matter?
                 if alt is None or how in ["any", "all", "std", "sem"]:
                     raise TypeError(
-                        f"{how} is not supported for {values.dtype} dtype"
+                        REDUCTION_MESSAGE.format(dtype=values.dtype, name=how)
                     ) from err
             else:
                 if use_bool_fastpath and result.dtype.kind == "f":
@@ -4578,14 +4581,16 @@ class GroupBy(BaseGroupBy[NDFrameT]):
                 )
 
             # ndarray path
-            if is_object_dtype(values.dtype) or values.dtype.kind == "c":
-                # GH#43770 complex has no ordering, so no quantile
+            # GH#43770 complex has no ordering, so no quantile
+            # GH#51424 remove bool to match Series/DataFrame behavior
+            if (
+                is_object_dtype(values.dtype)
+                or values.dtype.kind == "c"
+                or is_bool_dtype(values.dtype)
+            ):
                 raise TypeError(
-                    f"dtype '{values.dtype}' does not support operation 'quantile'"
+                    REDUCTION_MESSAGE.format(dtype=values.dtype, name="quantile")
                 )
-            if is_bool_dtype(values.dtype):
-                # GH#51424 remove to match Series/DataFrame behavior
-                raise TypeError("Cannot use quantile with bool dtype")
 
             mask = isna(values)
             inference: np.dtype | None = (

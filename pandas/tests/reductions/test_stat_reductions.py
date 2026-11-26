@@ -9,6 +9,7 @@ import numpy as np
 import pytest
 
 from pandas.errors import Pandas4Warning
+from pandas.errors.messages import REDUCTION_MESSAGE
 
 import pandas as pd
 import pandas._testing as tm
@@ -97,7 +98,7 @@ class TestSeriesStatReductions:
             # mean, idxmax, idxmin, min, and max are valid for dates
             if name not in ["max", "min", "mean", "median", "std"]:
                 ds = pd.Series(pd.date_range("1/1/2001", periods=10))
-                msg = f"does not support operation '{name}'"
+                msg = REDUCTION_MESSAGE.format(dtype=".*", name=name)
                 with pytest.raises(TypeError, match=msg):
                     f(ds)
 
@@ -352,7 +353,7 @@ def test_object_stat_matches_numeric_dtype(opname, data, numeric_dtype):
 
     if numeric_dtype == "complex128" and opname in ["skew", "kurt"]:
         # GH#43770 the imaginary part would be discarded
-        msg = f"reduction operation '{opname}' not allowed for this dtype"
+        msg = REDUCTION_MESSAGE.format(dtype="complex128", name=opname)
         for ser in [obj, expected_obj]:
             with pytest.raises(TypeError, match=msg):
                 getattr(ser, opname)()

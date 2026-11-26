@@ -37,6 +37,7 @@ from pandas.errors import (
     AbstractMethodError,
     Pandas4Warning,
 )
+from pandas.errors.messages import REDUCTION_MESSAGE
 from pandas.util._decorators import cache_readonly
 from pandas.util._exceptions import find_stack_level
 
@@ -195,7 +196,7 @@ class WrappedCythonOp:
             # GH#43770 only sum and mean have complex kernels (var/std/sem are
             #  split into parts in _call_cython_op); the rest would raise an
             #  opaque error or silently discard the imaginary part
-            raise TypeError(f"dtype '{dtype_str}' does not support operation '{how}'")
+            raise TypeError(REDUCTION_MESSAGE.format(dtype=dtype_str, name=how))
 
         # see if there is a fused-type version of function
         # only valid for numeric

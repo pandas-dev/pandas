@@ -19,6 +19,7 @@ from pandas.compat import (
     PYARROW_MIN_VERSION,
 )
 from pandas.compat.numpy import function as nv
+from pandas.errors.messages import REDUCTION_MESSAGE
 from pandas.util._decorators import set_module
 from pandas.util._validators import validate_na_arg
 
@@ -622,7 +623,7 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         if name in ("count", "min", "max", "sum", "argmin", "argmax"):
             result = self._reduce_calc(name, skipna=skipna, keepdims=keepdims, **kwargs)
         else:
-            raise TypeError(f"Cannot perform reduction '{name}' with string dtype")
+            raise TypeError(REDUCTION_MESSAGE.format(dtype=self.dtype, name=name))
 
         if name in ("argmin", "argmax") and isinstance(result, pa.Array):
             return self._convert_int_result(result)

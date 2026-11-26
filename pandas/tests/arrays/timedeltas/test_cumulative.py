@@ -1,5 +1,7 @@
 import pytest
 
+from pandas.errors.messages import REDUCTION_MESSAGE
+
 import pandas._testing as tm
 from pandas.core.arrays import TimedeltaArray
 
@@ -8,7 +10,9 @@ class TestAccumulator:
     def test_accumulators_disallowed(self):
         # GH#50297
         arr = TimedeltaArray._from_sequence(["1D", "2D"], dtype="m8[ns]")
-        with pytest.raises(TypeError, match="cumprod not supported"):
+        with pytest.raises(
+            TypeError, match=REDUCTION_MESSAGE.format(dtype=".*", name="cumprod")
+        ):
             arr._accumulate("cumprod")
 
     def test_cumsum(self, unit):

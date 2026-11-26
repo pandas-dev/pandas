@@ -48,6 +48,7 @@ from pandas.errors import (
     OutOfBoundsDatetime,
     OutOfBoundsTimedelta,
 )
+from pandas.errors.messages import REDUCTION_MESSAGE
 from pandas.util._decorators import set_module
 from pandas.util._validators import (
     validate_inclusive,
@@ -463,7 +464,7 @@ class TimedeltaArray(dtl.TimelikeOps):
 
             return type(self)._simple_new(result, dtype=self.dtype)
         elif name == "cumprod":
-            raise TypeError("cumprod not supported for Timedelta.")
+            raise TypeError(REDUCTION_MESSAGE.format(dtype=self.dtype, name="cumprod"))
 
         else:
             return super()._accumulate(name, skipna=skipna, **kwargs)

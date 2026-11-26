@@ -859,7 +859,7 @@ raise an error regardless of the number of strings:
    ---------------------------------------------------------------------------
    TypeError                                 Traceback (most recent call last)
    ...
-   TypeError: Cannot perform reduction 'prod' with string dtype
+   TypeError: dtype 'str' does not support operation 'prod'
 
 
 .. _string_migration_guide-for_existing_users:

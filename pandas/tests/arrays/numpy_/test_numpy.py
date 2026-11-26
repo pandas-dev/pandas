@@ -7,6 +7,7 @@ import numpy as np
 import pytest
 
 from pandas.errors import Pandas4Warning
+from pandas.errors.messages import REDUCTION_MESSAGE
 
 from pandas.core.dtypes.dtypes import NumpyEADtype
 
@@ -213,9 +214,9 @@ def test_setitem(any_numpy_array):
 def test_bad_reduce_raises():
     arr = np.array([1, 2, 3], dtype="int64")
     arr = NumpyExtensionArray(arr)
-    msg = "cannot perform not_a_method with type int"
+    msg = REDUCTION_MESSAGE.format(dtype="int64", name="not_a_method")
     with pytest.raises(TypeError, match=msg):
-        arr._reduce(msg)
+        arr._reduce("not_a_method")
 
 
 def test_validate_reduction_keyword_args():

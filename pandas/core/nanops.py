@@ -24,6 +24,7 @@ import pandas._libs.algos as libalgos
 from pandas._libs.tslibs import OutOfBoundsTimedelta
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import Pandas4Warning
+from pandas.errors.messages import REDUCTION_MESSAGE
 from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
@@ -83,10 +84,11 @@ class disallow:
         @functools.wraps(f)
         def _f(*args, **kwargs):
             obj_iter = itertools.chain(args, kwargs.values())
-            if any(self.check(obj) for obj in obj_iter):
+            disallowed = next((obj for obj in obj_iter if self.check(obj)), None)
+            if disallowed is not None:
                 f_name = f.__name__.replace("nan", "")
                 raise TypeError(
-                    f"reduction operation '{f_name}' not allowed for this dtype"
+                    REDUCTION_MESSAGE.format(dtype=disallowed.dtype, name=f_name)
                 )
             try:
                 return f(*args, **kwargs)

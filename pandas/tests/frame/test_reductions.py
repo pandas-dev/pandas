@@ -14,6 +14,7 @@ from pandas.compat import (
     is_platform_windows,
 )
 from pandas.errors import Pandas4Warning
+from pandas.errors.messages import REDUCTION_MESSAGE
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -265,7 +266,7 @@ class TestDataFrameAnalytics:
                 msg = r"unsupported operand type\(s\) for \+: 'float' and 'str'"
             elif opname in ["min", "max"]:
                 msg = "'[><]=' not supported between instances of 'float' and 'str'"
-            msg = "|".join([msg, "does not support", "Cannot perform reduction"])
+            msg = "|".join([msg, REDUCTION_MESSAGE.format(dtype=".*", name=".*")])
             with pytest.raises(TypeError, match=msg):
                 getattr(float_string_frame, opname)(axis=axis)
         if opname != "nunique":
@@ -427,8 +428,7 @@ class TestDataFrameAnalytics:
                 "Could not convert",
                 "could not convert",
                 "can't multiply sequence by non-int",
-                "does not support",
-                "Cannot perform",
+                REDUCTION_MESSAGE.format(dtype=".*", name=".*"),
             ]
         )
         with pytest.raises(TypeError, match=msg):
@@ -507,8 +507,7 @@ class TestDataFrameAnalytics:
             match="|".join(
                 [
                     "unsupported operand type",
-                    "does not support",
-                    "Cannot perform",
+                    REDUCTION_MESSAGE.format(dtype=".*", name=".*"),
                     "Could not convert",
                 ]
             ),
@@ -989,7 +988,9 @@ class TestDataFrameAnalytics:
         df = pd.DataFrame(
             {"A": pd.date_range("2000", periods=4), "B": [1, 2, 3, 4]}
         ).reindex([2, 3, 4])
-        with pytest.raises(TypeError, match="does not support operation 'sum'"):
+        with pytest.raises(
+            TypeError, match=REDUCTION_MESSAGE.format(dtype=".*", name="sum")
+        ):
             df.sum()
 
     def test_mean_corner(self, float_frame):
@@ -1486,13 +1487,13 @@ class TestDataFrameAnalytics:
 
         if any(isinstance(x, pd.CategoricalDtype) for x in data.dtypes):
             with pytest.raises(
-                TypeError, match=".* dtype category does not support operation"
+                TypeError, match=REDUCTION_MESSAGE.format(dtype="category", name=".*")
             ):
                 func(data)
 
             # method version
             with pytest.raises(
-                TypeError, match=".* dtype category does not support operation"
+                TypeError, match=REDUCTION_MESSAGE.format(dtype="category", name=".*")
             ):
                 getattr(pd.DataFrame(data), func.__name__)(axis=None)
         if data.dtypes.apply(lambda x: x.kind == "M").any():
@@ -2264,19 +2265,29 @@ class TestNuisanceColumns:
         df = ser.to_frame()
 
         # Double-check the Series behavior is to raise
-        with pytest.raises(TypeError, match="does not support operation"):
+        with pytest.raises(
+            TypeError, match=REDUCTION_MESSAGE.format(dtype=".*", name=".*")
+        ):
             getattr(ser, all_boolean_reductions)()
 
-        with pytest.raises(TypeError, match="does not support operation"):
+        with pytest.raises(
+            TypeError, match=REDUCTION_MESSAGE.format(dtype=".*", name=".*")
+        ):
             getattr(np, all_boolean_reductions)(ser)
 
-        with pytest.raises(TypeError, match="does not support operation"):
+        with pytest.raises(
+            TypeError, match=REDUCTION_MESSAGE.format(dtype=".*", name=".*")
+        ):
             getattr(df, all_boolean_reductions)(bool_only=False)
 
-        with pytest.raises(TypeError, match="does not support operation"):
+        with pytest.raises(
+            TypeError, match=REDUCTION_MESSAGE.format(dtype=".*", name=".*")
+        ):
             getattr(df, all_boolean_reductions)(bool_only=None)
 
-        with pytest.raises(TypeError, match="does not support operation"):
+        with pytest.raises(
+            TypeError, match=REDUCTION_MESSAGE.format(dtype=".*", name=".*")
+        ):
             getattr(np, all_boolean_reductions)(df, axis=0)
 
     def test_median_categorical_dtype_nuisance_column(self):
@@ -2285,22 +2296,32 @@ class TestNuisanceColumns:
         ser = df["A"]
 
         # Double-check the Series behavior is to raise
-        with pytest.raises(TypeError, match="does not support operation"):
+        with pytest.raises(
+            TypeError, match=REDUCTION_MESSAGE.format(dtype=".*", name=".*")
+        ):
             ser.median()
 
-        with pytest.raises(TypeError, match="does not support operation"):
+        with pytest.raises(
+            TypeError, match=REDUCTION_MESSAGE.format(dtype=".*", name=".*")
+        ):
             df.median(numeric_only=False)
 
-        with pytest.raises(TypeError, match="does not support operation"):
+        with pytest.raises(
+            TypeError, match=REDUCTION_MESSAGE.format(dtype=".*", name=".*")
+        ):
             df.median()
 
         # same thing, but with an additional non-categorical column
         df["B"] = df["A"].astype(int)
 
-        with pytest.raises(TypeError, match="does not support operation"):
+        with pytest.raises(
+            TypeError, match=REDUCTION_MESSAGE.format(dtype=".*", name=".*")
+        ):
             df.median(numeric_only=False)
 
-        with pytest.raises(TypeError, match="does not support operation"):
+        with pytest.raises(
+            TypeError, match=REDUCTION_MESSAGE.format(dtype=".*", name=".*")
+        ):
             df.median()
 
         # TODO: np.median(df, axis=0) gives np.array([2.0, 2.0]) instead
@@ -2870,7 +2891,7 @@ def test_interval_reduction_skipna_false_axis1(method):
 def test_frame_mixed_numeric_object_with_timestamp(ts_value):
     # GH 13912
     df = pd.DataFrame({"a": [1], "b": [1.1], "c": ["foo"], "d": [ts_value]})
-    msg = "|".join(["does not support operation", "Cannot perform"])
+    msg = REDUCTION_MESSAGE.format(dtype=".*", name=".*")
     with pytest.raises(TypeError, match=msg):
         df.sum()
 
@@ -2979,7 +3000,6 @@ def test_fails_on_non_numeric(kernel):
     args = (df,) if kernel == "corrwith" else ()
     msg = "|".join(
         [
-            "not allowed for this dtype",
             "argument must be a string or a number",
             "not supported between instances of",
             "unsupported operand type",

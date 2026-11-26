@@ -6,6 +6,7 @@ import pytest
 
 from pandas._libs.sparse import IntIndex
 from pandas.compat import PYPY
+from pandas.errors.messages import REDUCTION_MESSAGE
 
 import pandas as pd
 import pandas._testing as tm
@@ -597,7 +598,7 @@ def test_accumulate_datetime64():
     result = ser.cummax()
     tm.assert_series_equal(result.sparse.to_dense(), pd.Series(dti).cummax())
 
-    msg = "Accumulation cumsum not supported"
+    msg = REDUCTION_MESSAGE.format(dtype=".*", name="cumsum")
     with pytest.raises(TypeError, match=msg):
         ser.cumsum()
 

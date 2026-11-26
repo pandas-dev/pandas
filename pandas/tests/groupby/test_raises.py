@@ -9,6 +9,7 @@ import numpy as np
 import pytest
 
 from pandas.errors import Pandas4Warning
+from pandas.errors.messages import REDUCTION_MESSAGE
 
 import pandas as pd
 import pandas._testing as tm
@@ -131,7 +132,10 @@ def test_groupby_raises_string(
         "cumcount": (None, ""),
         "cummax": (None, ""),
         "cummin": (None, ""),
-        "cumprod": (TypeError, "cumprod is not supported for object dtype"),
+        "cumprod": (
+            TypeError,
+            REDUCTION_MESSAGE.format(dtype="object", name="cumprod"),
+        ),
         "cumsum": (None, ""),
         "diff": (TypeError, "unsupported operand type"),
         "ffill": (None, ""),
@@ -156,7 +160,10 @@ def test_groupby_raises_string(
             TypeError,
             re.escape("agg function failed [how->prod,dtype->object]"),
         ),
-        "quantile": (TypeError, "dtype 'object' does not support operation 'quantile'"),
+        "quantile": (
+            TypeError,
+            REDUCTION_MESSAGE.format(dtype="object", name="quantile"),
+        ),
         "rank": (None, ""),
         "sem": (ValueError, "could not convert string to float"),
         "shift": (None, ""),
@@ -184,7 +191,7 @@ def test_groupby_raises_string(
             "kurt",
             "quantile",
         ]:
-            msg = f"dtype 'str' does not support operation '{groupby_func}'"
+            msg = REDUCTION_MESSAGE.format(dtype="str", name=groupby_func)
             if groupby_func in ["sem", "std", "skew", "kurt"]:
                 # The object-dtype raises ValueError when trying to convert to numeric.
                 klass = TypeError
@@ -198,7 +205,7 @@ def test_groupby_raises_string(
             msg = "operation 'sub' not supported for dtype 'str' with dtype 'str'"
 
         elif groupby_func == "corrwith":
-            msg = "Cannot perform reduction 'mean' with string dtype"
+            msg = REDUCTION_MESSAGE.format(dtype="str", name="mean")
 
     if groupby_func == "corrwith":
         warn_category = Pandas4Warning
@@ -245,15 +252,14 @@ def test_groupby_raises_string_np(
         np.sum: (None, ""),
         np.mean: (
             TypeError,
-            "Could not convert .* to numeric|"
-            "Cannot perform reduction 'mean' with string dtype",
+            "Could not convert .* to numeric",
         ),
     }[groupby_func_np]
 
     if using_infer_string:
         if groupby_func_np is np.mean:
             klass = TypeError
-        msg = f"Cannot perform reduction '{groupby_func_np.__name__}' with string dtype"
+        msg = REDUCTION_MESSAGE.format(dtype="str", name=groupby_func_np.__name__)
 
     _call_and_check(klass, msg, how, gb, groupby_func_np, ())
 
@@ -282,8 +288,14 @@ def test_groupby_raises_datetime(
         "cumcount": (None, ""),
         "cummax": (None, ""),
         "cummin": (None, ""),
-        "cumprod": (TypeError, "datetime64 type does not support operation 'cumprod'"),
-        "cumsum": (TypeError, "datetime64 type does not support operation 'cumsum'"),
+        "cumprod": (
+            TypeError,
+            re.escape(REDUCTION_MESSAGE.format(dtype="datetime64[us]", name="cumprod")),
+        ),
+        "cumsum": (
+            TypeError,
+            re.escape(REDUCTION_MESSAGE.format(dtype="datetime64[us]", name="cumsum")),
+        ),
         "diff": (None, ""),
         "ffill": (None, ""),
         "first": (None, ""),
@@ -297,7 +309,10 @@ def test_groupby_raises_datetime(
         "ngroup": (None, ""),
         "nunique": (None, ""),
         "pct_change": (TypeError, "cannot perform __truediv__ with this index type"),
-        "prod": (TypeError, "datetime64 type does not support operation 'prod'"),
+        "prod": (
+            TypeError,
+            re.escape(REDUCTION_MESSAGE.format(dtype="datetime64[us]", name="prod")),
+        ),
         "quantile": (None, ""),
         "rank": (None, ""),
         "sem": (None, ""),
@@ -305,25 +320,21 @@ def test_groupby_raises_datetime(
         "size": (None, ""),
         "skew": (
             TypeError,
-            "|".join(
-                [
-                    r"dtype datetime64\[ns\] does not support operation",
-                    "datetime64 type does not support operation 'skew'",
-                ]
-            ),
+            re.escape(REDUCTION_MESSAGE.format(dtype="datetime64[us]", name="skew")),
         ),
         "kurt": (
             TypeError,
-            "|".join(
-                [
-                    r"dtype datetime64\[ns\] does not support operation",
-                    "datetime64 type does not support operation 'kurt'",
-                ]
-            ),
+            re.escape(REDUCTION_MESSAGE.format(dtype="datetime64[us]", name="kurt")),
         ),
         "std": (None, ""),
-        "sum": (TypeError, "datetime64 type does not support operation 'sum"),
-        "var": (TypeError, "datetime64 type does not support operation 'var'"),
+        "sum": (
+            TypeError,
+            re.escape(REDUCTION_MESSAGE.format(dtype="datetime64[us]", name="sum")),
+        ),
+        "var": (
+            TypeError,
+            re.escape(REDUCTION_MESSAGE.format(dtype="datetime64[us]", name="var")),
+        ),
     }[groupby_func]
 
     if groupby_func == "corrwith":
@@ -365,7 +376,7 @@ def test_groupby_raises_datetime_np(
     klass, msg = {
         np.sum: (
             TypeError,
-            re.escape("datetime64[us] does not support operation 'sum'"),
+            re.escape(REDUCTION_MESSAGE.format(dtype="datetime64[us]", name="sum")),
         ),
         np.mean: (None, ""),
     }[groupby_func_np]
@@ -391,7 +402,8 @@ def test_groupby_raises_datetime_np(
 def test_groupby_raises_interval(func):
     # GH#69717 used to raise NotImplementedError
     ser = pd.Series(pd.interval_range(0, 4))
-    with pytest.raises(TypeError, match=f"{func} is not supported for interval"):
+    msg = re.escape(REDUCTION_MESSAGE.format(dtype=ser.dtype, name=func))
+    with pytest.raises(TypeError, match=msg):
         getattr(ser.groupby([0, 0, 1, 1]), func)()
 
 
@@ -409,7 +421,7 @@ def test_groupby_raises_timedelta(func):
 
     _call_and_check(
         TypeError,
-        "timedelta64 type does not support .* operations",
+        re.escape(REDUCTION_MESSAGE.format(dtype="timedelta64[us]", name=func)),
         "method",
         gb,
         func,
@@ -443,10 +455,22 @@ def test_groupby_raises_category(
         ),
         "count": (None, ""),
         "cumcount": (None, ""),
-        "cummax": (TypeError, "category type does not support cummax operations"),
-        "cummin": (TypeError, "category type does not support cummin operations"),
-        "cumprod": (TypeError, "category type does not support cumprod operations"),
-        "cumsum": (TypeError, "category type does not support cumsum operations"),
+        "cummax": (
+            TypeError,
+            REDUCTION_MESSAGE.format(dtype="category", name="cummax"),
+        ),
+        "cummin": (
+            TypeError,
+            REDUCTION_MESSAGE.format(dtype="category", name="cummin"),
+        ),
+        "cumprod": (
+            TypeError,
+            REDUCTION_MESSAGE.format(dtype="category", name="cumprod"),
+        ),
+        "cumsum": (
+            TypeError,
+            REDUCTION_MESSAGE.format(dtype="category", name="cumsum"),
+        ),
         "diff": (
             TypeError,
             r"unsupported operand type\(s\) for -: 'Categorical' and 'Categorical'",
@@ -459,11 +483,11 @@ def test_groupby_raises_category(
         "max": (None, ""),
         "mean": (
             TypeError,
-            "category dtype does not support aggregation 'mean'",
+            REDUCTION_MESSAGE.format(dtype="category", name="mean"),
         ),
         "median": (
             TypeError,
-            "category dtype does not support aggregation 'median'",
+            REDUCTION_MESSAGE.format(dtype="category", name="median"),
         ),
         "min": (None, ""),
         "ngroup": (None, ""),
@@ -472,31 +496,31 @@ def test_groupby_raises_category(
             TypeError,
             r"unsupported operand type\(s\) for /: 'Categorical' and 'Categorical'",
         ),
-        "prod": (TypeError, "category type does not support prod operations"),
+        "prod": (TypeError, REDUCTION_MESSAGE.format(dtype="category", name="prod")),
         "quantile": (TypeError, "No matching signature found"),
         "rank": (None, ""),
         "sem": (
             TypeError,
-            "category dtype does not support aggregation 'sem'",
+            REDUCTION_MESSAGE.format(dtype="category", name="sem"),
         ),
         "shift": (None, ""),
         "size": (None, ""),
         "skew": (
             TypeError,
-            "category type does not support skew operations",
+            REDUCTION_MESSAGE.format(dtype="category", name="skew"),
         ),
         "kurt": (
             TypeError,
-            "category type does not support kurt operations",
+            REDUCTION_MESSAGE.format(dtype="category", name="kurt"),
         ),
         "std": (
             TypeError,
-            "category dtype does not support aggregation 'std'",
+            REDUCTION_MESSAGE.format(dtype="category", name="std"),
         ),
-        "sum": (TypeError, "category type does not support sum operations"),
+        "sum": (TypeError, REDUCTION_MESSAGE.format(dtype="category", name="sum")),
         "var": (
             TypeError,
-            "category dtype does not support aggregation 'var'",
+            REDUCTION_MESSAGE.format(dtype="category", name="var"),
         ),
     }[groupby_func]
 
@@ -538,10 +562,10 @@ def test_groupby_raises_category_np(
         gb = gb["d"]
 
     klass, msg = {
-        np.sum: (TypeError, "dtype category does not support operation 'sum'"),
+        np.sum: (TypeError, REDUCTION_MESSAGE.format(dtype="category", name="sum")),
         np.mean: (
             TypeError,
-            "dtype category does not support operation 'mean'",
+            REDUCTION_MESSAGE.format(dtype="category", name="mean"),
         ),
     }[groupby_func_np]
     _call_and_check(klass, msg, how, gb, groupby_func_np, ())
@@ -589,10 +613,22 @@ def test_groupby_raises_category_on_category(
         ),
         "count": (None, ""),
         "cumcount": (None, ""),
-        "cummax": (TypeError, "category type does not support cummax operations"),
-        "cummin": (TypeError, "category type does not support cummin operations"),
-        "cumprod": (TypeError, "category type does not support cumprod operations"),
-        "cumsum": (TypeError, "category type does not support cumsum operations"),
+        "cummax": (
+            TypeError,
+            REDUCTION_MESSAGE.format(dtype="category", name="cummax"),
+        ),
+        "cummin": (
+            TypeError,
+            REDUCTION_MESSAGE.format(dtype="category", name="cummin"),
+        ),
+        "cumprod": (
+            TypeError,
+            REDUCTION_MESSAGE.format(dtype="category", name="cumprod"),
+        ),
+        "cumsum": (
+            TypeError,
+            REDUCTION_MESSAGE.format(dtype="category", name="cumsum"),
+        ),
         "diff": (TypeError, "unsupported operand type"),
         "ffill": (None, ""),
         "first": (None, ""),
@@ -604,37 +640,40 @@ def test_groupby_raises_category_on_category(
         else (None, ""),
         "last": (None, ""),
         "max": (None, ""),
-        "mean": (TypeError, "category dtype does not support aggregation 'mean'"),
-        "median": (TypeError, "category dtype does not support aggregation 'median'"),
+        "mean": (TypeError, REDUCTION_MESSAGE.format(dtype="category", name="mean")),
+        "median": (
+            TypeError,
+            REDUCTION_MESSAGE.format(dtype="category", name="median"),
+        ),
         "min": (None, ""),
         "ngroup": (None, ""),
         "nunique": (None, ""),
         "pct_change": (TypeError, "unsupported operand type"),
-        "prod": (TypeError, "category type does not support prod operations"),
+        "prod": (TypeError, REDUCTION_MESSAGE.format(dtype="category", name="prod")),
         "quantile": (TypeError, "No matching signature found"),
         "rank": (None, ""),
         "sem": (
             TypeError,
-            "category dtype does not support aggregation 'sem'",
+            REDUCTION_MESSAGE.format(dtype="category", name="sem"),
         ),
         "shift": (None, ""),
         "size": (None, ""),
         "skew": (
             TypeError,
-            "category type does not support skew operations",
+            REDUCTION_MESSAGE.format(dtype="category", name="skew"),
         ),
         "kurt": (
             TypeError,
-            "category type does not support kurt operations",
+            REDUCTION_MESSAGE.format(dtype="category", name="kurt"),
         ),
         "std": (
             TypeError,
-            "category dtype does not support aggregation 'std'",
+            REDUCTION_MESSAGE.format(dtype="category", name="std"),
         ),
-        "sum": (TypeError, "category type does not support sum operations"),
+        "sum": (TypeError, REDUCTION_MESSAGE.format(dtype="category", name="sum")),
         "var": (
             TypeError,
-            "category dtype does not support aggregation 'var'",
+            REDUCTION_MESSAGE.format(dtype="category", name="var"),
         ),
     }[groupby_func]
 

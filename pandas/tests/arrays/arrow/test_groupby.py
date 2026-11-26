@@ -10,6 +10,8 @@ import re
 import numpy as np
 import pytest
 
+from pandas.errors.messages import REDUCTION_MESSAGE
+
 from pandas.core.dtypes.dtypes import (
     ArrowDtype,
 )
@@ -536,7 +538,9 @@ class TestGroupbyAggPyArrowNative:
     def test_groupby_string_unsupported_ops_raise(self, how):
         # GH#63416 the native path must not make these ops start working
         ser = pd.Series(["b", "a", "d", "c"], dtype="string[pyarrow]")
-        with pytest.raises(TypeError, match=f"does not support operation '{how}'"):
+        with pytest.raises(
+            TypeError, match=REDUCTION_MESSAGE.format(dtype=".*", name=how)
+        ):
             getattr(ser.groupby([1, 1, 2, 2]), how)()
 
     # ordered like "badc" for every type
@@ -710,7 +714,7 @@ def test_groupby_unsupported_op_raises_typeerror(arr, how, frame):
     # GH#69717 used to raise NotImplementedError, mostly with no message
     ser = pd.Series(ArrowExtensionArray(arr))
     obj = ser.to_frame() if frame else ser
-    msg = f"{how} is not supported for {re.escape(str(ser.dtype))} dtype"
+    msg = re.escape(REDUCTION_MESSAGE.format(dtype=ser.dtype, name=how))
     with pytest.raises(TypeError, match=msg):
         getattr(obj.groupby([0, 0, 1, 1]), how)()
 
@@ -764,7 +768,7 @@ def test_groupby_quantile_unsupported_raises_typeerror(arr, frame):
     # GH#69808 used to raise NotImplementedError with no message
     ser = pd.Series(ArrowExtensionArray(arr))
     obj = ser.to_frame() if frame else ser
-    msg = f"dtype '{re.escape(str(ser.dtype))}' does not support operation 'quantile'"
+    msg = REDUCTION_MESSAGE.format(dtype=re.escape(str(ser.dtype)), name="quantile")
     with pytest.raises(TypeError, match=msg):
         obj.groupby([0, 0, 1, 1]).quantile()
 

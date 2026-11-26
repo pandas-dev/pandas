@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+from pandas.errors.messages import REDUCTION_MESSAGE
 import pandas.util._test_decorators as td
 
 import pandas as pd
@@ -358,7 +359,7 @@ class TestDataFrameCorrWith:
         df2["obj"] = "bar"
 
         if using_infer_string:
-            msg = "Cannot perform reduction 'mean' with string dtype"
+            msg = REDUCTION_MESSAGE.format(dtype="str", name="mean")
             with pytest.raises(TypeError, match=msg):
                 df1.corrwith(df2)
         else:

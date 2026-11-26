@@ -10,6 +10,7 @@ from pandas._libs.algos import (
     Infinity,
     NegInfinity,
 )
+from pandas.errors.messages import REDUCTION_MESSAGE
 
 import pandas as pd
 import pandas._testing as tm
@@ -596,6 +597,6 @@ class TestRank:
 def test_rank_complex_raises(frame_or_series):
     # GH#43770 complex has no natural ordering
     obj = frame_or_series([1 + 2j, 3j])
-    msg = "dtype 'complex128' does not support operation 'rank'"
+    msg = REDUCTION_MESSAGE.format(dtype="complex128", name="rank")
     with pytest.raises(TypeError, match=msg):
         obj.rank()
