@@ -64,6 +64,20 @@ def test_value_counts_with_bins(bins):
     tm.assert_series_equal(result, expected)
 
 
+def test_value_counts_bins_normalize_dropna():
+    # GH 44946 missing values are excluded from the denominator,
+    # values outside the bins are not
+    df = pd.DataFrame({"key": [0, 0, 0, 1, 1], "score": [1, 10, np.nan, 2, np.nan]})
+    bins = pd.IntervalIndex.from_breaks([0.0, 5.0])
+    result = df.groupby("key")["score"].value_counts(normalize=True, bins=bins)
+    expected = pd.Series(
+        [0.5, 1.0],
+        name="proportion",
+        index=pd.MultiIndex.from_product([[0, 1], bins], names=["key", "score"]),
+    )
+    tm.assert_series_equal(result, expected)
+
+
 def seed_df(seed_nans, n, m):
     days = pd.date_range("2015-08-24", periods=10)
 

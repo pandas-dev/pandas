@@ -1092,8 +1092,9 @@ def value_counts_internal(
         if dropna and (result._values == 0).all():
             result = result.iloc[0:0]
 
-        # normalizing is by len of all (regardless of dropna)
-        normalize_denominator = len(ii)
+        # normalize by the number of values, excluding missing values if dropna;
+        # values outside the bins stay in the denominator (GH 44946)
+        normalize_denominator = len(ii) - isna(values).sum() if dropna else len(ii)
 
     else:
         normalize_denominator = None
