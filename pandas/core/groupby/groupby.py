@@ -157,6 +157,26 @@ if TYPE_CHECKING:
     )
 
 
+def _plot_refers_to_columns(args: tuple[Any, ...], kwargs: dict[str, Any]) -> bool:
+    """
+    Whether a groupby plotting call names columns or passes values per column.
+
+    Positional arguments are counted conservatively, since several plot
+    methods take x/y/by positionally.
+    """
+    if args:
+        return True
+    for name in ["x", "y", "by", "column", "subplots", "secondary_y", "xerr", "yerr"]:
+        value = kwargs.get(name)
+        if value is not None and not lib.is_bool(value):
+            return True
+    # a list or dict here is matched to columns by position or label
+    return any(
+        is_list_like(kwargs.get(name))
+        for name in ["ax", "title", "style", "color", "positions", "widths"]
+    )
+
+
 @final
 class GroupByPlot(PandasObject):
     """
@@ -185,7 +205,7 @@ class GroupByPlot(PandasObject):
 
         f.__name__ = "plot"
 
-        return self._groupby._python_apply_plot(f)
+        return self._groupby._python_apply_plot(f, args, kwargs)
 
     def __getattr__(self, name: str):
         def attr(*args, **kwargs):
@@ -198,7 +218,7 @@ class GroupByPlot(PandasObject):
 
                 return getattr(self.plot, name)(*args, **local_kwargs)
 
-            return self._groupby._python_apply_plot(f)
+            return self._groupby._python_apply_plot(f, args, kwargs)
 
         return attr
 
@@ -902,7 +922,7 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         # special case otherwise extra plots are created when catching the
         # exception below
         if name in base.plotting_methods:
-            return self._python_apply_plot(curried)
+            return self._python_apply_plot(curried, args, kwargs)
 
         is_transform = name in base.transformation_kernels
         result = self._python_apply_general(
@@ -1491,7 +1511,9 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         )
 
     @final
-    def _python_apply_plot(self, f: Callable[..., Any]) -> NDFrameT:
+    def _python_apply_plot(
+        self, f: Callable[..., Any], args: tuple[Any, ...], kwargs: dict[str, Any]
+    ) -> NDFrameT:
         """
         Apply a plotting function f group-wise.
 
@@ -1499,8 +1521,17 @@ class GroupBy(BaseGroupBy[NDFrameT]):
         methods use for legend labels. Unlike the general apply path, this
         labels the group explicitly rather than relying on the name attribute
         being pinned to the group key as a side effect (GH#41090).
+
+        Grouping columns are left out of each group, as in apply, unless they
+        are the only columns or the call refers to columns: a label or position
+        there is resolved against the full group, and dropping columns could
+        change what it points to (GH#22069).
         """
-        data = self._selected_obj
+        data = self._obj_with_exclusions
+        if (data.ndim == 2 and len(data.columns) == 0) or _plot_refers_to_columns(
+            args, kwargs
+        ):
+            data = self._selected_obj
         values = []
         for key, group in self._grouper.get_iterator(data):
             if group.ndim == 1:

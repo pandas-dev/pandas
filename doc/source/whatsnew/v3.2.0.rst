@@ -455,6 +455,7 @@ Period
 Plotting
 ^^^^^^^^
 - Bug in :func:`plotting.table` ignoring ``rowLabels`` and ``colLabels`` or raising a ``TypeError`` when they were passed (:issue:`37811`)
+- Bug in :meth:`.DataFrameGroupBy.plot` and :meth:`.DataFrameGroupBy.hist` plotting the grouping columns in every group, which could raise for ``kind="kde"`` or ``kind="pie"``; they are now left out unless the call refers to columns (e.g. ``x``, ``y`` or ``column``) (:issue:`22069`)
 - Bug in :meth:`DataFrame.boxplot` with ``column`` raising or putting an array's repr in the axis label and title when ``by`` was array-like, a :class:`Grouper` or a non-string column label; the grouping key's name is now used (:issue:`23007`)
 - Bug in :meth:`DataFrame.hist` and :meth:`Series.hist` raising ``ValueError`` when passing ``weights`` together with ``by`` (:issue:`9540`)
 - Bug in :meth:`DataFrame.hist` with ``by`` and no ``column`` plotting the numeric grouping column alongside the other columns (:issue:`41188`)
