@@ -186,6 +186,7 @@ features = ["py312", "numpy", "pyarrow", "optional-dependencies", "optional-depe
 gitpython = "*" # obtain contributors from git for whatsnew
 ipykernel = "*" # used in doc/source/user_guide/style.ipynb
 ipywidgets = "*" # used in doc/source/user_guide/style.ipynb
+jupyterlite-sphinx = "*"
 nbconvert = ">=7.11.0"
 nbformat = "*" # used in doc/source/user_guide/style.ipynb
 nbsphinx = "*"
