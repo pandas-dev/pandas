@@ -4265,6 +4265,21 @@ class Index(IndexOpsMixin, PandasObject):
     ) -> npt.NDArray[np.intp]:
         distance = self._difference_compat(target, indexer)
 
+        if isinstance(distance, np.ndarray) and distance.dtype == np.dtype("uint64"):
+            if self.dtype.kind == "i" and tolerance.dtype.kind == "m":
+                # Signed integer distances compared timedelta tolerances as ticks.
+                tolerance = tolerance.astype("i8", copy=False)
+            if tolerance.dtype.kind == "i":
+                within_tolerance = (tolerance >= 0) & (
+                    distance <= tolerance.astype("uint64", copy=False)
+                )
+                return np.where(within_tolerance, indexer, -1)
+            if tolerance.dtype.kind == "f" and (distance > 2**53).any():
+                # Mixed comparisons can round uint64 distances to float64.
+                with np.errstate(invalid="ignore"):
+                    within_tolerance = distance.astype(object) <= tolerance
+                return np.where(within_tolerance, indexer, -1)
+
         return np.where(distance <= tolerance, indexer, -1)
 
     @final
@@ -4280,6 +4295,21 @@ class Index(IndexOpsMixin, PandasObject):
             own_values = cast("PeriodArray", self._data)._ndarray
             target_values = cast("PeriodArray", target._data)._ndarray
             diff = own_values[indexer] - target_values
+        elif (
+            isinstance(self._values, np.ndarray)
+            and isinstance(target._values, np.ndarray)
+            and self.dtype.kind in "iu"
+            and self.dtype == target.dtype
+        ):
+            left = self._values[indexer]
+            right = target._values
+            # The absolute difference fits in the corresponding unsigned dtype,
+            # even when subtraction overflows the signed dtype.
+            diff = np.subtract(
+                left, right, dtype=f"u{left.dtype.itemsize}", casting="unsafe"
+            )
+            np.negative(diff, out=diff, where=left < right)
+            return diff
         else:
             # error: Unsupported left operand type for - ("ExtensionArray")
             diff = self._values[indexer] - target._values  # type: ignore[operator]

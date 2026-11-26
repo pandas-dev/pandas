@@ -94,6 +94,100 @@ class TestGetLoc:
 
 
 class TestGetIndexer:
+    @pytest.mark.parametrize("dtype", ["uint8", "uint16", "uint32", "uint64"])
+    @pytest.mark.parametrize("reverse", [False, True])
+    @pytest.mark.parametrize(
+        "method,tolerance,expected",
+        [
+            ("nearest", None, [0, 1, 1]),
+            ("nearest", 1, [0, -1, 1]),
+            ("pad", 1, [0, -1, -1]),
+            ("backfill", 1, [-1, -1, 1]),
+        ],
+    )
+    def test_get_indexer_unsigned_distance(
+        self, dtype, reverse, method, tolerance, expected
+    ):
+        index = pd.Index([0, 10], dtype=dtype)
+        target = pd.Index([1, 5, 9], dtype=dtype)
+        if reverse:
+            index = index[::-1]
+            if method != "nearest":
+                method = "backfill" if method == "pad" else "pad"
+            expected = [1 - pos if pos != -1 else -1 for pos in expected]
+
+        result = index.get_indexer(target, method=method, tolerance=tolerance)
+
+        tm.assert_numpy_array_equal(result, np.array(expected, dtype=np.intp))
+
+    @pytest.mark.parametrize("dtype", ["int8", "int16", "int32", "int64"])
+    @pytest.mark.parametrize("reverse", [False, True])
+    @pytest.mark.parametrize("tolerance", [None, 1])
+    def test_get_indexer_signed_distance_overflow(self, dtype, reverse, tolerance):
+        bounds = np.iinfo(dtype)
+        index = pd.Index([bounds.min, bounds.max], dtype=dtype)
+        target = pd.Index([bounds.min + 1, bounds.max - 1], dtype=dtype)
+        if reverse:
+            index = index[::-1]
+
+        result = index.get_indexer(target, method="nearest", tolerance=tolerance)
+
+        expected = [1, 0] if reverse else [0, 1]
+        tm.assert_numpy_array_equal(result, np.array(expected, dtype=np.intp))
+
+    @pytest.mark.parametrize("tolerance", [2**63 - 1, float(2**63)])
+    @pytest.mark.parametrize("listlike", [False, True])
+    def test_get_indexer_large_integer_tolerance(self, tolerance, listlike):
+        index = pd.Index([0], dtype="uint64")
+        target = pd.Index([2**63 - 1, 2**63, 2**63 + 1], dtype="uint64")
+        expected = [0, -1, -1] if isinstance(tolerance, int) else [0, 0, -1]
+        if listlike:
+            tolerance = [tolerance] * len(target)
+
+        result = index.get_indexer(target, method="nearest", tolerance=tolerance)
+
+        tm.assert_numpy_array_equal(result, np.array(expected, dtype=np.intp))
+
+    @pytest.mark.parametrize(
+        "tolerance,expected", [(np.nan, [-1]), (-1, [-1]), (np.inf, [0])]
+    )
+    def test_get_indexer_large_distance_special_tolerance(self, tolerance, expected):
+        index = pd.Index([0], dtype="uint64")
+        target = pd.Index([2**63 + 1], dtype="uint64")
+
+        result = index.get_indexer(target, method="nearest", tolerance=tolerance)
+
+        tm.assert_numpy_array_equal(result, np.array(expected, dtype=np.intp))
+
+    def test_reindex_unsigned_nearest(self):
+        series = pd.Series(["zero", "ten"], index=pd.Index([0, 10], dtype="uint64"))
+
+        result = series.reindex([1], method="nearest")
+
+        expected = pd.Series(["zero"], index=[1])
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "tolerance",
+        [
+            np.timedelta64(1, "s"),
+            np.array([1, 2, 3], dtype="timedelta64[s]"),
+            np.timedelta64("NaT", "s"),
+        ],
+    )
+    @pytest.mark.parametrize(
+        "method,expected",
+        [("nearest", [0, -1, 1]), ("pad", [0, -1, -1]), ("backfill", [-1, -1, 1])],
+    )
+    def test_get_indexer_integer_timedelta_tolerance(self, tolerance, method, expected):
+        index = pd.Index([0, 8], dtype="int64")
+        if np.isnat(tolerance).all():
+            expected = [-1, -1, -1]
+
+        result = index.get_indexer([1, 4, 7], method=method, tolerance=tolerance)
+
+        tm.assert_numpy_array_equal(result, np.array(expected, dtype=np.intp))
+
     def test_get_indexer(self):
         index1 = pd.Index([1, 2, 3, 4, 5])
         index2 = pd.Index([2, 4, 6])
