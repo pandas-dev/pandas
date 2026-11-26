@@ -171,6 +171,7 @@ from pandas.core.indexers import (
     disallow_ndim_indexing,
     is_valid_positional_slice,
 )
+from pandas.core.indexes import parallel_join
 from pandas.core.indexes.frozen import FrozenList
 from pandas.core.missing import clean_reindex_fill_method
 from pandas.core.ops import get_op_result_name
@@ -410,7 +411,9 @@ class Index(IndexOpsMixin, PandasObject):
         sv = self._get_join_target()
         ov = other._get_join_target()
         # similar but not identical to ov.searchsorted(sv)
-        return libjoin.left_join_indexer_unique(sv, ov)
+        return parallel_join.left_join_indexer_unique(
+            libjoin.left_join_indexer_unique, sv, ov
+        )
 
     @final
     def _left_indexer(
@@ -419,7 +422,9 @@ class Index(IndexOpsMixin, PandasObject):
         # Caller is responsible for ensuring other.dtype == self.dtype
         sv = self._get_join_target()
         ov = other._get_join_target()
-        joined_ndarray, lidx, ridx = libjoin.left_join_indexer(sv, ov)
+        joined_ndarray, lidx, ridx = parallel_join.join_indexer(
+            libjoin.left_join_indexer, sv, ov
+        )
         joined = self._from_join_target(joined_ndarray)
         return joined, lidx, ridx
 
@@ -430,7 +435,9 @@ class Index(IndexOpsMixin, PandasObject):
         # Caller is responsible for ensuring other.dtype == self.dtype
         sv = self._get_join_target()
         ov = other._get_join_target()
-        joined_ndarray, lidx, ridx = libjoin.inner_join_indexer(sv, ov)
+        joined_ndarray, lidx, ridx = parallel_join.join_indexer(
+            libjoin.inner_join_indexer, sv, ov
+        )
         joined = self._from_join_target(joined_ndarray)
         return joined, lidx, ridx
 
@@ -441,7 +448,9 @@ class Index(IndexOpsMixin, PandasObject):
         # Caller is responsible for ensuring other.dtype == self.dtype
         sv = self._get_join_target()
         ov = other._get_join_target()
-        joined_ndarray, lidx, ridx = libjoin.outer_join_indexer(sv, ov)
+        joined_ndarray, lidx, ridx = parallel_join.join_indexer(
+            libjoin.outer_join_indexer, sv, ov
+        )
         joined = self._from_join_target(joined_ndarray)
         return joined, lidx, ridx
 
