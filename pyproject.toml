@@ -41,7 +41,7 @@ license-files = [
   "subprojects/fast_float-*/LICENSE-BOOST", # BSL
   "subprojects/fast_float-*/LICENSE-MIT", # MIT
 ]
-requires-python = '>=3.11'
+requires-python = '>=3.12'
 dependencies = [
   "numpy>=2.0.2; python_version < '3.14'",
   # Earlier versions of NumPy are fundamentally broken on 3.14
@@ -60,7 +60,6 @@ classifiers = [
     'Programming Language :: Python',
     'Programming Language :: Python :: 3',
     'Programming Language :: Python :: 3 :: Only',
-    'Programming Language :: Python :: 3.11',
     'Programming Language :: Python :: 3.12',
     'Programming Language :: Python :: 3.13',
     'Programming Language :: Python :: 3.14',
@@ -156,7 +155,7 @@ before-test = "apk update && apk add musl-locales"
 
 [tool.ruff]
 line-length = 88
-target-version = "py311"
+target-version = "py312"
 fix = true
 
 [tool.ruff.lint]
@@ -342,6 +341,13 @@ ignore = [
   "RUF043",
   # implicit-string-concatenation-in-collection-litera
   "ISC004",
+  # TODO: Adopt the PEP 695 syntax for type aliases and type parameters
+  # non-pep695-type-alias
+  "UP040", # 139 errors
+  # non-pep695-generic-class
+  "UP046", # 10 errors
+  # non-pep695-generic-function
+  "UP047", # 20 errors
 ]
 
 exclude = [
@@ -429,7 +435,6 @@ filterwarnings = [
   "ignore:.*FileIO:pytest.PytestUnraisableExceptionWarning",
   # From plotting doctests
   "ignore:More than 20 figures have been opened:RuntimeWarning",
-  "ignore:BuiltinImporter.module_repr() is deprecated and slated for removal in Python 3.12:DeprecationWarning",
   "ignore:Bitwise inversion:DeprecationWarning",
   # Raised by coverage in PY3.14+ (coverage.exceptions.CoverageWarning)
   "ignore:Plugin file tracers",
@@ -437,10 +442,11 @@ filterwarnings = [
   "ignore:Couldn't import C tracer",
   # From gcsfs, via google/auth/transport/grpc.py. Possibly removable in "October 2026" when google bumps grpcio min version.
   "ignore:.*grpcio.*Post-Quantum Cryptography:FutureWarning",
-  # From gcsfs, via google.api_core on Python 3.11; removable when we drop 3.11 support.
-  "ignore:You are using a Python version .* which Google will stop supporting:FutureWarning",
   # NumPy 2.5 DeprecationWarning in fastparquet
   "ignore:The 'generic' unit for NumPy timedelta is deprecated:DeprecationWarning:fastparquet",
+  # From pytz < 2023.3.post1 on Python 3.12+. Remove once the pytz minimum version is
+  # at least 2023.3.post1 (pinned lower in https://github.com/pandas-dev/pandas/pull/65133).
+  "ignore:datetime.datetime.utcfromtimestamp\\(\\) is deprecated:DeprecationWarning:pytz.tzinfo",
 ]
 junit_family = "xunit2"
 
@@ -626,7 +632,7 @@ skip_glob = "env"
 skip = "pandas/__init__.py"
 
 [tool.pyright]
-pythonVersion = "3.11"
+pythonVersion = "3.12"
 typeCheckingMode = "basic"
 useLibraryCodeForTypes = false
 include = ["pandas"]

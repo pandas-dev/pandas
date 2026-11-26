@@ -313,7 +313,6 @@ def _quote_non_ascii_url(url: str) -> str:
         return url
     parts = urlsplit(url)
     if parts.scheme not in ("http", "https"):
-        # e.g. Python 3.11 urlunsplit turns "file:sub/x" into "file:///sub/x"
         return url
     quoted = [
         _NON_ASCII.sub(lambda match: quote(match.group()), part) for part in parts[2:]

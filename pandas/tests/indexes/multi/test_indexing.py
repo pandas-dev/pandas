@@ -6,7 +6,6 @@ import numpy as np
 import pytest
 
 from pandas._libs import index as libindex
-from pandas.compat import PY312
 from pandas.errors import (
     InvalidIndexError,
     UnsortedIndexError,
@@ -1301,7 +1300,6 @@ def test_slice_locs_lexsort_depth_still_reported():
         idx.slice_locs(("a", 1))
 
 
-@pytest.mark.skipif(not PY312, reason="a slice is unhashable before 3.12")
 @pytest.mark.parametrize("dtype", [None, object])
 def test_get_locs_list_like_slice_label(dtype):
     # GH#64807 - a slice is hashable from Python 3.12 on, so it arrives as a
@@ -1311,7 +1309,6 @@ def test_get_locs_list_like_slice_label(dtype):
     tm.assert_numpy_array_equal(result, np.array([0, 1], dtype=np.intp))
 
 
-@pytest.mark.skipif(not PY312, reason="a slice is unhashable before 3.12")
 def test_get_locs_list_like_slice_label_mixed_level():
     # GH#64807 - a level that infers as "mixed", just as the slice key does,
     #  gets past the dtype gate, so the slice needs recognizing on its own

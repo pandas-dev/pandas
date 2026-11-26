@@ -65,7 +65,7 @@ def test_declared_packages_includes_inline_environment_dependencies() -> None:
 def test_environments_running_tests_reads_the_workflow_matrix() -> None:
     environments = environments_running_tests()
     # the plain matrix entries, and one that only appears under `include`
-    assert {"py311", "py312", "py313", "py314", "downstream"} <= environments
+    assert {"py312", "py313", "py314", "downstream"} <= environments
 
 
 def test_repository_test_dependencies_are_declared(capsys) -> None:

@@ -6,10 +6,7 @@ from types import MappingProxyType
 import numpy as np
 import pytest
 
-from pandas.compat import (
-    PY312,
-    PY314,
-)
+from pandas.compat import PY314
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import (
     NumExprClobberingError,
@@ -559,9 +556,7 @@ class TestEval:
     def test_scalar_unary(self, engine, parser):
         msg = "bad operand type for unary ~: 'float'"
         warn = None
-        if (PY314 and engine == "numexpr" and parser == "pandas") or (
-            PY312 and not (engine == "numexpr" and parser == "pandas")
-        ):
+        if PY314 or not (engine == "numexpr" and parser == "pandas"):
             warn = DeprecationWarning
         with pytest.raises(TypeError, match=msg):
             pd.eval("~1.0", engine=engine, parser=parser)

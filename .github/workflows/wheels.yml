@@ -100,7 +100,7 @@ jobs:
           - [macos-15, macosx_arm64]
           - [windows-2025, win_amd64]
           - [windows-11-arm, win_arm64]
-        python: ["cp311", "cp312", "cp313", "cp314", "cp314t", "cp315", "cp315t"]
+        python: ["cp312", "cp313", "cp314", "cp314t", "cp315", "cp315t"]
         include:
           - buildplat: [ubuntu-24.04, pyodide_wasm32]
             python: cp312
@@ -123,16 +123,16 @@ jobs:
 
       # Check [all] extra for 1 wheel
       - name: Set up uv for extras resolution
-        if: matrix.python == 'cp311' && matrix.buildplat[1] == 'manylinux_x86_64'
+        if: matrix.python == 'cp312' && matrix.buildplat[1] == 'manylinux_x86_64'
         uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
         with:
           enable-cache: false
 
       - name: Resolve all extra from wheel
-        if: matrix.python == 'cp311' && matrix.buildplat[1] == 'manylinux_x86_64'
+        if: matrix.python == 'cp312' && matrix.buildplat[1] == 'manylinux_x86_64'
         run: |
           echo "pandas[all] @ file://$(ls "$PWD"/wheelhouse/*.whl)" > extras.in
-          uv pip compile extras.in --python-version 3.11 --no-header
+          uv pip compile extras.in --python-version 3.12 --no-header
 
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
