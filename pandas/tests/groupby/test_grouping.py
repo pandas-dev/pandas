@@ -1324,3 +1324,183 @@ def test_groupby_monotonic_datetimelike_no_freq(klass, values, ascending, sort):
     else:
         expected = pd.DataFrame({"a": [1, 2, 12]}, index=klass(values[1:])[::-1])
     tm.assert_frame_equal(result, expected)
+
+
+def test_gh61943_grouper_list_aggregation():
+    # GH#61943
+    df = pd.DataFrame(
+        {
+            "k": [3, 1, 2, 3, 1, 2],
+            "A": [10, 20, 30, 40, 50, 60],
+        }
+    )
+
+    result = df.groupby([pd.Grouper(key="k", sort=True)]).sum()
+
+    expected = pd.DataFrame(
+        {"A": [70, 90, 50]},
+        index=pd.Index([1, 2, 3], name="k"),
+    )
+
+    tm.assert_frame_equal(result, expected)
+
+
+def test_gh61943_grouper_default_sort():
+    # GH#61943
+    ser = pd.Series([5, 7], index=["b", "a"])
+
+    result = list(ser.groupby(pd.Grouper(level=0)).groups)
+
+    expected = list(ser.groupby(level=0).groups)
+
+    assert result == expected
+
+
+@pytest.mark.parametrize("as_list", [False, True])
+def test_gh61943_grouper_inherits_outer_sort(as_list):
+    # GH#61943
+    df = pd.DataFrame(
+        {
+            "k": [3, 1, 2, 3, 1, 2],
+            "A": [10, 20, 30, 40, 50, 60],
+        }
+    )
+
+    grouper = pd.Grouper(key="k")
+
+    result = df.groupby(
+        [grouper] if as_list else grouper,
+        sort=False,
+    ).sum()
+
+    expected = df.groupby("k", sort=False).sum()
+
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("as_list", [False, True])
+def test_gh61943_grouper_cumsum_row_alignment(as_list):
+    # GH#61943
+    df = pd.DataFrame(
+        {
+            "k": [3, 1, 2, 3, 1, 2],
+            "A": [10, 20, 30, 40, 50, 60],
+        }
+    )
+
+    grouper = pd.Grouper(key="k", sort=True)
+
+    result = df.groupby([grouper] if as_list else grouper)["A"].cumsum()
+
+    expected = df.groupby("k")["A"].cumsum()
+
+    tm.assert_series_equal(result, expected)
+
+
+def test_gh61943_categorical_grouper_list_sort():
+    # GH#61943
+    df = pd.DataFrame(
+        {
+            "k": pd.Categorical(
+                ["b", "a", "b"],
+                categories=["a", "b", "c"],
+                ordered=True,
+            ),
+            "A": [10, 20, 30],
+        }
+    )
+
+    result = df.groupby(
+        [pd.Grouper(key="k", sort=True)],
+        sort=False,
+        observed=True,
+    ).sum()
+
+    expected = df.groupby(
+        "k",
+        sort=True,
+        observed=True,
+    ).sum()
+
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("grouper_sort", [None, True, False])
+@pytest.mark.parametrize("outer_sort", [True, False])
+@pytest.mark.parametrize("as_list", [False, True])
+@pytest.mark.parametrize("by_level", [False, True])
+def test_gh61943_grouper_sort_precedence(grouper_sort, outer_sort, as_list, by_level):
+    # GH#61943
+    df = pd.DataFrame(
+        {
+            "k": [3, 1, 2, 3, 1, 2],
+            "A": [10, 20, 30, 40, 50, 60],
+        }
+    )
+
+    expected_sort = outer_sort if grouper_sort is None else grouper_sort
+
+    if by_level:
+        df = df.set_index("k")
+        grouper = pd.Grouper(level=0, sort=grouper_sort)
+        expected = df.groupby(level=0, sort=expected_sort)
+    else:
+        grouper = pd.Grouper(key="k", sort=grouper_sort)
+        expected = df.groupby("k", sort=expected_sort)
+
+    group_keys = [grouper] if as_list else grouper
+    result = df.groupby(group_keys, sort=outer_sort)
+
+    tm.assert_frame_equal(result.sum(), expected.sum())
+    tm.assert_frame_equal(result.cumsum(), expected.cumsum())
+
+
+@pytest.mark.parametrize("ordered", [True, False])
+@pytest.mark.parametrize("observed", [True, False])
+@pytest.mark.parametrize("grouper_sort", [None, True, False])
+@pytest.mark.parametrize("outer_sort", [True, False])
+@pytest.mark.parametrize("as_list", [True, False])
+def test_gh61943_categorical_sort_precedence(
+    ordered, observed, grouper_sort, outer_sort, as_list
+):
+    # GH#61943
+    df = pd.DataFrame(
+        {
+            "k": pd.Categorical(
+                ["b", "a", "b", "a"],
+                categories=["c", "b", "a"],
+                ordered=ordered,
+            ),
+            "A": [10, 20, 30, 40],
+        }
+    )
+
+    expected_sort = outer_sort if grouper_sort is None else grouper_sort
+
+    expected = df.groupby(
+        "k",
+        sort=expected_sort,
+        observed=observed,
+    ).sum()
+
+    grouper = pd.Grouper(key="k", sort=grouper_sort)
+
+    result = df.groupby(
+        [grouper] if as_list else grouper,
+        sort=outer_sort,
+        observed=observed,
+    ).sum()
+
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("as_list", [True, False])
+def test_gh61943_grouper_positional_freq(as_list):
+    # GH#61943
+    df = pd.DataFrame({"k": [3, 1, 2], "A": [1, 2, 3]})
+    grouper = pd.Grouper("k", None, "D")
+
+    result = df.groupby([grouper] if as_list else grouper).sum()
+    expected = df.groupby("k").sum()
+
+    tm.assert_frame_equal(result, expected)
