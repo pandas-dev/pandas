@@ -4,3 +4,10 @@ option(
     value: false,
     description: 'Enable UBSan checks beyond the default `undefined` set on the hand-written C/C++ sources. Cython-generated code is excluded because its codegen would drown the results in noise. Only meaningful together with -Db_sanitize=undefined.',
 )
+
+option(
+    'install_test_data',
+    type: 'boolean',
+    value: false,
+    description: 'Install the data files under pandas/tests/**/data, so the test suite can run against the installed package without --no-strict-data-files.',
+)

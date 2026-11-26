@@ -78,7 +78,6 @@ codecov.yml export-ignore
 environment.yml export-ignore
 
 
-# GH 39321
-# csv_dir_path fixture checks the existence of the directory
-# exclude the whole directory to avoid running related tests in sdist
-pandas/tests/io/parser/data export-ignore
+# Ship test data in the sdist for downstream packagers; pandas/meson.build
+# installs it only with -Dinstall_test_data=true. See GH#54907
+pandas/tests/**/data/** -export-ignore

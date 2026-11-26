@@ -609,7 +609,7 @@ jobs:
           actions-cache-folder: emsdk-cache
 
       - name: Build pandas for Pyodide
-        run: pyodide build
+        run: pyodide build -Csetup-args=-Dinstall_test_data=true
 
       - name: Set up Pyodide virtual environment
         run: |
