@@ -225,7 +225,8 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
         -------
         length : int
         """
-        return len(self._pa_array)
+        # ObjectStringArrayMixin.__len__ precedes the base class in the MRO
+        return ArrowExtensionArray.__len__(self)
 
     @classmethod
     def _from_sequence(

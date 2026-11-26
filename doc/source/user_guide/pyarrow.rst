@@ -152,6 +152,86 @@ The following are just some examples of operations that are accelerated by nativ
    ser_dt = pd.Series([datetime(2022, 1, 1), None], dtype=pa_type)
    ser_dt.dt.strftime("%Y-%m")
 
+.. _pyarrow.deferred_take:
+
+Deferred row selection of string and binary data
+------------------------------------------------
+
+.. versionadded:: 3.2.0
+
+Selecting rows of string or binary data copies every byte of every selected
+value. In merges and filters of wide frames, that copy often dominates the
+run time, and many of the copied columns are dropped or never used afterwards.
+For PyArrow-backed string and binary data, pandas therefore defers it: the
+result records the original array and which of its rows are selected, and
+copies the values (gathers them) the first time they are needed.
+
+The result behaves exactly like one gathered right away. Deferral changes only
+when the copy happens, and so when its time and memory are spent.
+
+**Which data.** Arrays with a PyArrow ``string``, ``large_string``, ``binary``
+or ``large_binary`` type: the default ``str`` dtype, ``"string[pyarrow]"``, and
+:class:`ArrowDtype` with one of those types. All other data, including
+NumPy-backed, ``object`` and ``StringDtype("python")`` columns and other PyArrow
+types, is copied right away.
+
+**What is deferred.** Any selection of existing rows by position or by boolean
+mask. This includes:
+
+* :func:`merge` and :meth:`DataFrame.join`, for the rows that have a match
+* boolean indexing, such as ``df[mask]``, ``ser[mask]``, ``df.loc[mask]`` and
+  :meth:`DataFrame.query`
+* :meth:`DataFrame.take`, and ``iloc`` and ``loc`` with a list of positions or
+  existing labels
+* :meth:`DataFrame.reindex` to existing labels
+* methods that reorder or drop rows, such as :meth:`DataFrame.sort_values`,
+  :meth:`DataFrame.sort_index`, :meth:`DataFrame.sample`,
+  :meth:`DataFrame.nlargest`, :meth:`DataFrame.dropna` and
+  :meth:`DataFrame.drop_duplicates` (for the columns not used to find the rows)
+
+Selecting rows of a deferred result, by position, mask or slice, is also
+deferred and is combined with the earlier selection, so the values are copied
+straight from the original array, with no copy in between. A slice, such as
+``df.iloc[:10]``, copies only its own rows. Once the slices of one deferred
+result would copy more rows between them than the result has, the result is
+copied whole instead, and that slice and later ones share its memory, as
+slices of any other array do. :meth:`DataFrame.head` and :meth:`DataFrame.tail`
+return a copy, so they copy their rows right away.
+
+A selection that introduces missing values, such as the unmatched rows of a
+``"left"``, ``"right"`` or ``"outer"`` merge or :meth:`DataFrame.reindex` to new
+labels, copies right away. So does a selection of no rows.
+
+**When the values are gathered.** The first time an operation reads them. For
+example:
+
+* computations: comparisons, :meth:`Series.isna`, the ``.str`` methods,
+  :meth:`Series.unique`, and grouping by or aggregating the column
+* setting values, :func:`concat`, and :meth:`DataFrame.memory_usage` or
+  :meth:`DataFrame.info`
+* converting to other objects: :meth:`Series.to_numpy`, iteration,
+  ``pyarrow.array(ser)``, writing to a file, and pickling
+
+These operations do not gather:
+
+* the length, shape and dtype
+* selecting columns, and adding, renaming or dropping other columns
+* reading a single value, such as ``ser.iloc[0]`` or ``df.at[label, "col"]``
+* selecting rows again
+* displaying a large frame, which gathers only the rows it shows
+
+Views, such as ``df["col"]``, share the deferred selection, so they gather once
+between them and share the result. :meth:`DataFrame.copy` gathers the values
+into new memory and leaves the original object deferred.
+
+**Memory.** Until its values are gathered, a deferred result keeps the original
+array in memory, as a slice does. If you select a few rows of a large frame
+and delete the frame, its string data stays in memory until the selected
+values are gathered. Call :meth:`DataFrame.copy` on the selection to release it.
+
+**Errors.** An error raised by the gather, such as a ``MemoryError``, is raised
+by the operation that first reads the values, not by the selection.
+
 I/O Reading
 -----------
 

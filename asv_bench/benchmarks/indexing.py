@@ -270,6 +270,37 @@ class Take:
         self.s.take(self.indexer)
 
 
+class BooleanMaskStringColumns:
+    # The string values selected by a boolean mask are gathered when first
+    # used: use_columns=True uses every string column, so includes that cost.
+    params = [["str", "string[pyarrow]"], [0.01, 0.5, 0.99], [False, True]]
+    param_names = ["dtype", "selectivity", "use_columns"]
+
+    def setup(self, dtype, selectivity, use_columns):
+        N = 1_000_000
+        self.columns = [f"s{i}" for i in range(5)]
+        data = {
+            col: ("value-" + Series(np.arange(i * N, (i + 1) * N)).astype(str)).astype(
+                dtype
+            )
+            for i, col in enumerate(self.columns)
+        }
+        self.df = DataFrame({"i": np.arange(N), **data})
+        self.series = data["s0"]
+        self.mask = np.random.random(N) < selectivity
+
+    def time_frame_mask(self, dtype, selectivity, use_columns):
+        result = self.df[self.mask]
+        if use_columns:
+            for col in self.columns:
+                result[col].isna()
+
+    def time_series_mask(self, dtype, selectivity, use_columns):
+        result = self.series[self.mask]
+        if use_columns:
+            result.isna()
+
+
 class MultiIndexing:
     params = [True, False]
     param_names = ["unique_levels"]
