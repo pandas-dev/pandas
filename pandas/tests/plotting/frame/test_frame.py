@@ -947,6 +947,24 @@ class TestDataFramePlots:
 
         _check_plot_works(df.plot.scatter, x=x, y=y)
 
+    def test_plot_scatter_secondary_y(self):
+        # GH 9909
+        df = pd.DataFrame(
+            {
+                "x": [1, 2, 3],
+                "y1": [10, 20, 30],
+                "y2": [100, 200, 300],
+            }
+        )
+
+        ax = df.plot.scatter(x="x", y="y1", color="blue")
+        right_ax = df.plot.scatter(x="x", y="y2", color="red", ax=ax, secondary_y=True)
+
+        assert len(ax.figure.axes) == 2
+        assert len(ax.collections) == 1
+        assert len(right_ax.collections) == 1
+        assert right_ax is ax.right_ax
+
     @pytest.mark.parametrize("tz", [None, "US/Pacific"])
     def test_scatterplot_datetime_y_data(self, tz):
         # GH#64613 datetime y-column raised instead of plotting; the y axis

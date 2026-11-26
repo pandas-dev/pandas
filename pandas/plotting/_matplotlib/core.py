@@ -1424,7 +1424,7 @@ class ScatterPlot(PlanePlot):
     @register_pandas_matplotlib_converters
     def _make_plot(self, fig: Figure) -> None:
         x, y, c, data = self.x, self.y, self.c, self.data
-        ax = self.axes[0]
+        ax = self._get_ax(0)
 
         from pandas import Series
 
