@@ -2216,6 +2216,9 @@ def test_find_result_type_uint_int(right, result):
     [
         (0, np.int8),
         (-1, np.int8),
+        (127, np.int8),
+        (128, np.int16),
+        (255, np.int16),
         (300, np.int16),
         # For floats, we just upcast directly to float64 instead of trying to
         # find a smaller floating dtype
