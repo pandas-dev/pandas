@@ -348,6 +348,11 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         base.IndexOpsMixin._hidden_attrs | NDFrame._hidden_attrs | frozenset([])
     )
 
+    def __init_subclass__(cls, **kwargs) -> None:
+        super().__init_subclass__(**kwargs)
+        if "_name" not in cls._metadata:
+            cls._metadata = [*cls._metadata, "_name"]
+
     # similar to __array_priority__, positions Series after DataFrame
     #  but before Index and ExtensionArray.  Should NOT be overridden by subclasses.
     __pandas_priority__ = 3000
