@@ -653,8 +653,10 @@ def to_sql(
     Notes
     -----
     The returned rows affected is the sum of the ``rowcount`` attribute of ``sqlite3.Cursor``
-    or SQLAlchemy connectable. If using ADBC the returned rows are the result
-    of ``Cursor.adbc_ingest``. The returned value may not reflect the exact number of written
+    or SQLAlchemy connectable, or -1 if any of them is negative (the driver can't tell how
+    many rows were written). If using ADBC the returned rows are the result of
+    ``Cursor.adbc_ingest``, which is -1 in that case too. The returned value may not reflect
+    the exact number of written
     rows as stipulated in the
     `sqlite3 <https://docs.python.org/3/library/sqlite3.html#sqlite3.Cursor.rowcount>`__ or
     `SQLAlchemy <https://docs.sqlalchemy.org/en/14/core/connections.html#sqlalchemy.engine.BaseCursorResult.rowcount>`__

@@ -414,6 +414,7 @@ I/O
 - Bug in :meth:`DataFrame.to_latex` raising ``ValueError`` when ``columns`` is an :class:`Index`, :class:`Series` or NumPy array, and dropping a ``NaN`` label in ``columns`` (:issue:`72199`)
 - Bug in :meth:`DataFrame.to_parquet` with ``engine="pyarrow"`` where a misspelled keyword argument truncated an existing file at the destination or was reported as an error about the path (:issue:`45815`)
 - Bug in :meth:`DataFrame.to_sql` creating MySQL and MariaDB datetime and time columns that silently dropped fractional seconds (:issue:`48435`)
+- Bug in :meth:`DataFrame.to_sql` with ``chunksize`` adding up the ``-1`` row counts of drivers like duckdb that can't report how many rows were written, returning for example ``-3``; it now returns ``-1`` when the count of any chunk is unknown (:issue:`71986`)
 - Bug in :meth:`DataFrame.to_sql` with ``if_exists="append"`` or ``if_exists="delete_rows"`` writing to an existing table hanging on SQL Server while another session had uncommitted changes to an unrelated table (:issue:`52601`)
 - Bug in :meth:`DataFrame.to_sql` with ``if_exists="delete_rows"`` raising ``InvalidRequestError`` for an existing temporary table (:issue:`52601`)
 - Bug in :meth:`DataFrame.to_stata` raising ``ValueError`` for an empty DataFrame with a categorical column, and :func:`read_stata` not converting the column back to a categorical (:issue:`71126`)
