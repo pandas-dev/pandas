@@ -440,19 +440,17 @@ class XportReader(SASReader):
 
         self.filepath_or_buffer.seek(-80, 2)
         last_card_bytes = self.filepath_or_buffer.read(80)
-        last_card = np.frombuffer(last_card_bytes, dtype=np.uint64)
 
-        # 8 byte blank
-        ix = np.flatnonzero(last_card == 2314885530818453536)
-
-        if len(ix) == 0:
-            tail_pad = 0
-        else:
-            tail_pad = 8 * len(ix)
+        # Only blanks at the very end of the last card can be padding. The
+        # last record may itself end in blanks (e.g. a missing character
+        # value), so take the largest record count whose remainder is all
+        # blank. A record that is entirely blank cannot be told apart from
+        # padding.
+        tail_blanks = len(last_card_bytes) - len(last_card_bytes.rstrip(b" "))
 
         self.filepath_or_buffer.seek(self.record_start)
 
-        return (total_records_length - tail_pad) // self.record_length
+        return -(-(total_records_length - tail_blanks) // self.record_length)
 
     def get_chunk(self, size: int | None = None) -> pd.DataFrame:
         """
