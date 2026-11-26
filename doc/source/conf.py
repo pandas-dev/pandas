@@ -975,14 +975,17 @@ def remove_flags_docstring(app, what, name, obj, options, lines) -> None:
 
 
 # Examples that need local files or dependencies the browser kernel doesn't load:
-# I/O backends, matplotlib and jinja2 (imported lazily by pandas), tabulate and
-# xarray, and pyarrow (pandas records its availability at import).
+# I/O backends and PyTables, and matplotlib, jinja2, SciPy and pytest (imported
+# lazily by pandas), tabulate and xarray, and pyarrow (pandas records its
+# availability at import).
 _TRY_EXAMPLES_SKIP = re.compile(
-    r"^pandas\.(read_|HDFStore|Excel(Writer|File)|io\.|plotting\.)"
+    r"^pandas\.(read_|HDFStore|Excel(Writer|File)|io\.|plotting\.|test$)"
     r"|\.to_(csv|excel|parquet|sql|hdf|pickle|feather|orc|stata|clipboard|xml"
     r"|iceberg|latex|markdown|xarray)$"
     r"|\.plot(\.|$)|\.(hist|boxplot|style|_explode)$"
-    r"|Arrow|\.(list|struct)\."
+    r"|Arrow|\.(list|struct)\.|\.Window\.|\.sparse\.to_coo$"
+    r"|errors\.(AttributeConflictWarning|CategoricalConversionWarning"
+    r"|ClosedFileError|CSSWarning|PossibleDataLossError)$"
 )
 
 
