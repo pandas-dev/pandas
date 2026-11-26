@@ -68,6 +68,32 @@ def test_duplicated_nan_none(keep, expected):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "keep, expected",
+    [
+        ("first", [False, False, True, False]),
+        ("last", [True, False, False, False]),
+        (False, [True, False, True, False]),
+    ],
+)
+@pytest.mark.parametrize(
+    "values",
+    [
+        [["a", "b"], ["b"], ["a", "b"], ["a", "b"]],
+        [{"a", "b"}, {"b"}, {"b", "a"}, {"a", "b"}],
+        [{"a": 1}, {"b": 1}, {"a": 1}, {"a": 1}],
+    ],
+)
+def test_duplicated_unhashable(values, keep, expected):
+    # GH#12693
+    df = pd.DataFrame({"A": values, "B": [np.nan, np.nan, np.nan, 1.0]})
+    result = df.duplicated(keep=keep)
+    tm.assert_series_equal(result, pd.Series(expected))
+
+    result = df.drop_duplicates(keep=keep)
+    tm.assert_frame_equal(result, df[~np.array(expected)])
+
+
 @pytest.mark.parametrize("subset", [None, ["A", "B"], "A", []])
 def test_duplicated_subset(subset, keep):
     df = pd.DataFrame(
