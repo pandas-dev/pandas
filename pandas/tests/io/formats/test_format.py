@@ -2035,12 +2035,20 @@ def test_precision_complex_in_object_column():
     assert result == expected
 
 
+@pytest.mark.parametrize("float_format", ["%.2f", "{:.2f}"])
 @pytest.mark.parametrize("dtype", ["Float64", object])
-def test_to_string_float_format_percent_str(frame_or_series, dtype):
+def test_to_string_float_format_str(frame_or_series, dtype, float_format):
     # GH#53675
     obj = frame_or_series(pd.Series([1.234, -2.5, pd.NA], dtype=dtype))
-    result = obj.to_string(index=False, header=False, float_format="%.2f")
+    result = obj.to_string(index=False, header=False, float_format=float_format)
     assert result == " 1.23\n-2.50\n <NA>"
+
+
+def test_series_to_string_new_style_float_format():
+    # GH#53675 Series.to_string matches DataFrame.to_string for "{:.2f}"
+    ser = pd.Series([1.234, -2.5, np.nan])
+    result = ser.to_string(index=False, float_format="{:.2f}")
+    assert result == " 1.23\n-2.50\n  NaN"
 
 
 def test_to_string_callable_string_float_format(frame_or_series):

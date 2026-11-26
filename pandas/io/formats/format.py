@@ -136,6 +136,28 @@ VALID_JUSTIFY_PARAMETERS = (
 )
 
 
+def _validate_float_format(fmt: FloatFormatType | None) -> FloatFormatType | None:
+    """
+    Validates and processes the float_format argument.
+    Converts new-style format strings to callables.
+    """
+    if fmt is None or callable(fmt):
+        return fmt
+
+    if isinstance(fmt, str):
+        if "%" in fmt:
+            # Keeps old-style format strings as they are (C code handles them)
+            return fmt
+        else:
+            try:
+                _ = fmt.format(1.0)  # Test with an arbitrary float
+                return fmt.format
+            except (ValueError, KeyError, IndexError) as e:
+                raise ValueError(f"Invalid new-style format string {fmt!r}") from e
+
+    raise ValueError("float_format must be a string or callable")
+
+
 class SeriesFormatter:
     """
     Implement the main logic of Series.to_string, which underlies
@@ -168,7 +190,7 @@ class SeriesFormatter:
 
         if float_format is None:
             float_format = config["display"]["float_format"]
-        self.float_format = float_format
+        self.float_format = _validate_float_format(float_format)
         self.dtype = dtype
         self.adj = printing.get_adjustment()
 
@@ -464,7 +486,7 @@ class DataFrameFormatter:
         self.na_rep = na_rep
         self.formatters = self._initialize_formatters(formatters)
         self.justify = self._initialize_justify(justify)
-        self.float_format = self._validate_float_format(float_format)
+        self.float_format = _validate_float_format(float_format)
         self.sparsify = self._initialize_sparsify(sparsify)
         self.show_index_names = index_names
         self.decimal = decimal
@@ -875,29 +897,6 @@ class DataFrameFormatter:
         else:
             names.append(columns.name)
         return names
-
-    def _validate_float_format(
-        self, fmt: FloatFormatType | None
-    ) -> FloatFormatType | None:
-        """
-        Validates and processes the float_format argument.
-        Converts new-style format strings to callables.
-        """
-        if fmt is None or callable(fmt):
-            return fmt
-
-        if isinstance(fmt, str):
-            if "%" in fmt:
-                # Keeps old-style format strings as they are (C code handles them)
-                return fmt
-            else:
-                try:
-                    _ = fmt.format(1.0)  # Test with an arbitrary float
-                    return fmt.format
-                except (ValueError, KeyError, IndexError) as e:
-                    raise ValueError(f"Invalid new-style format string {fmt!r}") from e
-
-        raise ValueError("float_format must be a string or callable")
 
 
 class DataFrameRenderer:
