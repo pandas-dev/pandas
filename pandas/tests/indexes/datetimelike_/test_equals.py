@@ -38,6 +38,16 @@ class EqualsTests:
         other = pd.Index(list("abc"))
         assert not index.equals(other)
 
+    def test_equals_mismatched_reso(self, index):
+        # GH#55694
+        if isinstance(index, pd.PeriodIndex):
+            pytest.skip("PeriodIndex has no resolution to mismatch")
+        other = index.as_unit("s")
+        assert index.dtype != other.dtype
+        assert index.equals(other)
+        assert other.equals(index)
+        assert index._data.equals(other._data)
+
 
 class TestPeriodIndexEquals(EqualsTests):
     @pytest.fixture
