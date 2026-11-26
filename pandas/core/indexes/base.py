@@ -7508,8 +7508,8 @@ class Index(IndexOpsMixin, PandasObject):
             # If it's a reverse slice, temporarily swap bounds.
             start, end = end, start
 
-        # GH 16785: If start and end happen to be date strings with UTC offsets
-        # attempt to parse and check that the offsets are the same
+        # GH 16785: raise on a naive bound mixed with an aware one; two aware
+        # bounds may differ in tz (GH#29856)
         if isinstance(start, (str, datetime)) and isinstance(end, (str, datetime)):
             try:
                 tz_start = _slice_bound_tzinfo(start)
@@ -7517,8 +7517,10 @@ class Index(IndexOpsMixin, PandasObject):
             except (ValueError, TypeError):
                 pass
             else:
-                if not tz_compare(tz_start, tz_end):
-                    raise ValueError("Both dates must have the same UTC offset")
+                if (tz_start is None) != (tz_end is None):
+                    raise ValueError(
+                        "Both dates must be either timezone-aware or timezone-naive"
+                    )
 
         start_slice = None
         if start is not None:
@@ -8573,7 +8575,7 @@ def trim_front(strings: list[str]) -> list[str]:
 
 def _slice_bound_tzinfo(bound: str | datetime) -> tzinfo | None:
     """
-    tzinfo of a ``slice_locs`` bound, for the GH#16785 UTC-offset comparison.
+    tzinfo of a ``slice_locs`` bound, for the GH#16785 naive-vs-aware check.
 
     GH#50907: this parse is internal, so a quarterly string bound must not emit
     the deprecation -- on a :class:`DatetimeIndex` that would duplicate the one

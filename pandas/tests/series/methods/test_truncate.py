@@ -100,3 +100,15 @@ def test_truncate_datetimeindex_quarterly_string_deprecated():
     ):
         result = ser.truncate("2001Q1", "2001Q3")
     assert len(result) == 182
+
+
+def test_truncate_bounds_with_different_timezones():
+    # GH#29856 a named tz and a fixed offset with the same UTC offset
+    idx = pd.date_range("2018-12-01", "2019-03-01", freq="D", tz="Europe/Brussels")
+    ser = pd.Series(range(len(idx)), index=idx)
+    before = pd.Timestamp("20190101", tz="Europe/Brussels")
+    after = pd.Timestamp("20190201T00:00:00+01:00")
+
+    result = ser.truncate(before=before, after=after)
+    tm.assert_series_equal(result, ser.iloc[31:63])
+    tm.assert_frame_equal(ser.to_frame().truncate(before, after), result.to_frame())
