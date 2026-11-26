@@ -215,6 +215,12 @@ Reindexing / selection / label manipulation
    Series.add_suffix
    Series.filter
 
+.. autosummary::
+   :toctree: api/
+   :template: autosummary/accessor.rst
+
+   Series.ax
+
 Missing data handling
 ---------------------
 .. autosummary::

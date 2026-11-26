@@ -117,8 +117,10 @@ from pandas.core import (
     ops,
     sample,
 )
+from pandas.core.accessor import Accessor
 from pandas.core.array_algos.replace import should_use_regex
 from pandas.core.arrays import ExtensionArray
+from pandas.core.axis_accessor import AxisAccessor
 from pandas.core.base import PandasObject
 from pandas.core.col import Expression
 from pandas.core.construction import extract_array
@@ -558,6 +560,8 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
     _info_axis_number: int
     _info_axis_name: Literal["index", "columns"]
     _AXIS_LEN: int
+
+    ax = Accessor("ax", AxisAccessor)
 
     @final
     def _construct_axes_dict(
