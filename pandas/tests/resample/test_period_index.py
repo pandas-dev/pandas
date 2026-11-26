@@ -97,6 +97,23 @@ class TestPeriodIndex:
         result = frame.to_timestamp().resample("1h").asfreq(fill_value=3.0)
         tm.assert_frame_equal(result, expected)
 
+    def test_asfreq_fill_value_period(self):
+        # GH#72215 fill_value was silently ignored by PeriodIndex asfreq
+        idx = PeriodIndex(["2020-01", "2020-03"], freq="M")
+        ser = pd.Series([1.0, 2.0], index=idx)
+        result = ser.resample("M").asfreq(fill_value=0)
+        expected = pd.Series(
+            [1.0, 0.0, 2.0], index=period_range("2020-01", periods=3, freq="M")
+        )
+        tm.assert_series_equal(result, expected)
+
+        df = pd.DataFrame({"a": [1.0, 2.0]}, index=idx)
+        result = df.resample("M").asfreq(fill_value=0)
+        expected = pd.DataFrame(
+            {"a": [1.0, 0.0, 2.0]}, index=period_range("2020-01", periods=3, freq="M")
+        )
+        tm.assert_frame_equal(result, expected)
+
     @pytest.mark.parametrize("freq", ["h", "12h", "2D", "W"])
     @pytest.mark.parametrize("kwargs", [{"on": "date"}, {"level": "d"}])
     def test_selection(self, freq, kwargs):
