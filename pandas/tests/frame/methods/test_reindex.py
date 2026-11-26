@@ -25,7 +25,7 @@ class TestReindexSetIndex:
         idx1 = pd.date_range("2011/01/01", periods=6, freq="ME", tz="US/Eastern")
         idx2 = pd.date_range("2013", periods=6, freq="YE", tz="Asia/Tokyo")
 
-        df = df.set_index(idx1)
+        df = df.set_axis(idx1)
         tm.assert_index_equal(df.index, idx1)
         df = df.reindex(idx2)
         tm.assert_index_equal(df.index, idx2)
@@ -44,7 +44,7 @@ class TestReindexSetIndex:
             datetime(2015, 10, 2), datetime(2015, 10, 2, 23), freq="h", tz="US/Eastern"
         )
 
-        result = df.set_index(new_index)
+        result = df.set_axis(new_index)
         assert result.index.freq == index.freq
 
     def test_set_reset_index_intervalindex(self):

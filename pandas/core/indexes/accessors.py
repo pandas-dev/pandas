@@ -334,7 +334,7 @@ class ArrowTemporalProperties(PandasDelegate, PandasObject, NoNewAttributesMixin
 
         return (
             DataFrame(cast("ArrowExtensionArray", self._parent.array)._dt_components)
-            .set_index(self._parent.index)
+            .set_axis(self._parent.index)
             .__finalize__(self._parent)
         )
 
@@ -522,7 +522,7 @@ class DatetimeProperties(Properties):
         1    <NA>
         Name: week, dtype: UInt32
         """
-        return self._get_values().isocalendar().set_index(self._parent.index)
+        return self._get_values().isocalendar().set_axis(self._parent.index)
 
     @property
     def weekday(self) -> Series:
@@ -706,7 +706,7 @@ class TimedeltaProperties(Properties):
         """
         return (
             self._get_values()
-            .components.set_index(self._parent.index)
+            .components.set_axis(self._parent.index)
             .__finalize__(self._parent)
         )
 

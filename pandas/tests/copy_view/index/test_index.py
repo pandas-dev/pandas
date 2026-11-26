@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.tests.copy_view.util import get_array
@@ -35,7 +37,9 @@ def test_set_index_drop_update_column():
 def test_set_index_series():
     df = pd.DataFrame({"a": [1, 2], "b": 1.5})
     ser = pd.Series([10, 11])
-    df = df.set_index(ser)
+    msg = "Passing arrays"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        df = df.set_index(ser)
     expected = df.index.copy(deep=True)
     ser.iloc[0] = 100
     tm.assert_index_equal(df.index, expected)

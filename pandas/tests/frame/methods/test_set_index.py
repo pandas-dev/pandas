@@ -15,6 +15,9 @@ from pandas.errors import Pandas4Warning
 import pandas as pd
 import pandas._testing as tm
 
+# GH#58631 passing arrays as keys is deprecated
+ARRAYS_DEPR = "ignore:Passing arrays:pandas.errors.Pandas4Warning"
+
 
 @pytest.fixture
 def frame_of_index_cols():
@@ -45,6 +48,7 @@ def frame_of_index_cols():
 
 
 class TestSetIndex:
+    @pytest.mark.filterwarnings(ARRAYS_DEPR)
     def test_set_index_multiindex(self):
         # segfault in GH#3308
         d = {"t1": [2, 2.5, 3], "t2": [4, 5, 6]}
@@ -109,9 +113,9 @@ class TestSetIndex:
             "Europe/Rome"
         )
         df = pd.DataFrame({"A": idx})
-        assert df.set_index(idx).index[0].hour == 11
-        assert pd.DatetimeIndex(pd.Series(df.A))[0].hour == 11
-        assert df.set_index(df.A).index[0].hour == 11
+        assert df.set_axis(idx).index[0].hour == 11
+        assert pd.DatetimeIndex(pd.Series(df["A"]))[0].hour == 11
+        assert df.set_index("A").index[0].hour == 11
 
     def test_set_index_cast_datetimeindex(self):
         df = pd.DataFrame(
@@ -143,6 +147,7 @@ class TestSetIndex:
         exp = pd.DataFrame({"b": [3, 4, 5]}, index=exp_index)
         tm.assert_frame_equal(res, exp, check_freq=False)
 
+    @pytest.mark.filterwarnings(ARRAYS_DEPR)
     def test_set_index(self, float_string_frame):
         df = float_string_frame
         idx = pd.RangeIndex(start=29, stop=-1, step=-1)
@@ -152,6 +157,7 @@ class TestSetIndex:
         with pytest.raises(ValueError, match="Length mismatch"):
             df.set_index(idx[::2])
 
+    @pytest.mark.filterwarnings(ARRAYS_DEPR)
     def test_set_index_names(self):
         df = pd.DataFrame(
             np.ones((10, 4)),
@@ -221,6 +227,25 @@ class TestSetIndex:
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             df1.set_index("a", inplace=True)
 
+    @pytest.mark.parametrize(
+        "box",
+        [
+            pd.Series,
+            pd.Index,
+            np.array,
+            iter,
+            lambda x: [list(x)],
+            lambda x: pd.MultiIndex.from_arrays([x]),
+            lambda x: ["A", x],
+        ],
+    )
+    def test_set_index_arrays_deprecated(self, frame_of_index_cols, box):
+        # GH#58631
+        df = frame_of_index_cols
+        msg = "Passing arrays .* as 'keys' to DataFrame.set_index is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            df.set_index(box(df["B"]))
+
     # A has duplicate values, C does not
     @pytest.mark.parametrize("keys", ["A", "C", ["A", "B"], ("tuple", "as", "label")])
     @pytest.mark.parametrize("drop", [True, False])
@@ -261,6 +286,7 @@ class TestSetIndex:
         result = df2.set_index("key")
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.filterwarnings(ARRAYS_DEPR)
     # MultiIndex constructor does not work directly on Series -> lambda
     # Add list-of-list constructor because list is ambiguous -> lambda
     # also test index name if append=True (name is duplicate here for B)
@@ -305,6 +331,7 @@ class TestSetIndex:
 
             tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.filterwarnings(ARRAYS_DEPR)
     # MultiIndex constructor does not work directly on Series -> lambda
     # also test index name if append=True (name is duplicate here for A & B)
     @pytest.mark.parametrize(
@@ -336,6 +363,7 @@ class TestSetIndex:
 
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.filterwarnings(ARRAYS_DEPR)
     # MultiIndex constructor does not work directly on Series -> lambda
     # We also emulate a "constructor" for the label -> lambda
     # also test index name if append=True (name is duplicate here for A)
@@ -401,6 +429,7 @@ class TestSetIndex:
 
     @pytest.mark.parametrize("append", [True, False])
     @pytest.mark.parametrize("drop", [True, False])
+    @pytest.mark.filterwarnings(ARRAYS_DEPR)
     def test_set_index_pass_multiindex(self, frame_of_index_cols, drop, append):
         df = frame_of_index_cols
         keys = pd.MultiIndex.from_arrays([df["A"], df["B"]], names=["A", "B"])
@@ -460,6 +489,7 @@ class TestSetIndex:
             result = result.reindex(columns=df.columns)
             tm.assert_frame_equal(result, df)
 
+    @pytest.mark.filterwarnings(ARRAYS_DEPR)
     def test_set_index_datetime(self):
         # GH#3950
         df = pd.DataFrame(
@@ -542,6 +572,7 @@ class TestSetIndex:
         tm.assert_index_equal(df.index.get_level_values(1), idx2)
         tm.assert_index_equal(df.index.get_level_values(2), idx3)
 
+    @pytest.mark.filterwarnings(ARRAYS_DEPR)
     def test_set_index_period(self):
         # GH#6631
         df = pd.DataFrame(np.random.default_rng(2).random(6))
@@ -578,7 +609,7 @@ class TestSetIndexInvalid:
         # with MultiIndex
         with pytest.raises(ValueError, match="Index has duplicate keys"):
             with tm.assert_produces_warning(Pandas4Warning, match=msg):
-                df.set_index([df["A"], df["A"]], verify_integrity=True)
+                df.set_index(["A", "A"], verify_integrity=True)
 
     @pytest.mark.parametrize("append", [True, False])
     @pytest.mark.parametrize("drop", [True, False])
@@ -617,6 +648,7 @@ class TestSetIndexInvalid:
         with pytest.raises(TypeError, match=msg):
             df.set_index(["A", df["A"], box(df["A"])], drop=drop, append=append)
 
+    @pytest.mark.filterwarnings(ARRAYS_DEPR)
     # MultiIndex constructor does not work directly on Series -> lambda
     @pytest.mark.parametrize(
         "box",
@@ -749,6 +781,7 @@ class TestSetIndexCustomLabelType:
             # custom label wrapped in list
             df.set_index([thing2])
 
+    @pytest.mark.filterwarnings(ARRAYS_DEPR)
     def test_set_index_periodindex(self):
         # GH#6631
         df = pd.DataFrame(np.random.default_rng(2).random(6))
