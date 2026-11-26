@@ -270,6 +270,48 @@ def _fill_bool_ea_na(cond):
     return cond
 
 
+def _rename_multiindex_entries(
+    ax: MultiIndex, new_index: MultiIndex, mapper: Mapping[Hashable, Hashable] | Series
+) -> MultiIndex:
+    """
+    Apply mapper keys that match a full MultiIndex entry (GH#4160).
+
+    ``Index._transform_index`` maps each level separately, so a tuple key never
+    matches. Entries of ``ax`` that appear as keys in ``mapper`` replace the
+    corresponding entry of ``new_index``; all other entries are left alone.
+    """
+    tuple_keys = [
+        key
+        for key in mapper.keys()
+        if isinstance(key, tuple) and len(key) == ax.nlevels
+    ]
+    if not tuple_keys:
+        return new_index
+    # Match with get_indexer rather than looking up ``mapper[ax[pos]]``: index
+    # matching treats NaN as equal to NaN, while a dict lookup does not.
+    keys = MultiIndex.from_tuples(tuple_keys)
+    unique_keys = ~keys.duplicated(keep="last")
+    keys = keys[unique_keys]
+    tuple_keys = [key for key, keep in zip(tuple_keys, unique_keys) if keep]
+    key_positions = keys.get_indexer(ax)
+    positions = np.flatnonzero(key_positions != -1)
+    if not len(positions):
+        return new_index
+
+    entries = list(new_index)
+    for pos in positions:
+        key = tuple_keys[key_positions[pos]]
+        value = mapper[key]
+        if not isinstance(value, tuple) or len(value) != ax.nlevels:
+            raise ValueError(
+                f"Cannot rename MultiIndex entry {key!r} to {value!r}: the new "
+                f"label must be a tuple of length {ax.nlevels}. To get a flat "
+                "Index, call `to_flat_index()` on the axis before renaming."
+            )
+        entries[pos] = value
+    return MultiIndex.from_tuples(entries, names=new_index.names)
+
+
 class NDFrame(PandasObject, indexing.IndexingMixin):
     """
     N-dimensional analogue of DataFrame. Store multi-dimensional in a
@@ -1086,14 +1128,21 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                 continue
 
             ax = self._get_axis(axis_no)
-            f = common.get_rename_function(replacements)
-
             if level is not None:
                 level = ax._get_level_number(level)
 
-            if isinstance(replacements, ABCSeries) and not replacements.index.is_unique:
-                # GH#58621
-                raise ValueError("Cannot rename with a Series with non-unique index.")
+            if isinstance(replacements, ABCSeries):
+                if not replacements.index.is_unique:
+                    # GH#58621
+                    raise ValueError(
+                        "Cannot rename with a Series with non-unique index."
+                    )
+                if replacements.index._is_multi:
+                    # GH#4160: a partial key like "a" is "in" a Series with a
+                    # MultiIndex, so look up full tuples only
+                    replacements = dict(replacements.items())
+
+            f = common.get_rename_function(replacements)
 
             # GH 13473
             if not callable(replacements):
@@ -1111,6 +1160,13 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                     raise KeyError(f"{missing_labels} not found in axis")
 
             new_index = ax._transform_index(f, level=level)
+            if ax._is_multi and level is None and not callable(replacements):
+                # GH#4160: keys that are full MultiIndex tuples rename whole entries
+                new_index = _rename_multiindex_entries(
+                    cast("MultiIndex", ax),
+                    cast("MultiIndex", new_index),
+                    replacements,
+                )
             result._set_axis_nocheck(new_index, axis=axis_no, inplace=True)
 
         if inplace:
