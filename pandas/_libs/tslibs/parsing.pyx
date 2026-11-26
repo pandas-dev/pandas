@@ -41,7 +41,11 @@ from dateutil.tz import tzoffset
 from pandas._config import get_option
 
 from pandas._libs.portable cimport getdigit_ascii
-from pandas._libs.tslibs.ccalendar cimport MONTH_TO_CAL_NUM
+from pandas._libs.tslibs.ccalendar cimport (
+    MONTH_TO_CAL_NUM,
+    dayofweek,
+    get_days_in_month,
+)
 from pandas._libs.tslibs.dtypes cimport (
     attrname_to_npy_unit,
     npy_unit_to_attrname,
@@ -126,7 +130,10 @@ cdef int _parse_4digit(const char* s):
 
 
 cdef datetime _parse_delimited_date(
-    str date_string, bint dayfirst, NPY_DATETIMEUNIT* out_bestunit
+    str date_string,
+    bint dayfirst,
+    NPY_DATETIMEUNIT* out_bestunit,
+    DeprecatedParse* out_deprecated,
 ):
     """
     Parse special cases of dates: MM/DD/YYYY, DD/MM/YYYY, MM/YYYY.
@@ -147,6 +154,8 @@ cdef datetime _parse_delimited_date(
     dayfirst : bool
     out_bestunit : NPY_DATETIMEUNIT*
         For specifying identified resolution.
+    out_deprecated : DeprecatedParse*
+        Set to CONTRADICTS_DAYFIRST if the day/month order goes against dayfirst.
 
     Returns:
     --------
@@ -156,7 +165,7 @@ cdef datetime _parse_delimited_date(
         const char* buf
         Py_ssize_t length
         int day = 1, month = 1, year
-        bint can_swap = 0
+        bint can_swap = 0, read_dayfirst
 
     buf = PyUnicode_AsUTF8AndSize(date_string, &length)
     if length == 10 and _is_delimiter(buf[2]) and _is_delimiter(buf[5]):
@@ -206,8 +215,12 @@ cdef datetime _parse_delimited_date(
 
     if 1 <= month <= MAX_DAYS_IN_MONTH and 1 <= day <= MAX_DAYS_IN_MONTH \
             and (month <= MAX_MONTH or day <= MAX_MONTH):
-        if (month > MAX_MONTH or (day <= MAX_MONTH and dayfirst)) and can_swap:
-            day, month = month, day
+        if can_swap:
+            read_dayfirst = month > MAX_MONTH or (day <= MAX_MONTH and dayfirst)
+            if read_dayfirst != dayfirst:
+                out_deprecated[0] = CONTRADICTS_DAYFIRST
+            if read_dayfirst:
+                day, month = month, day
         # In Python <= 3.6.0 there is no range checking for invalid dates
         # in C api, thus we call faster C version for 3.6.1 or newer
         return datetime_new(year, month, day, 0, 0, 0, 0, None)
@@ -248,6 +261,381 @@ cdef bint _does_string_look_like_time(str parse_string):
     return 0 <= hour <= 23 and 0 <= minute <= 59
 
 
+# ----------------------------------------------------------------------
+# Common formats parsed without dateutil
+
+cdef dict _month_numbers = {
+    name.lower(): num
+    for num, names in enumerate(DEFAULTPARSER.info.MONTHS, start=1)
+    for name in names
+}
+# longest first, to avoid backtracking from "Jan" to "January"
+cdef str _month_names = "|".join(sorted(_month_numbers, key=len, reverse=True))
+cdef str _weekday_names = "|".join(sorted(
+    {name.lower() for names in DEFAULTPARSER.info.WEEKDAYS for name in names},
+    key=len,
+    reverse=True,
+))
+cdef dict _weekday_numbers = {
+    name.lower(): num
+    for num, names in enumerate(DEFAULTPARSER.info.WEEKDAYS)
+    for name in names
+}
+cdef str _weekday = rf"(?:(?P<weekday>{_weekday_names})(?:\ *,\ *|\ +))?"
+cdef str _time = (
+    r"(?P<hour>\d{1,2}):(?P<minute>\d{2})"
+    r"(?::(?P<second>\d{2})(?:[.,](?P<fraction>\d+))?)?"
+)
+cdef object _flags = re.VERBOSE | re.IGNORECASE | re.ASCII
+
+cdef enum DateKind:
+    MONTH_NAME   # groups: month_name, day, [suffix], year
+    NUMERIC      # groups: first, second, year; day/month order as in dateutil
+    YEAR_FIRST   # groups: year, month, day
+    COMPACT      # YYYYMMDD[HHMM[SS]] or YYYYMMDD HH[MM[SS]]
+    YEAR_MONTH   # groups: year, month or month2, year2
+    CTIME        # groups: month_name, day, year and the time
+
+
+cdef list _day_month_patterns(str year):
+    return [
+        (MONTH_NAME, re.compile(
+            rf"""\ *{_weekday}
+            (?P<month_name>{_month_names})\ +(?P<day>\d{{1,2}})(?P<suffix>[a-z]{{2}})?
+            ,?\ +(?P<year>{year})  # dateutil reads "13,2020" as a decimal
+            """,
+            _flags,
+        )),
+        (MONTH_NAME, re.compile(
+            rf"""\ *{_weekday}
+            (?P<day>\d{{1,2}})(?P<suffix>[a-z]{{2}})?\ +(?P<month_name>{_month_names})
+            ,?\ +(?P<year>{year})
+            """,
+            _flags,
+        )),
+        (MONTH_NAME, re.compile(
+            rf"""\ *(?P<day>\d{{1,2}})(?P<sep>[-/.])(?P<month_name>{_month_names})
+            (?P=sep)(?P<year>{year})
+            """,
+            _flags,
+        )),
+        (NUMERIC, re.compile(
+            rf"""\ *(?P<first>\d{{1,2}})(?P<sep>[-/.])(?P<second>\d{{1,2}})
+            (?P=sep)(?P<year>{year})
+            """,
+            _flags,
+        )),
+    ]
+
+
+# Each is tried in turn at the start of the string; all but COMPACT, YEAR_MONTH
+# and CTIME may be followed by _time_tail_pattern.
+cdef list _date_patterns = _day_month_patterns(r"\d{4}") + [
+    (YEAR_FIRST, re.compile(
+        r"\ *(?P<year>\d{4})(?P<sep>[-/.])(?P<month>\d{1,2})"
+        r"(?P=sep)(?P<day>\d{1,2})",
+        _flags,
+    )),
+    (COMPACT, re.compile(
+        r"""\ *(?P<year>\d{4})(?P<month>\d{2})(?P<day>\d{2})
+        (?:(?P<joined_time>\d{4}(?:\d{2})?)|\ +(?P<spaced_time>\d{2}(?:\d{2}){0,2}))?
+        \ *\Z
+        """,
+        _flags,
+    )),
+    (YEAR_MONTH, re.compile(
+        r"""\ *(?:(?P<year>\d{4})[\ /](?P<month>\d{1,2})
+        |(?P<month2>\d{1,2})[-\ /](?P<year2>\d{4}))\ *\Z
+        """,
+        _flags,
+    )),
+    (CTIME, re.compile(
+        rf"""\ *{_weekday}
+        (?P<month_name>{_month_names})\ +(?P<day>\d{{1,2}})
+        \ +{_time}\ +(?P<year>\d{{4}})\ *\Z
+        """,
+        _flags,
+    )),
+]
+cdef object _time_tail_pattern = re.compile(
+    rf"""
+    (?:
+        (?:\ +|(?-i:T)){_time}
+        (?:\ *(?P<ampm>am|pm)\b)?
+        (?:
+            \ *(?P<sign>[+-])(?P<offset_hour>\d{{2}}):?(?P<offset_minute>\d{{2}})
+          | \ +(?-i:(?P<utc>UTC|GMT|Z|z))
+        )?
+    )?
+    \ *\Z
+    """,
+    _flags,
+)
+
+
+cdef str _ordinal_suffix(int day):
+    if 10 <= day <= 20 or day % 10 == 0 or day % 10 > 3:
+        return "th"
+    return ("st", "nd", "rd")[day % 10 - 1]
+
+
+cdef datetime _parse_without_dateutil(
+    str date_string,
+    bint dayfirst,
+    NPY_DATETIMEUNIT* out_bestunit,
+    int64_t* nanos,
+    DeprecatedParse* out_deprecated,
+):
+    """
+    Parse common non-ISO formats without going through dateutil.
+
+    Handles month names ("Tue, Jan 5, 2020", "05-Jan-2020 10:00 PM"), numeric
+    dates with a 4-digit year ("1/5/2020 09:30", "2020/01/05 10:00:00 +0000"),
+    compact digits ("20200105 1230", "202001051230"), "2020 1" and ctime
+    ("Thu Sep 25 10:36:28 2003"), giving the same result as dateutil_parse.
+
+    Returns None for anything else, and the caller falls back to dateutil_parse,
+    so this must only accept strings that dateutil parses the same way. A
+    weekday that contradicts the date is declined too, so it reaches the
+    deprecation warning.
+    """
+    cdef:
+        DateKind kind
+        DeprecatedParse deprecated = NO_DEPRECATION
+        int year, month, day, first, second_field
+        int hour = 0, minute = 0, second = 0, microsecond = 0, offset_seconds
+        bint has_seconds = False
+        str suffix, weekday, digits, fraction, ampm, reso
+        object match = None, time_match = None, tz = None
+
+    for kind, pattern in _date_patterns:
+        match = pattern.match(date_string)
+        if match is None:
+            continue
+        if kind == COMPACT or kind == YEAR_MONTH or kind == CTIME:
+            break
+        time_match = _time_tail_pattern.match(date_string, match.end())
+        if time_match is not None:
+            break
+    else:
+        return None
+
+    if kind == MONTH_NAME or kind == CTIME:
+        month = _month_numbers[match["month_name"].lower()]
+        day = int(match["day"])
+        year = int(match["year"])
+        suffix = match.groupdict().get("suffix")
+        if suffix is not None and suffix.lower() != _ordinal_suffix(day):
+            return None
+    elif kind == NUMERIC:
+        first, second_field = int(match["first"]), int(match["second"])
+        year = int(match["year"])
+        if first > 31:
+            return None
+        if first > 12 or (dayfirst and second_field <= 12):
+            day, month = first, second_field
+            if not dayfirst:
+                deprecated = CONTRADICTS_DAYFIRST
+        else:
+            month, day = first, second_field
+            if dayfirst:
+                deprecated = CONTRADICTS_DAYFIRST
+    elif kind == YEAR_MONTH:
+        year = int(match["year"] or match["year2"])
+        month = int(match["month"] or match["month2"])
+        day = 1
+    else:
+        # YEAR_FIRST or COMPACT
+        year = int(match["year"])
+        month = int(match["month"])
+        day = int(match["day"])
+        if dayfirst and day <= 12:
+            # dateutil reads these as year-day-month
+            return None
+
+    if year < 100:
+        # dateutil applies its two-digit-year rules to e.g. "0001"
+        return None
+    if not 1 <= month <= 12 or not 1 <= day <= get_days_in_month(year, month):
+        return None
+    weekday = match.groupdict().get("weekday")
+    if weekday is not None and (
+        _weekday_numbers[weekday.lower()] != dayofweek(year, month, day)
+    ):
+        return None
+
+    if kind == YEAR_MONTH:
+        out_bestunit[0] = NPY_DATETIMEUNIT.NPY_FR_M
+        return datetime_new(year, month, day, 0, 0, 0, 0, None)
+
+    if kind == COMPACT:
+        digits = match["joined_time"] or match["spaced_time"]
+        if digits is None:
+            out_bestunit[0] = NPY_DATETIMEUNIT.NPY_FR_D
+            return datetime_new(year, month, day, 0, 0, 0, 0, None)
+        hour = int(digits[:2])
+        if len(digits) >= 4:
+            minute = int(digits[2:4])
+        if len(digits) == 6:
+            second = int(digits[4:])
+        if hour > 23 or minute > 59 or second > 59:
+            return None
+        out_bestunit[0] = (
+            NPY_DATETIMEUNIT.NPY_FR_h if len(digits) == 2
+            else NPY_DATETIMEUNIT.NPY_FR_m if len(digits) == 4
+            else NPY_DATETIMEUNIT.NPY_FR_s
+        )
+        return datetime_new(year, month, day, hour, minute, second, 0, None)
+
+    if kind != CTIME:
+        match = time_match
+    if match["hour"] is None:
+        out_bestunit[0] = NPY_DATETIMEUNIT.NPY_FR_D
+        out_deprecated[0] = deprecated
+        return datetime_new(year, month, day, 0, 0, 0, 0, None)
+
+    hour = int(match["hour"])
+    minute = int(match["minute"])
+    if match["second"] is not None:
+        has_seconds = True
+        second = int(match["second"])
+    fraction = match["fraction"]
+    if fraction is not None:
+        # like dateutil, keep the first 6 digits as microseconds
+        microsecond = int(fraction[:6].ljust(6, "0"))
+    if hour > 23 or minute > 59 or second > 59:
+        return None
+
+    if kind != CTIME:
+        ampm = match["ampm"]
+        if ampm is not None:
+            if not 1 <= hour <= 12:
+                return None
+            ampm = ampm.lower()
+            if ampm == "pm" and hour < 12:
+                hour += 12
+            elif ampm == "am" and hour == 12:
+                hour = 0
+
+        if match["sign"] is not None:
+            if int(match["offset_hour"]) > 23 or int(match["offset_minute"]) > 59:
+                return None
+            offset_seconds = (
+                int(match["offset_hour"]) * 3600 + int(match["offset_minute"]) * 60
+            )
+            if match["sign"] == "-":
+                offset_seconds = -offset_seconds
+            if offset_seconds == 0:
+                tz = timezone.utc
+            else:
+                tz = tzoffset(None, offset_seconds)
+        elif match["utc"] is not None:
+            tz = timezone.utc
+
+    if not has_seconds:
+        out_bestunit[0] = NPY_DATETIMEUNIT.NPY_FR_m
+    elif microsecond % 1000 == 0:
+        # dateutil_parse refines the resolution from the string in this case
+        reso = _find_subsecond_reso(date_string, nanos=nanos)
+        out_bestunit[0] = attrname_to_npy_unit[reso]
+    else:
+        out_bestunit[0] = NPY_DATETIMEUNIT.NPY_FR_us
+    out_deprecated[0] = deprecated
+    return datetime_new(year, month, day, hour, minute, second, microsecond, tz)
+
+
+# ----------------------------------------------------------------------
+# Deprecated parsing, GH#65381
+
+# Formats still under discussion in GH#65381; until it is settled they keep
+#  parsing through dateutil without a warning.
+cdef list _two_digit_year_patterns = _day_month_patterns(r"\d{2}")
+cdef object _comma_before_year = re.compile(r"(?<=[0-9a-z]),(?=\d{4}\b)", re.I)
+cdef object _of_word = re.compile(r"\ +of\ +", re.IGNORECASE)
+cdef object _dotted_ampm = re.compile(r"\b([ap])\.m\.", re.IGNORECASE)
+
+cdef object _year_first_date = re.compile(r"\ *\d{4}([-/.]?)(\d{1,2})\1(\d{1,2})")
+
+
+cdef DeprecatedParse _classify_fallback(
+    str date_string, bint dayfirst, datetime parsed
+):
+    """
+    Which deprecation applies to `date_string`, which only dateutil parsed.
+    """
+    cdef:
+        NPY_DATETIMEUNIT out_bestunit
+        DeprecatedParse deprecated = NO_DEPRECATION
+        str respelled
+        object match
+
+    if dayfirst:
+        match = _year_first_date.match(date_string)
+        if (
+            match is not None
+            and int(match[2]) != int(match[3])
+            and parsed.month == int(match[3])
+            and parsed.day == int(match[2])
+        ):
+            return YEAR_DAY_MONTH
+
+    for _, pattern in _two_digit_year_patterns:
+        match = pattern.match(date_string)
+        if match is not None and _time_tail_pattern.match(date_string, match.end()):
+            return NO_DEPRECATION
+
+    respelled = _comma_before_year.sub(", ", date_string)
+    respelled = _of_word.sub(" ", respelled)
+    respelled = _dotted_ampm.sub(r"\1m", respelled)
+    if respelled != date_string and _parse_without_dateutil(
+        respelled, dayfirst, &out_bestunit, NULL, &deprecated
+    ) is not None:
+        return deprecated
+
+    return DATEUTIL_ONLY
+
+
+cdef void warn_parse_deprecated(
+    str date_string, DeprecatedParse kind, bint dayfirst, bint* warned
+):
+    """
+    Warn that `date_string` was parsed in a deprecated way.
+
+    `warned` lets array callers warn once per call; NULL means warn.
+    """
+    cdef str msg
+
+    if kind == NO_DEPRECATION or (warned != NULL and warned[0]):
+        return
+
+    from pandas.errors import Pandas4Warning
+
+    if kind == CONTRADICTS_DAYFIRST:
+        msg = (
+            f"Parsing '{date_string}' as "
+            f"{'month-first' if dayfirst else 'day-first'} when "
+            f"dayfirst={bool(dayfirst)} is deprecated and will raise in a future "
+            f"version. Pass dayfirst={not dayfirst} or an explicit `format` to "
+            "`to_datetime` instead."
+        )
+    elif kind == YEAR_DAY_MONTH:
+        msg = (
+            f"Parsing '{date_string}' as year-day-month because dayfirst=True is "
+            "deprecated. In a future version, a string starting with a 4-digit "
+            "year will be read as year-month-day regardless of `dayfirst`. Pass "
+            "an explicit `format` to `to_datetime` to keep the current behavior."
+        )
+    else:
+        msg = (
+            f"Parsing '{date_string}' relies on dateutil, which is deprecated and "
+            "will raise in a future version. Use an ISO 8601 string, or pass an "
+            "explicit `format` to `to_datetime`, instead."
+        )
+    warnings.warn(msg, Pandas4Warning, stacklevel=find_stack_level())
+    if warned != NULL:
+        warned[0] = 1
+
+
 def py_parse_datetime_string(
     str date_string, bint dayfirst=False, bint yearfirst=False
 ):
@@ -256,10 +644,15 @@ def py_parse_datetime_string(
     cdef:
         NPY_DATETIMEUNIT out_bestunit
         int64_t nanos
+        DeprecatedParse deprecated = NO_DEPRECATION
+        datetime dt
 
-    return parse_datetime_string(
-        date_string, dayfirst, yearfirst, &out_bestunit, &nanos
+    dt = parse_datetime_string(
+        date_string, dayfirst, yearfirst, &out_bestunit, &nanos,
+        out_is_quarter=NULL, out_deprecated=&deprecated,
     )
+    warn_parse_deprecated(date_string, deprecated, dayfirst, NULL)
+    return dt
 
 
 cdef datetime parse_datetime_string(
@@ -272,10 +665,14 @@ cdef datetime parse_datetime_string(
     NPY_DATETIMEUNIT* out_bestunit,
     int64_t* nanos,
     bint* out_is_quarter=NULL,
+    DeprecatedParse* out_deprecated=NULL,
 ):
     """
     Parse datetime string, only returns datetime.
     Also cares special handling matching time patterns.
+
+    out_deprecated is set when the string is parsed in a deprecated way, for
+    the caller to warn about.
 
     Returns
     -------
@@ -289,6 +686,7 @@ cdef datetime parse_datetime_string(
     cdef:
         datetime dt
         bint is_quarter = 0
+        DeprecatedParse deprecated = NO_DEPRECATION
 
     if not _does_string_look_like_datetime(date_string):
         raise ValueError(f'Given date string "{date_string}" not likely a datetime')
@@ -300,10 +698,18 @@ cdef datetime parse_datetime_string(
         dt = dateutil_parse(date_string, default=default,
                             dayfirst=dayfirst, yearfirst=yearfirst,
                             ignoretz=False, out_bestunit=out_bestunit, nanos=nanos)
+        if out_deprecated != NULL:
+            out_deprecated[0] = DATEUTIL_ONLY
         return dt
 
-    dt = _parse_delimited_date(date_string, dayfirst, out_bestunit)
+    dt = _parse_delimited_date(date_string, dayfirst, out_bestunit, &deprecated)
+    if dt is None:
+        dt = _parse_without_dateutil(
+            date_string, dayfirst, out_bestunit, nanos, &deprecated
+        )
     if dt is not None:
+        if out_deprecated != NULL:
+            out_deprecated[0] = deprecated
         return dt
 
     try:
@@ -329,6 +735,8 @@ cdef datetime parse_datetime_string(
     dt = dateutil_parse(date_string, default=_DEFAULT_DATETIME,
                         dayfirst=dayfirst, yearfirst=yearfirst,
                         ignoretz=False, out_bestunit=out_bestunit, nanos=nanos)
+    if out_deprecated != NULL:
+        out_deprecated[0] = _classify_fallback(date_string, dayfirst, dt)
     return dt
 
 
@@ -383,6 +791,7 @@ def parse_datetime_string_with_reso(
         int out_tzoffset
         tzinfo tz
         bint is_quarter = 0
+        DeprecatedParse deprecated = NO_DEPRECATION
 
     if not _does_string_look_like_datetime(date_string):
         raise ValueError(f'Given date string "{date_string}" not likely a datetime')
@@ -416,8 +825,13 @@ def parse_datetime_string_with_reso(
             reso = npy_unit_to_attrname[out_bestunit]
             return parsed, reso
 
-    parsed = _parse_delimited_date(date_string, dayfirst, &out_bestunit)
+    parsed = _parse_delimited_date(date_string, dayfirst, &out_bestunit, &deprecated)
+    if parsed is None:
+        parsed = _parse_without_dateutil(
+            date_string, dayfirst, &out_bestunit, NULL, &deprecated
+        )
     if parsed is not None:
+        warn_parse_deprecated(date_string, deprecated, dayfirst, NULL)
         reso = npy_unit_to_attrname[out_bestunit]
         return parsed, reso
 
@@ -450,6 +864,8 @@ def parse_datetime_string_with_reso(
     parsed = dateutil_parse(date_string, _DEFAULT_DATETIME,
                             dayfirst=dayfirst, yearfirst=yearfirst,
                             ignoretz=False, out_bestunit=&out_bestunit, nanos=NULL)
+    deprecated = _classify_fallback(date_string, dayfirst, parsed)
+    warn_parse_deprecated(date_string, deprecated, dayfirst, NULL)
     reso = npy_unit_to_attrname[out_bestunit]
     return parsed, reso
 
@@ -1039,6 +1455,59 @@ def guess_datetime_format(dt_str: str, bint dayfirst=False) -> str | None:
 
     >>> guess_datetime_format('2023|September|13')
     """
+    return _guess_datetime_format(dt_str, dayfirst, warn_dayfirst=True)
+
+
+def guess_datetime_format_for_parsing(str dt_str, bint dayfirst=False):
+    """
+    guess_datetime_format for to_datetime's format inference.
+
+    Warns if parsing `dt_str` is deprecated, so that an array parsed with the
+    guessed format warns exactly when parsing its first element alone would.
+    """
+    cdef:
+        str guessed = _guess_datetime_format(dt_str, dayfirst, warn_dayfirst=False)
+        DeprecatedParse deprecated
+
+    if guessed is None:
+        # the elements are parsed one at a time, which warns
+        return None
+    deprecated = _deprecated_parse_kind(dt_str, dayfirst)
+    if deprecated == NO_DEPRECATION:
+        _maybe_warn_about_dayfirst(guessed, dayfirst)
+    else:
+        # covers the dayfirst warning
+        warn_parse_deprecated(dt_str, deprecated, dayfirst, NULL)
+    return guessed
+
+
+cdef DeprecatedParse _deprecated_parse_kind(str date_string, bint dayfirst):
+    """
+    Whether parsing `date_string` as a scalar would warn, see
+    convert_str_to_tsobject.
+    """
+    cdef:
+        npy_datetimestruct dts
+        NPY_DATETIMEUNIT out_bestunit
+        int out_local = 0, out_tzoffset = 0
+        int64_t nanos = 0
+        DeprecatedParse deprecated = NO_DEPRECATION
+
+    if not dayfirst and not string_to_dts(
+        date_string, &dts, &out_bestunit, &out_local, &out_tzoffset, False
+    ):
+        return NO_DEPRECATION
+    try:
+        parse_datetime_string(
+            date_string, dayfirst, False, &out_bestunit, &nanos,
+            out_is_quarter=NULL, out_deprecated=&deprecated,
+        )
+    except (ValueError, OverflowError):
+        return NO_DEPRECATION
+    return deprecated
+
+
+cdef str _guess_datetime_format(str dt_str, bint dayfirst, bint warn_dayfirst):
     cdef:
         NPY_DATETIMEUNIT out_bestunit
     day_attribute_and_format = (("day",), "%d", 2)
@@ -1199,7 +1668,8 @@ def guess_datetime_format(dt_str: str, bint dayfirst=False) -> str | None:
     # rebuild string, capturing any inferred padding
     dt_str = "".join(tokens)
     if parsed_datetime.strftime(guessed_format) == dt_str:
-        _maybe_warn_about_dayfirst(guessed_format, dayfirst)
+        if warn_dayfirst:
+            _maybe_warn_about_dayfirst(guessed_format, dayfirst)
         return guessed_format
     else:
         return None

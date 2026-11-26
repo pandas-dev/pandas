@@ -79,7 +79,10 @@ from pandas._libs.tslibs.nattype cimport (
     c_nat_strings as nat_strings,
 )
 from pandas._libs.tslibs.parsing cimport (
+    NO_DEPRECATION,
+    DeprecatedParse,
     parse_datetime_string,
+    warn_parse_deprecated,
     warn_quarter_deprecated,
 )
 from pandas._libs.tslibs.timestamps cimport _Timestamp
@@ -488,7 +491,8 @@ cdef class _TSObject:
 
 cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
                                    bint dayfirst, bint yearfirst, int32_t nanos=0,
-                                   bint* warned_quarter=NULL, str out_unit=None):
+                                   bint* warned_quarter=NULL, str out_unit=None,
+                                   bint* warned_format=NULL):
     """
     Extract datetime and int64 from any of:
         - np.int64 (with unit providing a possible modifier)
@@ -515,7 +519,8 @@ cdef _TSObject convert_to_tsobject(object ts, tzinfo tz, str unit,
             # GH#48974 np.str_ object
             ts = str(ts)
         return convert_str_to_tsobject(
-            ts, tz, dayfirst, yearfirst, warned_quarter=warned_quarter
+            ts, tz, dayfirst, yearfirst, warned_quarter=warned_quarter,
+            warned_format=warned_format,
         )
 
     if checknull_with_nat_and_na(ts):
@@ -735,7 +740,8 @@ cdef _adjust_tsobject_tz_using_offset(_TSObject obj, tzinfo tz):
 cdef _TSObject convert_str_to_tsobject(str ts, tzinfo tz,
                                        bint dayfirst=False,
                                        bint yearfirst=False,
-                                       bint* warned_quarter=NULL):
+                                       bint* warned_quarter=NULL,
+                                       bint* warned_format=NULL):
     """
     Convert a string input `ts`, along with optional timezone object`tz`
     to a _TSObject.
@@ -759,6 +765,8 @@ cdef _TSObject convert_str_to_tsobject(str ts, tzinfo tz,
         Tracks whether the quarterly-string deprecation has already been
         emitted, so that array callers warn once per call instead of once
         per element. NULL means "warn unconditionally".
+    warned_format : bint*, default NULL
+        The same for the deprecated parsing of e.g. "13/1/2000" (GH#65381).
 
     Returns
     -------
@@ -772,6 +780,7 @@ cdef _TSObject convert_str_to_tsobject(str ts, tzinfo tz,
         NPY_DATETIMEUNIT out_bestunit, reso
         _TSObject obj
         bint is_quarter = 0
+        DeprecatedParse deprecated = NO_DEPRECATION
 
     if len(ts) == 0 or ts in nat_strings:
         obj = _TSObject()
@@ -843,6 +852,7 @@ cdef _TSObject convert_str_to_tsobject(str ts, tzinfo tz,
             out_bestunit=&out_bestunit,
             nanos=&nanos,
             out_is_quarter=&is_quarter,
+            out_deprecated=&deprecated,
         )
         if is_quarter and (warned_quarter == NULL or not warned_quarter[0]):
             # GH#50907; this path has no freq, so the quarter is calendar-anchored
@@ -854,6 +864,7 @@ cdef _TSObject convert_str_to_tsobject(str ts, tzinfo tz,
             reso = NPY_FR_us
         obj = convert_datetime_to_tsobject(dt, tz, nanos=nanos, reso=reso)
         obj.parsed_by_dateutil = True
+        warn_parse_deprecated(ts, deprecated, dayfirst, warned_format)
         return obj
 
 
@@ -966,7 +977,7 @@ cdef datetime _localize_pydatetime(datetime dt, tzinfo tz):
         return dt.replace(tzinfo=tz)
 
 
-cpdef inline datetime localize_pydatetime(datetime dt, tzinfo tz):
+cpdef datetime localize_pydatetime(datetime dt, tzinfo tz):
     """
     Take a datetime/Timestamp in UTC and localizes to timezone tz.
 

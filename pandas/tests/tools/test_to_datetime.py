@@ -293,7 +293,8 @@ class TestTimeConversionFormats:
 
     def test_to_datetime_with_NA_with_warning(self):
         # GH#42957
-        result = pd.to_datetime(["201010", pd.NA])
+        with tm.assert_produces_warning(Pandas4Warning, match="relies on dateutil"):
+            result = pd.to_datetime(["201010", pd.NA])
         expected = pd.DatetimeIndex(["2010-10-20", "NaT"])
         tm.assert_index_equal(result, expected)
 
@@ -1601,7 +1602,10 @@ class TestToDatetime:
             datetimelikes,
             dtype="object",
         )
-        result_series = pd.to_datetime(ser, errors="coerce")
+        # GH#65381 "2012 July 26" is only parsed by dateutil
+        warning = Pandas4Warning if "2012 July 26" in datetimelikes else None
+        with tm.assert_produces_warning(warning, match="relies on dateutil"):
+            result_series = pd.to_datetime(ser, errors="coerce")
         expected_series = pd.Series(
             expected_values,
             dtype=f"datetime64[{exp_unit}]",
@@ -3333,10 +3337,6 @@ class TestToDatetimeMisc:
 
     def test_dayfirst_warnings_valid_input(self):
         # GH 12585
-        warning_msg = (
-            "Parsing dates in .* format when dayfirst=.* was specified. "
-            "Pass `dayfirst=.*` or specify a format to silence this warning."
-        )
 
         # CASE 1: valid input
         arr = ["31/12/2014", "10/03/2011"]
@@ -3349,7 +3349,8 @@ class TestToDatetimeMisc:
         tm.assert_index_equal(expected, res1)
 
         # B. dayfirst arg incorrect, warning
-        with tm.assert_produces_warning(UserWarning, match=warning_msg):
+        # GH#65381 the deprecation replaces the UserWarning
+        with tm.assert_produces_warning(Pandas4Warning, match="as day-first"):
             res2 = pd.to_datetime(arr, dayfirst=False)
         tm.assert_index_equal(expected, res2)
 
@@ -3443,7 +3444,9 @@ class TestToDatetimeInferFormat:
     def test_to_datetime_consistent_format(self, cache):
         data = ["Jan/01/2011", "Feb/01/2011", "Mar/01/2011"]
         ser = pd.Series(np.array(data))
-        result = pd.to_datetime(ser, cache=cache)
+        # GH#65381 the format is inferred from a string only dateutil parses
+        with tm.assert_produces_warning(Pandas4Warning, match="relies on dateutil"):
+            result = pd.to_datetime(ser, cache=cache)
         expected = pd.Series(
             ["2011-01-01", "2011-02-01", "2011-03-01"], dtype="datetime64[us]"
         )
@@ -3490,7 +3493,10 @@ class TestToDatetimeInferFormat:
     def test_infer_datetime_format_tz_name(self, tz_name, offset):
         # GH 33133
         ser = pd.Series([f"2019-02-02 08:07:13 {tz_name}"])
-        result = pd.to_datetime(ser)
+        # GH#65381 only dateutil parses "UTC-3"
+        warning = Pandas4Warning if len(tz_name) > 3 else None
+        with tm.assert_produces_warning(warning, match="relies on dateutil"):
+            result = pd.to_datetime(ser)
         tz = timezone(timedelta(minutes=offset))
         expected = pd.Series([pd.Timestamp("2019-02-02 08:07:13").tz_localize(tz)])
         tm.assert_series_equal(result, expected)
@@ -3656,6 +3662,10 @@ class TestDatetimeParsingWrappers:
         is_quarter = "Q" in date_str.upper()
         warn = Pandas4Warning if is_quarter else None
         msg = "quarterly string is deprecated" if is_quarter else ""
+        if date_str in ["200511", "20051109 08H", "2005-11-09 08H", "2005/11/09 08H"]:
+            # GH#65381
+            warn = Pandas4Warning
+            msg = "relies on dateutil"
 
         with tm.assert_produces_warning(warn, match=msg):
             result1, reso_attrname = parsing.parse_datetime_string_with_reso(
@@ -3677,7 +3687,7 @@ class TestDatetimeParsingWrappers:
                 cache=cache,
             )
         depr_msg = "keyword in DatetimeIndex is deprecated"
-        if is_quarter:
+        if warn is not None:
             depr_msg = f"{depr_msg}|{msg}"
         with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
             result6 = pd.DatetimeIndex([date_str], yearfirst=yearfirst)
@@ -3785,20 +3795,27 @@ class TestDatetimeParsingWrappers:
         dateutil_result = parse(date_str, dayfirst=dayfirst, yearfirst=yearfirst)
         assert dateutil_result == expected
 
-        result1, _ = parsing.parse_datetime_string_with_reso(
-            date_str, dayfirst=dayfirst, yearfirst=yearfirst
-        )
+        # GH#65381
+        warn = Pandas4Warning if date_str == "20201012" else None
+        msg = "as year-day-month"
+        with tm.assert_produces_warning(warn, match=msg):
+            result1, _ = parsing.parse_datetime_string_with_reso(
+                date_str, dayfirst=dayfirst, yearfirst=yearfirst
+            )
 
         # we don't support dayfirst/yearfirst here:
         if not dayfirst and not yearfirst:
             result2 = pd.Timestamp(date_str)
             assert result2 == expected
 
-        result3 = pd.to_datetime(
-            date_str, dayfirst=dayfirst, yearfirst=yearfirst, cache=cache
-        )
+        with tm.assert_produces_warning(warn, match=msg):
+            result3 = pd.to_datetime(
+                date_str, dayfirst=dayfirst, yearfirst=yearfirst, cache=cache
+            )
 
         depr_msg = "keyword in DatetimeIndex is deprecated"
+        if warn is not None:
+            depr_msg = f"{depr_msg}|{msg}"
         with tm.assert_produces_warning(Pandas4Warning, match=depr_msg):
             result4 = pd.DatetimeIndex(
                 [date_str], dayfirst=dayfirst, yearfirst=yearfirst
@@ -3816,11 +3833,18 @@ class TestDatetimeParsingWrappers:
         # must be the same as dateutil result
         exp_now = parse(date_str)
 
-        result1, _ = parsing.parse_datetime_string_with_reso(date_str)
-        result2 = pd.to_datetime(date_str)
-        result3 = pd.to_datetime([date_str])
-        result4 = pd.Timestamp(date_str)
-        result5 = pd.DatetimeIndex([date_str])[0]
+        # GH#65381
+        msg = "relies on dateutil"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result1, _ = parsing.parse_datetime_string_with_reso(date_str)
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result2 = pd.to_datetime(date_str)
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result3 = pd.to_datetime([date_str])
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result4 = pd.Timestamp(date_str)
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result5 = pd.DatetimeIndex([date_str])[0]
         # parse time string return time string based on default date
         # others are not, and can't be changed because it is used in
         # time series plot
@@ -5034,3 +5058,33 @@ def test_to_datetime_float_out_of_bounds_coerce_with_format():
         )
 
     tm.assert_index_equal(result, expected)
+
+
+def test_to_datetime_deprecated_parse_warns_once():
+    # GH#65381
+    with tm.assert_produces_warning(
+        Pandas4Warning, match="'Jan 5' relies on dateutil"
+    ) as record:
+        result = pd.to_datetime(["Jan 5", "10:00", "13/1/2000"], format="mixed")
+    assert len(record) == 1
+    assert result[0] == pd.Timestamp("0001-01-05")
+    assert result[2] == pd.Timestamp("2000-01-13")
+
+
+@pytest.mark.parametrize(
+    "date_str, dayfirst, msg",
+    [
+        ("13/1/2000", False, "as day-first when dayfirst=False"),
+        ("1/13/2000", True, "as month-first when dayfirst=True"),
+        ("2000-01-05", True, "as year-day-month"),
+    ],
+)
+def test_to_datetime_inferred_format_deprecated(date_str, dayfirst, msg):
+    # GH#65381 an array parsed with the format inferred from its first element
+    #  warns like that element alone
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        expected = parsing.py_parse_datetime_string(date_str, dayfirst=dayfirst)
+    with tm.assert_produces_warning(Pandas4Warning, match=msg) as record:
+        result = pd.to_datetime([date_str] * 3, dayfirst=dayfirst)
+    assert len(record) == 1
+    assert (result == expected).all()
