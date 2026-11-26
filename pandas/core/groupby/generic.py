@@ -41,6 +41,7 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_numeric_dtype,
     is_scalar,
+    pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.inference import is_hashable
@@ -56,6 +57,12 @@ from pandas.core.apply import (
     reconstruct_func,
     validate_func_kwargs,
 )
+from pandas.core.arrays import (
+    ArrowExtensionArray,
+    BaseMaskedArray,
+    IntegerArray,
+)
+from pandas.core.arrays.string_ import StringDtype
 import pandas.core.common as com
 from pandas.core.frame import DataFrame
 from pandas.core.groupby import base
@@ -980,9 +987,20 @@ class SeriesGroupBy(GroupBy[Series]):
         res = np.bincount(ids[~mask], minlength=ngroups)
         res = ensure_int64(res)
 
+        # GH#72276: preserve the integer dtype family of the input,
+        #  mirroring the wrapping in BaseGroupBy.count
+        res_values: ArrayLike = res
+        if isinstance(val, BaseMaskedArray):
+            res_values = IntegerArray(res, mask=np.zeros(len(res), dtype=np.bool_))
+        elif isinstance(val, ArrowExtensionArray) and not isinstance(
+            val.dtype, StringDtype
+        ):
+            dtype = pandas_dtype("int64[pyarrow]")
+            res_values = type(val)._from_sequence(res, dtype=dtype)
+
         ri = self._grouper.result_index
         result: Series | DataFrame = self.obj._constructor(
-            res, index=ri, name=self.obj.name
+            res_values, index=ri, name=self.obj.name
         )
         if not self.as_index:
             result = self._insert_inaxis_grouper(result)
