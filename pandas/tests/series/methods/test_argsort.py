@@ -67,6 +67,13 @@ class TestSeriesArgsort:
         with pytest.raises(AssertionError, match=msg):
             tm.assert_numpy_array_equal(qindexer, mindexer)
 
+    @pytest.mark.parametrize("kind", ["quicksort", "heapsort"])
+    def test_argsort_already_sorted_keeps_ties_in_order(self, kind):
+        # GH#59092
+        ser = pd.Series(np.repeat([1, 2], 50))
+        result = ser.argsort(kind=kind)
+        tm.assert_series_equal(result, pd.Series(np.arange(100, dtype=np.intp)))
+
     def test_argsort_preserve_name(self, datetime_series):
         result = datetime_series.argsort()
         assert result.name == datetime_series.name
