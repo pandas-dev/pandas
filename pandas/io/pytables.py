@@ -56,6 +56,7 @@ from pandas.errors import (
 )
 from pandas.util._decorators import (
     cache_readonly,
+    deprecate_first_arg_keyword,
     set_module,
 )
 from pandas.util._exceptions import find_stack_level
@@ -366,8 +367,10 @@ def to_hdf(
 
 
 @set_module("pandas")
+@deprecate_first_arg_keyword(Pandas4Warning, "path_or_buf")
 def read_hdf(
-    path_or_buf: FilePath | HDFStore,
+    source: FilePath | HDFStore,
+    /,
     key=None,
     mode: str = "r",
     errors: str = "strict",
@@ -404,7 +407,7 @@ def read_hdf(
 
     Parameters
     ----------
-    path_or_buf : str, path object, pandas.HDFStore
+    source : str, path object, pandas.HDFStore
         Any valid string path is acceptable. Only supports the local file system,
         remote URLs and file-like objects are not supported.
 
@@ -413,11 +416,15 @@ def read_hdf(
 
         Alternatively, pandas accepts an open :class:`pandas.HDFStore` object.
 
+        .. versionchanged:: 3.2.0
+
+            Renamed from ``path_or_buf``. Passing it by keyword is deprecated.
+
     key : object, optional
         The group identifier in the store. Can be omitted if the HDF file
         contains a single pandas object.
     mode : {'r', 'r+', 'a'}, default 'r'
-        Mode to use when opening the file. Ignored if path_or_buf is a
+        Mode to use when opening the file. Ignored if ``source`` is a
         :class:`pandas.HDFStore`. Default is 'r'.
     errors : str, default 'strict'
         Specifies how encoding and decoding errors are to be handled.
@@ -466,33 +473,34 @@ def read_hdf(
             f"mode {mode} is not allowed while performing a read. "
             f"Allowed modes are r, r+ and a."
         )
-    # grab the scope
+    # grab the scope; 2 skips the deprecate_first_arg_keyword wrapper (back to 1
+    # once that deprecation is enforced)
     if where is not None:
-        where = _ensure_term(where, scope_level=1)
+        where = _ensure_term(where, scope_level=2)
 
-    if isinstance(path_or_buf, HDFStore):
-        if not path_or_buf.is_open:
+    if isinstance(source, HDFStore):
+        if not source.is_open:
             raise OSError("The HDFStore must be open for reading.")
 
-        store = path_or_buf
+        store = source
         auto_close = False
     else:
-        path_or_buf = stringify_path(path_or_buf)
-        if not isinstance(path_or_buf, str):
+        source = stringify_path(source)
+        if not isinstance(source, str):
             raise NotImplementedError(
                 "Support for generic buffers has not been implemented."
             )
         try:
-            exists = os.path.exists(path_or_buf)
+            exists = os.path.exists(source)
 
         # if filepath is too long
         except (TypeError, ValueError):
             exists = False
 
         if not exists:
-            raise FileNotFoundError(f"File {path_or_buf} does not exist")
+            raise FileNotFoundError(f"File {source} does not exist")
 
-        store = HDFStore(path_or_buf, mode=mode, errors=errors, **kwargs)
+        store = HDFStore(source, mode=mode, errors=errors, **kwargs)
         # can't auto open/close if we are using an iterator
         # so delegate to the iterator
         auto_close = True
@@ -535,7 +543,7 @@ def read_hdf(
         # If the read failed for any reason, close the store when we were the
         # ones who opened it, so the caller can reopen the file (GH#28430). On
         # success the store is left as-is: an iterator result needs it open.
-        if not read_succeeded and not isinstance(path_or_buf, HDFStore):
+        if not read_succeeded and not isinstance(source, HDFStore):
             with suppress(AttributeError):
                 store.close()
 

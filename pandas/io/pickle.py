@@ -11,7 +11,10 @@ import warnings
 
 from pandas.compat import pickle_compat
 from pandas.errors import Pandas4Warning
-from pandas.util._decorators import set_module
+from pandas.util._decorators import (
+    deprecate_first_arg_keyword,
+    set_module,
+)
 from pandas.util._exceptions import find_stack_level
 
 from pandas.io.common import get_handle
@@ -157,8 +160,10 @@ def to_pickle_internal(
 
 
 @set_module("pandas")
+@deprecate_first_arg_keyword(Pandas4Warning, "filepath_or_buffer")
 def read_pickle(
-    filepath_or_buffer: FilePath | ReadPickleBuffer,
+    source: FilePath | ReadPickleBuffer,
+    /,
     compression: CompressionOptions = "infer",
     storage_options: StorageOptions | None = None,
 ) -> DataFrame | Series:
@@ -172,7 +177,7 @@ def read_pickle(
 
     Parameters
     ----------
-    filepath_or_buffer : str, path object, or file-like object
+    source : str, path object, or file-like object
         String, path object (implementing ``os.PathLike[str]``), or file-like
         object implementing a binary ``read()`` function.
         Also accepts URL. URL is not limited to S3 and GCS.
@@ -180,9 +185,13 @@ def read_pickle(
         Certain URL schemes may require additional packages. For example, S3
         URLs require the ``s3fs`` library. See
         :ref:`install.optional_dependencies` for a full list.
+
+        .. versionchanged:: 3.2.0
+
+            Renamed from ``filepath_or_buffer``. Passing it by keyword is deprecated.
     compression : str or dict, default 'infer'
         For on-the-fly decompression of on-disk data. If 'infer' and
-        'filepath_or_buffer' is path-like, then detect compression from the
+        'source' is path-like, then detect compression from the
         following extensions: '.gz', '.bz2', '.zip', '.xz', '.zst', '.tar',
         '.tar.gz', '.tar.xz' or '.tar.bz2' (otherwise no compression).
         If using 'zip' or 'tar', the ZIP file must contain only one data file
@@ -261,7 +270,7 @@ def read_pickle(
         ValueError,
     )
     with get_handle(
-        filepath_or_buffer,
+        source,
         "rb",
         compression=compression,
         is_text=False,

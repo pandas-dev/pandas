@@ -48,6 +48,7 @@ from pandas.errors import (
     ParserWarning,
 )
 from pandas.util._decorators import (
+    deprecate_first_arg_keyword,
     set_module,
 )
 from pandas.util._exceptions import find_stack_level
@@ -1355,7 +1356,8 @@ def _read_csv_chunks(
 
 @overload
 def read_csv(
-    filepath_or_buffer: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str],
+    source: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str],
+    /,
     *,
     iterator: Literal[True],
     chunksize: int | None = ...,
@@ -1365,7 +1367,8 @@ def read_csv(
 
 @overload
 def read_csv(
-    filepath_or_buffer: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str],
+    source: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str],
+    /,
     *,
     iterator: bool = ...,
     chunksize: int,
@@ -1375,7 +1378,8 @@ def read_csv(
 
 @overload
 def read_csv(
-    filepath_or_buffer: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str],
+    source: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str],
+    /,
     *,
     iterator: Literal[False] = ...,
     chunksize: None = ...,
@@ -1385,7 +1389,8 @@ def read_csv(
 
 @overload
 def read_csv(
-    filepath_or_buffer: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str],
+    source: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str],
+    /,
     *,
     iterator: bool = ...,
     chunksize: int | None = ...,
@@ -1394,8 +1399,10 @@ def read_csv(
 
 
 @set_module("pandas")
+@deprecate_first_arg_keyword(Pandas4Warning, "filepath_or_buffer")
 def read_csv(
-    filepath_or_buffer: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str],
+    source: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str],
+    /,
     *,
     sep: str | lib.NoDefault | None = lib.no_default,
     delimiter: str | lib.NoDefault | None = lib.no_default,
@@ -1462,7 +1469,7 @@ def read_csv(
 
     Parameters
     ----------
-    filepath_or_buffer : str, path object or file-like object
+    source : str, path object or file-like object
         Any valid string path is acceptable. The string could be a URL. Valid
         URL schemes include http, ftp, s3, gs, and file. For file URLs, a host is
         expected. A local file could be: file://localhost/path/to/table.csv.
@@ -1476,6 +1483,10 @@ def read_csv(
         By file-like object, we refer to objects with a ``read()`` method that
         accepts an optional size argument, such as a file handle (e.g. via
         builtin ``open`` function) or ``StringIO``.
+
+        .. versionchanged:: 3.2.0
+
+            Renamed from ``filepath_or_buffer``. Passing it by keyword is deprecated.
     sep : str, default ','
         Character or regex pattern to treat as the delimiter. ``sep=None`` detects
         the separator from the first valid row of the file with Python's builtin
@@ -1700,7 +1711,7 @@ def read_csv(
 
     compression : str or dict, default 'infer'
         For on-the-fly decompression of on-disk data.
-        If 'infer' and 'filepath_or_buffer' is
+        If 'infer' and 'source' is
         path-like, then detect compression from the following extensions: '.gz',
         '.bz2', '.zip', '.xz', '.zst', '.tar', '.tar.gz', '.tar.xz' or '.tar.bz2'
         (otherwise no compression).
@@ -1813,7 +1824,7 @@ def read_csv(
         parameter to return the data in
         chunks. (Only valid with C parser).
     memory_map : bool, default False
-        If a filepath is provided for ``filepath_or_buffer``, map the file object
+        If a filepath is provided for ``source``, map the file object
         directly onto memory and access the data directly from there. Using this
         option can improve performance because there is no longer any I/O overhead.
     float_precision : {'high', 'legacy', 'round_trip'}, optional
@@ -1951,7 +1962,7 @@ def read_csv(
     """
     # locals() should never be modified
     kwds = locals().copy()
-    del kwds["filepath_or_buffer"]
+    del kwds["source"]
     del kwds["sep"]
 
     kwds_defaults = _refine_defaults_read(
@@ -1967,12 +1978,13 @@ def read_csv(
     )
     kwds.update(kwds_defaults)
 
-    return _read(filepath_or_buffer, kwds)
+    return _read(source, kwds)
 
 
 @overload
 def read_table(
-    filepath_or_buffer: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str],
+    source: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str],
+    /,
     *,
     iterator: Literal[True],
     chunksize: int | None = ...,
@@ -1982,7 +1994,8 @@ def read_table(
 
 @overload
 def read_table(
-    filepath_or_buffer: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str],
+    source: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str],
+    /,
     *,
     iterator: bool = ...,
     chunksize: int,
@@ -1992,7 +2005,8 @@ def read_table(
 
 @overload
 def read_table(
-    filepath_or_buffer: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str],
+    source: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str],
+    /,
     *,
     iterator: Literal[False] = ...,
     chunksize: None = ...,
@@ -2002,7 +2016,8 @@ def read_table(
 
 @overload
 def read_table(
-    filepath_or_buffer: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str],
+    source: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str],
+    /,
     *,
     iterator: bool = ...,
     chunksize: int | None = ...,
@@ -2011,8 +2026,10 @@ def read_table(
 
 
 @set_module("pandas")
+@deprecate_first_arg_keyword(Pandas4Warning, "filepath_or_buffer")
 def read_table(
-    filepath_or_buffer: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str],
+    source: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str],
+    /,
     *,
     sep: str | lib.NoDefault | None = lib.no_default,
     delimiter: str | lib.NoDefault | None = lib.no_default,
@@ -2079,7 +2096,7 @@ def read_table(
 
     Parameters
     ----------
-    filepath_or_buffer : str, path object or file-like object
+    source : str, path object or file-like object
         Any valid string path is acceptable. The string could be a URL. Valid
         URL schemes include http, ftp, s3, gs, and file. For file URLs, a host is
         expected. A local file could be: file://localhost/path/to/table.csv.
@@ -2093,6 +2110,10 @@ def read_table(
         By file-like object, we refer to objects with a ``read()`` method that
         accepts an optional size argument, such as a file handle (e.g. via
         builtin ``open`` function) or ``StringIO``.
+
+        .. versionchanged:: 3.2.0
+
+            Renamed from ``filepath_or_buffer``. Passing it by keyword is deprecated.
     sep : str, default '\\t' (tab-stop)
         Character or regex pattern to treat as the delimiter. ``sep=None`` detects
         the separator from the first valid row of the file with Python's builtin
@@ -2313,7 +2334,7 @@ def read_table(
 
     compression : str or dict, default 'infer'
         For on-the-fly decompression of on-disk data. If 'infer'
-        and 'filepath_or_buffer' is
+        and 'source' is
         path-like, then detect compression from the following extensions: '.gz',
         '.bz2', '.zip', '.xz', '.zst', '.tar', '.tar.gz', '.tar.xz' or '.tar.bz2'
         (otherwise no compression).
@@ -2426,7 +2447,7 @@ def read_table(
         to return the data in
         chunks. (Only valid with C parser).
     memory_map : bool, default False
-        If a filepath is provided for ``filepath_or_buffer``, map the file object
+        If a filepath is provided for ``source``, map the file object
         directly onto memory and access the data directly from there. Using this
         option can improve performance because there is no longer any I/O overhead.
     float_precision : {'high', 'legacy', 'round_trip'}, optional
@@ -2560,7 +2581,7 @@ def read_table(
     """
     # locals() should never be modified
     kwds = locals().copy()
-    del kwds["filepath_or_buffer"]
+    del kwds["source"]
     del kwds["sep"]
 
     kwds_defaults = _refine_defaults_read(
@@ -2576,7 +2597,7 @@ def read_table(
     )
     kwds.update(kwds_defaults)
 
-    return _read(filepath_or_buffer, kwds)
+    return _read(source, kwds)
 
 
 # keywords read_fwf may forward via **kwds, see GH#34953
@@ -2585,7 +2606,8 @@ _READ_CSV_KWARGS = frozenset(inspect.signature(read_csv).parameters)
 
 @overload
 def read_fwf(
-    filepath_or_buffer: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str],
+    source: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str],
+    /,
     *,
     colspecs: Sequence[tuple[int, int]] | str | None = ...,
     widths: Sequence[int] | None = ...,
@@ -2598,7 +2620,8 @@ def read_fwf(
 
 @overload
 def read_fwf(
-    filepath_or_buffer: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str],
+    source: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str],
+    /,
     *,
     colspecs: Sequence[tuple[int, int]] | str | None = ...,
     widths: Sequence[int] | None = ...,
@@ -2611,7 +2634,8 @@ def read_fwf(
 
 @overload
 def read_fwf(
-    filepath_or_buffer: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str],
+    source: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str],
+    /,
     *,
     colspecs: Sequence[tuple[int, int]] | str | None = ...,
     widths: Sequence[int] | None = ...,
@@ -2623,8 +2647,10 @@ def read_fwf(
 
 
 @set_module("pandas")
+@deprecate_first_arg_keyword(Pandas4Warning, "filepath_or_buffer")
 def read_fwf(
-    filepath_or_buffer: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str],
+    source: FilePath | ReadCsvBuffer[bytes] | ReadCsvBuffer[str],
+    /,
     *,
     colspecs: Sequence[tuple[int, int]] | str | None = "infer",
     widths: Sequence[int] | None = None,
@@ -2644,7 +2670,7 @@ def read_fwf(
 
     Parameters
     ----------
-    filepath_or_buffer : str, path object, or file-like object
+    source : str, path object, or file-like object
         Any valid string path is acceptable. The string could be a URL. Valid
         URL schemes include http, ftp, s3, and file. For file URLs, a host is
         expected. A local file could be: ``file://localhost/path/to/table.csv``.
@@ -2658,6 +2684,10 @@ def read_fwf(
         By file-like object, we refer to objects with a ``read()`` method that
         accepts an optional size argument, such as a file handle (e.g. via
         builtin ``open`` function) or ``StringIO``.
+
+        .. versionchanged:: 3.2.0
+
+            Renamed from ``filepath_or_buffer``. Passing it by keyword is deprecated.
     colspecs : list of tuple (int, int) or 'infer'. optional
         A list of tuples giving the extents of the fixed-width
         fields of each line as half-open intervals (i.e.,  [from, to] ).
@@ -2740,7 +2770,7 @@ def read_fwf(
 
     check_dtype_backend(kwds.setdefault("dtype_backend", lib.no_default))
     return _read(
-        filepath_or_buffer,
+        source,
         kwds
         | {
             "colspecs": colspecs,

@@ -16,9 +16,13 @@ from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import (
     AbstractMethodError,
+    Pandas4Warning,
     ParserError,
 )
-from pandas.util._decorators import set_module
+from pandas.util._decorators import (
+    deprecate_first_arg_keyword,
+    set_module,
+)
 from pandas.util._validators import check_dtype_backend
 
 from pandas.core.dtypes.common import is_list_like
@@ -866,8 +870,10 @@ def _parse(
 
 
 @set_module("pandas")
+@deprecate_first_arg_keyword(Pandas4Warning, "path_or_buffer")
 def read_xml(
-    path_or_buffer: FilePath | ReadBuffer[bytes] | ReadBuffer[str],
+    source: FilePath | ReadBuffer[bytes] | ReadBuffer[str],
+    /,
     *,
     xpath: str = "./*",
     namespaces: dict[str, str] | None = None,
@@ -901,7 +907,7 @@ def read_xml(
 
     Parameters
     ----------
-    path_or_buffer : str, path object, or file-like object
+    source : str, path object, or file-like object
         String path, path object (implementing ``os.PathLike[str]``), or file-like
         object implementing a ``read()`` function. The string can be a path.
         The string can further be a URL. Valid URL schemes
@@ -910,6 +916,10 @@ def read_xml(
         Certain URL schemes may require additional packages. For example, S3
         URLs require the ``s3fs`` library. See
         :ref:`install.optional_dependencies` for a full list.
+
+        .. versionchanged:: 3.2.0
+
+            Renamed from ``path_or_buffer``. Passing it by keyword is deprecated.
 
     xpath : str, optional, default './\*'
         The ``XPath`` to parse required set of nodes for migration to
@@ -994,7 +1004,7 @@ def read_xml(
 
     compression : str or dict, default 'infer'
         For on-the-fly decompression of on-disk data. If 'infer' and
-        'path_or_buffer' is path-like, then detect compression from the
+        'source' is path-like, then detect compression from the
         following extensions: '.gz', '.bz2', '.zip', '.xz', '.zst', '.tar',
         '.tar.gz', '.tar.xz' or '.tar.bz2' (otherwise no compression).
         If using 'zip' or 'tar', the ZIP file must contain only one data
@@ -1211,7 +1221,7 @@ def read_xml(
     check_dtype_backend(dtype_backend)
 
     return _parse(
-        path_or_buffer=path_or_buffer,
+        path_or_buffer=source,
         xpath=xpath,
         namespaces=namespaces,
         elems_only=elems_only,

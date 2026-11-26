@@ -44,6 +44,7 @@ from pandas.errors import (
     ValueLabelTypeMismatch,
 )
 from pandas.util._decorators import (
+    deprecate_first_arg_keyword,
     set_module,
 )
 from pandas.util._exceptions import find_stack_level
@@ -2158,8 +2159,10 @@ The repeated labels are:
 
 
 @set_module("pandas")
+@deprecate_first_arg_keyword(Pandas4Warning, "filepath_or_buffer")
 def read_stata(
-    filepath_or_buffer: FilePath | ReadBuffer[bytes],
+    source: FilePath | ReadBuffer[bytes],
+    /,
     *,
     convert_dates: bool = True,
     convert_categoricals: bool = True,
@@ -2182,7 +2185,7 @@ def read_stata(
 
     Parameters
     ----------
-    filepath_or_buffer : str, path object or file-like object
+    source : str, path object or file-like object
         Any valid string path is acceptable. The string could be a URL. Valid
         URL schemes include http, ftp, s3, and file. For file URLs, a host is
         expected. A local file could be: ``file://localhost/path/to/table.dta``.
@@ -2196,6 +2199,10 @@ def read_stata(
         By file-like object, we refer to objects with a ``read()`` method,
         such as a file handle (e.g. via builtin ``open`` function)
         or ``StringIO``.
+
+        .. versionchanged:: 3.2.0
+
+            Renamed from ``filepath_or_buffer``. Passing it by keyword is deprecated.
     convert_dates : bool, default True
         Convert date variables to DataFrame time values.
     convert_categoricals : bool, default True
@@ -2223,7 +2230,7 @@ def read_stata(
         Return StataReader object.
     compression : str or dict, default 'infer'
         For on-the-fly decompression of on-disk data. If 'infer' and
-        'filepath_or_buffer' is path-like, then detect compression from the
+        'source' is path-like, then detect compression from the
         following extensions: '.gz', '.bz2', '.zip', '.xz', '.zst', '.tar',
         '.tar.gz', '.tar.xz' or '.tar.bz2' (otherwise no compression).
         If using 'zip' or 'tar', the ZIP file must contain only one
@@ -2295,7 +2302,7 @@ def read_stata(
     ...         pass  # doctest: +SKIP
     """
     reader = StataReader(
-        filepath_or_buffer,
+        source,
         convert_dates=convert_dates,
         convert_categoricals=convert_categoricals,
         index_col=index_col,
