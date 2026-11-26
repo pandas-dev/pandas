@@ -64,6 +64,20 @@ class ReindexMethod:
         self.ts.reindex(self.idx, method=method)
 
 
+class IntegerNearestIndexer:
+    params = [["int64", "uint64"], [None, 1]]
+    param_names = ["dtype", "tolerance"]
+
+    def setup(self, dtype, tolerance):
+        values = np.arange(200000, dtype=dtype) * 2
+        self.index = Index(values)
+        self.target = Index(values + 1)
+        self.index.get_indexer(self.target, method="nearest", tolerance=tolerance)
+
+    def time_get_indexer(self, dtype, tolerance):
+        self.index.get_indexer(self.target, method="nearest", tolerance=tolerance)
+
+
 class LevelAlign:
     def setup(self):
         self.index = MultiIndex(

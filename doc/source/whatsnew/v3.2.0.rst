@@ -314,6 +314,7 @@ Interval
 
 Indexing
 ^^^^^^^^
+- Bug in :meth:`Index.get_indexer`, :meth:`Series.reindex`, and :meth:`DataFrame.reindex` returning incorrect nearest matches or tolerance checks for unsigned integer indexes or large integer distances
 - Bug in :class:`Index` where creating or converting to numpy string dtypes would raise ``NotImplementedError`` now raises ``TypeError`` (:issue:`50127`)
 - Bug in :meth:`DataFrame.__setitem__` silently corrupting the :class:`DataFrame` when the key matched several columns and ``value`` was a timezone-aware ``datetime64`` or ``period`` scalar, or a one-dimensional :class:`Series` of either dtype; it now broadcasts across the matched columns as the other dtypes already did (:issue:`71078`)
 - Bug in :meth:`DataFrame.__setitem__` silently corrupting the :class:`DataFrame` when the key matched several unique columns, e.g. a partial date string on :class:`DatetimeIndex` columns; ``value`` now broadcasts across them (:issue:`71098`)
