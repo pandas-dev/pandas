@@ -28,6 +28,11 @@ def get_resolution(
     tz: tzinfo | None = ...,
     reso: int = ...,  # NPY_DATETIMEUNIT
 ) -> Resolution: ...
+def get_fold(
+    stamps: npt.NDArray[np.int64],
+    tz: tzinfo | None,
+    reso: int,  # NPY_DATETIMEUNIT
+) -> npt.NDArray[np.bool_]: ...
 def ints_to_pydatetime(
     stamps: npt.NDArray[np.int64],
     tz: tzinfo | None = ...,

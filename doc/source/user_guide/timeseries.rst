@@ -934,6 +934,7 @@ There are several time/date properties that one can access from ``Timestamp`` or
     date,"Returns datetime.date (does not contain timezone information)"
     time,"Returns datetime.time (does not contain timezone information)"
     timetz,"Returns datetime.time as local time with timezone information"
+    fold,"Logical indicating if the wall time is the second occurrence of a repeated time"
     dayofyear,"The ordinal day of year"
     day_of_year,"The ordinal day of year"
     dayofweek,"The number of the day of the week with Monday=0, Sunday=6"

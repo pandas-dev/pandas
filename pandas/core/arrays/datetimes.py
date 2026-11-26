@@ -55,6 +55,7 @@ from pandas._libs.tslibs.offsets import (
     RelativeDeltaOffset,
     validate_floor_ceil_offset,
 )
+from pandas._libs.tslibs.vectorized import get_fold
 from pandas.compat.pyarrow import HAS_PYARROW
 from pandas.errors import (
     Pandas4Warning,
@@ -260,7 +261,7 @@ class DatetimeArray(dtl.TimelikeOps, dtl.DatelikeOps):
         "microsecond",
         "nanosecond",
     ]
-    _other_ops: list[str] = ["date", "time", "timetz"]
+    _other_ops: list[str] = ["date", "time", "timetz", "fold"]
     _datetimelike_ops: list[str] = _field_ops + _bool_ops + _other_ops + ["unit", "tz"]
     _datetimelike_methods: list[str] = [
         "to_period",
@@ -1587,6 +1588,52 @@ default 'raise'
         datetime.time(11, 0, tzinfo=datetime.timezone.utc)], dtype=object)
         """
         return ints_to_pydatetime(self.asi8, self.tz, box="time", reso=self._creso)
+
+    @property
+    def fold(self) -> npt.NDArray[np.bool_]:
+        """
+        Indicate whether each wall time is the second occurrence of a repeated time.
+
+        When clocks are set back, e.g. at the end of daylight saving time, a span
+        of wall times occurs twice. Matches :attr:`Timestamp.fold`; False for NaT
+        and tz-naive data.
+
+        .. versionadded:: 3.2.0
+
+        Returns
+        -------
+        numpy.ndarray[bool]
+
+        See Also
+        --------
+        Timestamp.fold : The fold of a single Timestamp.
+        DatetimeIndex.tz_localize : Accepts ``~fold`` as ``ambiguous``.
+
+        Examples
+        --------
+        For Series:
+
+        >>> s = pd.Series(
+        ...     pd.date_range("2020-11-01 05:00", periods=3, freq="h", tz="UTC")
+        ... ).dt.tz_convert("America/New_York")
+        >>> s
+        0   2020-11-01 01:00:00-04:00
+        1   2020-11-01 01:00:00-05:00
+        2   2020-11-01 02:00:00-05:00
+        dtype: datetime64[us, America/New_York]
+        >>> s.dt.fold
+        0    False
+        1     True
+        2    False
+        dtype: bool
+
+        For DatetimeIndex:
+
+        >>> idx = pd.DatetimeIndex(s)
+        >>> idx.fold
+        array([False,  True, False])
+        """
+        return get_fold(self.asi8, self.tz, reso=self._creso)
 
     @property
     def date(self) -> npt.NDArray[np.object_]:
