@@ -73,6 +73,7 @@ from pandas.core.dtypes.common import (
 )
 from pandas.core.dtypes.dtypes import (
     ArrowDtype,
+    BaseMaskedDtype,
     CategoricalDtype,
     DatetimeTZDtype,
 )
@@ -100,6 +101,7 @@ from pandas.core.arrays.arrow.deferred import (
     defer,
     is_immutable,
 )
+from pandas.core.arrays.arrow.util import _arrow_dtype_mapping
 from pandas.core.arrays.base import (
     ExtensionArray,
     ExtensionArrayNaResult,
@@ -117,7 +119,6 @@ from pandas.core.indexers import (
 from pandas.core.nanops import check_below_min_count
 from pandas.core.sorting import get_group_index_sorter
 
-from pandas.io._util import _arrow_dtype_mapping
 from pandas.tseries.frequencies import to_offset
 
 if HAS_PYARROW:
@@ -334,6 +335,21 @@ def to_pyarrow_type(
         except pa.ArrowNotImplementedError:
             pass
     return None
+
+
+# pyarrow reads these as a sequence of characters or byte values when boxing
+#  into a nested type, e.g. b"z" -> [122] for list<int64>
+_STR_LIKE = (str, bytes)
+
+
+def _is_nested_storage(pa_type: pa.DataType) -> bool:
+    """
+    Whether this is a list, struct, map or union type, or an extension type
+    stored as one.
+    """
+    if isinstance(pa_type, pa.BaseExtensionType):
+        pa_type = pa_type.storage_type
+    return pa.types.is_nested(pa_type)
 
 
 def _is_varbinary_type(pa_type: pa.DataType) -> bool:
@@ -980,6 +996,16 @@ class ArrowExtensionArray(
         else:
             if (
                 pa_type is not None
+                and isinstance(value, _STR_LIKE)
+                and _is_nested_storage(pa_type)
+            ):
+                # ArrowTypeError so the callers that normalize it report this
+                #  like any other rejected value
+                raise pa.ArrowTypeError(
+                    f"Cannot store a {type(value).__name__} in {pa_type}"
+                )
+            if (
+                pa_type is not None
                 and pa.types.is_timestamp(pa_type)
                 and isinstance(value, datetime)
                 and (value.tzinfo is None) != (pa_type.tz is None)
@@ -1345,6 +1371,12 @@ class ArrowExtensionArray(
         return self._pa_array
 
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
+        result = arraylike.dispatch_where_only_ufunc(
+            self, ufunc, method, *inputs, **kwargs
+        )
+        if result is not NotImplemented:
+            return result
+
         if (
             not is_nan_na()
             and type(self) is ArrowExtensionArray
@@ -2233,6 +2265,10 @@ class ArrowExtensionArray(
         return super().fillna(value=value, limit=limit, copy=copy)
 
     def insert(self, loc: int, item) -> Self:
+        if isinstance(item, _STR_LIKE) and _is_nested_storage(self._pa_array.type):
+            # _from_sequence would store it as a sequence of characters or
+            #  byte values; raise like setitem so Index.insert upcasts
+            self._validate_setitem_value(item)
         if (
             lib.is_float(item)
             and np.isnan(item)
@@ -2884,6 +2920,44 @@ class ArrowExtensionArray(
         """
         pa_result = pc.unique(self._pa_array)
         return self._from_pyarrow_array(pa_result)
+
+    def _unique_by_run_ends(self) -> Self | None:
+        """
+        Compute the unique values by collapsing runs of equal adjacent values.
+
+        Faster than :meth:`unique` (no hash table), but only correct when
+        equal values are adjacent, e.g. for sorted input.
+
+        Returns None, so callers fall back to :meth:`unique`, if Arrow lacks a
+        kernel for the type, the values are too large, or the runs are not
+        strictly increasing (unsorted input, NA, or mixed -0.0 and 0.0).
+
+        Returns
+        -------
+        ArrowExtensionArray or None
+        """
+
+        def strictly_increasing(arr: pa.Array) -> bool:
+            return pc.all(pc.less(arr[:-1], arr[1:])).as_py() is True
+
+        pa_array = self._pa_array
+        try:
+            values = (
+                pa_array.chunk(0)
+                if pa_array.num_chunks == 1
+                else pa_array.combine_chunks()
+            )
+            # pc.all skips nulls, which could hide duplicates around them
+            has_null = values.null_count > 0
+            # strictly increasing values are already unique
+            if has_null or not strictly_increasing(values):
+                values = pc.run_end_encode(values).values
+                if len(values) > 1 and (has_null or not strictly_increasing(values)):
+                    return None
+        except (pa.ArrowNotImplementedError, pa.ArrowInvalid):
+            # no kernel for this type, or offset / run end overflow
+            return None
+        return self._from_pyarrow_array(values)
 
     def value_counts(self, dropna: bool = True) -> Series:
         """
@@ -4008,6 +4082,7 @@ class ArrowExtensionArray(
             raise NotImplementedError
 
         dtype = _arrow_dtype_mapping()[pa_dtype]
+        assert isinstance(dtype, BaseMaskedDtype)
         mask = self.isna()
         arr = self.to_numpy(dtype=dtype.numpy_dtype, na_value=na_value)
         return dtype.construct_array_type()(arr, mask)

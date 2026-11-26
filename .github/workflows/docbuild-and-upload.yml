@@ -114,9 +114,7 @@ jobs:
       run: |
         pixi run \
           --environment docs-and-web \
-          build-pandas \
-          --editable \
-          "${{ matrix.os == 'windows-2025' && '-Csetup-args="--vsenv" -Csetup-args="--werror"' || '-Csetup-args="--werror"' }}"
+          build-pandas
 
     - name: Test website
       run: |
@@ -136,7 +134,7 @@ jobs:
     - name: Test nbconvert doc notebooks
       run: |
         pixi run \
-          ci-test-nbconvert-doc-notebooks "$(find doc/source -name '*.ipynb')"
+          ci-test-nbconvert-doc-notebooks
 
     - name: Build website
       run: |

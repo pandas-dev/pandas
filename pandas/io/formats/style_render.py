@@ -1019,15 +1019,24 @@ class StylerRenderer:
             visible_index_levels: list[int] = [
                 i for i in range(index_levels) if not self.hide_index_[i]
             ]
+            index_hidden = not visible_index_levels
+            if index_hidden and data_len:
+                # GH#59877 hidden index still groups rows; draw clines across the data
+                cline_levels = list(range(index_levels))
+            else:
+                cline_levels = visible_index_levels
+            end = len(visible_index_levels) + data_len
             for rn, r in enumerate(visible_row_indexes):
-                for lvln, lvl in enumerate(visible_index_levels):
+                for lvln, lvl in enumerate(cline_levels):
                     if lvl == index_levels - 1 and "skip-last" in clines:
                         continue
                     idx_len = d["index_lengths"].get((lvl, r), None)
                     if idx_len is not None:  # i.e. not a sparsified entry
-                        d["clines"][rn + idx_len].append(
-                            f"\\cline{{{lvln + 1}-{len(visible_index_levels) + data_len}}}"  # noqa: E501
-                        )
+                        start = 1 if index_hidden else lvln + 1
+                        cline = f"\\cline{{{start}-{end}}}"
+                        # with the index hidden, all levels give the same cline
+                        if cline not in d["clines"][rn + idx_len]:
+                            d["clines"][rn + idx_len].append(cline)
 
     def format(
         self,
@@ -2405,16 +2414,21 @@ class Tooltips:
         # this conditional adds tooltips as extra "title" attribute on a <td> element
         else:
             index_offset = self.tt_data.index.nlevels
-            body = d["body"]
-            for i in range(len(self.tt_data.index)):
+            row_trim = styler.css["row_trim"]
+            col_trim = styler.css["col_trim"]
+            # hidden rows are not in the rendered body and the body may be trimmed,
+            # so pair each rendered row with its position in ``tt_data``
+            visible_rows = [
+                i for i in range(len(self.tt_data.index)) if i not in styler.hidden_rows
+            ]
+            for i, row in zip(visible_rows, d["body"], strict=False):
+                if row_trim in row[0]["class"].split():
+                    break
                 for j in range(len(self.tt_data.columns)):
-                    if (
-                        not mask.iloc[i, j]
-                        or i in styler.hidden_rows
-                        or j in styler.hidden_columns
-                    ):
-                        row = body[i]
-                        item = row[j + index_offset]
+                    item = row[j + index_offset]
+                    if col_trim in item["class"].split():
+                        break
+                    if not (mask.iloc[i, j] or j in styler.hidden_columns):
                         value = self.tt_data.iloc[i, j]
                         item["attributes"] += f' title="{value}"'
         return d

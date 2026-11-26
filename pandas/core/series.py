@@ -15,6 +15,7 @@ from collections.abc import (
 )
 import functools
 import operator
+import reprlib
 import sys
 from typing import (
     IO,
@@ -1616,6 +1617,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
     # ----------------------------------------------------------------------
     # Rendering Methods
 
+    @reprlib.recursive_repr("...")  # GH#25833
     def __repr__(self) -> str:
         """
         Return a string representation for a particular Series.
@@ -4296,7 +4298,10 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             return result
 
         result = self._constructor(
-            self._values[sorted_index], index=self.index[sorted_index], copy=False
+            self._values[sorted_index],
+            index=self.index[sorted_index],
+            dtype=self.dtype,
+            copy=False,
         )
 
         if ignore_index:
@@ -7224,14 +7229,19 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         copy: bool | lib.NoDefault = lib.no_default,
     ) -> Series:
         """
-        Cast to DatetimeIndex of Timestamps, at *beginning* of period.
+        Cast to DatetimeIndex of Timestamps, by default at *beginning* of period.
 
         This can be changed to the *end* of the period, by specifying `how="e"`.
 
         Parameters
         ----------
-        freq : str, default frequency of PeriodIndex
-            Desired frequency.
+        freq : str or DateOffset, optional
+            Target frequency. By default the result is exactly the start (or end)
+            of each period. With ``how="start"``, the result is the start of
+            ``asfreq(freq, how="start")``, except that a ``freq`` coarser than
+            daily gives midnight on that period's last day, so
+            ``to_timestamp("M")`` gives month-end dates. With ``how="end"``,
+            ``freq`` only affects the resolution ('ns' gives nanosecond unit).
         how : {'start', 'end', 's', 'e'}, default 'start'
             Convention for converting period to timestamp; start of period
             vs. end. Case-insensitive.
@@ -7277,7 +7287,8 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         2025-01-01    3
         Freq: YS-JAN, dtype: int64
 
-        Using `freq` which is the offset that the Timestamps will have
+        With ``freq="M"``, each timestamp is the last day of the period's first
+        month
 
         >>> s2 = pd.Series([1, 2, 3], index=idx)
         >>> s2 = s2.to_timestamp(freq="M")

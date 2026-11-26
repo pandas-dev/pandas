@@ -1180,6 +1180,14 @@ class TestDataFrameSetItemBooleanMask:
         indexer_sl(df)[mask] = indexer_sl(df)[mask].sort_values("a")
         tm.assert_frame_equal(df, expected)
 
+    @pytest.mark.parametrize("columns", [["a"], ["a", "b"]])
+    def test_setitem_empty_object_frame_key(self, columns):
+        # GH#57083 an empty key of any dtype sets nothing
+        df = pd.DataFrame({"a": [1, 2], "b": [3, 4]})
+        expected = df.copy()
+        df[pd.DataFrame(columns=columns)] = 0
+        tm.assert_frame_equal(df, expected)
+
     def test_setitem_mask_categorical(self):
         # assign multiple rows (mixed values) (-> array) -> exp_multi_row
         # changed multiple rows

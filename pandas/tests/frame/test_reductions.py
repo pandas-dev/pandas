@@ -3079,6 +3079,34 @@ def test_numeric_ea_axis_1(
 
 
 @pytest.mark.parametrize(
+    "dtype, expected_dtype",
+    [
+        ("Int8", "Int64"),
+        ("UInt8", "UInt64"),
+        pytest.param("int8[pyarrow]", "int64[pyarrow]", marks=td.skip_if_no("pyarrow")),
+    ],
+)
+@pytest.mark.parametrize("method", ["sum", "prod"])
+def test_numeric_ea_axis_1_overflow(method, dtype, expected_dtype):
+    # The result keeps the input dtype only when every value fits in it
+    df = pd.DataFrame(
+        {
+            "a": pd.array([100, 1, 1], dtype=dtype),
+            "b": pd.array([100, 1, None], dtype=dtype),
+            "c": pd.array([100, 1, 1], dtype=dtype),
+        }
+    )
+    result = getattr(df, method)(axis=1)
+    expected_values = [300, 3, 2] if method == "sum" else [1_000_000, 1, 1]
+    expected = pd.Series(expected_values, dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+    result = getattr(df.iloc[1:], method)(axis=1)
+    expected = pd.Series(expected_values[1:], index=[1, 2], dtype=dtype)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
     "dtype", ["boolean", pytest.param("bool[pyarrow]", marks=td.skip_if_no("pyarrow"))]
 )
 @pytest.mark.parametrize(

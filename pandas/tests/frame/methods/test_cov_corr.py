@@ -176,6 +176,28 @@ class TestDataFrameCorr:
         with pytest.raises(ValueError, match=msg):
             df.corr(method="____")
 
+    @pytest.mark.parametrize(
+        "box", [pd.Series, pd.DataFrame, np.array, list, pd.Index, pd.array]
+    )
+    def test_corr_other_object_raises(self, box):
+        # GH#11260
+        df = pd.DataFrame(np.random.default_rng(2).normal(size=(10, 2)))
+        other = box(np.random.default_rng(3).normal(size=10))
+        msg = "method must be a string or a callable.*use DataFrame.corrwith"
+        with pytest.raises(TypeError, match=msg):
+            df.corr(other)
+
+    def test_corr_callable_list_like_method(self):
+        # GH#11260 a callable that is also list-like is still a valid method
+        class CallableList(list):
+            def __call__(self, a, b):
+                return 0.5
+
+        df = pd.DataFrame(np.random.default_rng(2).normal(size=(10, 2)))
+        result = df.corr(CallableList())
+        expected = pd.DataFrame([[1.0, 0.5], [0.5, 1.0]])
+        tm.assert_frame_equal(result, expected)
+
     def test_corr_int(self):
         # dtypes other than float64 GH#1761
         df = pd.DataFrame({"a": [1, 2, 3, 4], "b": [1, 2, 3, 4]})

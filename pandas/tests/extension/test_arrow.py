@@ -965,19 +965,6 @@ class TestArrowArray(base.ExtensionTests):
                             reason="as_unit not implemented for date",
                         )
                     )
-                # timestamp with s unit and US/Pacific or US/Eastern tz
-                elif (
-                    "Localizing Timestamps which are outside the range of Python"
-                ) in str(err):
-                    request.applymarker(
-                        pytest.mark.xfail(
-                            raises=NotImplementedError,
-                            reason=(
-                                "Localizing Timestamps which are outside the range of "
-                                "Python's standard library datetime is not supported"
-                            ),
-                        )
-                    )
                 raise
             # all others
             except AssertionError as err:

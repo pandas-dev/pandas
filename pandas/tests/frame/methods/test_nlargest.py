@@ -71,44 +71,25 @@ class TestNLargestNSmallest:
                 "c": np.random.default_rng(2).permutation(10).astype("float64"),
             }
         )
-        if "b" in order:
-            error_msg = (
-                f"Column 'b' has dtype (object|str), "
-                f"cannot use method '{nselect_method}' with this dtype"
-            )
-            with pytest.raises(TypeError, match=error_msg):
-                getattr(df, nselect_method)(n, order)
-        else:
-            ascending = nselect_method == "nsmallest"
-            result = getattr(df, nselect_method)(n, order)
-            result.index = pd.Index(list(result.index))
-            expected = df.sort_values(order, ascending=ascending).head(n)
-            tm.assert_frame_equal(result, expected)
+        ascending = nselect_method == "nsmallest"
+        result = getattr(df, nselect_method)(n, order)
+        result.index = pd.Index(list(result.index))
+        expected = df.sort_values(order, ascending=ascending).head(n)
+        tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize(
-        "columns", [["group", "category_string"], ["group", "string"]]
-    )
-    def test_nlargest_error(self, df_main_dtypes, nselect_method, columns):
-        df = df_main_dtypes
-        col = columns[1]
+    def test_nlargest_error(self, df_main_dtypes, nselect_method):
+        # unordered categorical
         error_msg = (
-            f"Column '{col}' has dtype {df[col].dtype}, "
+            "Column 'category_string' has dtype category, "
             f"cannot use method '{nselect_method}' with this dtype"
         )
-        # escape some characters that may be in the repr
-        error_msg = (
-            error_msg.replace("(", "\\(")
-            .replace(")", "\\)")
-            .replace("[", "\\[")
-            .replace("]", "\\]")
-        )
         with pytest.raises(TypeError, match=error_msg):
-            getattr(df, nselect_method)(2, columns)
+            getattr(df_main_dtypes, nselect_method)(2, ["group", "category_string"])
 
     def test_nlargest_all_dtypes(self, df_main_dtypes):
         df = df_main_dtypes
-        df.nsmallest(2, list(set(df) - {"category_string", "string"}))
-        df.nlargest(2, list(set(df) - {"category_string", "string"}))
+        df.nsmallest(2, list(set(df) - {"category_string"}))
+        df.nlargest(2, list(set(df) - {"category_string"}))
 
     def test_nlargest_duplicates_on_starter_columns(self):
         # regression test for GH#22752

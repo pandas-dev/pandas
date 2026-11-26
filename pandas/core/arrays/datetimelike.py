@@ -728,13 +728,14 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
     def fillna(self, value, limit: int | None = None, copy: bool = True) -> Self:
         # Fast path: single-pass Cython using iNaT sentinel. GH#42147
         if lib.is_scalar(value):
-            if not self._hasna:
-                return self.copy() if copy else self[:]
             try:
                 validated = self._validate_setitem_value(value)
             except (ValueError, TypeError):
+                # super().fillna raises, even when there is nothing to fill
                 pass
             else:
+                if not self._hasna:
+                    return self.copy() if copy else self[:]
                 if copy:
                     new_ndarray = self._ndarray.copy()
                 else:
@@ -1300,6 +1301,9 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
             # If both 1D then broadcasting is unambiguous
             return op(self, other[0])
 
+        if self.shape != other.shape:
+            raise ValueError("cannot add indices of unequal length")
+
         if config["mode"]["performance_warnings"]:
             warnings.warn(
                 "Adding/subtracting object-dtype array to "
@@ -1307,9 +1311,6 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
                 PerformanceWarning,
                 stacklevel=find_stack_level(),
             )
-
-        # Caller is responsible for broadcasting if necessary
-        assert self.shape == other.shape, (self.shape, other.shape)
 
         res_values = op(self.astype("O"), np.asarray(other))
         return res_values

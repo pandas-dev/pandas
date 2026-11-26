@@ -580,6 +580,9 @@ int parser_add_skiprow(parser_t *self, int64_t row) {
   set = (kh_int64_t *)self->skipset;
 
   k = kh_put_int64(set, row, &ret);
+  if (ret < 0) {
+    return -1;
+  }
   set->keys[k] = row;
 
   return 0;
