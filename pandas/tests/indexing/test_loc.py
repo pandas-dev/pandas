@@ -1752,6 +1752,93 @@ class TestLocBaseIndependent:
         result = df.loc[IndexType("foo", "bar")]["A"]
         assert result == 1
 
+    def test_loc_getitem_tuple_label_flat_index(self):
+        # GH#21574 a tuple label of a non-MultiIndex is one label, not a list
+        idx = pd.Index([("a", "1"), ("a", "2"), ("b", "1")], tupleize_cols=False)
+        df = pd.DataFrame({"x": [1, 2, 3], "y": [4, 5, 6]}, index=idx)
+        key = ("a", "2")
+
+        assert df.loc[key, "x"] == 2
+        tm.assert_series_equal(df.loc[key, :], df.iloc[1])
+        tm.assert_series_equal(df.loc[key, ["x"]], df.iloc[1, [0]])
+        assert df["x"].loc[key] == 2
+        assert df["x"].loc[key,] == 2
+        assert df.T.loc["x", key] == 2
+        tm.assert_series_equal(df.T.loc[:, key], df.T.iloc[:, 1])
+
+        both = pd.DataFrame([[1, 2], [3, 4]], index=idx[:2], columns=idx[1:])
+        assert both.loc[key, ("b", "1")] == 4
+
+        dups = df.iloc[[0, 1, 1]]
+        tm.assert_series_equal(dups.loc[key, "x"], dups["x"].iloc[1:])
+        tm.assert_series_equal(dups["x"].loc[key], dups["x"].iloc[1:])
+
+        # longer than ndim, so not a (row, column) pair
+        idx3 = pd.Index([(1, 2, 3), (4, 5, 6)], tupleize_cols=False)
+        df3 = pd.DataFrame({"x": [1, 2], "y": [3, 4]}, index=idx3)
+        tm.assert_series_equal(df3.loc[(1, 2, 3)], df3.iloc[0])
+        both3 = pd.DataFrame([[1, 2], [3, 4]], index=idx3, columns=idx3)
+        tm.assert_series_equal(both3.loc(axis=1)[(1, 2, 3)], both3.iloc[:, 0])
+
+    def test_loc_getitem_tuple_label_flat_index_elements_also_labels(self):
+        # GH#21574 the tuple label wins, as with Series.__getitem__
+        ser = pd.Series(
+            [10, 20, 30], index=pd.Index([(1, 2), 1, 2], tupleize_cols=False)
+        )
+        assert ser.loc[(1, 2)] == ser[(1, 2)] == 10
+        assert ser.to_frame("a").loc[(1, 2), "a"] == 10
+
+        # same on columns
+        df = ser.to_frame().T
+        tm.assert_series_equal(df.loc[:, (1, 2)], df[(1, 2)])
+        df.loc[:, (1, 2)] = 0
+        expected = pd.DataFrame([[0, 20, 30]], columns=ser.index)
+        tm.assert_frame_equal(df, expected)
+
+    def test_loc_setitem_tuple_label_flat_index(self):
+        # GH#21574
+        idx = pd.Index([("a", "1"), ("a", "2"), ("b", "1")], tupleize_cols=False)
+        df = pd.DataFrame({"x": [1, 2, 3], "y": [4, 5, 6]}, index=idx)
+        key = ("a", "2")
+
+        df.loc[key, "x"] = 10
+        df.loc[key, ["y"]] = 20
+        expected = pd.DataFrame({"x": [1, 10, 3], "y": [4, 20, 6]}, index=idx)
+        tm.assert_frame_equal(df, expected)
+
+        ser = df["x"].copy()
+        ser.loc[key] = 30
+        tm.assert_series_equal(ser, pd.Series([1, 30, 3], index=idx, name="x"))
+
+        # on columns
+        df_t = expected.T
+        df_t.loc["x", key] = 40
+        df_t.loc[:, ("b", "1")] = 50
+        expected_t = pd.DataFrame(
+            [[1, 40, 50], [4, 20, 50]], index=["x", "y"], columns=idx
+        )
+        tm.assert_frame_equal(df_t, expected_t)
+
+        both = pd.DataFrame([[1, 2], [3, 4]], index=idx[:2], columns=idx[1:])
+        both.loc[key, ("b", "1")] = 0
+        expected_both = pd.DataFrame([[1, 2], [3, 0]], index=idx[:2], columns=idx[1:])
+        tm.assert_frame_equal(both, expected_both)
+
+    def test_loc_setitem_tuple_label_flat_index_duplicates(self):
+        # GH#21574 non-contiguous duplicates give get_loc a boolean mask
+        idx = pd.Index([("a", "1"), ("b", "1"), ("a", "1")], tupleize_cols=False)
+        key = ("a", "1")
+        df = pd.DataFrame({"x": [1, 2, 3]}, index=idx)
+        ser = df["x"].copy()
+
+        df.loc[key, "x"] = [7, 8]
+        df.loc[key, "x"] += 1
+        tm.assert_frame_equal(df, pd.DataFrame({"x": [8, 2, 9]}, index=idx))
+
+        ser.loc[key] = [7, 8]
+        ser.loc[key] += 1
+        tm.assert_series_equal(ser, pd.Series([8, 2, 9], index=idx, name="x"))
+
     def test_loc_setitem_single_column_mixed(self, using_infer_string):
         df = pd.DataFrame(
             np.random.default_rng(2).standard_normal((5, 3)),
