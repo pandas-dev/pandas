@@ -4463,7 +4463,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         ...     np.array(["qux", "qux", "foo", "foo", "baz", "baz", "bar", "bar"]),
         ...     np.array(["two", "one", "two", "one", "two", "one", "two", "one"]),
         ... ]
-        >>> s = pd.Series([1, 2, 3, 4, 5, 6, 7, 8], index=arrays)
+        >>> s = pd.Series(
+        ...     [1, 2, 3, 4, 5, 6, 7, 8], index=pd.MultiIndex.from_arrays(arrays)
+        ... )
         >>> s.sort_index(level=1)
         bar  one    8
         baz  one    6
@@ -4826,11 +4828,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         --------
         >>> s = pd.Series(
         ...     ["A", "B", "A", "C"],
-        ...     index=[
-        ...         ["Final exam", "Final exam", "Coursework", "Coursework"],
-        ...         ["History", "Geography", "History", "Geography"],
-        ...         ["January", "February", "March", "April"],
-        ...     ],
+        ...     index=pd.MultiIndex.from_arrays(
+        ...         [
+        ...             ["Final exam", "Final exam", "Coursework", "Coursework"],
+        ...             ["History", "Geography", "History", "Geography"],
+        ...             ["January", "February", "March", "April"],
+        ...         ]
+        ...     ),
         ... )
         >>> s
         Final exam  History    January     A
@@ -4906,7 +4910,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         ...     np.array(["dog", "dog", "cat", "cat", "bird", "bird"]),
         ...     np.array(["white", "black", "white", "black", "white", "black"]),
         ... ]
-        >>> s = pd.Series([1, 2, 3, 3, 5, 2], index=arrays)
+        >>> s = pd.Series([1, 2, 3, 3, 5, 2], index=pd.MultiIndex.from_arrays(arrays))
         >>> s
         dog   white    1
               black    2

@@ -67,8 +67,8 @@ class TestMultiIndexLoc:
         # GH#21593
         df = pd.DataFrame(
             np.random.default_rng(2).standard_normal((3, 3)),
-            columns=[[2, 2, 4], [6, 8, 10]],
-            index=[[4, 4, 8], [8, 10, 12]],
+            columns=pd.MultiIndex.from_arrays([[2, 2, 4], [6, 8, 10]]),
+            index=pd.MultiIndex.from_arrays([[4, 4, 8], [8, 10, 12]]),
         )
 
         with pytest.raises(KeyError, match=r"^2$"):
@@ -146,8 +146,8 @@ class TestMultiIndexLoc:
     def test_loc_multiindex_labels(self):
         df = pd.DataFrame(
             np.random.default_rng(2).standard_normal((3, 3)),
-            columns=[["i", "i", "j"], ["A", "A", "B"]],
-            index=[["i", "i", "j"], ["X", "X", "Y"]],
+            columns=pd.MultiIndex.from_arrays([["i", "i", "j"], ["A", "A", "B"]]),
+            index=pd.MultiIndex.from_arrays([["i", "i", "j"], ["X", "X", "Y"]]),
         )
 
         # the first 2 rows
@@ -173,8 +173,8 @@ class TestMultiIndexLoc:
     def test_loc_multiindex_ints(self):
         df = pd.DataFrame(
             np.random.default_rng(2).standard_normal((3, 3)),
-            columns=[[2, 2, 4], [6, 8, 10]],
-            index=[[4, 4, 8], [8, 10, 12]],
+            columns=pd.MultiIndex.from_arrays([[2, 2, 4], [6, 8, 10]]),
+            index=pd.MultiIndex.from_arrays([[4, 4, 8], [8, 10, 12]]),
         )
         expected = df.iloc[[0, 1]].droplevel(0)
         result = df.loc[4]
@@ -183,8 +183,8 @@ class TestMultiIndexLoc:
     def test_loc_multiindex_missing_label_raises(self):
         df = pd.DataFrame(
             np.random.default_rng(2).standard_normal((3, 3)),
-            columns=[[2, 2, 4], [6, 8, 10]],
-            index=[[4, 4, 8], [8, 10, 12]],
+            columns=pd.MultiIndex.from_arrays([[2, 2, 4], [6, 8, 10]]),
+            index=pd.MultiIndex.from_arrays([[4, 4, 8], [8, 10, 12]]),
         )
 
         with pytest.raises(KeyError, match=r"^2$"):
@@ -195,8 +195,8 @@ class TestMultiIndexLoc:
         # GH 27148 - lists with missing labels _do_ raise
         df = pd.DataFrame(
             np.random.default_rng(2).standard_normal((3, 3)),
-            columns=[[2, 2, 4], [6, 8, 10]],
-            index=[[4, 4, 8], [8, 10, 12]],
+            columns=pd.MultiIndex.from_arrays([[2, 2, 4], [6, 8, 10]]),
+            index=pd.MultiIndex.from_arrays([[4, 4, 8], [8, 10, 12]]),
         )
 
         with pytest.raises(KeyError, match="not in index"):
@@ -901,13 +901,13 @@ def test_loc_getitem_index_differently_ordered_slice_none():
     # GH#31330
     df = pd.DataFrame(
         [[1, 2], [3, 4], [5, 6], [7, 8]],
-        index=[["a", "a", "b", "b"], [1, 2, 1, 2]],
+        index=pd.MultiIndex.from_arrays([["a", "a", "b", "b"], [1, 2, 1, 2]]),
         columns=["a", "b"],
     )
     result = df.loc[(slice(None), [2, 1]), :]
     expected = pd.DataFrame(
         [[3, 4], [7, 8], [1, 2], [5, 6]],
-        index=[["a", "b", "a", "b"], [2, 2, 1, 1]],
+        index=pd.MultiIndex.from_arrays([["a", "b", "a", "b"], [2, 2, 1, 1]]),
         columns=["a", "b"],
     )
     tm.assert_frame_equal(result, expected)
@@ -926,7 +926,9 @@ def test_loc_getitem_index_differently_ordered_slice_none_duplicates(indexer):
     result = df.loc[(slice(None), indexer), :]
     expected = pd.DataFrame(
         [1] * 8,
-        index=[[1, 1, 2, 1, 2, 1, 2, 2], [1, 2, 2, 7, 7, 6, 3, 8]],
+        index=pd.MultiIndex.from_arrays(
+            [[1, 1, 2, 1, 2, 1, 2, 2], [1, 2, 2, 7, 7, 6, 3, 8]]
+        ),
         columns=["a"],
     )
     tm.assert_frame_equal(result, expected)
@@ -965,8 +967,10 @@ def test_mi_partial_indexing_list_raises():
     # GH 13501
     frame = pd.DataFrame(
         np.arange(12).reshape((4, 3)),
-        index=[["a", "a", "b", "b"], [1, 2, 1, 2]],
-        columns=[["Ohio", "Ohio", "Colorado"], ["Green", "Red", "Green"]],
+        index=pd.MultiIndex.from_arrays([["a", "a", "b", "b"], [1, 2, 1, 2]]),
+        columns=pd.MultiIndex.from_arrays(
+            [["Ohio", "Ohio", "Colorado"], ["Green", "Red", "Green"]]
+        ),
     )
     frame.index.names = ["key1", "key2"]
     frame.columns.names = ["state", "color"]

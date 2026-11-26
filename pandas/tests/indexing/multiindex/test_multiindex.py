@@ -60,10 +60,12 @@ class TestMultiIndexBasic:
                 "b": ["C1", "C2", "C3", "C4"],
                 "c": [10, 15, np.nan, 20],
             },
-            index=[
-                pd.Index(["R1", "R2", np.nan, "R4"], name="a"),
-                pd.Index(["C1", "C2", "C3", "C4"], name="b"),
-            ],
+            index=pd.MultiIndex.from_arrays(
+                [
+                    pd.Index(["R1", "R2", np.nan, "R4"], name="a"),
+                    pd.Index(["C1", "C2", "C3", "C4"], name="b"),
+                ]
+            ),
         )
         tm.assert_frame_equal(result, expected)
 
@@ -82,10 +84,12 @@ class TestMultiIndexBasic:
             {
                 "c": [10, 15, np.nan, 20],
             },
-            index=[
-                pd.Index([pd.NaT, pd.NaT, pd.NaT, pd.NaT], name="a"),
-                pd.Index(["C1", "C2", "C3", "C4"], name="b"),
-            ],
+            index=pd.MultiIndex.from_arrays(
+                [
+                    pd.Index([pd.NaT, pd.NaT, pd.NaT, pd.NaT], name="a"),
+                    pd.Index(["C1", "C2", "C3", "C4"], name="b"),
+                ]
+            ),
         )
         tm.assert_frame_equal(df, expected)
 
@@ -215,11 +219,13 @@ class TestMultiIndexBasic:
         # geopandas 1763 analogue
         df = pd.DataFrame(
             [[1, 0], [0, 1]],
-            columns=[
-                ["foo", "foo"],
-                ["location", "location"],
-                ["x", "y"],
-            ],
+            columns=pd.MultiIndex.from_arrays(
+                [
+                    ["foo", "foo"],
+                    ["location", "location"],
+                    ["x", "y"],
+                ]
+            ),
         )
         with tm.assert_produces_warning(Pandas4Warning, match="Setting a new column"):
             df = df.assign(bools=pd.Series([True, False], dtype="boolean"))

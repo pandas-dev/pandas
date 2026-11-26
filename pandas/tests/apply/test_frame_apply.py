@@ -1003,7 +1003,10 @@ def test_with_dictlike_columns_with_infer():
             [lambda x: x + 1, lambda x: 3],
             "compat",
             pd.DataFrame(
-                [[2, 3], [3, 3]], columns=[["a", "a"], ["<lambda>", "<lambda>"]]
+                [[2, 3], [3, 3]],
+                columns=pd.MultiIndex.from_arrays(
+                    [["a", "a"], ["<lambda>", "<lambda>"]]
+                ),
             ),
         ),
         (
@@ -2055,7 +2058,8 @@ def test_agg_mapping_func_deprecated():
 
     result = df.agg([foo1, foo2], 0, 3, c=4)
     expected = pd.DataFrame(
-        [[8, 8], [9, 9], [10, 10]], columns=[["x", "x"], ["foo1", "foo2"]]
+        [[8, 8], [9, 9], [10, 10]],
+        columns=pd.MultiIndex.from_arrays([["x", "x"], ["foo1", "foo2"]]),
     )
     tm.assert_frame_equal(result, expected)
 

@@ -1231,7 +1231,10 @@ class TestExcelWriter:
         # GH#19395 reading a sheet with duplicate MultiIndex columns used to
         # raise an uninformative "Length of new names must be 1" ValueError;
         # now the duplicate is mangled like read_csv does.
-        df = pd.DataFrame([[0, 1], [2, 3]], columns=[["A", "A"], ["A", "A"]])
+        df = pd.DataFrame(
+            [[0, 1], [2, 3]],
+            columns=pd.MultiIndex.from_arrays([["A", "A"], ["A", "A"]]),
+        )
         df.to_excel(tmp_excel)
 
         result = pd.read_excel(tmp_excel, header=[0, 1], index_col=0)

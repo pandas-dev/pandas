@@ -2218,7 +2218,10 @@ class TestSeriesConstructorIndexCoercion:
         if container is not None:
             indexes = [container(ind) for ind in indexes]
 
-        multi = pd.Series(data, index=indexes)
+        with tm.assert_produces_warning(
+            Pandas4Warning, match="Passing a list of arrays as an index"
+        ):
+            multi = pd.Series(data, index=indexes)
         assert isinstance(multi.index, pd.MultiIndex)
 
     # TODO: make this not cast to object in pandas 3.0

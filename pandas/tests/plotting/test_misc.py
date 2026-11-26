@@ -790,7 +790,7 @@ class TestDataFramePlots:
         expected = [mpl.text.Text(0, 0, "([0, 1],)"), mpl.text.Text(1, 0, "([1, 2],)")]
         s = pd.Series(
             [1, 2],
-            index=[pd.interval_range(0, 2, closed="both")],
+            index=pd.MultiIndex.from_arrays([pd.interval_range(0, 2, closed="both")]),
         )
         _check_plot_works(s.plot.bar)
         assert all(

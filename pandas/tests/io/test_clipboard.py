@@ -413,7 +413,7 @@ class TestClipboard:
         df = pd.read_clipboard()
         df_expected = pd.DataFrame(
             data={"col1": [1, None, 2], "col2": ["red", "blue", "green"]},
-            index=multiindex[1],
+            index=pd.MultiIndex.from_arrays(multiindex[1]),
         )
 
         # excel data is parsed correctly

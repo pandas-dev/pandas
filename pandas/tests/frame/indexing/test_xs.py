@@ -175,7 +175,9 @@ class TestXSWithMultiIndex:
             codes=[[2, 0, 1], [2, 0, 1], [2, 0, 1]],
         )
         df = pd.DataFrame(arr, index=index)
-        expected = pd.DataFrame(arr[1:2], index=[["a"], ["b"]])
+        expected = pd.DataFrame(
+            arr[1:2], index=pd.MultiIndex.from_arrays([["a"], ["b"]])
+        )
         result = df.xs("c", level=2)
         tm.assert_frame_equal(result, expected)
 

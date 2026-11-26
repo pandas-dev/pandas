@@ -263,7 +263,7 @@ class TestMultiLevel:
                 datetime.date(2018, 3, 4),
             ],
         ]
-        expected = pd.DataFrame(data=data, index=index)
+        expected = pd.DataFrame(data=data, index=pd.MultiIndex.from_arrays(index))
 
         tm.assert_frame_equal(result, expected)
 
@@ -295,7 +295,7 @@ class TestMultiLevel:
     @pytest.mark.parametrize("na", [None, np.nan])
     def test_multiindex_insert_level_with_na(self, na):
         # GH 59003
-        df = pd.DataFrame([0], columns=[["A"], ["B"]])
+        df = pd.DataFrame([0], columns=pd.MultiIndex.from_arrays([["A"], ["B"]]))
         df[na, "B"] = 1
         tm.assert_frame_equal(df[na], pd.DataFrame([1], columns=["B"]))
 

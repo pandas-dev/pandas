@@ -143,21 +143,27 @@ def test_w3_html_format(styler):
 
 def test_colspan_w3():
     # GH 36223
-    df = pd.DataFrame(data=[[1, 2]], columns=[["l0", "l0"], ["l1a", "l1b"]])
+    df = pd.DataFrame(
+        data=[[1, 2]], columns=pd.MultiIndex.from_arrays([["l0", "l0"], ["l1a", "l1b"]])
+    )
     styler = Styler(df, uuid="_", cell_ids=False)
     assert '<th class="col_heading level0 col0" colspan="2">l0</th>' in styler.to_html()
 
 
 def test_rowspan_w3():
     # GH 38533
-    df = pd.DataFrame(data=[[1, 2]], index=[["l0", "l0"], ["l1a", "l1b"]])
+    df = pd.DataFrame(
+        data=[[1, 2]], index=pd.MultiIndex.from_arrays([["l0", "l0"], ["l1a", "l1b"]])
+    )
     styler = Styler(df, uuid="_", cell_ids=False)
     assert '<th class="row_heading level0 row0" rowspan="2">l0</th>' in styler.to_html()
 
 
 def test_rowspan_values_format_identically():
     # GH#10796 distinct values that format identically are not merged
-    df = pd.DataFrame({"C": [3, 4]}, index=[[1, "1"], ["a", "a"]])
+    df = pd.DataFrame(
+        {"C": [3, 4]}, index=pd.MultiIndex.from_arrays([[1, "1"], ["a", "a"]])
+    )
     result = Styler(df, uuid="_", cell_ids=False).to_html()
     assert "rowspan" not in result
     assert result.count('<th class="row_heading level0') == 2

@@ -130,7 +130,7 @@ class TestMultiIndexSetItem:
 
         df_orig = pd.DataFrame(
             np.random.default_rng(2).standard_normal((6, 3)),
-            index=arrays,
+            index=pd.MultiIndex.from_arrays(arrays),
             columns=["A", "B", "C"],
         ).sort_index()
 
@@ -181,7 +181,7 @@ class TestMultiIndexSetItem:
         df = pd.DataFrame(
             np.random.default_rng(2).integers(5, 10, size=9).reshape(3, 3),
             columns=list("abc"),
-            index=[[4, 4, 8], [8, 10, 12]],
+            index=pd.MultiIndex.from_arrays([[4, 4, 8], [8, 10, 12]]),
         )
         df["d"] = np.nan
         arr = np.array([0.0, 1.0])
@@ -197,7 +197,7 @@ class TestMultiIndexSetItem:
         df = pd.DataFrame(
             np.random.default_rng(2).integers(5, 10, size=9).reshape(3, 3),
             columns=list("abc"),
-            index=[[4, 4, 8], [8, 10, 12]],
+            index=pd.MultiIndex.from_arrays([[4, 4, 8], [8, 10, 12]]),
             dtype=np.int64,
         )
 
@@ -321,7 +321,7 @@ class TestMultiIndexSetItem:
     def test_frame_setitem_multi_column(self):
         df = pd.DataFrame(
             np.random.default_rng(2).standard_normal((10, 4)),
-            columns=[["a", "a", "b", "b"], [0, 1, 0, 1]],
+            columns=pd.MultiIndex.from_arrays([["a", "a", "b", "b"], [0, 1, 0, 1]]),
         )
 
         cp = df.copy()

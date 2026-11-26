@@ -1748,6 +1748,41 @@ class TestIndexUtils:
         tm.assert_index_equal(result, expected)
 
 
+def _assign_index(obj, labels):
+    obj.index = labels
+    return obj.index
+
+
+@pytest.mark.parametrize(
+    "set_axis",
+    [
+        _assign_index,
+        lambda obj, labels: obj.set_axis(labels).index,
+        lambda obj, labels: obj.reindex(labels).index,
+        lambda obj, labels: ensure_index(labels),
+    ],
+)
+@pytest.mark.parametrize("box", [list, np.array, pd.Series, Index])
+def test_list_of_arrays_as_index_deprecated(set_axis, box):
+    # GH#37670
+    labels = [box(["a", "b"]), box([1, 2])]
+    ser = pd.Series([1.0, 2.0])
+    msg = "Passing a list of arrays as an index to construct a MultiIndex"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = set_axis(ser, labels)
+    expected = MultiIndex.from_arrays(labels)
+    tm.assert_index_equal(result, expected)
+
+
+def test_explicit_multiindex_spellings_not_deprecated():
+    # GH#37670
+    ser = pd.Series([1.0, 2.0])
+    with tm.assert_produces_warning(None):
+        ser.index = MultiIndex.from_arrays([["a", "b"], [1, 2]])
+        ser.index = [("a", 1), ("b", 2)]
+        ser.index = ["a", "b"]
+
+
 @pytest.mark.parametrize(
     "opname",
     [

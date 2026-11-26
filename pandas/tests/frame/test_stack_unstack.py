@@ -2551,12 +2551,14 @@ class TestStackUnstackMultiLevel:
 
     def test_unstack_multiple_hierarchical(self, future_stack):
         df = pd.DataFrame(
-            index=[
-                [0, 0, 0, 0, 1, 1, 1, 1],
-                [0, 0, 1, 1, 0, 0, 1, 1],
-                [0, 1, 0, 1, 0, 1, 0, 1],
-            ],
-            columns=[[0, 0, 1, 1], [0, 1, 0, 1]],
+            index=pd.MultiIndex.from_arrays(
+                [
+                    [0, 0, 0, 0, 1, 1, 1, 1],
+                    [0, 0, 1, 1, 0, 0, 1, 1],
+                    [0, 1, 0, 1, 0, 1, 0, 1],
+                ]
+            ),
+            columns=pd.MultiIndex.from_arrays([[0, 0, 1, 1], [0, 1, 0, 1]]),
         )
 
         df.index.names = ["a", "b", "c"]
@@ -2611,7 +2613,7 @@ class TestStackUnstackMultiLevel:
         # GH#26314: Change ValueError to PerformanceWarning
         df = pd.DataFrame(
             np.zeros((2**16, 1)),
-            index=[np.arange(2**16), np.arange(2**16)],
+            index=pd.MultiIndex.from_arrays([np.arange(2**16), np.arange(2**16)]),
         )
         msg = f"may generate {2**32} cells"
         with tm.assert_produces_warning(performance_warning, match=msg):

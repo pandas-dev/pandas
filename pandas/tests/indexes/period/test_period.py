@@ -175,7 +175,7 @@ class TestPeriodIndex:
         index = pd.date_range("1/1/2012", periods=4, freq="12h")
         index_as_arrays = [index.to_period(freq="D"), index.hour]
 
-        s = pd.Series([0, 1, 2, 3], index_as_arrays)
+        s = pd.Series([0, 1, 2, 3], pd.MultiIndex.from_arrays(index_as_arrays))
 
         assert isinstance(s.index.levels[0], pd.PeriodIndex)
 
