@@ -4,6 +4,7 @@ import pytest
 
 import pandas as pd
 import pandas._testing as tm
+
 from pandas.io.formats.printing import get_adjustment
 
 
