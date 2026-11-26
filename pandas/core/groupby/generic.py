@@ -539,22 +539,28 @@ class SeriesGroupBy(GroupBy[Series]):
         res = obj._constructor(result, name=obj.name)
         return self._wrap_aggregated_output(res)
 
-    def _aggregate_multiple_funcs(self, arg, *args, **kwargs) -> DataFrame:
+    @staticmethod
+    def _label_funcs(arg) -> list[Any]:
+        """
+        Pair each entry of a list-like ``func`` with its output column label.
+
+        Entries may be ``(label, func)`` pairs; otherwise the label is the
+        function's name.
+        """
         if isinstance(arg, dict):
             raise SpecificationError("nested renamer is not supported")
 
         if any(isinstance(x, (tuple, list)) for x in arg):
-            arg = ((x, x) if not isinstance(x, (tuple, list)) else x for x in arg)
-        else:
-            # list of functions / function names
-            columns = (com.get_callable_name(f) or f for f in arg)
-            arg = zip(columns, arg, strict=True)
+            return [(x, x) if not isinstance(x, (tuple, list)) else x for x in arg]
+        # list of functions / function names
+        return [(com.get_callable_name(f) or f, f) for f in arg]
 
+    def _aggregate_multiple_funcs(self, arg, *args, **kwargs) -> DataFrame:
         results: dict[base.OutputKey, DataFrame | Series] = {}
         with com.temp_setattr(self, "as_index", True):
             # Combine results using the index, need to adjust index after
             # if as_index=False (GH#50724)
-            for idx, (name, func) in enumerate(arg):
+            for idx, (name, func) in enumerate(self._label_funcs(arg)):
                 key = base.OutputKey(label=name, position=idx)
                 results[key] = self.aggregate(func, *args, **kwargs)
 
@@ -647,12 +653,12 @@ class SeriesGroupBy(GroupBy[Series]):
         """
         Call function producing a same-indexed Series on each group.
 
-        Returns a Series having the same indexes as the original object
+        Returns an object having the same indexes as the original object
         filled with the transformed values.
 
         Parameters
         ----------
-        func : function, str
+        func : function, str or list-like
             Function to apply to each group.
             See the Notes section below for requirements.
 
@@ -661,8 +667,9 @@ class SeriesGroupBy(GroupBy[Series]):
             - String
             - Python function
             - Numba JIT function with ``engine='numba'`` specified.
+            - List-like of strings/functions, returning a DataFrame with one
+              column per function.
 
-            Only passing a single function is supported with this engine.
             If the ``'numba'`` engine is chosen, the function must be
             a user defined function with ``values`` and ``index`` as the
             first and second arguments respectively in the function signature.
@@ -671,6 +678,9 @@ class SeriesGroupBy(GroupBy[Series]):
 
             If a string is chosen, then it needs to be the name
             of the groupby method you want to use.
+
+            .. versionchanged:: 3.2.0
+                Added support for list-like arguments.
         *args
             Positional arguments to pass to func.
         engine : str, default None
@@ -692,9 +702,9 @@ class SeriesGroupBy(GroupBy[Series]):
 
         Returns
         -------
-        Series
-            Series with the same indexes as the original object filled
-            with transformed values.
+        Series or DataFrame
+            Same indexes as the original object, filled with transformed
+            values. A DataFrame if ``func`` is list-like.
 
         See Also
         --------
@@ -768,6 +778,15 @@ class SeriesGroupBy(GroupBy[Series]):
         Parrot     25.0
         Name: Max Speed, dtype: float64
 
+        Apply several functions at once
+
+        >>> grouped.transform(["mean", "max"])
+                 mean    max
+        Falcon  370.0  390.0
+        Falcon  370.0  390.0
+        Parrot   25.0   30.0
+        Parrot   25.0   30.0
+
         The resulting dtype will reflect the return value of the passed ``func``,
         for example:
 
@@ -779,16 +798,32 @@ class SeriesGroupBy(GroupBy[Series]):
         Name: Max Speed, dtype: int64
         """
 
-        if isinstance(func, list):
-            raise NotImplementedError(
-                "Passing a list to SeriesGroupBy.transform is not yet supported "
-                "and is intended to be implemented in a future release. "
-                "See https://github.com/pandas-dev/pandas/issues/58318."
+        if is_list_like(func):
+            func = maybe_mangle_lambdas(func)
+            return self._transform_multiple_funcs(
+                func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
             )
 
         return self._transform(
             func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
         )
+
+    def _transform_multiple_funcs(self, arg, *args, **kwargs) -> DataFrame:
+        labeled = self._label_funcs(arg)
+        labels = [label for label, _ in labeled]
+        results = [self.transform(func, *args, **kwargs) for _, func in labeled]
+
+        if any(isinstance(x, DataFrame) for x in results):
+            # e.g. a (label, list) pair
+            from pandas.core.reshape.concat import concat
+
+            return concat(results, axis=1, keys=labels)
+
+        output = self.obj._constructor_expanddim(
+            {idx: res._values for idx, res in enumerate(results)}, index=self.obj.index
+        )
+        output.columns = Index(labels)
+        return output
 
     def _cython_transform(self, how: str, numeric_only: bool = False, **kwargs):
         obj = self._obj_with_exclusions
@@ -2907,6 +2942,12 @@ class DataFrameGroupBy(GroupBy[DataFrame]):
         Series
             Transformed Series with the same index as the original DataFrame.
         """
+        if is_list_like(agg_func):
+            # SeriesGroupBy.transform would return a DataFrame here
+            raise NotImplementedError(
+                "Passing a list of functions for a single column to "
+                "DataFrameGroupBy.transform is not yet supported."
+            )
         data = self._gotitem(column_name, ndim=1)
         return data.transform(
             agg_func, *args, engine=engine, engine_kwargs=engine_kwargs, **kwargs
