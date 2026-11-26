@@ -19,6 +19,7 @@ from pandas.errors import (
 
 import pandas as pd
 import pandas._testing as tm
+from pandas.api.types import pandas_dtype
 from pandas.core.arrays import IntegerArray
 
 from pandas.io.parsers.base_parser import wrap_object_columns
@@ -1128,6 +1129,55 @@ def test_out_of_range_integer_dtype_raises(all_parsers, dtype, err, msg, dtype_b
     data = "x\n-1\n257\n"
     with pytest.raises(err, match=msg):
         parser.read_csv(StringIO(data), dtype={"x": dtype}, dtype_backend=dtype_backend)
+
+
+def _integer_limits(dtype):
+    dtype = pandas_dtype(dtype)
+    info = np.iinfo(getattr(dtype, "numpy_dtype", dtype))
+    return dtype, info
+
+
+# the pyarrow engine reads values outside the int64 range as float64, and
+#  casting that to a nullable dtype warns before the cast is rejected
+@pytest.mark.filterwarnings("ignore:invalid value encountered in cast:RuntimeWarning")
+@pytest.mark.parametrize("bound", ["min", "max"])
+def test_integer_dtype_limit_round_trips(all_parsers, any_int_dtype, bound, request):
+    # GH#47167
+    parser = all_parsers
+    dtype, info = _integer_limits(any_int_dtype)
+    value = info.min if bound == "min" else info.max
+    if parser.engine == "pyarrow" and info.dtype == np.uint64 and bound == "max":
+        request.applymarker(
+            pytest.mark.xfail(
+                reason="pyarrow engine reads uint64-max via float64", raises=ValueError
+            )
+        )
+
+    result = parser.read_csv(StringIO(f"x\n{value}\n"), dtype={"x": any_int_dtype})
+    expected = pd.DataFrame({"x": pd.Series([value], dtype=dtype)})
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.filterwarnings("ignore:invalid value encountered in cast:RuntimeWarning")
+@pytest.mark.parametrize("bound", ["min", "max"])
+def test_integer_dtype_past_limit_raises(all_parsers, any_int_dtype, bound, request):
+    # GH#47167 a value just outside the dtype's range must raise instead of
+    #  silently wrapping around
+    parser = all_parsers
+    _, info = _integer_limits(any_int_dtype)
+    value = info.min - 1 if bound == "min" else info.max + 1
+    if parser.engine == "pyarrow" and info.dtype == np.int64 and bound == "min":
+        request.applymarker(
+            pytest.mark.xfail(
+                reason="pyarrow engine rounds int64-min minus one to int64-min"
+            )
+        )
+
+    msg = "|".join(
+        ["cannot safely", "Overflow", "too large to convert", "too big to convert"]
+    )
+    with pytest.raises((ValueError, TypeError, OverflowError), match=msg):
+        parser.read_csv(StringIO(f"x\n{value}\n"), dtype={"x": any_int_dtype})
 
 
 @pytest.mark.parametrize(
