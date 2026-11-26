@@ -80,6 +80,32 @@ class TestDatetimeIndexOps:
 
         tm.assert_numpy_array_equal(result, expected)
 
+    def test_dti_fold(self, tz_naive_fixture, unit):
+        # GH#47130 match Timestamp.fold, with NaT as False
+        tz = timezones.maybe_get_tz(tz_naive_fixture)
+        utc = pd.date_range(
+            "2020-11-01 04:00", periods=12, freq="30min", tz="UTC", unit=unit
+        )
+        index = utc.tz_localize(None) if tz is None else utc.tz_convert(tz)
+        index = index.insert(1, pd.NaT)
+
+        expected = np.array([ts is not pd.NaT and bool(ts.fold) for ts in index])
+        tm.assert_numpy_array_equal(index.fold, expected)
+        result = index._data.reshape(-1, 1).fold
+        tm.assert_numpy_array_equal(result, expected.reshape(-1, 1))
+
+    @pytest.mark.parametrize("tz", ["US/Eastern", "dateutil/US/Eastern"])
+    def test_dti_fold_ambiguous(self, tz):
+        # GH#47130
+        index = pd.date_range(
+            "2020-11-01 05:00", periods=3, freq="h", tz="UTC"
+        ).tz_convert(tz)
+        expected = np.array([False, True, False])
+        tm.assert_numpy_array_equal(index.fold, expected)
+
+        result = index.tz_localize(None).tz_localize(tz, ambiguous=~index.fold)
+        tm.assert_index_equal(result, index, check_freq=False)
+
     @pytest.mark.parametrize(
         "field",
         [

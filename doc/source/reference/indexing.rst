@@ -347,6 +347,7 @@ Time/date components
    DatetimeIndex.date
    DatetimeIndex.time
    DatetimeIndex.timetz
+   DatetimeIndex.fold
    DatetimeIndex.dayofyear
    DatetimeIndex.day_of_year
    DatetimeIndex.dayofweek

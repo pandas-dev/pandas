@@ -46,6 +46,7 @@ Other enhancements
 - :meth:`Series.astype` and :func:`array` with ``dtype="boolean"`` now convert values the same way as ``astype(bool)`` instead of raising for values other than booleans, 0 and 1 (e.g. ``"False"`` becomes ``True``), with missing values becoming ``NA`` (:issue:`37614`, :issue:`40566`)
 - :meth:`DatetimeIndex.floor`, :meth:`DatetimeIndex.ceil`, :meth:`Series.dt.floor`, :meth:`Series.dt.ceil`, :meth:`Timestamp.floor`, and :meth:`Timestamp.ceil` now accept a single step of a date-anchored frequency such as ``"MS"``, ``"QE"``, ``"W-SUN"``, or ``"B"`` (:issue:`15303`)
 - :meth:`Series.groupby` now accepts ``as_index=False``, returning aggregation results as a :class:`DataFrame` with the group labels as columns (:issue:`36507`)
+- Added :attr:`DatetimeIndex.fold` and :attr:`Series.dt.fold`, matching :attr:`Timestamp.fold`, to identify the second occurrence of a repeated wall time (:issue:`47130`)
 - Added :class:`api.extensions.Accessor` to the public API, for adding or overriding an accessor on a single class such as a :class:`DataFrame` subclass (:issue:`40103`)
 - Added :meth:`Categorical.to_dense` and :meth:`Series.cat.to_dense` to get the values with the dtype of the categories, including extension dtypes (:issue:`26410`)
 - Added :meth:`DatetimeIndex.set_freq` and :meth:`TimedeltaIndex.set_freq`, which return a new index with the given ``freq`` instead of modifying it in place (:issue:`61094`)

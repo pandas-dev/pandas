@@ -190,6 +190,7 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
     date
     time
     timetz
+    fold
     dayofyear
     day_of_year
     dayofweek
@@ -936,6 +937,47 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         datetime.time(11, 0, tzinfo=datetime.timezone.utc)], dtype=object)
         """
         return self._data.timetz
+
+    @property
+    def fold(self) -> npt.NDArray[np.bool_]:
+        """
+        Indicate whether each wall time is the second occurrence of a repeated time.
+
+        When clocks are set back, e.g. at the end of daylight saving time, a span
+        of wall times occurs twice. Matches :attr:`Timestamp.fold`; False for NaT
+        and tz-naive data.
+
+        .. versionadded:: 3.2.0
+
+        Returns
+        -------
+        numpy.ndarray[bool]
+
+        See Also
+        --------
+        Timestamp.fold : The fold of a single Timestamp.
+        DatetimeIndex.tz_localize : Accepts ``~fold`` as ``ambiguous``.
+
+        Examples
+        --------
+        >>> idx = pd.date_range(
+        ...     "2020-11-01 05:00", periods=3, freq="h", tz="UTC"
+        ... ).tz_convert("America/New_York")
+        >>> idx
+        DatetimeIndex(['2020-11-01 01:00:00-04:00', '2020-11-01 01:00:00-05:00',
+                       '2020-11-01 02:00:00-05:00'],
+                      dtype='datetime64[us, America/New_York]', freq='h')
+        >>> idx.fold
+        array([False,  True, False])
+
+        Passing ``~fold`` as ``ambiguous`` restores the original timestamps
+        after a round trip through wall times:
+
+        >>> wall = idx.tz_localize(None)
+        >>> wall.tz_localize("America/New_York", ambiguous=~idx.fold).equals(idx)
+        True
+        """
+        return self._data.fold
 
     def to_pydatetime(self) -> npt.NDArray[np.object_]:
         """

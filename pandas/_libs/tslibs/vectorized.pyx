@@ -9,6 +9,7 @@ from cpython.datetime cimport (
 from numpy cimport (
     int64_t,
     ndarray,
+    uint8_t,
 )
 
 cnp.import_array()
@@ -213,6 +214,56 @@ def ints_to_pydatetime(
         cnp.PyArray_ITER_NEXT(it)
 
     return result
+
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def get_fold(ndarray stamps, tzinfo tz, NPY_DATETIMEUNIT reso) -> ndarray:
+    # stamps is int64, arbitrary ndim
+    """
+    Return the PEP 495 ``fold`` of each timestamp, False for NaT.
+
+    Parameters
+    ----------
+    stamps : ndarray[int64]
+    tz : tzinfo or None
+    reso : NPY_DATETIMEUNIT
+
+    Returns
+    -------
+    ndarray[bool]
+    """
+    cdef:
+        ndarray result = cnp.PyArray_ZEROS(stamps.ndim, stamps.shape, cnp.NPY_UINT8, 0)
+
+    if stamps.size == 0 or tz is None or is_utc(tz):
+        # Avoid the cost of initializing Localizer
+        return result.view(bool)
+
+    cdef:
+        Localizer info = Localizer(tz, creso=reso)
+        int64_t utc_val
+        Py_ssize_t i, n = stamps.size
+        Py_ssize_t pos = -1  # unused, avoid not-initialized warning
+        bint fold
+        uint8_t[::1] res_flat = result.ravel()  # C-contiguous, so not a copy
+        cnp.flatiter it = cnp.PyArray_IterNew(stamps)
+
+    if info.use_fixed:
+        return result.view(bool)
+
+    for i in range(n):
+        # Analogous to: utc_val = stamps[i]
+        utc_val = (<int64_t*>cnp.PyArray_ITER_DATA(it))[0]
+
+        if utc_val != NPY_NAT:
+            fold = 0
+            info.utc_val_to_local_val(utc_val, &pos, &fold)
+            res_flat[i] = fold
+
+        cnp.PyArray_ITER_NEXT(it)
+
+    return result.view(bool)
 
 
 # -------------------------------------------------------------------------

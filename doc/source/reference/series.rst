@@ -325,6 +325,7 @@ Datetime properties
    Series.dt.date
    Series.dt.time
    Series.dt.timetz
+   Series.dt.fold
    Series.dt.year
    Series.dt.month
    Series.dt.day

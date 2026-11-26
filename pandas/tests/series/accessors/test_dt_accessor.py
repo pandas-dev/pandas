@@ -980,6 +980,16 @@ class TestSeriesDatetimeValues:
         result = ser.dt.timetz
         tm.assert_series_equal(result, expected)
 
+    def test_dt_fold_accessor(self):
+        # GH#47130
+        dti = pd.date_range(
+            "2020-11-01 05:00", periods=3, freq="h", tz="UTC"
+        ).tz_convert("US/Eastern")
+        ser = pd.Series(dti.insert(3, pd.NaT), index=list("abcd"), name="x")
+        result = ser.dt.fold
+        expected = pd.Series([False, True, False, False], index=list("abcd"), name="x")
+        tm.assert_series_equal(result, expected)
+
     @pytest.mark.parametrize(
         "input_series, expected_output",
         [
