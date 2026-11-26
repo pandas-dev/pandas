@@ -7432,6 +7432,10 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             axis = 0
         axis = self._get_axis_number(axis)
 
+        if isinstance(value, ABCSeries) and not value.index.is_unique:
+            # GH#36608
+            raise ValueError("Cannot fillna with a Series with non-unique index.")
+
         if self.ndim == 1:
             if isinstance(value, (dict, ABCSeries)):
                 if not len(value):

@@ -828,6 +828,14 @@ class TestSeriesFillNA:
         with pytest.raises(TypeError, match=msg):
             ser.fillna((1, 2))
 
+    def test_fillna_series_with_non_unique_index_raises(self):
+        # GH#36608
+        ser = pd.Series([1.0, np.nan], index=["x", "x"])
+        value = pd.Series([5.0, 6.0], index=["x", "x"])
+        msg = "Cannot fillna with a Series with non-unique index"
+        with pytest.raises(ValueError, match=msg):
+            ser.fillna(value)
+
     def test_fillna_method_and_limit_invalid(self):
         # related GH#9217, make sure limit is an int and greater than 0
         ser = pd.Series([1, 2, 3, None])
