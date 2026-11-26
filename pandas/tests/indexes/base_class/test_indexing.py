@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas._config import using_string_dtype
+
 from pandas._libs import index as libindex
 
 import pandas as pd
@@ -109,6 +111,71 @@ class TestGetLoc:
         # we don't match at all on mismatched NA
         with pytest.raises(KeyError, match="NaT"):
             idx.get_loc(pd.NaT)
+
+
+@pytest.mark.skipif(
+    not using_string_dtype(), reason="string dtype inference not enabled"
+)
+def test_get_indexer_pd_na_matches_nan():
+    # GH#65419
+    idx = pd.Index([np.nan, "b"])
+
+    for target in [
+        [pd.NA],
+        np.array([pd.NA], dtype=object),
+        pd.Index([pd.NA]),
+        pd.Index([pd.NA], dtype="string"),
+    ]:
+        result = idx.get_indexer(target)
+        expected = np.array([0], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
+
+    expected = pd.Index(["b"])
+    for labels in [[pd.NA], np.array([pd.NA], dtype=object), pd.Index([pd.NA])]:
+        result = idx.drop(labels)
+        tm.assert_index_equal(result, expected)
+
+
+@pytest.mark.skipif(
+    not using_string_dtype(), reason="string dtype inference not enabled"
+)
+def test_get_indexer_nat_matches_nan():
+    # GH#65419
+    # get_loc(pd.NaT) already matches np.nan for a string-dtype index, so
+    # get_indexer should match it regardless of how the target is passed.
+    idx = pd.Index([np.nan, "b"])
+    assert idx.get_loc(pd.NaT) == 0
+
+    for target in [
+        [pd.NaT],
+        np.array([pd.NaT], dtype=object),
+        pd.Index([pd.NaT]),
+        pd.Index([pd.NaT], dtype=object),
+        pd.DatetimeIndex([pd.NaT]),
+    ]:
+        result = idx.get_indexer(target)
+        expected = np.array([0], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
+
+    # Explicit string dtype (same na_value=np.nan semantics as inference).
+    s = pd.Index([None, "b"], dtype="string")
+    assert s.get_loc(pd.NaT) == 0
+    tm.assert_numpy_array_equal(s.get_indexer([pd.NaT]), np.array([0], dtype=np.intp))
+    tm.assert_numpy_array_equal(
+        s.get_indexer(pd.DatetimeIndex([pd.NaT])), np.array([0], dtype=np.intp)
+    )
+
+    # Non-string indexes keep pre-existing NaT semantics (no match).
+    object_idx = pd.Index([np.nan, "b"], dtype=object)
+    tm.assert_numpy_array_equal(
+        object_idx.get_indexer(pd.Index([pd.NaT], dtype=object)),
+        np.array([-1], dtype=np.intp),
+    )
+    float_idx = pd.Index([1.0, np.nan])
+    tm.assert_numpy_array_equal(
+        float_idx.get_indexer(pd.DatetimeIndex([pd.NaT])),
+        np.array([-1], dtype=np.intp),
+    )
 
 
 def test_get_indexer_monotonic_above_size_cutoff(monkeypatch):
