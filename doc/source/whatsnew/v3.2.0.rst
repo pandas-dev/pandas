@@ -36,6 +36,7 @@ Other enhancements
 - :meth:`.DataFrameGroupBy.ohlc`, :meth:`.SeriesGroupBy.ohlc` and :meth:`.Resampler.ohlc` now accept a ``numeric_only`` argument (:issue:`56946`)
 - :meth:`.DataFrameGroupBy.plot` now titles each group's figure with its group key, unless ``title`` or ``ax`` is passed (:issue:`12452`)
 - :meth:`.DataFrameGroupBy.rank` and :meth:`.SeriesGroupBy.rank` now accept a ``numeric_only`` argument, matching :meth:`DataFrame.rank` (:issue:`44438`)
+- :meth:`.Series.replace` and :meth:`.DataFrame.replace` now support callable replacement values for regex matches (:issue:`68199`)
 - :meth:`.Styler.to_latex` with ``clines="all;data"`` or ``"skip-last;data"`` now adds clines between the groups of a hidden index instead of none (:issue:`59877`)
 - :meth:`DataFrame.nlargest`, :meth:`DataFrame.nsmallest`, :meth:`Series.nlargest` and :meth:`Series.nsmallest` now work on non-numeric data such as strings, objects, intervals, and ordered categoricals instead of raising ``TypeError`` (:issue:`61166`)
 - :meth:`DataFrame.plot.area` and :meth:`Series.plot.area` now accept keyword arguments that only the lines or only the filled areas support, such as ``hatch``, ``edgecolor`` and ``marker``, instead of raising ``AttributeError``; ``hatch`` also accepts a list with one hatch per column (:issue:`12354`)

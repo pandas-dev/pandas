@@ -24,6 +24,12 @@ def mix_abc() -> dict[str, list[float | str]]:
 
 
 class TestDataFrameReplace:
+    def test_replace_regex_callable_columnwise(self):
+        df = pd.DataFrame({"text": ["a1", "b2"], "number": [1, 2]})
+        result = df.replace({"text": {r"\d": lambda match: "X"}}, regex=True)
+        expected = pd.DataFrame({"text": ["aX", "bX"], "number": [1, 2]})
+        tm.assert_frame_equal(result, expected)
+
     def test_replace_nan_and_infs_with_none_single_call(self):
         # GH#31414 replacing NaN and +/-inf with None in a single dict call
         # must replace all of them and produce object dtype
