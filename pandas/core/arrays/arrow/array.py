@@ -95,7 +95,10 @@ from pandas.core import (
 from pandas.core.array_algos.quantile import quantile_with_mask
 from pandas.core.arraylike import OpsMixin
 from pandas.core.arrays._arrow_string_mixins import ArrowStringArrayMixin
-from pandas.core.arrays._utils import to_numpy_dtype_inference
+from pandas.core.arrays._utils import (
+    to_numpy_dtype_inference,
+    warn_unitless_to_numpy_dtype,
+)
 from pandas.core.arrays.arrow.util import _arrow_dtype_mapping
 from pandas.core.arrays.base import (
     ExtensionArray,
@@ -2672,6 +2675,9 @@ class ArrowExtensionArray(
         numpy.ndarray
         """
         original_na_value = na_value
+        if not is_arrow_temporal_dtype(self.dtype):
+            # temporal data warns in DatetimeArray/TimedeltaArray.to_numpy below
+            warn_unitless_to_numpy_dtype(dtype)
         dtype, na_value = to_numpy_dtype_inference(self, dtype, na_value, self._hasna)
         pa_type = self._pa_array.type
         if not self._hasna or isna(na_value) or pa.types.is_null(pa_type):

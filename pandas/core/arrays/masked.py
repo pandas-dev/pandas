@@ -24,7 +24,10 @@ from pandas._libs import (
     lib,
     missing as libmissing,
 )
-from pandas._libs.tslibs import is_supported_dtype
+from pandas._libs.tslibs import (
+    is_supported_dtype,
+    is_unitless,
+)
 from pandas.compat import (
     IS64,
     is_platform_windows,
@@ -85,7 +88,10 @@ from pandas.core.array_algos import (
 from pandas.core.array_algos.quantile import quantile_with_mask
 from pandas.core.array_algos.transforms import shift
 from pandas.core.arraylike import OpsMixin
-from pandas.core.arrays._utils import to_numpy_dtype_inference
+from pandas.core.arrays._utils import (
+    to_numpy_dtype_inference,
+    warn_unitless_to_numpy_dtype,
+)
 from pandas.core.arrays.base import ExtensionArray
 from pandas.core.construction import (
     array as pd_array,
@@ -732,6 +738,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         >>> a.to_numpy(dtype="bool", na_value=False)
         array([ True, False, False])
         """
+        warn_unitless_to_numpy_dtype(dtype)
         hasna = self._hasna
         dtype, na_value = to_numpy_dtype_inference(self, dtype, na_value, hasna)
         if dtype is None:
@@ -852,6 +859,15 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         if dtype.kind == "b" and self._hasna:
             # careful: astype_nansafe converts np.nan to True
             raise ValueError("cannot convert float NaN to bool")
+
+        if dtype.kind in "mM" and is_unitless(dtype):
+            # the unit-less deprecation is for to_numpy, not astype; Series and
+            #  Index.astype reject a unit-less dtype already
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    "ignore", "Passing a unit-less dtype", Pandas4Warning
+                )
+                return self.to_numpy(dtype=dtype, na_value=na_value, copy=copy)
 
         data = self.to_numpy(dtype=dtype, na_value=na_value, copy=copy)
         return data

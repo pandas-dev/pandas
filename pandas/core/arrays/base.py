@@ -81,6 +81,7 @@ from pandas.core.algorithms import (
     unique,
 )
 from pandas.core.array_algos.quantile import quantile_with_mask
+from pandas.core.arrays._utils import warn_unitless_to_numpy_dtype
 from pandas.core.missing import _fill_limit_area_1d
 from pandas.core.sorting import (
     nargminmax,
@@ -750,6 +751,7 @@ class ExtensionArray:
         >>> arr.to_numpy(dtype="object", na_value=None)
         array([1, 2, None], dtype=object)
         """
+        warn_unitless_to_numpy_dtype(dtype)
         result = np.asarray(self, dtype=dtype)
         if copy or na_value is not lib.no_default:
             result = result.copy()
