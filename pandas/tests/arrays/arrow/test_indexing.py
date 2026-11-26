@@ -178,6 +178,46 @@ def test_setitem_null_slice_no_alias_nested(kind):
     assert arr.tolist() == expected_data
 
 
+def test_setitem_length1_ndarray_single_row():
+    # GH#69443 setitem_inplace unwraps a length-1 ndarray to 0-d, which
+    #  pa.scalar rejected
+    df = pd.DataFrame({"A": pd.array([5000.0], dtype="double[pyarrow]")})
+    df.loc[:, "A"] = df["A"].astype(float).round(6)
+    expected = pd.DataFrame({"A": pd.array([5000.0], dtype="double[pyarrow]")})
+    tm.assert_frame_equal(df, expected)
+
+    # the same unwrap broadcasts a length-1 array, as it does for NumPy dtypes
+    df2 = pd.DataFrame({"A": pd.array([1.0, 2.0], dtype="double[pyarrow]")})
+    df2.loc[:, "A"] = np.array([7.5])
+    expected2 = pd.DataFrame({"A": pd.array([7.5, 7.5], dtype="double[pyarrow]")})
+    tm.assert_frame_equal(df2, expected2)
+
+    # a 0-d value passed straight to the array, not only via the manager
+    arr = pd.array([1.0, 2.0], dtype="double[pyarrow]")
+    arr[:] = np.array(3.5)
+    assert arr.tolist() == [3.5, 3.5]
+
+    df_ts = pd.DataFrame(
+        {"A": pd.array([pd.Timestamp("2020-01-01")], dtype="timestamp[ns][pyarrow]")}
+    )
+    df_ts.loc[:, "A"] = np.array(["2020-01-02"], dtype="datetime64[ns]")
+    expected_ts = pd.DataFrame(
+        {"A": pd.array([pd.Timestamp("2020-01-02")], dtype="timestamp[ns][pyarrow]")}
+    )
+    tm.assert_frame_equal(df_ts, expected_ts)
+
+    # string[pyarrow] validates before boxing, so a 0-d value has to be unboxed
+    #  there too
+    df3 = pd.DataFrame({"A": pd.array(["x"], dtype="string[pyarrow]")})
+    df3.loc[:, "A"] = np.array(["y"])
+    expected3 = pd.DataFrame({"A": pd.array(["y"], dtype="string[pyarrow]")})
+    tm.assert_frame_equal(df3, expected3)
+
+    df_bad = pd.DataFrame({"A": pd.array([1.0], dtype="double[pyarrow]")})
+    with pytest.raises(TypeError, match="Invalid value"):
+        df_bad.loc[:, "A"] = np.array(["not-a-float"])
+
+
 def test_setitem_null_slice_cow():
     # GH#67990 full-slice assignment must not tie the two frames together
     df = pd.DataFrame({"a": pd.array([1, 2, 3], dtype="int64[pyarrow]")})

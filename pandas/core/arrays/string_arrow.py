@@ -330,6 +330,10 @@ class ArrowStringArray(ObjectStringArrayMixin, ArrowExtensionArray, BaseStringAr
 
     def _validate_setitem_value(self, value):
         """Maybe convert value to be pyarrow compatible."""
+        # GH#69443 a 0-d ndarray is scalar-like; len() of it raises and the
+        #  scalar branch below would not see it. setitem_inplace unwraps a
+        #  length-1 array to one.
+        value = lib.item_from_zerodim(value)
         if isinstance(value, pa.Scalar):
             # GH#71075 super() casts rather than checks, and pyarrow casts a
             #  number or a bool to its string form
