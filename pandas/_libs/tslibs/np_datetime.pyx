@@ -977,19 +977,22 @@ cpdef cnp.ndarray mul_overflowsafe(cnp.ndarray left, cnp.ndarray right):
     """
     Overflow-safe multiplication for timedelta64 dtype with int64 multiplier.
 
-    `right` may either be zero-dim or broadcastable to `left`'s shape.
+    `left` and `right` are broadcast to their common shape.
     NaT values in `left` are propagated.
 
     TODO(numpy>=2.5): numpy raises OverflowError natively here (numpy GH-31378);
     remove this once the numpy floor is >= 2.5.
     """
     cdef:
-        Py_ssize_t N = left.size
+        cnp.broadcast mi = cnp.PyArray_MultiIterNew2(left, right)
+        Py_ssize_t N = cnp.PyArray_MultiIter_SIZE(mi)
         int64_t lval, rval, res_value
         ndarray iresult = cnp.PyArray_EMPTY(
-            left.ndim, left.shape, cnp.NPY_INT64, 0
+            cnp.PyArray_MultiIter_NDIM(mi), cnp.PyArray_MultiIter_DIMS(mi),
+            cnp.NPY_INT64, 0
         )
-        cnp.broadcast mi = cnp.PyArray_MultiIterNew3(iresult, left, right)
+
+    mi = cnp.PyArray_MultiIterNew3(iresult, left, right)
 
     # Note: doing this try/except outside the loop improves performance over
     #  doing it inside the loop.
