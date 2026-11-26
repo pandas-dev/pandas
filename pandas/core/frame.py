@@ -4492,6 +4492,17 @@ class DataFrame(NDFrame, OpsMixin):
         #  same-length tuples; see test_get_set_value_no_partial_indexing
         try:
             loc = self.index._engine.get_loc(index)
+        except KeyError:
+            # GH#62903 the engine hashes NA as code -1. When NA is a level
+            # entry with a non-negative code, fall back to get_loc. Keep the
+            # engine's rejection of partial tuples.
+            if not (
+                isinstance(index, tuple)
+                and len(index) == self.index.nlevels
+                and any(is_scalar(k) and isna(k) for k in index)
+            ):
+                raise
+            loc = self.index.get_loc(index)
         except TypeError:
             # e.g. partial string slicing on DatetimeIndex level;
             #  see GH#43395

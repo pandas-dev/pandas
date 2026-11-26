@@ -749,6 +749,38 @@ class TestGetLoc:
         idx = pd.MultiIndex.from_product(levels)
         assert idx.get_loc(tuple(key)) == 3
 
+    def test_get_loc_na_stored_as_level_entry(self):
+        # GH#62903 NA kept in the level with a non-negative code, which
+        # verify_integrity would rewrite to -1. concat and
+        # groupby(dropna=False) build indexes this way.
+        idx = pd.MultiIndex(
+            levels=[[1, 2], [2, pd.NA]],
+            codes=[[0, 1], [0, 1]],
+            verify_integrity=False,
+        )
+        assert idx.codes[1][1] == 1
+        assert idx.get_loc((2, pd.NA)) == 1
+
+        df = pd.DataFrame({"a": [1, 2]}, index=idx)
+        assert df.at[(2, pd.NA), "a"] == 2
+        assert df.loc[(2, pd.NA), "a"] == 2
+
+        # a missing label still raises, including an NA the level does not use
+        with pytest.raises(KeyError, match=r"^\(1, <NA>\)$"):
+            idx.get_loc((1, pd.NA))
+
+    def test_get_loc_groupby_dropna_false_na_in_level(self):
+        # GH#62903 groupby(dropna=False) must keep a non-negative code for NA
+        df = pd.DataFrame({"a": [1, 2, pd.NA], "b": [1, pd.NA, pd.NA], "c": [4, 5, 6]})
+        result = df.groupby(["a", "b"], dropna=False).sum()
+        assert (result.index.codes[1] >= 0).all()
+
+        key_one_na = result.index[1]
+        key_both_na = result.index[2]
+        assert result.at[key_one_na, "c"] == 5
+        assert result.loc[key_both_na, "c"] == 6
+        assert result.index.get_loc(key_both_na) == 2
+
     def test_get_loc_missing_nan(self):
         # GH 8569
         idx = pd.MultiIndex.from_arrays([[1.0, 2.0], [3.0, 4.0]])

@@ -3702,6 +3702,52 @@ class MultiIndex(Index):
         else:
             return level_index.get_loc(key)  # type: ignore[return-value]
 
+    def _get_loc_na_fallback(self, key):
+        """
+        Locate a full key when an NA label is stored as a level entry.
+
+        The code engine hashes a missing label as code ``-1``. ``concat`` and
+        ``groupby(..., dropna=False)`` instead keep ``NA`` in the level and
+        point at it with a non-negative code (``verify_integrity=False``), so
+        the engine misses. Match those codes without changing the ``-1`` path,
+        which still wins when the engine finds it.
+
+        Returns an int, slice, or boolean mask, or None when the key is absent.
+        """
+        # GH#62903
+        if not any(is_scalar(k) and isna(k) for k in key):
+            return None
+
+        mask = np.ones(len(self), dtype=bool)
+        for i, k in enumerate(key):
+            codes = self.codes[i]
+            if is_scalar(k) and isna(k):
+                level_match = codes == -1
+                na_pos = np.flatnonzero(isna(self.levels[i]))
+                if len(na_pos):
+                    level_match = level_match | np.isin(codes, na_pos)
+            else:
+                try:
+                    loc = self.levels[i].get_loc(k)
+                except (KeyError, TypeError, ValueError):
+                    return None
+                if not is_integer(loc):
+                    return None
+                level_match = codes == loc
+            mask &= level_match
+
+        if not mask.any():
+            return None
+
+        inds = np.flatnonzero(mask)
+        if len(inds) == 1:
+            return int(inds[0])
+
+        loc = lib.maybe_indices_to_slice(inds.astype(np.intp, copy=False), len(self))
+        if isinstance(loc, slice):
+            return loc
+        return mask
+
     def get_loc(self, key):
         """
         Get location for a label or a tuple of labels. The location is returned \
@@ -3778,6 +3824,11 @@ class MultiIndex(Index):
             try:
                 return self._engine.get_loc(key)
             except KeyError as err:
+                # GH#62903 NA kept in the level (non-negative code) misses the
+                # engine, which only hashes the -1 sentinel.
+                loc = self._get_loc_na_fallback(key)
+                if loc is not None:
+                    return loc
                 raise KeyError(key) from err
             except (TypeError, ValueError):
                 # TypeError: e.g. test_partial_slicing_with_multiindex
@@ -3989,7 +4040,10 @@ class MultiIndex(Index):
                     try:
                         loc = self._engine.get_loc(key)
                     except KeyError as err:
-                        raise KeyError(key) from err
+                        # GH#62903 see MultiIndex._get_loc_na_fallback
+                        loc = self._get_loc_na_fallback(key)
+                        if loc is None:
+                            raise KeyError(key) from err
                     except (TypeError, ValueError):
                         # TypeError: e.g. partial string indexing
                         #  test_partial_string_timestamp_multiindex

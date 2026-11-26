@@ -187,6 +187,21 @@ class TestIndexConcat:
 
 
 class TestMultiIndexConcat:
+    def test_concat_int64_na_index_lookup(self):
+        # GH#62903
+        levels1 = ["a", "b"]
+        levels2 = pd.Series([1, 2, pd.NA], dtype="Int64")
+        index1 = pd.MultiIndex.from_product([levels1, levels2], names=["one", "two"])
+        series1 = pd.Series([f"{i1}-{i2}" for i1, i2 in index1], index=index1)
+        series2 = pd.concat(
+            [series1.loc[i1] for i1 in levels1], keys=levels1, names=["one"]
+        )
+
+        assert series2.index.codes[1][2] >= 0
+        assert series2.at[("a", pd.NA)] == "a-<NA>"
+        assert series2.loc[("a", pd.NA)] == "a-<NA>"
+        assert series2.at[("b", pd.NA)] == "b-<NA>"
+
     def test_concat_multiindex_with_keys(self, multiindex_dataframe_random_data):
         frame = multiindex_dataframe_random_data
         index = frame.index
