@@ -3315,8 +3315,11 @@ class _iLocIndexer(_LocationIndexer):
                         new_ix = Index([new_ix])
                     else:
                         new_ix = Index(new_ix)
-                    if not len(new_ix) or ser.index.equals(new_ix):
+                    if not len(ax) or ser.index.equals(new_ix):
                         return ser._values
+                    if not len(new_ix):
+                        # Avoid reindexing a Series with duplicate labels.
+                        return ser._values[:0]
 
                     return ser.reindex(new_ix)._values
 
