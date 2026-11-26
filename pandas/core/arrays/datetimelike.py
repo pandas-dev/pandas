@@ -1853,6 +1853,28 @@ class TimelikeOps(DatetimeLikeArrayMixin):
                 end_i = min((i + 1) * chunksize, length)
                 yield from self._iter_convert_chunk(data[start_i:end_i])
 
+    def to_numpy(
+        self,
+        dtype: npt.DTypeLike | None = None,
+        copy: bool = False,
+        na_value: object = lib.no_default,
+    ) -> np.ndarray:
+        if dtype is not None:
+            np_dtype = np.dtype(dtype)
+            if np_dtype.kind in "mM" and np_dtype.kind != self.dtype.kind:
+                # numpy reinterprets the integers, ignoring the unit; GH#44484
+                raise TypeError(
+                    f"Cannot cast {type(self).__name__} to dtype {np_dtype}"
+                )
+            if np_dtype.kind in "SUT":
+                # match astype(str); numpy's repr truncates timedeltas, GH#44484
+                result = self._format_native_types()
+                if na_value is not lib.no_default:
+                    # fill before casting so an unsized dtype fits na_value
+                    result[self.isna()] = na_value
+                return np.asarray(result, dtype=np_dtype)
+        return super().to_numpy(dtype=dtype, copy=copy, na_value=na_value)
+
     @final
     @classmethod
     def _validate_frequency(cls, index, freq: BaseOffset) -> None:

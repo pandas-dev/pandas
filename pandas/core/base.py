@@ -626,7 +626,9 @@ class IndexOpsMixin(OpsMixin):
         Parameters
         ----------
         dtype : str or numpy.dtype, optional
-            The dtype to pass to :meth:`numpy.asarray`.
+            The dtype to pass to :meth:`numpy.asarray`. For ``datetime64`` and
+            ``timedelta64`` data, string dtypes and casts between the two follow
+            :meth:`Series.astype`.
         copy : bool, default False
             Whether to ensure that the returned value is not a view on
             another array. ``copy=False`` avoids a copy when possible but
@@ -726,6 +728,11 @@ class IndexOpsMixin(OpsMixin):
             raise TypeError(
                 f"to_numpy() got an unexpected keyword argument '{bad_keys}'"
             )
+        elif dtype is not None and self.dtype.kind in "mM":
+            np_dtype = np.dtype(dtype)
+            if np_dtype.kind in "SUTmM" and np_dtype.kind != self.dtype.kind:
+                # use DatetimeArray/TimedeltaArray casting rules, GH#44484
+                return self.array.to_numpy(np_dtype, na_value=na_value)
 
         fillna = (
             na_value is not lib.no_default
