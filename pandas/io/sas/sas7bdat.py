@@ -67,6 +67,7 @@ if TYPE_CHECKING:
     from pandas._typing import (
         CompressionOptions,
         FilePath,
+        ListLike,
         ReadBuffer,
     )
 
@@ -296,6 +297,9 @@ class SAS7BDATReader(SASReader):
     convert_header_text : bool, defaults to True
         If False, header text, including column names, are left as raw
         bytes.
+    columns : list-like, optional
+        Names of the columns to read, in the order to return them; the others
+        are skipped during parsing.
     """
 
     _int_length: int
@@ -316,7 +320,9 @@ class SAS7BDATReader(SASReader):
         convert_text: bool = True,
         convert_header_text: bool = True,
         compression: CompressionOptions = "infer",
+        columns: ListLike | None = None,
     ) -> None:
+        self._columns = columns
         self._encoding_specified = encoding is not lib.no_default
         self._non_ascii_header_text = False
 
@@ -563,7 +569,7 @@ class SAS7BDATReader(SASReader):
 
     def __next__(self) -> DataFrame:
         da = self.read(nrows=self.chunksize or 1)
-        if da.empty:
+        if len(da) == 0:
             self.close()
             raise StopIteration
         return da
@@ -635,10 +641,15 @@ class SAS7BDATReader(SASReader):
             else:
                 self._column_convert_types.append(None)
 
+        positions = self._column_positions(self._columns, self.column_names, self.index)
+        # sas.pyx ends a row at its first zero-length column, so keep file order
+        self._used_columns = sorted(positions)
+        self._output_columns = [self.column_names[j] for j in positions]
+
         # The default also governs header text, which is decoded either way, so
         #  a numeric-only file with non-ascii column names changes too
         if not self._encoding_specified and (
-            (self.convert_text and b"s" in self._column_types)
+            (self.convert_text and b"s" in self._used_column_types())
             or self._non_ascii_header_text
         ):
             warnings.warn(
@@ -650,6 +661,9 @@ class SAS7BDATReader(SASReader):
                 Pandas4Warning,
                 stacklevel=find_stack_level(),
             )
+
+    def _used_column_types(self) -> list[bytes]:
+        return [self._column_types[j] for j in self._used_columns]
 
     def _process_page_meta(self) -> bool:
         self._read_page_header()
@@ -1034,8 +1048,9 @@ class SAS7BDATReader(SASReader):
                 f"{self._max_rows}; the file is corrupt"
             )
 
-        nd = self._column_types.count(b"d")
-        ns = self._column_types.count(b"s")
+        used_types = self._used_column_types()
+        nd = used_types.count(b"d")
+        ns = used_types.count(b"s")
 
         self._byte_chunk = np.zeros((nd, 8 * nrows), dtype=np.uint8)
         self._setup_string_buffers(ns, nrows)
@@ -1073,6 +1088,12 @@ class SAS7BDATReader(SASReader):
                 self._string_chunk = self._string_chunk[:, :n]
                 self._str_offsets = self._str_offsets[:, : n + 1]
                 self._str_valid = self._str_valid[:, :n]
+            elif n < nrows and not self._used_columns:
+                # Otherwise a column's length check reports this
+                raise ValueError(
+                    f"The file holds {n} of the {nrows} rows requested; "
+                    "the file is corrupt"
+                )
 
             rslt = self._chunk_to_dataframe()
         except Exception:
@@ -1188,7 +1209,7 @@ class SAS7BDATReader(SASReader):
 
         js, jb = 0, 0
         infer_string = using_string_dtype()
-        for j in range(self.column_count):
+        for j in self._used_columns:
             name = self.column_names[j]
 
             if self._column_types[j] == b"d":
@@ -1217,7 +1238,7 @@ class SAS7BDATReader(SASReader):
                 self.close()
                 raise ValueError(f"unknown column type {self._column_types[j]!r}")
 
-        df = DataFrame(rslt, columns=self.column_names, index=ix, copy=False)
+        df = DataFrame(rslt, columns=self._output_columns, index=ix, copy=False)
         return df
 
     def _string_column(self, js: int) -> ArrowStringArray:
