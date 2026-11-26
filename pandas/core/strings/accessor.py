@@ -3018,7 +3018,7 @@ class StringMethods(NoNewAttributesMixin):
         result, name = self._data.array._str_get_dummies(sep, dtype)
         if is_extension_array_dtype(dtype):
             return self._wrap_result(
-                DataFrame(result, columns=name, dtype=dtype),
+                DataFrame(result, columns=name, index=self._index, dtype=dtype),
                 name=name,
                 returns_string=False,
             )
