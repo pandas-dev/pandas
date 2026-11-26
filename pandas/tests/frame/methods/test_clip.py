@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 import pandas._testing as tm
 
@@ -226,3 +228,38 @@ class TestDataFrameClip:
         if inplace:
             result = df
         tm.assert_frame_equal(result, pd.DataFrame(expected))
+
+    def test_clip_ordered_categorical(self):
+        # GH#49217 the bounds are ordered by category position, not by value
+        dtype = pd.CategoricalDtype(["a", "c", "b"], ordered=True)
+        df = pd.DataFrame({"x": ["a", "c", "b"], "y": ["b", "a", "c"]}, dtype=dtype)
+        result = df.clip("c", "b")
+        expected = pd.DataFrame(
+            {"x": ["c", "c", "b"], "y": ["b", "c", "c"]}, dtype=dtype
+        )
+        tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"lower": 0},
+        {"upper": 5},
+        {"lower": 0, "upper": 5},
+        {"lower": pd.Series([0, 0, 0]), "axis": 0},
+    ],
+)
+def test_clip_complex_deprecated(frame_or_series, kwargs):
+    # GH#43770 complex has no natural ordering
+    obj = frame_or_series([1 + 2j, 3j, 0j])
+    msg = "deprecated on complex data"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        obj.clip(**kwargs)
+
+
+def test_clip_complex_bound_deprecated(frame_or_series):
+    # GH#43770
+    obj = frame_or_series([1.0, 2.0])
+    msg = "deprecated on complex data"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        obj.clip(lower=1j)

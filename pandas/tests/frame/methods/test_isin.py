@@ -133,6 +133,13 @@ class TestDataFrameIsIn:
         result = df.isin(s)
         tm.assert_frame_equal(result, expected)
 
+    def test_isin_against_series_mixed_object(self):
+        # GH#35565 aligned isin is elementwise eq, so missing never matches missing
+        df = pd.DataFrame([["foo", "bar"], [1, None]])
+        result = df.isin(df[1])
+        expected = pd.DataFrame([[False, True], [False, False]])
+        tm.assert_frame_equal(result, expected)
+
     def test_isin_multiIndex(self):
         idx = pd.MultiIndex.from_tuples(
             [

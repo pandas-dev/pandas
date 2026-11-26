@@ -142,3 +142,28 @@ def test_groupby_resample_preserves_subclass(obj):
     # Confirm groupby.resample() preserves dataframe type
     result = df.groupby("Buyer").resample("5D").sum()
     assert isinstance(result, obj)
+
+
+def test_series_groupby_transform_uses_constructor():
+    # geopandas/geopandas#3059 -- transform with a callable should go through
+    # _constructor, so subclasses can fall back to Series for incompatible results
+    class StrictSeries(pd.Series):
+        def __init__(self, data=None, *args, **kwargs):
+            super().__init__(data, *args, **kwargs)
+            if self.dtype != object:
+                raise TypeError("StrictSeries only holds object data")
+
+        @property
+        def _constructor(self):
+            def _constructor_with_fallback(*args, **kwargs):
+                result = pd.Series(*args, **kwargs)
+                if result.dtype == object:
+                    return StrictSeries(result)
+                return result
+
+            return _constructor_with_fallback
+
+    ser = StrictSeries(["a", "b", "c"], dtype=object)
+    result = ser.groupby([1, 1, 2]).transform(lambda x: 1.0)
+    expected = pd.Series([1.0, 1.0, 1.0])
+    tm.assert_series_equal(result, expected)

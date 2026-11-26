@@ -2757,6 +2757,42 @@ def test_sum_prod_object_skipna_false(axis):
     tm.assert_series_equal(df.prod(axis=axis, skipna=False), exp_prod)
 
 
+@pytest.mark.parametrize("axis", [0, 1])
+def test_sum_object_skipna_per_slice(axis):
+    # GH#59764: each slice sums only its own non-NA entries; an entirely-NA
+    # slice gives 0, as for numeric data.  Non-square, so that reducing along
+    # the wrong axis is distinguishable.
+    df = pd.DataFrame(
+        {"a": ["x", None], "b": ["p", "q"], "c": [None, None]}, dtype=object
+    )
+    if axis == 0:
+        expected = pd.Series(
+            ["x", "pq", 0], index=pd.Index(["a", "b", "c"]), dtype=object
+        )
+    else:
+        expected = pd.Series(["xp", "q"], dtype=object)
+    tm.assert_series_equal(df.sum(axis=axis), expected)
+
+    result = df.sum(axis=axis, min_count=2)
+    assert result.isna().tolist() == (
+        [True, False, True] if axis == 0 else [False, True]
+    )
+
+
+def test_sum_object_skipna_axis_none_order():
+    # GH#59764: column by column, matching the frame without an NA
+    df = pd.DataFrame({"a": ["x", "y"], "b": ["p", None]}, dtype=object)
+    assert df.sum(axis=None) == "xyp"
+    assert df.fillna("").sum(axis=None) == "xyp"
+
+    # a non-contiguous view
+    df = pd.DataFrame(
+        {"a": list("xyz"), "b": list("mno"), "c": ["p", None, "q"]}, dtype=object
+    )
+    assert df.iloc[1:].sum(axis=None) == "yznoq"
+    assert df.iloc[1:].fillna("").sum(axis=None) == "yznoq"
+
+
 @pytest.mark.parametrize(
     "method, exp_skipna, exp_no_na",
     [("min", 1, 1), ("max", 4, 4), ("sum", 8, 10), ("prod", 12, 24)],
@@ -2882,6 +2918,37 @@ def test_reduction_axis_none_object_dtype_preserves_numpy_scalars():
 
     result = np.minimum.reduce(df, axis=None)
     assert result is left
+
+
+@pytest.mark.parametrize(
+    "method",
+    [
+        "min",
+        "max",
+        "sum",
+        "prod",
+        "mean",
+        "median",
+        "std",
+        "var",
+        "sem",
+        "skew",
+        "kurt",
+    ],
+)
+@pytest.mark.parametrize(
+    "dtype", ["Int64", "Float64", "boolean", "Sparse[int64]", "Sparse[float64]"]
+)
+def test_reduction_axis_none_ea_python_scalars(method, dtype, using_python_scalars):
+    # GH#64266
+    df = pd.DataFrame({"a": [1, 0, 1], "b": [1, 1, 0]}, dtype=dtype)
+    result = getattr(df, method)(axis=None)
+    ser = pd.concat([df["a"], df["b"]], ignore_index=True)
+    expected = getattr(ser, method)()
+    assert type(result) is type(expected)
+    assert result == expected
+    if using_python_scalars:
+        assert not isinstance(result, np.generic)
 
 
 @pytest.mark.parametrize(
@@ -3012,6 +3079,34 @@ def test_numeric_ea_axis_1(
 
 
 @pytest.mark.parametrize(
+    "dtype, expected_dtype",
+    [
+        ("Int8", "Int64"),
+        ("UInt8", "UInt64"),
+        pytest.param("int8[pyarrow]", "int64[pyarrow]", marks=td.skip_if_no("pyarrow")),
+    ],
+)
+@pytest.mark.parametrize("method", ["sum", "prod"])
+def test_numeric_ea_axis_1_overflow(method, dtype, expected_dtype):
+    # The result keeps the input dtype only when every value fits in it
+    df = pd.DataFrame(
+        {
+            "a": pd.array([100, 1, 1], dtype=dtype),
+            "b": pd.array([100, 1, None], dtype=dtype),
+            "c": pd.array([100, 1, 1], dtype=dtype),
+        }
+    )
+    result = getattr(df, method)(axis=1)
+    expected_values = [300, 3, 2] if method == "sum" else [1_000_000, 1, 1]
+    expected = pd.Series(expected_values, dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+    result = getattr(df.iloc[1:], method)(axis=1)
+    expected = pd.Series(expected_values[1:], index=[1, 2], dtype=dtype)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
     "dtype", ["boolean", pytest.param("bool[pyarrow]", marks=td.skip_if_no("pyarrow"))]
 )
 @pytest.mark.parametrize(
@@ -3029,6 +3124,20 @@ def test_any_all_axis_1_skipna_false_kleene(dtype, op, expected):
     )
     result = getattr(df, op)(axis=1, skipna=False)
     tm.assert_series_equal(result, pd.Series(expected, dtype=dtype))
+
+
+@pytest.mark.parametrize("dtype", ["Int64", "int64[pyarrow]"])
+@pytest.mark.parametrize("axis", [0, 1])
+def test_nunique_ea_dtype_is_int64(dtype, axis):
+    # GH#61812 nunique is implemented via apply, which retains the frame's
+    #  extension dtype; a distinct-value count stays int64 as in groupby.nunique
+    if "pyarrow" in dtype:
+        pytest.importorskip("pyarrow")
+    df = pd.DataFrame({"a": [1, 2], "b": [3, 3]}, dtype=dtype)
+    result = df.nunique(axis=axis)
+    values = [2, 1] if axis == 0 else [2, 2]
+    expected = pd.Series(values, index=df.axes[1 - axis])
+    tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize("how", ["idxmax", "idxmin"])
@@ -3208,7 +3317,7 @@ def test_median_skipna_false_keeps_complex(na_first):
         [complex(np.nan), 2 + 3j] if na_first else [2 + 3j, complex(np.nan)],
         index=list(cols),
     )
-    msg = "The median of complex data is deprecated"
+    msg = "deprecated on complex data"
     with tm.assert_produces_warning(Pandas4Warning, match=msg):
         tm.assert_series_equal(df.median(skipna=False), expected)
     with tm.assert_produces_warning(Pandas4Warning, match=msg):
@@ -3380,3 +3489,12 @@ def test_reduce_axis1_float32_block_does_not_overflow():
     result = df.sum(axis=1)
     tm.assert_series_equal(result, pd.Series([float(np.float32(3e38)) * 2 + 1.0]))
     tm.assert_series_equal(result, df.T.sum(), check_names=False)
+
+
+@pytest.mark.parametrize("func", ["min", "max"])
+def test_complex_min_max_axis1_multiblock_deprecated(func):
+    # GH#43770 the multi-block axis=1 path does not go through nanops
+    df = pd.DataFrame({"a": [1 + 2j, 3j], "b": [1, 2]})
+    msg = "deprecated on complex data"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        getattr(df, func)(axis=1)

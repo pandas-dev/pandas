@@ -7,9 +7,15 @@ from datetime import (
 )
 from decimal import Decimal
 import re
+from types import SimpleNamespace
 
 import numpy as np
 import pytest
+
+from pandas.compat import (
+    pa_version_under18p0,
+    pa_version_under19p0,
+)
 
 from pandas.core.dtypes.dtypes import (
     ArrowDtype,
@@ -89,6 +95,63 @@ def test_where_mask_temporal_reinterpretation_raises(meth):
         getattr(ser, meth)(np.array([True, False, True]), other)
 
 
+NESTED_TYPES = [
+    pa.list_(pa.int64()),
+    pa.large_list(pa.string()),
+    pa.list_(pa.int64(), 2),
+    pa.struct([("a", pa.int64())]),
+    pa.map_(pa.string(), pa.int64()),
+    pa.fixed_shape_tensor(pa.int64(), [2]),
+]
+
+
+@pytest.mark.parametrize("pa_type", NESTED_TYPES)
+@pytest.mark.parametrize("value", ["", "zz", b"", b"zz"])
+@pytest.mark.parametrize("key", [1, [1, 2], np.array([False, True, True])])
+def test_nested_str_bytes_setitem_raises(pa_type, value, key, indexer_sli):
+    # pyarrow reads a str or bytes as a sequence, e.g. b"zz" -> [122, 122]
+    ser = pd.Series([None, None, None], dtype=ArrowDtype(pa_type))
+    msg = re.escape(f"Invalid value '{value!s}' for dtype '{ser.dtype}'")
+    with pytest.raises(TypeError, match=msg):
+        indexer_sli(ser)[key] = value
+
+
+@pytest.mark.parametrize("pa_type", NESTED_TYPES)
+@pytest.mark.parametrize("value", ["", "zz", b"", b"zz"])
+@pytest.mark.parametrize(
+    "func",
+    [
+        pytest.param(lambda ser, v: ser.where([True, False, False], v), id="where"),
+        pytest.param(lambda ser, v: ser.mask([False, True, True], v), id="mask"),
+        pytest.param(lambda ser, v: ser.fillna(v), id="fillna"),
+        pytest.param(lambda ser, v: ser.array.insert(1, v), id="insert"),
+    ],
+)
+def test_nested_str_bytes_value_raises(pa_type, value, func):
+    ser = pd.Series([None, None, None], dtype=ArrowDtype(pa_type))
+    msg = re.escape(f"Invalid value '{value!s}' for dtype '{ser.dtype}'")
+    with pytest.raises(TypeError, match=msg):
+        func(ser, value)
+
+
+@pytest.mark.parametrize("value", ["zz", b"zz"])
+@pytest.mark.parametrize(
+    "func, pos",
+    [
+        pytest.param(lambda idx, v: idx.insert(0, v), 0, id="insert"),
+        pytest.param(lambda idx, v: idx.where([True, False], v), 1, id="where"),
+        pytest.param(lambda idx, v: idx.putmask([False, True], v), 1, id="putmask"),
+    ],
+)
+def test_index_nested_str_bytes_value_casts_to_object(value, func, pos):
+    # the TypeError above makes Index upcast, as for other values it can't hold
+    idx = pd.Index([[1], None], dtype=ArrowDtype(pa.list_(pa.int64())))
+    result = func(idx, value)
+    assert result.dtype == object
+    assert result[pos] == value
+    assert list(result[1 - pos]) == [1]
+
+
 @pytest.mark.parametrize("limit", [None, 1])
 def test_fillna_string_self_agrees_with_limit_path(limit):
     # GH#68419 fillna shares _validate_setitem_value with __setitem__, so the
@@ -96,6 +159,110 @@ def test_fillna_string_self_agrees_with_limit_path(limit):
     arr = pd.array(["a", None], dtype=pd.StringDtype("pyarrow", na_value=np.nan))
     with pytest.raises(TypeError, match="Invalid value for dtype"):
         arr.fillna(np.array([1, 2]), limit=limit)
+
+
+under18_xfail = pytest.mark.xfail(
+    pa_version_under18p0,
+    reason="copying view types and nested dictionaries needs pyarrow 18",
+    raises=AssertionError,
+    strict=True,
+)
+
+
+def test_copy_owns_buffers(data):
+    # GH#61930
+    result = data.copy()
+    tm.assert_extension_array_equal(result, data)
+    assert not tm.shares_memory(result, data)
+
+
+@pytest.mark.parametrize(
+    "values, pa_type",
+    [
+        pytest.param(["a" * 20, None, "b"], pa.string_view(), marks=under18_xfail),
+        pytest.param([b"a" * 20, None, b"b"], pa.binary_view(), marks=under18_xfail),
+        (["a", None, "b", "a"], pa.dictionary(pa.int32(), pa.string())),
+    ],
+)
+def test_copy_owns_buffers_special_layouts(values, pa_type):
+    # GH#61930 pa.concat_arrays reuses buffers for these types
+    chunk = pa.array(values, type=pa_type)
+    arr = ArrowExtensionArray(pa.chunked_array([chunk, chunk.slice(1)]))
+    result = arr.copy()
+    assert result._pa_array.equals(arr._pa_array)
+    assert result._pa_array.num_chunks == 2
+    assert not tm.shares_memory(result, arr)
+
+
+@under18_xfail
+@pytest.mark.parametrize(
+    "child",
+    [
+        pa.array(["a" * 20, "b"]).dictionary_encode(),
+        pa.array(["a" * 20, "b"], pa.string_view()),
+    ],
+    ids=["dictionary", "string_view"],
+)
+@pytest.mark.parametrize("nested_type", ["list", "struct"])
+def test_copy_owns_nested_buffers(child, nested_type):
+    # GH#61930 pa.concat_arrays reuses these buffers in child arrays too
+    if nested_type == "list":
+        chunk = pa.ListArray.from_arrays(pa.array([0, 1, 2], pa.int32()), child)
+    else:
+        chunk = pa.StructArray.from_arrays([child], ["f"])
+    arr = ArrowExtensionArray(chunk)
+    result = arr.copy()
+    assert result._pa_array.equals(arr._pa_array)
+
+    result_chunk = result._pa_array.chunk(0)
+    if nested_type == "list":
+        result_child = result_chunk.values
+    else:
+        result_child = result_chunk.field(0)
+    if pa.types.is_dictionary(child.type):
+        child, result_child = child.dictionary, result_child.dictionary
+    assert result_child.buffers()[2].address != child.buffers()[2].address
+
+
+@pytest.mark.skipif(pa_version_under19p0, reason="pa.json_ needs pyarrow 19")
+@pytest.mark.parametrize("nested_type", [None, "list", "struct"])
+def test_copy_owns_extension_storage_buffers(nested_type):
+    # GH#61930 the storage of an extension type can be a view type
+    storage = pa.array(['{"a": "' + "x" * 20 + '"}', None], pa.string_view())
+    ext = pa.ExtensionArray.from_storage(pa.json_(pa.string_view()), storage)
+    if nested_type == "list":
+        chunk = pa.ListArray.from_arrays(pa.array([0, 1, 2], pa.int32()), ext)
+    elif nested_type == "struct":
+        chunk = pa.StructArray.from_arrays([ext], ["f"])
+    else:
+        chunk = ext
+    arr = ArrowExtensionArray(chunk)
+    result = arr.copy()
+    assert result._pa_array.equals(arr._pa_array)
+
+    result_chunk = result._pa_array.chunk(0)
+    if nested_type == "list":
+        result_chunk = result_chunk.values
+    elif nested_type == "struct":
+        result_chunk = result_chunk.field(0)
+    result_storage = result_chunk.storage
+    assert result_storage.buffers()[2].address != storage.buffers()[2].address
+
+
+def test_copy_deep_slice_releases_original():
+    # GH#61930 a deep copy of an empty slice must not keep the original's
+    #  buffers alive
+    df = pd.DataFrame(
+        {
+            "a": pd.array(
+                ["x", "y", "z"], dtype=pd.StringDtype("pyarrow", na_value=np.nan)
+            ),
+            "b": pd.array([1, 2, 3], dtype="int64[pyarrow]"),
+        }
+    )
+    result = df.iloc[:0].copy(deep=True)
+    for col in df.columns:
+        assert not tm.shares_memory(result[col].array, df[col].array)
 
 
 def test_round():
@@ -374,6 +541,178 @@ def test_factorize_dictionary_with_na():
     tm.assert_extension_array_equal(uniques, expected_uniques)
 
 
+@pytest.mark.parametrize("null_encoding", ["mask", "encode"])
+def test_factorize_dictionary_null_encoding(null_encoding):
+    # GH#66490
+    pa_arr = pa.array(["a", "b", None, "a"]).dictionary_encode(
+        null_encoding=null_encoding
+    )
+    arr = pd.array(pa_arr, dtype=ArrowDtype(pa_arr.type))
+    indices, uniques = arr.factorize()
+    expected_indices = np.array([0, 1, -1, 0], dtype=np.intp)
+    expected_uniques = pd.array(["a", "b"], dtype=ArrowDtype(pa.string()))
+    tm.assert_numpy_array_equal(indices, expected_indices)
+    tm.assert_extension_array_equal(uniques, expected_uniques)
+
+
+@pytest.mark.parametrize("null_encoding", ["mask", "encode"])
+def test_factorize_dictionary_null_encoding_no_sentinel(null_encoding):
+    # GH#66490
+    pa_arr = pa.array(["a", "b", None, "a"]).dictionary_encode(
+        null_encoding=null_encoding
+    )
+    arr = pd.array(pa_arr, dtype=ArrowDtype(pa_arr.type))
+    indices, uniques = arr.factorize(use_na_sentinel=False)
+    expected_indices = np.array([0, 1, 2, 0], dtype=np.intp)
+    expected_uniques = pd.array(["a", "b", None], dtype=ArrowDtype(pa.string()))
+    tm.assert_numpy_array_equal(indices, expected_indices)
+    tm.assert_extension_array_equal(uniques, expected_uniques)
+
+
+def test_factorize_chunked_dictionary_mixed_null_encoding():
+    # GH#66490
+    pa_arr = pa.chunked_array(
+        [
+            pa.array(["a", "b"]).dictionary_encode(),
+            pa.array(["c", None]).dictionary_encode(null_encoding="encode"),
+        ]
+    )
+    arr = pd.array(pa_arr, dtype=ArrowDtype(pa_arr.type))
+    indices, uniques = arr.factorize()
+    expected_indices = np.array([0, 1, 2, -1], dtype=np.intp)
+    expected_uniques = pd.array(["a", "b", "c"], dtype=ArrowDtype(pa.string()))
+    tm.assert_numpy_array_equal(indices, expected_indices)
+    tm.assert_extension_array_equal(uniques, expected_uniques)
+
+
+@pytest.mark.parametrize(
+    "indices, dictionary, expected_indices, expected_uniques",
+    [
+        # unreferenced entry, as left by filtering
+        ([2, 0, 2, 0], ["a", "b", "c"], [0, 1, 0, 1], ["c", "a"]),
+        # numbered by appearance, not by dictionary order
+        ([1, 0, 1], ["a", "b"], [0, 1, 0], ["b", "a"]),
+        # duplicate entries
+        ([0, 2, 1, 2], ["a", "b", "a"], [0, 0, 1, 0], ["a", "b"]),
+    ],
+)
+def test_factorize_dictionary_stored_dictionary_ignored(
+    indices, dictionary, expected_indices, expected_uniques
+):
+    # GH#71828
+    pa_arr = pa.DictionaryArray.from_arrays(
+        pa.array(indices, type=pa.int32()), pa.array(dictionary)
+    )
+    arr = pd.array(pa_arr, dtype=ArrowDtype(pa_arr.type))
+    result_indices, result_uniques = arr.factorize()
+    tm.assert_numpy_array_equal(
+        result_indices, np.array(expected_indices, dtype=np.intp)
+    )
+    tm.assert_extension_array_equal(
+        result_uniques, pd.array(expected_uniques, dtype=ArrowDtype(pa.string()))
+    )
+
+
+@pytest.mark.parametrize(
+    "use_na_sentinel, expected_indices, expected_uniques",
+    [(True, [-1, 0, -1, 1, 0], ["a", "b"]), (False, [0, 1, 0, 2, 1], [None, "a", "b"])],
+)
+def test_factorize_chunked_dictionary_nulls(
+    use_na_sentinel, expected_indices, expected_uniques
+):
+    # GH#71828 nulls in the dictionary and in the indices, across chunks
+    pa_arr = pa.chunked_array(
+        [
+            pa.DictionaryArray.from_arrays(
+                pa.array([2, 0], type=pa.int8()), pa.array(["a", "b", None])
+            ),
+            pa.DictionaryArray.from_arrays(
+                pa.array([None, 1, 0], type=pa.int8()), pa.array(["a", "b"])
+            ),
+        ]
+    )
+    arr = pd.array(pa_arr, dtype=ArrowDtype(pa_arr.type))
+    result_indices, result_uniques = arr.factorize(use_na_sentinel=use_na_sentinel)
+    tm.assert_numpy_array_equal(
+        result_indices, np.array(expected_indices, dtype=np.intp)
+    )
+    tm.assert_extension_array_equal(
+        result_uniques, pd.array(expected_uniques, dtype=ArrowDtype(pa.string()))
+    )
+
+
+@pytest.mark.parametrize(
+    "values", [pa.array([[1], [2]]), pa.array(["a", "b"], type=pa.string_view())]
+)
+def test_factorize_dictionary_value_type_without_kernel(values):
+    # GH#71828 types lacking a hash or take kernel keep the stored dictionary
+    pa_arr = pa.DictionaryArray.from_arrays(
+        pa.array([1, 0, 1], type=pa.int32()), values
+    )
+    arr = pd.array(pa_arr, dtype=ArrowDtype(pa_arr.type))
+    indices, uniques = arr.factorize()
+    tm.assert_numpy_array_equal(indices, np.array([1, 0, 1], dtype=np.intp))
+    assert uniques._pa_array.combine_chunks().equals(values)
+
+
+@pytest.mark.parametrize(
+    "values, indices, use_na_sentinel",
+    [
+        # null in the dictionary
+        (pa.array([[1], None]), [1, 0, 1], True),
+        (pa.array(["a", None], type=pa.string_view()), [1, 0, 1], True),
+        # null in the indices, which must get a code
+        (pa.array([[1], [2]]), [None, 0, 1], False),
+        (pa.array(["a", "b"], type=pa.string_view()), [None, 0, 1], False),
+    ],
+)
+def test_factorize_dictionary_value_type_without_kernel_null(
+    values, indices, use_na_sentinel
+):
+    # GH#71828 keeping the stored dictionary would mishandle the null
+    pa_arr = pa.DictionaryArray.from_arrays(pa.array(indices, type=pa.int32()), values)
+    arr = pd.array(pa_arr, dtype=ArrowDtype(pa_arr.type))
+    with pytest.raises(pa.ArrowNotImplementedError, match="has no kernel"):
+        arr.factorize(use_na_sentinel=use_na_sentinel)
+
+
+def test_factorize_chunked_dictionary_repeated_dictionaries():
+    # GH#71828 each chunk stores the full dictionary, as from parquet row groups
+    dictionary = pa.array(["a", "b", "c"])
+    pa_arr = pa.chunked_array(
+        [
+            pa.DictionaryArray.from_arrays(pa.array([i], type=pa.int32()), dictionary)
+            for i in [2, 0, 2]
+        ]
+    )
+    arr = pd.array(pa_arr, dtype=ArrowDtype(pa_arr.type))
+    indices, uniques = arr.factorize()
+    tm.assert_numpy_array_equal(indices, np.array([0, 1, 0], dtype=np.intp))
+    tm.assert_extension_array_equal(
+        uniques, pd.array(["c", "a"], dtype=ArrowDtype(pa.string()))
+    )
+
+
+def test_factorize_dictionary_int32_codes(monkeypatch):
+    # GH#71828 np.intp is int32 on 32-bit platforms
+    factorize = ArrowExtensionArray.factorize
+
+    def factorize_int32(self, use_na_sentinel=True):
+        codes, uniques = factorize(self, use_na_sentinel)
+        return codes.astype(np.int32), uniques
+
+    monkeypatch.setattr(ArrowExtensionArray, "factorize", factorize_int32)
+    pa_arr = pa.DictionaryArray.from_arrays(
+        pa.array([1, 0, 1], type=pa.int32()), pa.array(["a", "b"])
+    )
+    arr = pd.array(pa_arr, dtype=ArrowDtype(pa_arr.type))
+    indices, uniques = arr.factorize()
+    tm.assert_numpy_array_equal(indices, np.array([0, 1, 0], dtype=np.int32))
+    tm.assert_extension_array_equal(
+        uniques, pd.array(["b", "a"], dtype=ArrowDtype(pa.string()))
+    )
+
+
 def test_factorize_null():
     # GH#54908
     arr = ArrowExtensionArray(pa.array([None, None], type=pa.null()))
@@ -445,3 +784,122 @@ def test_interpolate_linear_int_fractional():
     result = ser.interpolate(method="linear")
     expected = pd.Series([1.0, 1.5, 2.0], dtype="float64[pyarrow]")
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "dtype",
+    ["int64[pyarrow]", "uint32[pyarrow]", "float64[pyarrow]", "float32[pyarrow]"],
+)
+@pytest.mark.parametrize(
+    "values",
+    [
+        [],
+        [1],
+        [1, 2, 3],
+        [1, 1],
+        [1, 1, 1, 1],
+        [1, 1, 2, 3],
+        [1, 2, 2, 3],
+        [1, 2, 3, 3],
+        [0, 0, 1, 1, 2, 2],
+        [0, 1, 1, 1, 1, 1, 2],
+    ],
+    ids=[
+        "empty",
+        "single",
+        "all_unique",
+        "one_dup",
+        "all_same",
+        "dup_first",
+        "dup_middle",
+        "dup_last",
+        "paired_runs",
+        "long_run",
+    ],
+)
+def test_unique_by_run_ends_matches_unique(values, dtype):
+    # GH#66498
+    arr = pd.array(values, dtype=dtype)
+
+    result = arr._unique_by_run_ends()
+
+    assert result is not None
+    tm.assert_extension_array_equal(result, arr.unique())
+
+
+def test_unique_by_run_ends_run_across_chunk_seam():
+    # GH#66498
+    chunked = pa.chunked_array([[1.0, 2.0, 2.0], [2.0, 3.0]])
+    arr = ArrowExtensionArray(chunked)
+    assert arr._pa_array.num_chunks == 2
+
+    result = arr._unique_by_run_ends()
+
+    assert result is not None
+    assert result.tolist() == [1.0, 2.0, 3.0]
+
+
+@pytest.mark.parametrize("dtype", ["float64[pyarrow]", "float32[pyarrow]"])
+def test_unique_by_run_ends_signed_zero_declines(dtype):
+    # GH#66498 -0.0 and 0.0 compare equal but encode as separate runs
+    arr = pd.array([-0.0, 0.0, 1.0], dtype=dtype)
+
+    assert arr._unique_by_run_ends() is None
+
+
+@pytest.mark.parametrize(
+    "values",
+    [[3, 1, 2], [1, 2, 1], [3, 2, 1], [2, 2, 1, 1, 2, 2]],
+    ids=["unsorted", "dup_not_adjacent", "descending", "repeating_runs"],
+)
+def test_unique_by_run_ends_declines_unsorted(values):
+    # GH#66498
+    arr = pd.array(values, dtype="int64[pyarrow]")
+
+    assert arr._unique_by_run_ends() is None
+
+
+@pytest.mark.parametrize(
+    "values",
+    [[1, 1, 2, None, 2], [1, 2, 3, None, 3], [1, None, 2]],
+    ids=["dup_across_null", "dup_after_null", "no_dup"],
+)
+def test_unique_by_run_ends_declines_with_na(values):
+    # GH#66498 without rejecting NA the first case keeps a duplicate 2
+    arr = pd.array(values, dtype="int64[pyarrow]")
+
+    assert arr._unique_by_run_ends() is None
+
+
+@pytest.mark.parametrize(
+    "func, error",
+    [
+        ("less", pa.ArrowNotImplementedError),
+        ("run_end_encode", pa.ArrowNotImplementedError),
+        ("run_end_encode", pa.ArrowInvalid),
+    ],
+    ids=["no_comparison_kernel", "no_run_end_kernel", "run_end_overflow"],
+)
+def test_unique_by_run_ends_declines_when_kernel_raises(monkeypatch, func, error):
+    # GH#66498 simulated, as kernel coverage varies across pyarrow versions
+    def raises(*args, **kwargs):
+        raise error(func)
+
+    monkeypatch.setattr(pa.compute, func, raises)
+    arr = pd.array([1, 1, 2], dtype="int64[pyarrow]")
+
+    assert arr._unique_by_run_ends() is None
+
+
+def test_unique_by_run_ends_declines_when_chunks_cannot_combine(monkeypatch):
+    # GH#66498 simulate a 32-bit offset overflow when combining chunks
+    arr = pd.array(["a", "a", "b"], dtype="string[pyarrow]")
+
+    def combine_chunks():
+        raise pa.ArrowInvalid("offset overflow while concatenating arrays")
+
+    monkeypatch.setattr(
+        arr, "_pa_array", SimpleNamespace(num_chunks=2, combine_chunks=combine_chunks)
+    )
+
+    assert arr._unique_by_run_ends() is None

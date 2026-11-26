@@ -12,16 +12,22 @@ from typing import (
     TypeAlias,
     cast,
 )
+import warnings
 
 import numpy as np
 
+from pandas._libs import lib
 from pandas._libs.internals import BlockValuesRefs
 from pandas.compat._optional import import_optional_dependency
-from pandas.errors import SpecificationError
+from pandas.errors import (
+    Pandas4Warning,
+    SpecificationError,
+)
 from pandas.util._decorators import (
     cache_readonly,
     set_module,
 )
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.cast import (
     find_common_type,
@@ -37,7 +43,9 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.dtypes import (
     ArrowDtype,
     BaseMaskedDtype,
+    CategoricalDtype,
     ExtensionDtype,
+    SparseDtype,
 )
 from pandas.core.dtypes.generic import (
     ABCDataFrame,
@@ -70,6 +78,7 @@ if TYPE_CHECKING:
         AggFuncTypeBase,
         AggFuncTypeDict,
         AggObjType,
+        ArrayLike,
         Axis,
         AxisInt,
         DtypeObj,
@@ -253,7 +262,10 @@ def frame_apply(
     kwargs=None,
 ) -> FrameApply:
     """construct and return a row or column based frame apply object"""
-    _, func, columns, _ = reconstruct_func(func, **kwargs)
+    relabeling, func, columns, _ = reconstruct_func(func, **kwargs)
+    if relabeling:
+        # kwargs held the named aggregation spec, now consumed into func
+        kwargs = {}
 
     axis = obj._get_axis_number(axis)
     klass: type[FrameApply]
@@ -473,7 +485,10 @@ class Apply(metaclass=abc.ABCMeta):
         -------
         Result of aggregation.
         """
-        return self.agg_or_apply_list_like(op_name="agg")
+        result = self.agg_or_apply_list_like(op_name="agg")
+        # per-column results are concatenated one block per column; consolidate so
+        #  a later insert (e.g. reset_index) does not warn about fragmentation, GH#61628
+        return result._consolidate() if isinstance(result, ABCDataFrame) else result
 
     def compute_list_like(
         self,
@@ -580,7 +595,9 @@ class Apply(metaclass=abc.ABCMeta):
         -------
         Result of aggregation.
         """
-        return self.agg_or_apply_dict_like(op_name="agg")
+        result = self.agg_or_apply_dict_like(op_name="agg")
+        # see agg_list_like
+        return result._consolidate() if isinstance(result, ABCDataFrame) else result
 
     def compute_dict_like(
         self,
@@ -621,6 +638,12 @@ class Apply(metaclass=abc.ABCMeta):
         func = cast("AggFuncTypeDict", self.func)
         func = self.normalize_dictlike_arg(op_name, selected_obj, func)
 
+        def call(colg, how):
+            if op_name == "apply":
+                return colg.apply(how, **kwargs)
+            args = [self.axis, *self.args] if include_axis(op_name, colg) else self.args
+            return colg.agg(how, *args, **kwargs)
+
         is_non_unique_col = (
             selected_obj.ndim == 2
             and selected_obj.columns.nunique() < len(selected_obj.columns)
@@ -629,7 +652,7 @@ class Apply(metaclass=abc.ABCMeta):
         if selected_obj.ndim == 1:
             # key only used for output
             colg = obj._gotitem(selection, ndim=1)
-            results = [getattr(colg, op_name)(how, **kwargs) for _, how in func.items()]
+            results = [call(colg, how) for _, how in func.items()]
             keys = list(func.keys())
         elif not is_groupby and is_non_unique_col:
             # key used for column selection and output
@@ -644,7 +667,7 @@ class Apply(metaclass=abc.ABCMeta):
                     label_to_indices[label].append(index)
 
                 key_data = [
-                    getattr(selected_obj._ixs(indice, axis=1), op_name)(how, **kwargs)
+                    call(selected_obj._ixs(indice, axis=1), how)
                     for label, indices in label_to_indices.items()
                     for indice in indices
                 ]
@@ -661,17 +684,16 @@ class Apply(metaclass=abc.ABCMeta):
 
                 if cols.ndim == 1:
                     series = obj._gotitem(key, ndim=1, subset=cols)
-                    results.append(getattr(series, op_name)(how, **kwargs))
+                    results.append(call(series, how))
                     keys.append(key)
                 else:
                     for _, col in cols.items():
                         series = obj._gotitem(key, ndim=1, subset=col)
-                        results.append(getattr(series, op_name)(how, **kwargs))
+                        results.append(call(series, how))
                         keys.append(key)
         else:
             results = [
-                getattr(obj._gotitem(key, ndim=1), op_name)(how, **kwargs)
-                for key, how in func.items()
+                call(obj._gotitem(key, ndim=1), how) for key, how in func.items()
             ]
             keys = list(func.keys())
 
@@ -942,10 +964,13 @@ class NDFrameApply(Apply):
         assert op_name in ["agg", "apply"]
         obj = self.obj
 
-        kwargs = {}
         if op_name == "apply":
+            # TODO: dropping args/kwargs here is a bug, but forwarding them makes
+            #  apply_compat map reducers elementwise instead of reducing
             by_row = "_compat" if self.by_row else False
-            kwargs.update({"by_row": by_row})
+            kwargs = {"by_row": by_row}
+        else:
+            kwargs = dict(self.kwargs)
 
         if getattr(obj, "axis", 0) == 1:
             raise NotImplementedError("axis other than 0 is not supported")
@@ -1126,6 +1151,16 @@ class FrameApply(NDFrameApply):
 
         if result is None:
             result = self.obj.apply(self.func, axis, args=self.args, **self.kwargs)
+            if isinstance(result, ABCDataFrame):
+                # GH#49673
+                warnings.warn(
+                    "DataFrame.agg with a single callable producing a DataFrame "
+                    "result is deprecated. In a future version, this will return "
+                    "a Series with one entry per column (per row with axis=1). "
+                    "Use DataFrame.apply instead to retain the current behavior.",
+                    Pandas4Warning,
+                    stacklevel=find_stack_level(),
+                )
 
         return result
 
@@ -1254,21 +1289,6 @@ class FrameApply(NDFrameApply):
     def apply_raw(self, engine="python", engine_kwargs=None):
         """apply to the values as a numpy array"""
 
-        def wrap_function(func):
-            """
-            Wrap user supplied function to work around numpy issue.
-
-            see https://github.com/numpy/numpy/issues/8352
-            """
-
-            def wrapper(*args, **kwargs):
-                result = func(*args, **kwargs)
-                if isinstance(result, str):
-                    result = np.array(result, dtype=object)
-                return result
-
-            return wrapper
-
         if engine == "numba":
             args, kwargs = prepare_function_arguments(
                 self.func,  # type: ignore[arg-type]
@@ -1288,13 +1308,25 @@ class FrameApply(NDFrameApply):
             # If we made the result 2-D, squeeze it back to 1-D
             result = np.squeeze(result)
         else:
-            result = np.apply_along_axis(
-                wrap_function(self.func),
-                self.axis,
-                self.values,
-                *self.args,
-                **self.kwargs,
-            )
+            func = cast("Callable[..., Any]", self.func)
+            values = self.values.T if self.axis == 0 else self.values
+            res = func(values[0], *self.args, **self.kwargs)
+            first = lib.item_from_zerodim(res)
+            if lib.is_scalar(first):
+                # infer the dtype from all results, as with raw=False
+                results = [first]
+                for arr in values[1:]:
+                    res = func(arr, *self.args, **self.kwargs)
+                    results.append(lib.item_from_zerodim(res))
+                return self.obj._constructor_sliced(results, index=self.agg_axis)
+            first = np.asanyarray(res)
+            result = np.zeros_like(first, shape=(len(values), *first.shape))
+            result[0, ...] = first
+            for i, arr in enumerate(values[1:], start=1):
+                # write now, as func may reuse its output array between calls
+                result[i, ...] = np.asanyarray(func(arr, *self.args, **self.kwargs))
+            if self.axis == 0:
+                result = np.moveaxis(result, 0, -1)
 
         # TODO: mixed type case
         if result.ndim == 2:
@@ -1385,10 +1417,52 @@ class FrameApply(NDFrameApply):
         if len(results) == 0 and constructor_sliced is Series:
             result = constructor_sliced(results, dtype=np.float64)
         else:
-            result = constructor_sliced(results)
+            values = self._pointwise_cast_results(results)
+            if values is None:
+                result = constructor_sliced(results)
+            else:
+                # GH#61812 retain the frame's extension dtype instead of
+                #  inferring one from the scalar results, as groupby.agg does
+                result = constructor_sliced(values, copy=False)
         result.index = res_index
 
         return result
+
+    def _pointwise_cast_results(self, results: ResType) -> ArrayLike | None:
+        """
+        The scalar results cast back to the frame's extension dtype, or None if
+        there is no dtype to retain and they should be inferred as before.
+
+        Only a frame with a single extension dtype qualifies: every value handed
+        to the function then had that dtype, so one result dtype is well-defined
+        for either axis.
+        """
+        dtypes = self.obj._mgr.get_dtypes()
+        if not isinstance(dtypes[0], ExtensionDtype):
+            return None
+        if isinstance(dtypes[0], SparseDtype):
+            # sparsity is a storage layout rather than a result dtype, and
+            #  SparseArray's cast drops a tz, see test_apply_sparse_not_retained
+            return None
+        if isinstance(dtypes[0], CategoricalDtype):
+            # the cast keeps category only if every result is a category, so the
+            #  dtype would depend on the values, see test_apply_categorical_not_retained
+            return None
+        if any(dtype != dtypes[0] for dtype in dtypes[1:]):
+            return None
+        # cast: a single ExtensionDtype implies an ExtensionArray
+        arr = cast("ExtensionArray", self.obj._get_column_array(0))
+        try:
+            values = arr._cast_pointwise_result(list(results.values()))
+        except Exception:
+            # Deliberately broad: retaining a dtype must not make a working
+            #  apply raise, see test_apply_ea_dtype_falls_back_when_cast_raises
+            return None
+        if not isinstance(values.dtype, ExtensionDtype):
+            # the cast fell back to inference; leave that to the constructor so
+            #  a frame with nothing to retain behaves exactly as before
+            return None
+        return values
 
     def apply_str(self) -> DataFrame | Series:
         # Caller is responsible for checking isinstance(self.func, str)
@@ -1874,15 +1948,10 @@ class GroupByApply(Apply):
     def agg_or_apply_dict_like(
         self, op_name: Literal["agg", "apply"]
     ) -> DataFrame | Series:
-        from pandas.core.groupby.generic import (
-            DataFrameGroupBy,
-            SeriesGroupBy,
-        )
-
         assert op_name in ["agg", "apply"]
 
         obj = self.obj
-        kwargs: dict[str, Any] = {}
+        kwargs = dict(self.kwargs)
         if op_name == "apply":
             by_row = "_compat" if self.by_row else False
             kwargs.update({"by_row": by_row})
@@ -1892,14 +1961,6 @@ class GroupByApply(Apply):
 
         selected_obj = obj._selected_obj
         selection = obj._selection
-
-        is_groupby = isinstance(obj, (DataFrameGroupBy, SeriesGroupBy))
-
-        # Numba Groupby engine/engine-kwargs passthrough
-        if is_groupby:
-            engine = self.kwargs.get("engine", None)
-            engine_kwargs = self.kwargs.get("engine_kwargs", None)
-            kwargs.update({"engine": engine, "engine_kwargs": engine_kwargs})
 
         with com.temp_setattr(
             obj, "as_index", True, condition=hasattr(obj, "as_index")
@@ -2014,6 +2075,9 @@ def reconstruct_func(
 
     columns: tuple[str, ...] | None = None
     order: npt.NDArray[np.intp] | None = None
+    invalid_named_agg_msg = (
+        "Named aggregation {!r} must be a tuple of (column, aggfunc) or a NamedAgg."
+    )
 
     if not relabeling:
         if isinstance(func, list) and len(func) > len(set(func)):
@@ -2024,6 +2088,9 @@ def reconstruct_func(
             )
         if func is None:
             # nicer error message
+            for key, val in kwargs.items():
+                if not (isinstance(val, tuple) and len(val) == 2):
+                    raise TypeError(invalid_named_agg_msg.format(key))
             raise TypeError("Must provide 'func' or tuples of '(column, aggfunc).")
 
     if relabeling:
@@ -2043,6 +2110,9 @@ def reconstruct_func(
                         x, *a, **kw
                     )
             else:
+                # GH#43838 invalid values only get here when mixed with a NamedAgg
+                if not is_list_like(val) or len(val) != 2:
+                    raise TypeError(invalid_named_agg_msg.format(key))
                 column, aggfunc = val
 
             # The un-normalized {column: aggfunc} form only matches the normalized

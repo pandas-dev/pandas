@@ -92,6 +92,21 @@ def test_mode_boolean_dropna_false(values, expected):
     tm.assert_series_equal(result, pd.Series(expected, dtype="boolean"))
 
 
+@pytest.mark.parametrize(
+    "values, expected",
+    [
+        ([pd.NA, pd.NA, 1, 1, 2], [1, pd.NA]),
+        ([1, pd.NA, pd.NA, 2, 2], [2, pd.NA]),
+        ([pd.NA, pd.NA, 1, 1, 1], [1]),
+    ],
+)
+def test_mode_nullable_dtype_na_not_last(any_numeric_ea_dtype, values, expected):
+    # GH#23074 NA is counted where it first appears, not after all other values
+    ser = pd.Series(values, dtype=any_numeric_ea_dtype)
+    result = ser.mode(dropna=False)
+    tm.assert_series_equal(result, pd.Series(expected, dtype=any_numeric_ea_dtype))
+
+
 def test_mode_string(any_string_dtype):
     # GH#56183
     ser = pd.Series(["a", "b"], dtype=any_string_dtype)
@@ -335,7 +350,7 @@ def test_complex_reduction_raises(func, complex_dtype):
 def test_complex_median_deprecated(complex_dtype, use_bottleneck):
     # GH#43770
     ser = pd.Series([1j, 1 + 4j, 2 + 3j, 3 + 2j, 4], dtype=complex_dtype)
-    msg = "The median of complex data is deprecated"
+    msg = "deprecated on complex data"
     with pd.option_context("compute.use_bottleneck", use_bottleneck):
         with tm.assert_produces_warning(Pandas4Warning, match=msg):
             result = ser.median()
@@ -347,3 +362,45 @@ def test_complex_median_deprecated(complex_dtype, use_bottleneck):
         tm.assert_series_equal(
             result, pd.Series([2 + 3j], index=[0], dtype=complex_dtype)
         )
+
+
+@pytest.mark.parametrize(
+    "box, func",
+    [
+        (box, func)
+        for box in [pd.Series, pd.DataFrame, pd.Index]
+        for func in [
+            "min",
+            "max",
+            "idxmin",
+            "idxmax",
+            "argmin",
+            "argmax",
+            "cummin",
+            "cummax",
+        ]
+        if hasattr(box, func)
+    ],
+)
+def test_complex_ordering_deprecated(box, func, complex_dtype):
+    # GH#43770 complex has no natural ordering
+    obj = box([1j, 1 + 4j, 2 + 3j, 3 + 2j, 4], dtype=complex_dtype)
+    msg = "deprecated on complex data"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        getattr(obj, func)()
+
+
+@pytest.mark.parametrize("func", ["min", "max"])
+@pytest.mark.parametrize(
+    "values, skipna",
+    [([], True), ([1j, np.nan], False), ([np.nan, np.nan], True)],
+)
+def test_complex_index_minmax_nan_result_deprecated(
+    func, values, skipna, complex_dtype
+):
+    # GH#43770 Index.min/max return NaN here without reaching nanops
+    idx = pd.Index(values, dtype=complex_dtype)
+    msg = "deprecated on complex data"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = getattr(idx, func)(skipna=skipna)
+    assert np.isnan(result)

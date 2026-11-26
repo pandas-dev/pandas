@@ -33,6 +33,16 @@ _na_value_kwargs: dict[str, set[Any]] = {"na_values": set(), "na_fvalues": set()
 
 
 class TestTextReader:
+    @pytest.mark.parametrize("option", ["thousands", "decimal"])
+    @pytest.mark.parametrize("marker", ["\u00a0", "\u202f", "\u066b"])
+    def test_unicode_numeric_marker(self, option, marker):
+        # GH#71158: reject unsupported markers before casting to char.
+        msg = f"Only ASCII {option} markers supported"
+        with pytest.raises(ValueError, match=msg):
+            TextReader(
+                StringIO("value\n1234\n"), **{option: marker}, **_na_value_kwargs
+            )
+
     @pytest.fixture
     def csv_path(self, datapath):
         return datapath("io", "data", "csv", "test1.csv")

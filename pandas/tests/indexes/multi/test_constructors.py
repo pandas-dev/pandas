@@ -442,6 +442,15 @@ def test_from_tuples_with_various_tuple_lengths(keys, expected):
     assert tuple(idx) == expected
 
 
+@pytest.mark.parametrize("keys", [[("a",), ("b", "c")], [("a", "b"), ("c",)]])
+def test_from_tuples_ndarray_various_tuple_lengths_raises(keys):
+    # GH#50293
+    arr = np.empty(len(keys), dtype=object)
+    arr[:] = keys
+    with pytest.raises(ValueError, match="All tuples must have the same length"):
+        pd.MultiIndex.from_tuples(arr)
+
+
 # ----------------------------------------------------------------------------
 # from_product
 # ----------------------------------------------------------------------------

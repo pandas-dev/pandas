@@ -564,6 +564,12 @@ class Apply:
     def time_apply_str_mean(self):
         self.df.apply("mean")
 
+    def time_apply_raw(self):
+        self.df.apply(lambda x: x.sum(), raw=True)
+
+    def time_apply_axis_1_raw(self):
+        self.df.apply(lambda x: x.sum(), axis=1, raw=True)
+
     def time_apply_pass_thru(self):
         self.df.apply(lambda x: x)
 
@@ -877,6 +883,23 @@ class WhereMisalignedCond:
 
     def time_where_misaligned(self):
         self.df.where(self.mask, other=0.0)
+
+
+class WhereFrameOther:
+    params = ["Float64", "float64[pyarrow]", "string[pyarrow]"]
+    param_names = ["dtype"]
+
+    def setup(self, dtype):
+        N = 100_000
+        values = np.random.randn(N, 10)
+        self.mask = DataFrame(values < 0)
+        if dtype == "string[pyarrow]":
+            values = values.astype(str)
+        self.df = DataFrame(values, dtype=dtype)
+        self.other = DataFrame(values[::-1], dtype=dtype)
+
+    def time_where(self, dtype):
+        self.df.where(self.mask, self.other)
 
 
 class FindValidIndex:

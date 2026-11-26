@@ -29,6 +29,7 @@ from pandas.core.dtypes.generic import (
 from pandas.core.dtypes.missing import isna
 
 from pandas.core.construction import extract_array
+from pandas.core.nanops import warn_complex_unordered
 
 if TYPE_CHECKING:
     from collections.abc import (
@@ -507,6 +508,8 @@ def nargminmax(
 
     mask = np.asarray(isna(values))
     arr_values = values._values_for_argsort()
+    if arr_values.dtype.kind == "c":
+        warn_complex_unordered()
 
     if arr_values.ndim > 1:
         if mask.any():

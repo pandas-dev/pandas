@@ -530,3 +530,15 @@ def test_categorical_index_append_mismatch_raises(first, second, msg, temp_h5_pa
 
     # the rejected append leaves the stored rows intact and readable
     tm.assert_frame_equal(pd.read_hdf(temp_h5_path, key="df"), df)
+
+
+def test_categorical_append_different_categories_dtype(temp_hdfstore):
+    # GH#71128 - float categories vs integer categories used to raise a
+    # "Buffer dtype mismatch" ValueError from the cython array_equivalent
+    df1 = pd.DataFrame({"a": pd.Categorical([1, 2, 3, 1])})
+    df2 = pd.DataFrame({"a": pd.Categorical([1.0, 2.0, 4.0, 1.0])})
+    temp_hdfstore.append("df", df1, format="table")
+
+    msg = "cannot append a categorical with different categories to the existing"
+    with pytest.raises(ValueError, match=msg):
+        temp_hdfstore.append("df", df2, format="table")

@@ -9,11 +9,17 @@ from io import StringIO
 from keyword import iskeyword
 import token
 import tokenize
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    Any,
+)
+
+from pandas.core.computation.scope import DEFAULT_GLOBALS
 
 if TYPE_CHECKING:
     from collections.abc import (
         Hashable,
+        Iterable,
         Iterator,
     )
 
@@ -135,6 +141,21 @@ def clean_column_name(name: Hashable) -> Hashable:
         return name
 
 
+def clean_resolvers(items: Iterable[tuple[Hashable, Any]]) -> dict[Hashable, Any]:
+    """
+    Key each (label, value) pair by :func:`clean_column_name` of the label.
+
+    Skip a non-str label like ``np.inf`` whose cleaned name would shadow a
+    default global, GH#47859.
+    """
+    result = {}
+    for label, value in items:
+        name = clean_column_name(label)
+        if isinstance(label, str) or name not in DEFAULT_GLOBALS:
+            result[name] = value
+    return result
+
+
 class ParseState(Enum):
     DEFAULT = 0
     IN_BACKTICK = 1
@@ -218,6 +239,31 @@ def _split_by_backtick(s: str) -> list[tuple[bool, str]]:
         substrings.append((False, "".join(substr)))
 
     return substrings
+
+
+def backtick_quoted_assign_target(source: str, assigner: str) -> str:
+    """
+    Return the column label for the left hand side of an assignment.
+
+    Parameters
+    ----------
+    source : str
+        The Python source code string of a single assignment.
+    assigner : str
+        The identifier the left hand side was parsed to.
+
+    Returns
+    -------
+    str
+        The backtick-quoted name as written on the left hand side, or
+        ``assigner`` if the left hand side is not backtick-quoted.
+    """
+    substrings = _split_by_backtick(source.lstrip(" \t("))
+    if substrings and substrings[0][0]:
+        name = substrings[0][1][1:-1]
+        if create_valid_python_identifier(name) == assigner:
+            return name.replace("``", "`")
+    return assigner
 
 
 def tokenize_string(source: str) -> Iterator[tuple[int, str]]:

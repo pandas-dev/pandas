@@ -8,6 +8,7 @@ from pandas._libs import (
     algos as libalgos,
     hashtable as ht,
 )
+from pandas.errors import Pandas4Warning
 
 from pandas.core.dtypes.common import (
     is_bool_dtype,
@@ -1031,6 +1032,29 @@ class TestIsin:
         exp = np.array([True, False, False], dtype=bool)
         tm.assert_numpy_array_equal(res, exp)
 
+    @pytest.mark.parametrize(
+        "cls",
+        [
+            pd.Timestamp,
+            pd.Timedelta,
+            pd.Period,
+            pd.Interval,
+            type(pd.NaT),
+            pd.offsets.Day,
+            pd.DateOffset,
+        ],
+    )
+    def test_isin_scalar_classes(self, cls):
+        # GH#31080 the classes themselves, not instances
+        comps = np.array([cls, object], dtype=object)
+        expected = np.array([True, False])
+
+        result = np.isin(comps, [cls])
+        tm.assert_numpy_array_equal(result, expected)
+
+        result = algos.isin(comps, [cls])
+        tm.assert_numpy_array_equal(result, expected)
+
     def test_categorical_from_codes(self):
         # GH 16639
         vals = np.array([0, 1, 2, 0])
@@ -1241,9 +1265,8 @@ class TestIsin:
 
     @pytest.mark.parametrize("dtype", ["float32", "complex128"])
     def test_isin_mixed_int_float_targets_no_precision_loss(self, dtype):
-        # GH#46485: a mixed int/float targets list is cast to float64 by
-        # _ensure_arraylike, rounding 2**53 + 1 before the exact-range check
-        # can see it; we must still object-cast and compare exactly.
+        # GH#46485: 2**53 + 1 in a mixed int/float targets list must not be
+        # rounded to 2**53 by a float64 cast.
         ser = pd.Series([2**53], dtype="int64").astype(dtype)
         result = ser.isin([2**53 + 1, 1.5])
         expected = pd.Series([False])
@@ -2102,6 +2125,61 @@ class TestIsMonotonic:
         assert algos.is_monotonic(values) == (True, False, True)
         assert algos.is_monotonic(values[::-1]) == (False, True, True)
 
+    @pytest.mark.parametrize("dtype", ["int64", "float64"])
+    @pytest.mark.parametrize("position", [1024, 1025, 2999])
+    @pytest.mark.parametrize(
+        "change, expected",
+        [
+            ("duplicate", (True, False, False)),
+            ("decrease", (False, False, False)),
+        ],
+    )
+    @pytest.mark.parametrize("reverse", [True, False])
+    def test_long(self, dtype, position, change, expected, reverse):
+        # GH#72122
+        values = np.arange(2, 6002, 2, dtype=dtype)
+        if change == "duplicate":
+            values[position] = values[position - 1]
+        else:
+            values[position] = values[position - 1] - 1
+        if reverse:
+            values = values[::-1].copy()
+            expected = (expected[1], expected[0], expected[2])
+        assert algos.is_monotonic(values) == expected
+
+    @pytest.mark.parametrize(
+        "arr",
+        [
+            [np.nan, 1, 2],
+            [1, np.nan, 3],
+            [1, 2, np.nan],
+            [np.nan, 2, 1],
+            [3, np.nan, 1],
+            [2, 1, np.nan],
+        ],
+    )
+    def test_nan(self, arr):
+        # GH#72122
+        values = np.array(arr, dtype="float64")
+        assert algos.is_monotonic(values) == (False, False, False)
+
+    @pytest.mark.parametrize(
+        "arr",
+        [
+            [1, 2, None],
+            [1, None, 3],
+            [2, 1, None],
+            [3, None, 1],
+        ],
+    )
+    def test_nat(self, arr):
+        # GH#72122
+        nat = np.iinfo(np.int64).min
+        values = np.array([nat if x is None else x for x in arr], dtype="int64").view(
+            "datetime64[ns]"
+        )
+        assert algos.is_monotonic(values) == (False, False, False)
+
     def test_complex_raises(self):
         # https://github.com/pandas-dev/pandas/pull/65803
         # complex is not orderable
@@ -2367,3 +2445,32 @@ def test_occurrence_rank(codes, expected):
     # GH#67446
     result = algos.occurrence_rank(np.array(codes, dtype=np.intp))
     tm.assert_numpy_array_equal(result, np.array(expected, dtype=np.intp))
+
+
+@pytest.mark.parametrize("dtype", [">i8", ">u2", ">f4", ">c16", ">M8[s]", ">m8[s]"])
+def test_ndarray_non_native_byteorder_raises(dtype):
+    # GH#53234 datetimelike used to give byteswapped garbage
+    arr = np.array([3, 1, 3, 2], dtype=dtype)
+    msg = "Non-native byte order is not supported"
+    with pytest.raises(ValueError, match=msg):
+        pd.unique(arr)
+    with pytest.raises(ValueError, match=msg):
+        pd.factorize(arr)
+
+
+def test_non_native_float16_not_rejected():
+    # GH#53234 float16 is cast to native float64 internally, so need not raise
+    arr = np.array([3, 1, 3], dtype=">f2")
+    assert pd.unique(arr).tolist() == [3.0, 1.0]
+    codes, uniques = pd.factorize(arr)
+    tm.assert_numpy_array_equal(codes, np.array([0, 1, 0], dtype=np.intp))
+    assert uniques.tolist() == [3.0, 1.0]
+
+    msg = "non-native byte order"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        ser = pd.Series(arr)
+    assert ser.rank().tolist() == [2.5, 1.0, 2.5]
+    # the result's index holds the non-native keys
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = ser.value_counts()
+    assert result.to_dict() == {3.0: 2, 1.0: 1}

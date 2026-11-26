@@ -146,6 +146,12 @@ def diff_2d(
 # Moments stats (skew, kurt)
 # ----------------------------------------------------------------------
 
+def scalar_var(
+    values: np.ndarray,  # const float64_t[:]
+    skipna: bool,  # bint
+    ddof: int,
+    mask: npt.NDArray[np.bool_] | None,  # const uint8_t[:]
+) -> float: ...
 def scalar_skew(
     values: np.ndarray,  # const float64_t[:]
     skipna: bool,  # bint
@@ -156,6 +162,13 @@ def scalar_kurt(
     skipna: bool,  # bint
     mask: npt.NDArray[np.bool_] | None,  # const uint8_t[:]
 ) -> float: ...
+def axis_var(
+    values: np.ndarray,  # const float64_t[:, :]
+    axis: int,
+    skipna: bool,  # bint
+    ddof: int,
+    mask: npt.NDArray[np.bool_] | None,  # const uint8_t[:, :]
+) -> np.ndarray: ...
 def axis_skew(
     values: np.ndarray,  # const float64_t[:, :]
     axis: int,
@@ -771,3 +784,4 @@ def take_2d_multi_int64_int64(
     fill_value: int = ...,
     allow_fill: bool = ...,
 ) -> None: ...
+def _set_khash_alloc_fail_countdown(countdown: int) -> int: ...

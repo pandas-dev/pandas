@@ -509,6 +509,19 @@ def test_groupby_agg_dict_with_getitem():
     tm.assert_frame_equal(result, expected)
 
 
+def test_groupby_agg_dict_forwards_args_kwargs():
+    # GH#23889
+    df = pd.DataFrame({"key": [1, 1, 2], "x": [np.nan, np.nan, 1.0]})
+    gb = df.groupby("key")
+    result = gb.agg({"x": "sum"}, min_count=1)
+    expected = pd.DataFrame({"x": [np.nan, 1.0]}, index=pd.Index([1, 2], name="key"))
+    tm.assert_frame_equal(result, expected)
+
+    result = gb.agg({"x": lambda ser, a, b=0: a + b}, 3, b=4)
+    expected = pd.DataFrame({"x": [7, 7]}, index=pd.Index([1, 2], name="key"))
+    tm.assert_frame_equal(result, expected)
+
+
 def test_groupby_agg_dict_dup_columns():
     # GH#55006
     df = pd.DataFrame(
@@ -878,13 +891,14 @@ class TestNamedAggregationDataFrame:
     def test_agg_relabel_other_raises(self):
         df = pd.DataFrame({"A": [0, 0, 1], "B": [1, 2, 3]})
         grouped = df.groupby("A")
-        match = "Must provide"
+        match = r"Named aggregation 'foo' must be a tuple of \(column, aggfunc\)"
         with pytest.raises(TypeError, match=match):
             grouped.agg(foo=1)
 
-        with pytest.raises(TypeError, match=match):
+        with pytest.raises(TypeError, match="Must provide"):
             grouped.agg()
 
+        match = r"Named aggregation 'b' must be a tuple of \(column, aggfunc\)"
         with pytest.raises(TypeError, match=match):
             grouped.agg(a=("B", "max"), b=(1, 2, 3))
 
@@ -901,6 +915,15 @@ class TestNamedAggregationDataFrame:
         )
         expected = df.groupby("A").agg(b=("B", "sum"), c=("B", "count"))
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("other", [pd.NamedAgg("B", "max"), ("B", "max")])
+    @pytest.mark.parametrize("value", [np.mean, "mean", ("A", "mean", 1)])
+    def test_named_agg_mixed_with_invalid_raises(self, value, other):
+        # GH#43838
+        df = pd.DataFrame({"A": [1, 2, 3], "B": [10, 5, 1], "C": ["x", "x", "y"]})
+        msg = r"Named aggregation 'A' must be a tuple of \(column, aggfunc\)"
+        with pytest.raises(TypeError, match=msg):
+            df.groupby("C").agg(A=value, NewName=other)
 
     def n_between(self, ser, low, high, **kwargs):
         return ser.between(low, high, **kwargs).sum()
@@ -1886,6 +1909,25 @@ def test_agg_with_as_index_false_with_list():
         data=[[0, 2, 4], [0, 3, 5], [1, 3, 6]],
         columns=pd.MultiIndex.from_tuples([("a1", ""), ("a2", ""), ("b", "sum")]),
     )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("spelling", ["dict", "named", "list"])
+def test_agg_many_columns_no_fragmentation_warning(spelling):
+    # GH#61628 per-column agg results made inserting the keys warn
+    cols = [f"col_{i}" for i in range(101)]
+    df = pd.DataFrame(np.ones((4, 101)), columns=cols)
+    df.insert(0, "key", [0, 0, 1, 1])
+    if spelling == "dict":
+        kwargs = {"func": dict.fromkeys(cols, "sum")}
+    elif spelling == "named":
+        kwargs = {col: pd.NamedAgg(col, "sum") for col in cols}
+    else:
+        kwargs = {"func": ["sum"]}
+
+    with tm.assert_produces_warning(None):
+        result = df.groupby("key", as_index=False).agg(**kwargs)
+        expected = df.groupby("key").agg(**kwargs).reset_index()
     tm.assert_frame_equal(result, expected)
 
 

@@ -13,7 +13,6 @@ import pytest
 from pandas._libs import lib
 from pandas.compat.pyarrow import pa_version_under25p0
 from pandas.errors import (
-    EmptyDataError,
     Pandas4Warning,
     ParserWarning,
 )
@@ -21,6 +20,8 @@ from pandas.errors import (
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays import IntegerArray
+
+from pandas.io.parsers.base_parser import wrap_object_columns
 
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 
@@ -247,22 +248,11 @@ def test_boolean_dtype(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
-def test_delimiter_with_usecols_and_parse_dates(all_parsers):
+def test_delimiter_with_usecols_and_parse_dates(all_parsers, request):
     # GH#35873
     if all_parsers.engine == "pyarrow":
-        # pyarrow cannot parse this single-line input with these options
-        msg = "No columns to parse from file"
-        with pytest.raises(EmptyDataError, match=msg):
-            all_parsers.read_csv(
-                StringIO('"dump","-9,1","-9,1",20101010'),
-                engine="python",
-                names=["col", "col1", "col2", "col3"],
-                usecols=["col1", "col2", "col3"],
-                parse_dates=["col3"],
-                decimal=",",
-            )
-        return
-
+        reason = "usecols labels together with names raise ArrowKeyError"
+        request.applymarker(pytest.mark.xfail(reason=reason))
     result = all_parsers.read_csv(
         StringIO('"dump","-9,1","-9,1",20101010'),
         engine="python",
@@ -626,6 +616,62 @@ def test_nullable_boolean_dtype_with_true_false_values(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+def test_arrow_boolean_dtype_with_true_false_values(all_parsers, request):
+    # GH#47534
+    pa = pytest.importorskip("pyarrow")
+    parser = all_parsers
+    if parser.engine == "pyarrow":
+        request.applymarker(
+            pytest.mark.xfail(
+                reason="pyarrow true_values/false_values replace the default spellings",
+                raises=pa.ArrowInvalid,
+            )
+        )
+    dtype = pd.ArrowDtype(pa.bool_())
+    # "tRuE" is a pyarrow spelling that BooleanDtype does not accept, and the
+    #  user's "0" takes precedence over pyarrow's, also in a column ("c") that
+    #  pyarrow could parse on its own
+    data = "a,b,c\nyes,1,false\nno,2,0\ntRuE,3,false\n,4,false\n0,5,0\n"
+    result = parser.read_csv(
+        StringIO(data),
+        dtype={"a": dtype, "c": dtype},
+        true_values=["yes", "0"],
+        false_values=["no"],
+    )
+    expected = pd.DataFrame(
+        {
+            "a": pd.array([True, False, True, None, True], dtype=dtype),
+            "b": [1, 2, 3, 4, 5],
+            "c": pd.array([False, True, False, False, True], dtype=dtype),
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_arrow_boolean_dtype_true_false_values_precedence(all_parsers, request):
+    # GH#47534 same precedence as BooleanDtype: a user true spelling first, then
+    #  the default true spellings, then a user false spelling
+    pa = pytest.importorskip("pyarrow")
+    parser = all_parsers
+    if parser.engine == "pyarrow":
+        request.applymarker(
+            pytest.mark.xfail(
+                reason="pyarrow true_values/false_values replace the default spellings",
+                raises=pa.ArrowInvalid,
+            )
+        )
+    dtype = pd.ArrowDtype(pa.bool_())
+    data = "a\ntrue\nx\nfalse\n1\n"
+    result = parser.read_csv(
+        StringIO(data),
+        dtype={"a": dtype},
+        true_values=["x"],
+        false_values=["true", "x", "1"],
+    )
+    expected = pd.DataFrame({"a": pd.array([True, True, False, True], dtype=dtype)})
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize("default", ["float", "float64"])
 def test_dtypes_defaultdict(all_parsers, default):
     # GH#41574
@@ -649,6 +695,15 @@ def test_dtypes_defaultdict_names_with_integer_header(all_parsers):
     parser = all_parsers
     result = parser.read_csv(StringIO(data), header=0, names=["x", "y"], dtype=dtype)
     expected = pd.DataFrame({"x": [1], "y": 2.0})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_dtypes_defaultdict_no_header(all_parsers):
+    # GH#71880 integer keys after a defaulted column still apply when header=None
+    dtype = defaultdict(lambda: "int64", {1: "float64", 2: "float64"})
+    parser = all_parsers
+    result = parser.read_csv(StringIO("1,2,3\n"), header=None, dtype=dtype)
+    expected = pd.DataFrame({0: [1], 1: [2.0], 2: [3.0]})
     tm.assert_frame_equal(result, expected)
 
 
@@ -1049,7 +1104,6 @@ GH,100102040,202,0205"""
     tm.assert_frame_equal(result, expected)
 
 
-@xfail_pyarrow  # pyarrow engine casts the parsed frame; wraps, or raises ValueError
 @pytest.mark.parametrize("dtype_backend", [lib.no_default, "numpy_nullable", "pyarrow"])
 @pytest.mark.parametrize(
     "dtype, err, msg",
@@ -1067,12 +1121,15 @@ def test_out_of_range_integer_dtype_raises(all_parsers, dtype, err, msg, dtype_b
     if dtype_backend == "pyarrow":
         pytest.importorskip("pyarrow")
     parser = all_parsers
+    if parser.engine == "pyarrow":
+        # this engine raises ValueError for the nullable dtypes too
+        err = ValueError
+        msg = "cannot safely (cast non-equivalent|convert passed user dtype)"
     data = "x\n-1\n257\n"
     with pytest.raises(err, match=msg):
         parser.read_csv(StringIO(data), dtype={"x": dtype}, dtype_backend=dtype_backend)
 
 
-@xfail_pyarrow  # pyarrow engine casts the parsed frame; wraps, or raises ValueError
 @pytest.mark.parametrize(
     "data, dtype",
     [
@@ -1080,6 +1137,9 @@ def test_out_of_range_integer_dtype_raises(all_parsers, dtype, err, msg, dtype_b
         ("x\n18446744073709551615\n1\n", "uint8"),
         # the requested dtype is the int64 that overflowed into the fallback
         ("x\n18446744073709551615\n1\n", "int64"),
+        # one past the int64 max; the pyarrow engine reads it as a float
+        #  whose cast to int64 can saturate rather than wrap
+        ("x\n9223372036854775808\n", "int64"),
         # parses as float rather than int, which both engines must check too
         ("x\n300.0\n1.0\n", "uint8"),
         ("x\n257.0\n1.0\n", "int8"),
@@ -1091,3 +1151,79 @@ def test_unsafe_integer_dtype_raises_for_non_int64_source(all_parsers, data, dty
     parser = all_parsers
     with pytest.raises(ValueError, match="cannot safely convert passed user dtype"):
         parser.read_csv(StringIO(data), dtype={"x": dtype})
+
+
+def test_wrap_object_columns_only_wraps_object():
+    # wrapping every column would be correct but slow on wide frames
+    ints = np.array([1, 2])
+    strings = np.array(["x", "y"], dtype=object)
+    dtype = {"a": "int64", "b": object}
+    result = wrap_object_columns({"a": ints, "b": strings}, dtype, pd.RangeIndex(2))
+    assert result["a"] is ints
+    tm.assert_series_equal(result["b"], pd.Series(strings, dtype=object))
+
+
+@pytest.mark.parametrize("dtype_backend", [lib.no_default, "numpy_nullable", "pyarrow"])
+@pytest.mark.parametrize("index_col", [None, 0])
+def test_out_of_range_int32_dtype_raises(all_parsers, index_col, dtype_backend):
+    # GH#38013 with a non-default dtype_backend, the pyarrow engine casts
+    #  index columns separately
+    if dtype_backend == "pyarrow":
+        pytest.importorskip("pyarrow")
+    parser = all_parsers
+    data = "x,y\n10000000000,0\n"
+    with pytest.raises(ValueError, match="cannot safely convert passed user dtype"):
+        parser.read_csv(
+            StringIO(data),
+            dtype={"x": "int32"},
+            index_col=index_col,
+            dtype_backend=dtype_backend,
+        )
+
+
+@pytest.mark.parametrize(
+    "data, dtype, dtype_backend, expected",
+    [
+        ("x\n1e16\n", "int64[pyarrow]", lib.no_default, 10**16),
+        ("x\n1e16\n", "Int64", "pyarrow", 10**16),
+        ("x\n9223372036854775808\n", "uint64[pyarrow]", lib.no_default, 2**63),
+    ],
+)
+def test_in_range_integer_above_float_precision(
+    all_parsers, data, dtype, dtype_backend, expected
+):
+    # GH#38013 in-range values above 2**53 must not be rejected
+    pytest.importorskip("pyarrow")
+    parser = all_parsers
+    result = parser.read_csv(
+        StringIO(data), dtype={"x": dtype}, dtype_backend=dtype_backend
+    )
+    assert result["x"].tolist() == [expected]
+
+
+def test_sparse_integer_dtype(pyarrow_parser_only):
+    # GH#38013 the overflow check covers sparse dtypes by their subtype
+    parser = pyarrow_parser_only
+    result = parser.read_csv(
+        StringIO("x\n1\n300\n"), dtype={"x": pd.SparseDtype("int64")}
+    )
+    expected = pd.DataFrame({"x": pd.arrays.SparseArray([1, 300], dtype="int64")})
+    tm.assert_frame_equal(result, expected)
+    with pytest.raises(ValueError, match="cannot safely convert passed user dtype"):
+        parser.read_csv(StringIO("x\n1\n300\n"), dtype={"x": pd.SparseDtype("int8")})
+
+
+def test_integer_dtype_truncates_float(pyarrow_parser_only):
+    # GH#38013 dropping the fractional part is not a wrap, as with the python
+    #  engine
+    parser = pyarrow_parser_only
+    result = parser.read_csv(StringIO("x\n1.5\n127.9\n-128.9\n"), dtype={"x": "int8"})
+    assert result["x"].tolist() == [1, 127, -128]
+
+
+def test_uint64_max_read_as_float_raises(pyarrow_parser_only):
+    # GH#38013 a pyarrow inference limitation, not desired behavior: pyarrow
+    #  reads this value as the float 2**64, which is out of range for uint64
+    parser = pyarrow_parser_only
+    with pytest.raises(ValueError, match="cannot safely convert passed user dtype"):
+        parser.read_csv(StringIO("x\n18446744073709551615\n"), dtype={"x": "uint64"})

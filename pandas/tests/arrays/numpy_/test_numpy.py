@@ -442,3 +442,12 @@ def test_array_repr_str():
     # GH#68077 the NEP 51 workaround for numpy str scalars is unaffected
     arr = NumpyExtensionArray(np.array(["foo", "bar"], dtype="U3"))
     assert repr(arr).splitlines()[1] == "['foo', 'bar']"
+
+
+@pytest.mark.parametrize("func", ["min", "max", "argmin", "argmax"])
+def test_complex_ordering_deprecated(func):
+    # GH#43770 complex has no natural ordering
+    arr = pd.array(np.array([1 + 2j, 3 - 1j, 0j]))
+    msg = "deprecated on complex data"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        getattr(arr, func)()

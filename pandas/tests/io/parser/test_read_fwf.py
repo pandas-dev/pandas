@@ -155,6 +155,15 @@ A   B     C            D            E
         read_fwf(StringIO(data), colspecs=None, widths=None)
 
 
+@pytest.mark.parametrize("kwarg", ["width", "delim_whitespace"])
+def test_unexpected_keyword(kwarg):
+    # GH#34953 a typo or a read_csv argument removed in 3.0 was silently ignored
+    data = "AA1234\nBB5678\n"
+    msg = f"read_fwf\\(\\) got an unexpected keyword argument '{kwarg}'"
+    with pytest.raises(TypeError, match=msg):
+        read_fwf(StringIO(data), **{kwarg: [2, 4]})
+
+
 def test_read_csv_compat():
     csv_data = """\
 A,B,C,D,E
@@ -330,6 +339,25 @@ def test_fwf_for_uint8():
     )
     expected["dst"] = expected["dst"].astype(object)
     tm.assert_frame_equal(df, expected)
+
+
+@pytest.mark.parametrize(
+    "keep_default_na,values",
+    [(True, [np.nan, "1", np.nan]), (False, ["", "1", ""])],
+)
+def test_fwf_converters_blank_fields(keep_default_na, values):
+    # GH#10616 blank fields in a converter column follow the NA rules, and
+    # leading blanks do not stop the column from getting the converter's dtype
+    data = "A \nB1\nC \n"
+    result = read_fwf(
+        StringIO(data),
+        widths=[1, 1],
+        names=["a", "b"],
+        converters={"b": str},
+        keep_default_na=keep_default_na,
+    )
+    expected = pd.DataFrame({"a": ["A", "B", "C"], "b": values})
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize("comment", ["#", "~", "!"])
@@ -588,7 +616,13 @@ DataCol1   DataCol2
     tm.assert_frame_equal(result, expected)
 
 
-def test_skiprows_by_index_inference():
+@pytest.mark.parametrize(
+    "skiprows",
+    # GH#20603 callable skiprows must be applied when inferring colspecs
+    [[0, 2], lambda x: x in [0, 2]],
+    ids=["list", "callable"],
+)
+def test_skiprows_by_index_inference(skiprows):
     data = """
 To be skipped
 Not  To  Be  Skipped
@@ -596,7 +630,6 @@ Once more to be skipped
 123  34   8      123
 456  78   9      456
 """.strip()
-    skiprows = [0, 2]
 
     expected = read_csv(StringIO(data), skiprows=skiprows, sep=r"\s+")
     result = read_fwf(StringIO(data), skiprows=skiprows)

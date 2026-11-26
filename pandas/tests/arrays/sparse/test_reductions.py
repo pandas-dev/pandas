@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays.sparse import SparseArray
@@ -645,13 +647,17 @@ def test_frame_complex_reduction_na_keeps_complex(name, kwargs):
     values = np.array([1 + 2j, 3 - 1j, np.nan])
     arr = SparseArray(values, dtype=pd.SparseDtype("complex128", np.nan))
 
-    result = getattr(pd.DataFrame({"a": arr}), name)(**kwargs)
-    expected = getattr(pd.DataFrame({"a": values}), name)(**kwargs)
+    warn = Pandas4Warning if name in ("min", "max") else None
+    msg = "deprecated on complex data"
+    with tm.assert_produces_warning(warn, match=msg):
+        result = getattr(pd.DataFrame({"a": arr}), name)(**kwargs)
+    with tm.assert_produces_warning(warn, match=msg):
+        expected = getattr(pd.DataFrame({"a": values}), name)(**kwargs)
     tm.assert_series_equal(result, expected.astype(pd.SparseDtype(expected.dtype)))
 
 
 @pytest.mark.filterwarnings(
-    "ignore:The median of complex data:pandas.errors.Pandas4Warning"
+    "ignore:.*deprecated on complex data:pandas.errors.Pandas4Warning"
 )
 @pytest.mark.parametrize(
     "name, kwargs",
@@ -684,7 +690,7 @@ def test_describe():
 
 
 @pytest.mark.filterwarnings(
-    "ignore:The median of complex data:pandas.errors.Pandas4Warning"
+    "ignore:.*deprecated on complex data:pandas.errors.Pandas4Warning"
 )
 @pytest.mark.parametrize(
     "subtype,fill_value,dense_dtype",
@@ -913,11 +919,15 @@ def test_frame_idxmin_idxmax(subtype, order, sparsify_min):
     #  sparsify_min routes _argmin_argmax through its _first_fill_value_loc branch.
     values = np.array(order).astype(subtype)
     arr = SparseArray(values, fill_value=values.min() if sparsify_min else None)
-    assert arr._reduce("argmin", keepdims=True).dtype.subtype == np.intp
+    # GH#43770 complex ordering is deprecated
+    warn = Pandas4Warning if subtype == "complex128" else None
+    msg = "deprecated on complex data"
+    with tm.assert_produces_warning(warn, match=msg):
+        assert arr._reduce("argmin", keepdims=True).dtype.subtype == np.intp
 
     index = pd.Index(list("xyz"))
     df = pd.DataFrame({"a": arr}, index=index)
-    with tm.assert_produces_warning(None):
+    with tm.assert_produces_warning(warn, match=msg):
         assert df.idxmin()["a"] == index[values.argmin()]
         assert df.idxmax()["a"] == index[values.argmax()]
 
@@ -984,21 +994,15 @@ def test_sum_object_fill_value(arr, expected):
     assert result == pd.Series(arr.to_dense(), dtype=object).sum()
 
 
-def test_sum_object_fill_value_na_raises_like_dense():
-    # GH#68581 a stored NA among strings raises in nanops instead of being
-    #  skipped; sparse now matches dense here rather than returning the gaps
-    #  out of order.  Both sides flip together when that is fixed.
+def test_sum_object_fill_value_na_matches_dense():
+    # GH#68581, GH#59764 a stored NA among strings is skipped, as for dense
     arr = SparseArray(np.array(["a", np.nan, "b"], dtype=object), fill_value="a")
-    msg = "can only concatenate str"
-    with pytest.raises(TypeError, match=msg):
-        arr.sum()
-    with pytest.raises(TypeError, match=msg):
-        pd.Series(arr.to_dense(), dtype=object).sum()
+    assert arr.sum() == "ab"
+    assert pd.Series(arr.to_dense(), dtype=object).sum() == "ab"
 
 
 def test_sum_object_null_fill_value_keeps_stored_order():
-    # GH#68581 an NA fill needs no adjustment, so this stays on the closed-form
-    #  path; it deliberately does not match dense, which raises instead
+    # GH#68581 an NA fill needs no adjustment, so this stays on the closed-form path
     arr = SparseArray(["a", "b", None])
     assert arr._null_fill_value
     assert arr.sum() == "ab"
@@ -1021,3 +1025,12 @@ def test_frame_reduction_axis_1_different_fill_values(op, performance_warning):
 
     expected = getattr(df.sparse.to_dense(), op)(axis=1)
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("func", ["min", "max", "argmin", "argmax"])
+def test_complex_ordering_deprecated(func):
+    # GH#43770 complex has no natural ordering
+    arr = SparseArray([1 + 2j, 3 - 1j, 0j], fill_value=0j)
+    msg = "deprecated on complex data"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        getattr(arr, func)()

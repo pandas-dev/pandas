@@ -89,6 +89,21 @@ def test_drop_non_empty_list(data, index, drop_labels):
         ser.drop(drop_labels)
 
 
+@pytest.mark.parametrize(
+    "index",
+    [
+        pd.Index([b"ab", b"ab", 97, 98], dtype=object),
+        pd.MultiIndex.from_arrays([[b"ab", b"ab", 97, 98], [1, 2, 3, 4]]),
+    ],
+)
+def test_drop_bytes_label(index):
+    # GH#11740 a bytes label must not be iterated into ints
+    ser = pd.Series(range(4), index=index)
+    result = ser.drop(b"ab")
+    expected = ser.iloc[2:]
+    tm.assert_series_equal(result, expected)
+
+
 def test_drop_index_ea_dtype(any_numeric_ea_dtype):
     # GH#45860
     df = pd.Series(100, index=pd.Index([1, 2, 2], dtype=any_numeric_ea_dtype))
@@ -147,3 +162,21 @@ def test_drop_inplace_depr():
     with tm.assert_produces_warning(Pandas4Warning, match=msg):
         ser.drop("a", inplace=True)
     tm.assert_series_equal(ser, expected)
+
+
+def test_drop_columns_deprecated():
+    # GH#39509
+    ser = pd.Series([1, 3], index=["a", "b"])
+    msg = "Series.drop ignores the 'columns' keyword"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = ser.drop(columns=["a"])
+    tm.assert_series_equal(result, ser)
+
+    with tm.assert_produces_warning(False):
+        ser.drop(index="a", columns=None)
+
+    # calls that already raise do not also warn
+    msg = "Cannot specify both 'labels' and 'index'/'columns'"
+    with tm.assert_produces_warning(False):
+        with pytest.raises(ValueError, match=msg):
+            ser.drop("a", columns="b")

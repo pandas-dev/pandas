@@ -21,16 +21,16 @@ class TestSliceLocs:
         sorted_idx, _ = idx.sortlevel(0)
 
         result = sorted_idx.slice_locs(("foo", "two"), ("qux", "one"))
-        assert result == (1, 5)
+        assert result == (3, 5)
 
         result = sorted_idx.slice_locs(None, ("qux", "one"))
         assert result == (0, 5)
 
         result = sorted_idx.slice_locs(("foo", "two"), None)
-        assert result == (1, len(sorted_idx))
+        assert result == (3, len(sorted_idx))
 
         result = sorted_idx.slice_locs("bar", "baz")
-        assert result == (2, 4)
+        assert result == (0, 2)
 
     def test_slice_locs(self):
         df = pd.DataFrame(
@@ -534,6 +534,23 @@ class TestGetIndexer:
         result = idx1.get_indexer(idx2)
         tm.assert_numpy_array_equal(result, expected, check_dtype=False)
 
+    @pytest.mark.parametrize(
+        "keys, expected",
+        [
+            ([("a", "b"), ("b",)], [0, -1]),
+            ([("b",), ("a", "b")], [-1, 0]),
+            ([("a", "b"), ("a", "b", "c")], [0, -1]),
+            ([("a", "b", "c"), ("c", "d", "e")], [-1, -1]),
+            ([("a",), ("c",)], [-1, -1]),
+        ],
+    )
+    def test_get_indexer_tuples_of_other_lengths(self, keys, expected):
+        # GH#50293 tuples whose length differs from nlevels never match
+        mi = pd.MultiIndex.from_tuples([("a", "b"), ("c", "d"), ("b", np.nan)])
+        target = pd.Index(keys, tupleize_cols=False)
+        result = mi.get_indexer(target)
+        tm.assert_numpy_array_equal(result, np.array(expected, dtype=np.intp))
+
 
 def test_getitem(idx):
     # scalar
@@ -567,8 +584,8 @@ def test_getitem_scalar_result_type(using_python_scalars):
 
 def test_getitem_group_select(idx):
     sorted_idx, _ = idx.sortlevel(0)
-    assert sorted_idx.get_loc("baz") == slice(3, 4)
-    assert sorted_idx.get_loc("foo") == slice(0, 2)
+    assert sorted_idx.get_loc("baz") == slice(1, 2)
+    assert sorted_idx.get_loc("foo") == slice(2, 4)
 
 
 @pytest.mark.parametrize("box", [list, pd.Index])

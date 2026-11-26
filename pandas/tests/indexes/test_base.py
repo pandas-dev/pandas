@@ -1,5 +1,6 @@
 from collections import defaultdict
 from datetime import datetime
+import enum
 from functools import partial
 import math
 import operator
@@ -613,6 +614,18 @@ class TestIndex:
         reduced_index = multi_index.map(lambda x: x[0])
         tm.assert_index_equal(reduced_index, Index(first_level))
 
+    def test_map_with_tuples_of_different_lengths(self):
+        # GH#50293
+        index = Index([1, 2], name="n")
+        result = index.map(lambda x: (x,) * x)
+        expected = Index([(1,), (2, 2)], name="n", tupleize_cols=False)
+        tm.assert_index_equal(result, expected)
+
+        mi = MultiIndex.from_tuples([("a", "b"), ("c", "d")])
+        result = mi.map(lambda tup: (*tup, "z") if tup[0] == "a" else tup)
+        expected = Index([("a", "b", "z"), ("c", "d")], tupleize_cols=False)
+        tm.assert_index_equal(result, expected)
+
     @pytest.mark.parametrize(
         "index",
         [
@@ -860,6 +873,42 @@ class TestIndex:
         for drop_me in to_drop[1], [to_drop[1]]:
             with pytest.raises(KeyError, match=msg):
                 removed.drop(drop_me)
+
+    def test_drop_getitem_only_or_bytes_label(self):
+        # GH#11740 single labels that list() would iterate
+        class GetItemOnly:
+            def __getitem__(self, key):
+                raise IndexError
+
+        obj = GetItemOnly()
+        index = Index([obj, b"ab", 97, 98], dtype=object)
+
+        result = index.drop(obj)
+        tm.assert_index_equal(result, Index([b"ab", 97, 98], dtype=object))
+
+        result = index.drop(b"ab")
+        tm.assert_index_equal(result, Index([obj, 97, 98], dtype=object))
+
+        with pytest.raises(KeyError, match="not found in axis"):
+            index[1:].drop(obj)
+
+    def test_drop_enum_label(self):
+        # GH#11740 an Enum class is a single label, not a list of its members
+        class Color(enum.Enum):
+            RED = 1
+            BLUE = 2
+
+        index = Index([Color, Color.RED, Color.BLUE, "c"], dtype=object)
+        result = index.drop(Color)
+        tm.assert_index_equal(result, index[1:])
+
+        result = index.drop(Color.RED)
+        tm.assert_index_equal(result, index[[0, 2, 3]])
+
+        # neither the members nor a tuple of them match the class
+        index = Index([Color.RED, Color.BLUE, (Color.RED, Color.BLUE)], dtype=object)
+        with pytest.raises(KeyError, match="not found in axis"):
+            index.drop(Color)
 
     def test_drop_with_duplicates_in_index(self, index):
         # GH38051
@@ -1831,6 +1880,111 @@ def test_nan_comparison_same_object(op):
     tm.assert_numpy_array_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "values, dtype",
+    [
+        ([1, 2, pd.NA], "Int64"),
+        ([1.5, 2.5, pd.NA], "Float64"),
+        ([True, False, pd.NA], "boolean"),
+        (["a", "b", pd.NA], "string[python]"),
+        pytest.param(
+            ["a", "b", pd.NA], "string[pyarrow]", marks=td.skip_if_no("pyarrow")
+        ),
+        pytest.param([1, 2, None], "int64[pyarrow]", marks=td.skip_if_no("pyarrow")),
+    ],
+)
+def test_comparison_same_object_nullable_dtype(values, dtype, comparison_op):
+    # GH#71022 comparing an Index with itself took a fastpath that returned
+    # a numpy bool array, dropping the NA semantics of the extension dtype
+    idx = Index(values, dtype=dtype)
+
+    result = comparison_op(idx, idx)
+    expected = comparison_op(idx, idx.copy())
+
+    tm.assert_equal(result, expected)
+    assert result[-1] is pd.NA
+
+
+@pytest.mark.parametrize(
+    "idx",
+    [
+        pd.DatetimeIndex(["2020-01-01", pd.NaT, "2020-01-03"], tz="US/Eastern"),
+        pd.PeriodIndex(["2020-01", pd.NaT, "2020-03"], freq="M"),
+        pd.IntervalIndex.from_tuples([(0, 1), np.nan, (2, 3)]),
+        pd.CategoricalIndex(["a", np.nan, "b"], ordered=True),
+        Index(["a", np.nan, "b"], dtype="str"),
+    ],
+)
+def test_comparison_same_object_non_nullable_extension_dtype(idx, comparison_op):
+    # GH#71022 extension dtypes whose comparisons return a numpy bool array
+    # keep the fastpath and must match comparing against a copy
+    result = comparison_op(idx, idx)
+    expected = comparison_op(idx, idx.copy())
+
+    tm.assert_numpy_array_equal(result, expected)
+
+
+def test_comparison_same_object_distinguish_nan_and_na(comparison_op):
+    # GH#71022 with NaN kept distinct from NA, NaN is not missing and must
+    # compare like any other value, as it does against a copy
+    pa = pytest.importorskip("pyarrow")
+    arr = pd.array(
+        pa.array([1.0, float("nan"), None], from_pandas=False),
+        dtype=pd.ArrowDtype(pa.float64()),
+    )
+    with pd.option_context("future.distinguish_nan_and_na", True):
+        idx = Index(arr)
+
+        result = comparison_op(idx, idx)
+        expected = comparison_op(idx, idx.copy())
+
+    tm.assert_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "dtype, expected_dtype",
+    [
+        ("Float64", "Float64"),
+        ("Int64", "Float64"),
+        pytest.param(
+            "float64[pyarrow]", "float64[pyarrow]", marks=td.skip_if_no("pyarrow")
+        ),
+    ],
+)
+def test_insert_nan_distinguish_nan_and_na(dtype, expected_dtype):
+    # GH#71870 NaN was converted to NA
+    with pd.option_context("future.distinguish_nan_and_na", True):
+        result = Index([1, 2], dtype=dtype).insert(0, np.nan)
+        assert result.dtype == expected_dtype
+        assert np.isnan(result[0])
+        assert result[1:].tolist() == [1.0, 2.0]
+
+
+@pytest.mark.parametrize(
+    "pa_type, value",
+    [("string", "a"), ("bool", True), ("binary", b"a"), ("list", [1])],
+)
+def test_insert_nan_arrow_non_float_distinguish_nan_and_na(pa_type, value):
+    # follow-up to GH#71870: NaN was stored as e.g. "nan" or True, or raised
+    #  ArrowNotImplementedError
+    pa = pytest.importorskip("pyarrow")
+    pa_type = {
+        "string": pa.string(),
+        "bool": pa.bool_(),
+        "binary": pa.binary(),
+        "list": pa.list_(pa.int64()),
+    }[pa_type]
+    with pd.option_context("future.distinguish_nan_and_na", True):
+        result = Index([value], dtype=pd.ArrowDtype(pa_type)).insert(0, np.nan)
+    assert result.dtype == object
+    assert len(result) == 2
+    assert np.isnan(result[0])
+    if isinstance(value, list):
+        assert list(result[1]) == value
+    else:
+        assert result[1] == value
+
+
 @td.skip_if_no("pyarrow")
 def test_is_monotonic_pyarrow_list_type():
     # GH 57333
@@ -1839,6 +1993,31 @@ def test_is_monotonic_pyarrow_list_type():
     idx = Index([[1], [2, 3]], dtype=pd.ArrowDtype(pa.list_(pa.int64())))
     assert not idx.is_monotonic_increasing
     assert not idx.is_monotonic_decreasing
+
+
+@pytest.mark.parametrize("pa_type", ["date32", "time32", "decimal128", "string"])
+def test_is_monotonic_pyarrow_does_not_build_engine(pa_type):
+    # GH#72260 the engine holds these types as Python objects
+    pa = pytest.importorskip("pyarrow")
+    pa_type = {
+        "date32": pa.date32(),
+        "time32": pa.time32("s"),
+        "decimal128": pa.decimal128(10),
+        "string": pa.string(),
+    }[pa_type]
+    arr = pa.array([1, 2], type=pa.int32()).cast(pa_type)
+    idx = Index(pd.arrays.ArrowExtensionArray(arr))
+    assert idx.is_monotonic_increasing
+    assert not idx.is_monotonic_decreasing
+    assert "_engine" not in idx._cache
+
+
+def test_is_monotonic_string_uses_engine(string_dtype_no_object):
+    # GH#65919 the engine caches the result
+    idx = Index(["a", "b"], dtype=string_dtype_no_object)
+    assert idx.is_monotonic_increasing
+    assert not idx.is_monotonic_decreasing
+    assert "_engine" in idx._cache
 
 
 def test_index_equals_different_string_dtype(string_dtype_no_object):

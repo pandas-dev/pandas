@@ -59,7 +59,7 @@ def test_bins_from_interval_index():
     tm.assert_categorical_equal(result, expected)
 
     expected = pd.Categorical.from_codes(
-        np.append(c.codes, -1), categories=c.categories, ordered=True
+        np.append(c.codes, np.int8(-1)), categories=c.categories, ordered=True
     )
     result = pd.cut(range(6), bins=expected.categories)
     tm.assert_categorical_equal(result, expected)
@@ -810,6 +810,58 @@ def test_cut_with_nullable_int64():
 
     result = pd.cut(series, bins=bins)
 
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "dtype", ["Int64", "UInt64", "int64[pyarrow]", "uint64[pyarrow]"]
+)
+@pytest.mark.parametrize("bins_kind", ["list", "numpy_intervals", "ea_intervals"])
+def test_cut_nullable_integer_large_values(dtype, bins_kind):
+    # GH#31389 values above 2**53 are not exact in float64
+    if "pyarrow" in dtype:
+        pytest.importorskip("pyarrow")
+    val = 2**60
+    ser = pd.Series([val + 1, val + 5, None], dtype=dtype)
+    bins = [0, val + 5, val + 6]
+    if bins_kind == "numpy_intervals":
+        breaks = np.array(bins, dtype=ser.dtype.numpy_dtype)
+        bins = pd.IntervalIndex.from_breaks(breaks, closed="left")
+    elif bins_kind == "ea_intervals":
+        bins = pd.IntervalIndex.from_breaks(pd.array(bins, dtype=dtype), closed="left")
+    result = pd.cut(ser, bins, right=False).cat.codes
+    expected = pd.Series([0, 1, -1], dtype=np.int8)
+    tm.assert_series_equal(result, expected)
+
+
+def test_cut_nullable_integer_large_values_include_lowest():
+    # GH#31389
+    val = 2**60
+    ser = pd.Series([val - 1, val + 1, None], dtype="Int64")
+    result = pd.cut(ser, [val, val + 2], include_lowest=True, labels=False)
+    expected = pd.Series([np.nan, 0, np.nan])
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("dtype", ["UInt64", "uint64[pyarrow]"])
+def test_cut_nullable_integer_mixed_signedness(dtype):
+    # GH#31389 values that don't fit the bins' dtype must not wrap around
+    if "pyarrow" in dtype:
+        pytest.importorskip("pyarrow")
+    ser = pd.Series([5, 2**64 - 1], dtype=dtype)
+    result = pd.cut(ser, [-2, 0, 10], labels=False)
+    expected = pd.Series([1, np.nan])
+    tm.assert_series_equal(result, expected)
+
+
+def test_cut_nullable_integer_masked_interval_bins():
+    # GH#31389
+    val = 2**60
+    ser = pd.Series([val + 1, val + 5, None], dtype="Int64")
+    breaks = pd.array([0, val + 5, val + 6], dtype="UInt64")
+    bins = pd.IntervalIndex.from_breaks(breaks, closed="left")
+    result = pd.cut(ser, bins).cat.codes
+    expected = pd.Series([0, 1, -1], dtype=np.int8)
     tm.assert_series_equal(result, expected)
 
 

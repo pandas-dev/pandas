@@ -4,12 +4,18 @@ Printing tools.
 
 from __future__ import annotations
 
+from collections import (
+    Counter,
+    OrderedDict,
+    defaultdict,
+)
 from collections.abc import (
     Callable,
     Iterable,
     Mapping,
     Sequence,
 )
+import re
 import sys
 from typing import (
     TYPE_CHECKING,
@@ -43,6 +49,23 @@ EscapeChars: TypeAlias = Mapping[str, str] | Iterable[str]
 _KT = TypeVar("_KT")
 _VT = TypeVar("_VT")
 
+# Built-in containers are formatted element-wise (display.precision, max_seq_items,
+# numpy scalars); a subclass that overrides __repr__ is printed with str(), see GH#18843
+_CONTAINER_REPRS = frozenset(
+    typ.__repr__
+    for typ in (
+        object,
+        dict,
+        list,
+        tuple,
+        set,
+        frozenset,
+        Counter,
+        OrderedDict,
+        defaultdict,
+    )
+)
+
 
 def adjoin(space: int, *lists: list[str], **kwargs: Any) -> str:
     """
@@ -66,7 +89,7 @@ def adjoin(space: int, *lists: list[str], **kwargs: Any) -> str:
     newLists = []
     lengths = [max(map(strlen, x)) + space for x in lists[:-1]]
     # not the last one
-    lengths.append(max(map(len, lists[-1])))
+    lengths.append(max(map(strlen, lists[-1])))
     maxLen = max(map(len, lists))
     for i, lst in enumerate(lists):
         nl = justfunc(lst, lengths[i], mode="left")
@@ -113,7 +136,11 @@ def _adj_justify(texts: Iterable[str], max_len: int, mode: str = "right") -> lis
 
 
 def _pprint_seq(
-    seq: ListLike, _nest_lvl: int = 0, max_seq_items: int | None = None, **kwds: Any
+    seq: ListLike,
+    _nest_lvl: int = 0,
+    max_seq_items: int | None = None,
+    use_display_precision: bool = True,
+    **kwds: Any,
 ) -> str:
     """
     internal. pprinter for iterables. you should probably use pprint_thing()
@@ -141,10 +168,22 @@ def _pprint_seq(
         if (max_items is not None) and (i >= max_items):
             max_items_reached = True
             break
-        if (is_float(item) or is_complex(item)) and notna(item):
+        if (
+            use_display_precision
+            and (is_float(item) or is_complex(item))
+            and notna(item)
+        ):
             # GH#60503, GH#25920
             item = format_with_precision(item)
-        r.append(pprint_thing(item, _nest_lvl + 1, max_seq_items=max_seq_items, **kwds))
+        r.append(
+            pprint_thing(
+                item,
+                _nest_lvl + 1,
+                max_seq_items=max_seq_items,
+                use_display_precision=use_display_precision,
+                **kwds,
+            )
+        )
     body = ", ".join(r)
 
     if max_items_reached:
@@ -182,6 +221,7 @@ def _pprint_dict(
     seq: Mapping[Any, Any],
     _nest_lvl: int = 0,
     max_seq_items: int | None = None,
+    use_display_precision: bool = True,
     **kwds: Any,
 ) -> str:
     """
@@ -201,8 +241,20 @@ def _pprint_dict(
     for k, v in list(seq.items())[:nitems]:
         pairs.append(
             pfmt.format(
-                key=pprint_thing(k, _nest_lvl + 1, max_seq_items=max_seq_items, **kwds),
-                val=pprint_thing(v, _nest_lvl + 1, max_seq_items=max_seq_items, **kwds),
+                key=pprint_thing(
+                    k,
+                    _nest_lvl + 1,
+                    max_seq_items=max_seq_items,
+                    use_display_precision=use_display_precision,
+                    **kwds,
+                ),
+                val=pprint_thing(
+                    v,
+                    _nest_lvl + 1,
+                    max_seq_items=max_seq_items,
+                    use_display_precision=use_display_precision,
+                    **kwds,
+                ),
             )
         )
 
@@ -219,6 +271,7 @@ def pprint_thing(
     default_escapes: bool = False,
     quote_strings: bool = False,
     max_seq_items: int | None = None,
+    use_display_precision: bool = True,
 ) -> str:
     """
     This function is the sanctioned way of converting objects
@@ -237,6 +290,10 @@ def pprint_thing(
         Whether the input escape characters replaces or adds to the defaults
     max_seq_items : int or None, default None
         Pass through to other pretty printers to limit sequence printing
+    use_display_precision : bool, default True
+        Whether floats and complex numbers in sequences are formatted using
+        the ``display.precision`` option. If False, they are formatted with
+        ``str``, showing their full precision.
 
     Returns
     -------
@@ -254,9 +311,14 @@ def pprint_thing(
     elif (
         isinstance(thing, Mapping)
         and _nest_lvl < config["display"]["pprint_nest_depth"]
+        and type(thing).__repr__ in _CONTAINER_REPRS
     ):
         result = _pprint_dict(
-            thing, _nest_lvl, quote_strings=True, max_seq_items=max_seq_items
+            thing,
+            _nest_lvl,
+            quote_strings=True,
+            max_seq_items=max_seq_items,
+            use_display_precision=use_display_precision,
         )
     elif (
         # GH#61809 Only iterate over types where element-by-element formatting
@@ -271,7 +333,6 @@ def pprint_thing(
                 tuple,
                 set,
                 frozenset,
-                range,
                 ABCExtensionArray,
                 ABCIndex,
                 ABCNDFrame,
@@ -280,6 +341,10 @@ def pprint_thing(
         # GH#64638 0-d arrays are not iterable; fall through to str()
         and not (isinstance(thing, np.ndarray) and thing.ndim == 0)
         and _nest_lvl < config["display"]["pprint_nest_depth"]
+        and (
+            type(thing).__repr__ in _CONTAINER_REPRS
+            or not isinstance(thing, (list, tuple, set, frozenset))
+        )
     ):
         result = _pprint_seq(
             # error: Argument 1 to "_pprint_seq" has incompatible type "object";
@@ -290,6 +355,7 @@ def pprint_thing(
             escape_chars=escape_chars,
             quote_strings=quote_strings,
             max_seq_items=max_seq_items,
+            use_display_precision=use_display_precision,
         )
     else:
         result = _as_escaped_string(thing, escape_chars, default_escapes)
@@ -580,7 +646,11 @@ class PrettyDict(dict[_KT, _VT]):
     """Dict extension to support abbreviated __repr__"""
 
     def __repr__(self) -> str:
-        return pprint_thing(self)
+        return _pprint_dict(self, quote_strings=True)
+
+
+# CSI escape sequences (e.g. terminal colors) take up no space on screen
+_ANSI_ESCAPE = r"\x1b\[[0-?]*[ -/]*[@-~]"
 
 
 class _TextAdjustment:
@@ -588,18 +658,34 @@ class _TextAdjustment:
         self.encoding = config["display"]["encoding"]
 
     def len(self, text: str) -> int:
+        """
+        Calculate display width, ignoring CSI escape sequences
+        """
+        if "\x1b" in text:
+            return len(re.sub(_ANSI_ESCAPE, "", text))
         return len(text)
 
     def justify(self, texts: Any, max_len: int, mode: str = "right") -> list[str]:
         """
         Perform ljust, center, rjust against string or list-like
         """
+        if any("\x1b" in x for x in texts):
+            return self._justify_by_width(texts, max_len, mode)
+        return _adj_justify(texts, max_len, mode)
+
+    def _justify_by_width(
+        self, texts: Iterable[str], max_len: int, mode: str
+    ) -> list[str]:
+        # pad by display width rather than character count
+        def _get_pad(t: str) -> int:
+            return max_len - self.len(t) + len(t)
+
         if mode == "left":
-            return [x.ljust(max_len) for x in texts]
+            return [x.ljust(_get_pad(x)) for x in texts]
         elif mode == "center":
-            return [x.center(max_len) for x in texts]
+            return [x.center(_get_pad(x)) for x in texts]
         else:
-            return [x.rjust(max_len) for x in texts]
+            return [x.rjust(_get_pad(x)) for x in texts]
 
     def adjoin(self, space: int, *lists: Any, **kwargs: Any) -> str:
         return adjoin(space, *lists, strlen=self.len, justfunc=self.justify, **kwargs)
@@ -625,6 +711,8 @@ class _EastAsianTextAdjustment(_TextAdjustment):
         if not isinstance(text, str):
             return len(text)
 
+        if "\x1b" in text:
+            text = re.sub(_ANSI_ESCAPE, "", text)
         return sum(
             self._EAW_MAP.get(east_asian_width(c), self.ambiguous_width) for c in text
         )
@@ -632,16 +720,7 @@ class _EastAsianTextAdjustment(_TextAdjustment):
     def justify(
         self, texts: Iterable[str], max_len: int, mode: str = "right"
     ) -> list[str]:
-        # re-calculate padding space per str considering East Asian Width
-        def _get_pad(t: str) -> int:
-            return max_len - self.len(t) + len(t)
-
-        if mode == "left":
-            return [x.ljust(_get_pad(x)) for x in texts]
-        elif mode == "center":
-            return [x.center(_get_pad(x)) for x in texts]
-        else:
-            return [x.rjust(_get_pad(x)) for x in texts]
+        return self._justify_by_width(texts, max_len, mode)
 
 
 def get_adjustment() -> _TextAdjustment:

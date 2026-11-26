@@ -1,5 +1,11 @@
 # Note! This file is aimed specifically at pandas.io.formats.printing utility
 # functions, not the general printing of pandas objects.
+from collections import (
+    Counter,
+    OrderedDict,
+    defaultdict,
+    namedtuple,
+)
 from collections.abc import Mapping
 import string
 
@@ -93,6 +99,14 @@ class TestPPrintThing:
         with cf.option_context("display.precision", 3):
             assert printing.pprint_thing([3.14159265, 3.14159265]) == "[3.142, 3.142]"
 
+    def test_repr_seq_float_full_precision(self):
+        # GH#71509
+        with cf.option_context("display.precision", 3):
+            result = printing.pprint_thing(
+                [3.14159265, {"a": 1 + 1.5e-9j}], use_display_precision=False
+            )
+        assert result == "[3.14159265, {'a': (1+1.5e-09j)}]"
+
     def test_repr_seq_complex_precision(self):
         # GH#25920
         with cf.option_context("display.precision", 3):
@@ -101,6 +115,41 @@ class TestPPrintThing:
     def test_repr_0d_array(self):
         # GH#64638 0-d arrays are not iterable and must fall through to str()
         assert printing.pprint_thing(np.array(5)) == "5"
+
+    def test_repr_container_subclass_custom_repr(self):
+        # GH#18843 a subclass's own __repr__ takes precedence
+        class KeysDict(dict):
+            def __repr__(self) -> str:
+                return ",".join(self.keys())
+
+        class ReprMapping(MyMapping):
+            def __repr__(self) -> str:
+                return "ReprMapping()"
+
+        class ReprList(list):
+            def __repr__(self) -> str:
+                return "ReprList()"
+
+        Point = namedtuple("Point", "x,y")
+
+        assert printing.pprint_thing(KeysDict(a=1, b=2)) == "a,b"
+        assert printing.pprint_thing(ReprMapping()) == "ReprMapping()"
+        assert printing.pprint_thing(ReprList([1, 2])) == "ReprList()"
+        assert printing.pprint_thing(Point(7, 3)) == "Point(x=7, y=3)"
+        # also applies to nested values
+        assert printing.pprint_thing([Point(7, 3)]) == "[Point(x=7, y=3)]"
+
+    @pytest.mark.parametrize(
+        "obj, expected",
+        [
+            (OrderedDict(a=1), "{'a': 1}"),
+            (defaultdict(int, a=1), "{'a': 1}"),
+            (Counter("aab"), "{'a': 2, 'b': 1}"),
+        ],
+    )
+    def test_repr_stdlib_dict_subclass(self, obj, expected):
+        # GH#18843 stdlib dict subclasses keep dict-style formatting
+        assert printing.pprint_thing(obj) == expected
 
 
 @pytest.mark.parametrize("box", [pd.Series, pd.Index, pd.DataFrame])
@@ -112,6 +161,16 @@ def test_repr_object_dtype_0d_array(box):
     result = repr(obj)
     assert "5" in result
     assert "array(5)" not in result
+
+
+def test_repr_range():
+    # GH#44799 range objects are shown with their own repr, not as a tuple
+    assert printing.pprint_thing(range(3)) == "range(0, 3)"
+    assert printing.pprint_thing([range(3)]) == "[range(0, 3)]"
+
+    ser = pd.Series([range(3), range(100)])
+    expected = "0      range(0, 3)\n1    range(0, 100)\ndtype: object"
+    assert repr(ser) == expected
 
 
 def test_repr_two_values_wraps_at_display_width():
@@ -134,6 +193,18 @@ def test_repr_two_values_max_seq_items_1():
     assert result == "<IntegerArray>\n[...\n 2]\nLength: 2, dtype: Int64"
 
 
+def test_frame_repr_dict_subclass_custom_repr():
+    # GH#18843
+    class KeysDict(dict):
+        def __repr__(self) -> str:
+            return ",".join(self.keys())
+
+    df = pd.DataFrame(
+        [["A", 1, KeysDict(alpha="b", beta="c")]], columns=["D", "F", "G"]
+    )
+    assert df.to_string() == "   D  F           G\n0  A  1  alpha,beta"
+
+
 class TestFormatBase:
     def test_adjoin(self):
         data = [["a", "b", "c"], ["dd", "ee", "ff"], ["ggg", "hhh", "iii"]]
@@ -151,26 +222,26 @@ class TestFormatBase:
 
         adj = printing._EastAsianTextAdjustment()
 
-        expected = """あ  dd    ggg
-b   ええ  hhh
-c   ff    いいい"""
+        expected = "あ  dd    ggg   \nb   ええ  hhh   \nc   ff    いいい"
 
         adjoined = adj.adjoin(2, *data)
         assert adjoined == expected
         cols = adjoined.split("\n")
-        assert adj.len(cols[0]) == 13
-        assert adj.len(cols[1]) == 13
+        assert adj.len(cols[0]) == 16
+        assert adj.len(cols[1]) == 16
         assert adj.len(cols[2]) == 16
 
-        expected = """あ       dd         ggg
-b        ええ       hhh
-c        ff         いいい"""
+        expected = (
+            "あ       dd         ggg   \n"
+            "b        ええ       hhh   \n"
+            "c        ff         いいい"
+        )
 
         adjoined = adj.adjoin(7, *data)
         assert adjoined == expected
         cols = adjoined.split("\n")
-        assert adj.len(cols[0]) == 23
-        assert adj.len(cols[1]) == 23
+        assert adj.len(cols[0]) == 26
+        assert adj.len(cols[1]) == 26
         assert adj.len(cols[2]) == 26
 
     def test_justify(self):
@@ -215,6 +286,18 @@ c        ff         いいい"""
             assert adj.len("¡¡ab") == 6
 
         data = [["あ", "b", "c"], ["dd", "ええ", "ff"], ["ggg", "¡¡ab", "いいい"]]
-        expected = "あ  dd    ggg \nb   ええ  ¡¡ab\nc   ff    いいい"
+        expected = "あ  dd    ggg   \nb   ええ  ¡¡ab\nc   ff    いいい"
         adjoined = adj.adjoin(2, *data)
         assert adjoined == expected
+
+
+@pytest.mark.parametrize(
+    "adj", [printing._TextAdjustment(), printing._EastAsianTextAdjustment()]
+)
+def test_ansi_escapes_have_no_width(adj):
+    # GH#55122
+    colored = "\x1b[96mabc\x1b[0m"
+    assert adj.len(colored) == 3
+    assert adj.len("\x1b[1;31;42mab\x1b[0m") == 2
+    assert adj.justify([colored, "de"], 5, mode="right") == ["  " + colored, "   de"]
+    assert adj.adjoin(2, [colored, "de"], ["x", "y"]) == f"{colored}  x\nde   y"

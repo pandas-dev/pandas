@@ -517,6 +517,39 @@ def test_subset_chained_single_block_row():
 @pytest.mark.parametrize(
     "method",
     [
+        lambda df: df.loc[1, ["a", "b", "d"]],
+        lambda df: df.iloc[1, [0, 1, 3]],
+        lambda df: df.loc[1:2, ["a", "b", "d"]],
+        lambda df: df.iloc[1:3, [0, 1, 3]],
+    ],
+    ids=["loc-row", "iloc-row", "loc-rows", "iloc-rows"],
+)
+def test_subset_rows_column_list_no_temporary_retained(method):
+    # GH#69477 the result should not be a view into the temporary made by
+    #  selecting a list of columns
+    df = pd.DataFrame({col: np.arange(100, dtype=np.float64) for col in "abcd"})
+    subset = method(df)
+
+    arr = get_array(subset) if subset.ndim == 1 else get_array(subset, "a")
+    base = arr if arr.base is None else arr.base
+    assert base.size == subset.size
+
+
+@pytest.mark.parametrize(
+    "method",
+    [lambda df: df.loc[1:2, "a"], lambda df: df.loc[1, "a":"c"]],
+    ids=["column", "column-slice"],
+)
+def test_subset_rows_view_of_parent_not_copied(method):
+    # GH#69477 only temporaries get copied; views of df itself stay views
+    df = pd.DataFrame({col: np.arange(100, dtype=np.float64) for col in "abcd"})
+    subset = method(df)
+    assert np.shares_memory(get_array(subset), get_array(df, "a"))
+
+
+@pytest.mark.parametrize(
+    "method",
+    [
         lambda df: df[:],
         lambda df: df.loc[:, :],
         lambda df: df.loc[:],

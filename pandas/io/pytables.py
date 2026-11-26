@@ -1384,7 +1384,9 @@ class HDFStore:
                 worse but allow more flexible operations like searching / selecting
                 subsets of the data.
         index : bool, default True
-            Write DataFrame index as a column.
+            Create PyTables indexes on the stored index and data columns to
+            speed up queries (``format='table'`` only). The object's index is
+            written regardless.
         append : bool, default False
             This will force Table format, append the input data to the existing.
         complib : {'zlib', 'lzo', 'bzip2', 'blosc'}, default None
@@ -1409,7 +1411,7 @@ class HDFStore:
         data_columns : list of columns or True, default None
             List of columns to create as data columns, or True to use all columns.
             See `here
-            <https://pandas.pydata.org/pandas-docs/stable/user_guide/io.html#query-via-data-columns>`__.
+            <https://pandas.pydata.org/docs/user_guide/io.html#query-via-data-columns>`__.
         encoding : str, default None
             Provide an encoding for strings.
         errors : str, default 'strict'
@@ -1614,8 +1616,10 @@ class HDFStore:
             indexed (appendable) axis: ``[0]`` for the index (the default) or
             ``[1]`` for the columns. Ignored when appending to an existing
             table, which keeps the axes it was created with.
-        index : bool, default True
-            Write DataFrame index as a column.
+        index : bool or list of str, default True
+            Create PyTables indexes on the table's indexed axis and data
+            columns to speed up queries; a list indexes only the named
+            columns. The object's index is written regardless.
         append : bool, default True
             Append the input data to the existing.
         complib : {'zlib', 'lzo', 'bzip2', 'blosc'}, default None
@@ -1657,7 +1661,7 @@ class HDFStore:
             List of columns to create as indexed data columns for on-disk
             queries, or True to use all columns. By default only the axes
             of the object are indexed. See `here
-            <https://pandas.pydata.org/pandas-docs/stable/user_guide/io.html#query-via-data-columns>`__.
+            <https://pandas.pydata.org/docs/user_guide/io.html#query-via-data-columns>`__.
         encoding : default None
             Provide an encoding for str.
         errors : str, default 'strict'
@@ -2564,9 +2568,14 @@ class TableIterator:
         # iterate
         if not self._called_get_result:
             raise ValueError("Cannot iterate until get_result is called.")
-        current = self.start
-        while current < self.stop:
-            stop = min(current + self.chunksize, self.stop)
+        if self.coordinates is None:
+            current, end = self.start, self.stop
+        else:
+            # the coordinates are already limited to rows in [start, stop), so
+            # walk them by position rather than by row number (GH#71278)
+            current, end = 0, len(self.coordinates)
+        while current < end:
+            stop = min(current + self.chunksize, end)
             if self.coordinates is None:
                 # no `where` filter: iterate by (start, stop) directly so we
                 # don't materialize an np.arange(0, nrows) coordinate array,
@@ -2597,7 +2606,9 @@ class TableIterator:
                 # read_coordinates raises a clear NotImplementedError if the
                 #  where is a column projection (e.g. "columns=['A']") rather
                 #  than a row filter (GH#12953).
-                self.coordinates = self.s.read_coordinates(where=self.where)
+                self.coordinates = self.s.read_coordinates(
+                    where=self.where, start=self.start, stop=self.stop
+                )
 
             return self
 
@@ -3008,9 +3019,7 @@ class IndexCol:
             if (
                 new_metadata is not None
                 and cur_metadata is not None
-                and not array_equivalent(
-                    new_metadata, cur_metadata, strict_nan=True, dtype_equal=True
-                )
+                and not array_equivalent(new_metadata, cur_metadata, strict_nan=True)
             ):
                 raise ValueError(
                     "cannot append a categorical with different categories "
@@ -5652,7 +5661,7 @@ class AppendableTable(Table):
         values = selection.select_coords()
 
         # delete the rows in reverse order
-        sorted_series = Series(values, copy=False).sort_values()
+        sorted_series = Series(values, copy=False).sort_values(ignore_index=True)
         ln = len(sorted_series)
 
         if ln:
