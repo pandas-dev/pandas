@@ -141,7 +141,10 @@ class TestCrosstab:
 
         all_rows = result.loc["All"]
         exp_rows = df.groupby(["b", "c"]).size().astype("i8")
-        exp_rows = pd.concat([exp_rows, pd.Series([len(df)], index=[("All", "")])])
+        margin = pd.Series(
+            [len(df)], index=pd.Index([("All", "")], tupleize_cols=False)
+        )
+        exp_rows = pd.concat([exp_rows, margin])
         exp_rows.name = "All"
 
         exp_rows = exp_rows.reindex(all_rows.index)
@@ -179,7 +182,10 @@ class TestCrosstab:
 
         all_rows = result.loc["TOTAL"]
         exp_rows = df.groupby(["b", "c"]).size().astype("i8")
-        exp_rows = pd.concat([exp_rows, pd.Series([len(df)], index=[("TOTAL", "")])])
+        margin = pd.Series(
+            [len(df)], index=pd.Index([("TOTAL", "")], tupleize_cols=False)
+        )
+        exp_rows = pd.concat([exp_rows, margin])
         exp_rows.name = "TOTAL"
 
         exp_rows = exp_rows.reindex(all_rows.index)

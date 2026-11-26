@@ -823,3 +823,12 @@ class TestDataFrameGroupByPlots:
         _check_plot_works(df.boxplot, by=group, default_axes=True)
         _check_plot_works(df.plot.box, by=group, default_axes=True)
         _check_plot_works(grouped.boxplot, default_axes=True)
+
+
+def test_plot_box_subplots_tuple_columns_no_warning():
+    # GH#18484 tuple column labels are not a passed axis
+    columns = pd.Index([(0, 1), (3, 4)], tupleize_cols=False)
+    df = pd.DataFrame([[1.0, 2.0], [3.0, 4.0]], columns=columns)
+    with tm.assert_produces_warning(None):
+        result = df.plot.box(subplots=True)
+    tm.assert_index_equal(result.index, columns)

@@ -18,7 +18,10 @@ from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.missing import notna
 
 import pandas.core.algorithms as algos
-from pandas.core.indexes.api import MultiIndex
+from pandas.core.indexes.api import (
+    MultiIndex,
+    ensure_index,
+)
 from pandas.core.reshape.concat import concat
 from pandas.core.tools.numeric import to_numeric
 
@@ -372,7 +375,9 @@ def lreshape(
         if not mask.all():
             mdata = {k: v[mask] for k, v in mdata.items()}
 
-    return data._constructor(mdata, columns=id_cols + pivot_cols)
+    # GH#18484 column labels and groups keys, not a passed axis
+    columns = ensure_index(id_cols + pivot_cols, tupleize_list=False)
+    return data._constructor(mdata, columns=columns)
 
 
 @set_module("pandas")

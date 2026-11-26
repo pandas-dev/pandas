@@ -181,7 +181,8 @@ def _post_convert_dtypes(
         #  columns the user didn't explicitly ask for.
         if isinstance(dtype, dict):
             if names is not None:
-                df.columns = names
+                # tuple names become a MultiIndex in _finalize_pandas_output
+                df.columns = Index(names, tupleize_cols=False)
 
             cmp_dtypes = {
                 Int8Dtype(),

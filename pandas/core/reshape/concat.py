@@ -944,7 +944,7 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiInde
         if levels is None:
             _, levels = factorize_from_iterables(zipped)
         else:
-            levels = [ensure_index(x) for x in levels]
+            levels = [ensure_index(x, tupleize_list=False) for x in levels]
             validate_unique_levels(levels)
     else:
         zipped = [keys]
@@ -954,7 +954,7 @@ def _make_concat_multiindex(indexes, keys, levels=None, names=None) -> MultiInde
         if levels is None:
             levels = [ensure_index(keys).unique()]
         else:
-            levels = [ensure_index(x) for x in levels]
+            levels = [ensure_index(x, tupleize_list=False) for x in levels]
             validate_unique_levels(levels)
 
     if not all_indexes_same(indexes):

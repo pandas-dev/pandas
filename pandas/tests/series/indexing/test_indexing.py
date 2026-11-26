@@ -259,7 +259,7 @@ def test_underlying_data_conversion():
     # GH 4080
     df = pd.DataFrame({c: [1, 2, 3] for c in ["a", "b", "c"]})
     df = df.set_index(["a", "b", "c"])
-    s = pd.Series([1], index=[(2, 2, 2)])
+    s = pd.Series([1], index=pd.Index([(2, 2, 2)], tupleize_cols=False))
     df["val"] = 0
     df_original = df.copy()
     df
@@ -315,7 +315,7 @@ def test_slice_with_negative_step(index):
 
 def test_tuple_index():
     # GH 35534 - Selecting values when a Series has an Index of tuples
-    s = pd.Series([1, 2], index=[("a",), ("b",)])
+    s = pd.Series([1, 2], index=pd.Index([("a",), ("b",)], tupleize_cols=False))
     assert s[("a",)] == 1
     assert s[("b",)] == 2
     s[("b",)] = 3

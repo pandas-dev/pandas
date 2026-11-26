@@ -29,6 +29,7 @@ from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.dtypes.inference import is_integer
 
 from pandas.core.arrays.arrow.array import to_pyarrow_type
+from pandas.core.indexes.api import ensure_index
 
 from pandas.io._util import (
     arrow_table_to_pandas,
@@ -710,6 +711,7 @@ class ArrowParserWrapper(ParserBase):
             )
 
         if self.names is not None:
-            frame.columns = self.names
+            # tuple names become a MultiIndex in _finalize_pandas_output
+            frame.columns = ensure_index(self.names, tupleize_list=False)
 
         return self._finalize_pandas_output(frame, multi_index_named)

@@ -1268,7 +1268,7 @@ class IntervalIndex(ExtensionIndex):
         >>> index.get_indexer_non_unique(["f", "b", "s"])
         (array([-1,  1,  3,  4, -1]), array([0, 2]))
         """
-        target = ensure_index(target)
+        target = ensure_index(target, tupleize_list=False)
 
         if not self._should_compare(target) and not self._should_partial_index(target):
             # e.g. IntervalIndex with different closed or incompatible subtype

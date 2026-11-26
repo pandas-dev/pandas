@@ -56,6 +56,7 @@ from pandas.core.dtypes.generic import (
 from pandas.core._numba.executor import generate_apply_looper
 import pandas.core.common as com
 from pandas.core.construction import ensure_wrapped_if_datetimelike
+from pandas.core.indexes.api import ensure_index
 from pandas.core.reshape.concat import concat
 from pandas.core.util.numba_ import (
     get_jit_arguments,
@@ -783,7 +784,9 @@ class Apply(metaclass=abc.ABCMeta):
             else:
                 name = None
 
-            result = Series(result_data, index=result_index, name=name)
+            # GH#18484 dict keys are labels, not a passed axis
+            index = ensure_index(result_index, tupleize_list=False)
+            result = Series(result_data, index=index, name=name)
 
         return result
 

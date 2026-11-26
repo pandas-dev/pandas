@@ -1883,9 +1883,10 @@ class Index(IndexOpsMixin, PandasObject):
         from pandas import DataFrame
 
         if name is lib.no_default:
-            result_name = self._get_level_names()
+            # GH#18484 tuple names are labels, not a passed axis
+            result_name = Index(self._get_level_names(), tupleize_cols=False)
         else:
-            result_name = Index([name])  # type: ignore[assignment]
+            result_name = Index([name])
         result = DataFrame(self, copy=False)
         result.columns = result_name
 
@@ -4453,7 +4454,10 @@ class Index(IndexOpsMixin, PandasObject):
                 idx = self
             target = idx[:0]
         else:
-            target = ensure_index(target)
+            # MultiIndex.reindex already tupleizes equal-length tuples
+            target = ensure_index(
+                target, tupleize_list=False if self._is_multi else None
+            )
 
         if level is not None and (
             isinstance(self, ABCMultiIndex) or isinstance(target, ABCMultiIndex)
@@ -4688,7 +4692,7 @@ class Index(IndexOpsMixin, PandasObject):
                 stacklevel=find_stack_level(),
             )
 
-        other = ensure_index(other)
+        other = ensure_index(other, tupleize_list=False)
         sort = sort or how == "outer"
 
         if isinstance(self, ABCDatetimeIndex) and isinstance(other, ABCDatetimeIndex):
@@ -7244,7 +7248,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Analogue to maybe_cast_indexer for get_indexer instead of get_loc.
         """
-        target_index = ensure_index(target)
+        target_index = ensure_index(target, tupleize_list=False)
         if (
             not hasattr(target, "dtype")
             and self.dtype == object
@@ -8492,7 +8496,9 @@ def ensure_index_from_sequences(
         return MultiIndex.from_arrays(sequences, names=names)
 
 
-def ensure_index(index_like: Axes, copy: bool = False) -> Index:
+def ensure_index(
+    index_like: Axes, copy: bool = False, *, tupleize_list: bool | None = None
+) -> Index:
     """
     Ensure that we have an index from some index-like object.
 
@@ -8501,6 +8507,11 @@ def ensure_index(index_like: Axes, copy: bool = False) -> Index:
     index_like : sequence
         An Index or other sequence
     copy : bool, default False
+    tupleize_list : bool or None, default None
+        Whether a list or iterator of tuples becomes a MultiIndex, as it does in
+        ``Index``. None gives an Index of tuples and warns that this will
+        change (GH#18484); pass False for inputs that are not an axis, such as
+        lookup keys.
 
     Returns
     -------
@@ -8514,9 +8525,6 @@ def ensure_index(index_like: Axes, copy: bool = False) -> Index:
     --------
     >>> ensure_index(["a", "b"])
     Index(['a', 'b'], dtype='str')
-
-    >>> ensure_index([("a", "a"), ("b", "c")])
-    Index([('a', 'a'), ('b', 'c')], dtype='object')
 
     >>> ensure_index([["a", "a"], ["b", "c"]])
     MultiIndex([('a', 'b'),
@@ -8545,8 +8553,22 @@ def ensure_index(index_like: Axes, copy: bool = False) -> Index:
             from pandas.core.indexes.multi import MultiIndex
 
             return MultiIndex.from_arrays(index_like)
-        else:
-            return Index(index_like, copy=copy, tupleize_cols=False)
+        if tupleize_list:
+            return Index(index_like, copy=copy)
+        if (
+            tupleize_list is None
+            and index_like
+            and all(isinstance(x, tuple) for x in index_like)
+        ):
+            warnings.warn(
+                "Passing a list of tuples as an index or columns currently "
+                "creates an Index of tuples. In a future version this will "
+                "create a MultiIndex, matching pd.Index. To keep the current "
+                "behavior, pass pd.Index(values, tupleize_cols=False) instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+        return Index(index_like, copy=copy, tupleize_cols=False)
     else:
         return Index(index_like, copy=copy)
 

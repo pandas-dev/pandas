@@ -985,7 +985,7 @@ def test_float_index(temp_h5_path):
 def test_tuple_index(temp_h5_path, performance_warning):
     # GH #492
     col = np.arange(10)
-    idx = [(0.0, 1.0), (2.0, 3.0), (4.0, 5.0)]
+    idx = pd.Index([(0.0, 1.0), (2.0, 3.0), (4.0, 5.0)], tupleize_cols=False)
     data = np.random.default_rng(2).standard_normal(30).reshape((3, 10))
     DF = pd.DataFrame(data, index=idx, columns=col)
 

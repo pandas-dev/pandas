@@ -225,7 +225,9 @@ class BoxPlot(LinePlot):
                 _set_ticklabels(
                     ax=ax, labels=ticklabels, is_vertical=self.orientation == "vertical"
                 )
-            self._return_obj = pd.Series(obj_axes, index=obj_labels, dtype=object)
+            # GH#18484 keep tuple column labels flat
+            index = pd.Index(obj_labels, tupleize_cols=False)
+            self._return_obj = pd.Series(obj_axes, index=index, dtype=object)
         else:
             y = self.data.values.T
             ax = self._get_ax(0)

@@ -2779,7 +2779,10 @@ class TestDataFrameConstructors:
         # GH 10863
         v = date(2011, 1, 1)
         tup = v, v
-        result = pd.DataFrame({tup: pd.Series(range(3), index=range(3))}, columns=[tup])
+        result = pd.DataFrame(
+            {tup: pd.Series(range(3), index=range(3))},
+            columns=pd.Index([tup], tupleize_cols=False),
+        )
         expected = pd.DataFrame([0, 1, 2], columns=pd.Index(pd.Series([tup])))
         tm.assert_frame_equal(result, expected)
 
@@ -2790,7 +2793,8 @@ class TestDataFrameConstructors:
         tup = day, day
         ts = pd.Timestamp(day) + timedelta(hours=1)
         result = pd.DataFrame(
-            {(ts, ts): pd.Series(range(3), index=range(3))}, columns=[tup]
+            {(ts, ts): pd.Series(range(3), index=range(3))},
+            columns=pd.Index([tup], tupleize_cols=False),
         )
         expected = pd.DataFrame(columns=pd.Index(pd.Series([tup])))
         tm.assert_frame_equal(result, expected)

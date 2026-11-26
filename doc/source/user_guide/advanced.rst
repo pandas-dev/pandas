@@ -124,11 +124,11 @@ bit easier on the eyes. Note that how the index is displayed can be controlled u
        df
 
 It's worth keeping in mind that there's nothing preventing you from using
-tuples as atomic labels on an axis:
+tuples as atomic labels on an axis, by passing ``tupleize_cols=False``:
 
 .. ipython:: python
 
-   pd.Series(np.random.randn(8), index=tuples)
+   pd.Series(np.random.randn(8), index=pd.Index(tuples, tupleize_cols=False))
 
 The reason that the ``MultiIndex`` matters is that it can allow you to do
 grouping, selection, and reshaping operations as we will describe below and in

@@ -2,6 +2,7 @@ from collections import defaultdict
 from datetime import datetime
 import enum
 from functools import partial
+import io
 import math
 import operator
 import re
@@ -1746,6 +1747,134 @@ class TestIndexUtils:
         result, _ = _get_combined_index([])
         expected = pd.RangeIndex(0)
         tm.assert_index_equal(result, expected)
+
+
+def _set_index(values):
+    ser = pd.Series([1, 2])
+    ser.index = values
+    return ser.index
+
+
+def _set_columns(values):
+    df = pd.DataFrame([[1, 2]])
+    df.columns = values
+    return df.columns
+
+
+@pytest.mark.parametrize(
+    "make_axis",
+    [
+        lambda x: pd.Series([1, 2], index=x).index,
+        lambda x: pd.Series({"a": 1}, index=x).index,
+        lambda x: pd.DataFrame({"a": [1, 2]}, index=x).index,
+        lambda x: pd.DataFrame([[1, 2]], columns=x).columns,
+        _set_index,
+        _set_columns,
+        lambda x: pd.Series([1, 2]).set_axis(x).index,
+        lambda x: (
+            pd.Series([1, 2], index=Index([(3, 4), (0, 1)], tupleize_cols=False))
+            .reindex(x)
+            .index
+        ),
+    ],
+    ids=[
+        "Series",
+        "Series-dict",
+        "DataFrame-index",
+        "DataFrame-columns",
+        "set-index",
+        "set-columns",
+        "set_axis",
+        "reindex",
+    ],
+)
+@pytest.mark.parametrize("box", [list, iter])
+def test_list_of_tuples_axis_deprecated(make_axis, box):
+    # GH#18484
+    tuples = [(0, 1), (3, 4)]
+    msg = "Passing a list of tuples as an index or columns"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = make_axis(box(tuples))
+    tm.assert_index_equal(result, Index(tuples, tupleize_cols=False))
+
+
+def test_list_of_tuples_not_axis_no_warning():
+    # GH#18484 lookup keys, levels and tuple-keyed dicts keep their behavior
+    tuples = [(0, 1), (3, 4)]
+    flat = pd.Series([1, 2], index=Index(tuples, tupleize_cols=False))
+    mi = MultiIndex.from_tuples(tuples)
+    with tm.assert_produces_warning(None):
+        result = flat.loc[tuples]
+        tm.assert_series_equal(result, flat)
+        tm.assert_numpy_array_equal(flat.index.get_indexer(tuples), np.array([0, 1]))
+        tm.assert_index_equal(pd.Series([1, 2], index=mi).reindex(tuples).index, mi)
+        result = pd.Series({(0, 1): 1, (3, 4): 2}, index=tuples)
+        tm.assert_series_equal(result, pd.Series([1, 2], index=mi))
+        result = MultiIndex(levels=[tuples, [5]], codes=[[0, 1], [0, 0]])
+        tm.assert_index_equal(result.levels[0], Index(tuples, tupleize_cols=False))
+        pd.DataFrame([[1, 2]], columns=flat.index).to_string(columns=tuples)
+        pd.concat([flat, flat], keys=tuples, levels=[tuples])
+        keys = [((0, 1), "a"), ((3, 4), "b")]
+        pd.concat([flat, flat], keys=keys, levels=[tuples, ["a", "b"]])
+        pd.IntervalIndex.from_tuples(tuples).get_indexer_non_unique(tuples)
+        result = pd.DataFrame.from_dict({(0, 1): [1], (3, 4): [2]}, orient="index")
+        tm.assert_index_equal(result.index, flat.index)
+        result = pd.DataFrame(pd.DataFrame({"a": [1, 2]}, index=mi), index=tuples)
+        tm.assert_index_equal(result.index, mi)
+        result = pd.DataFrame(pd.DataFrame([[1, 2]], columns=mi), columns=tuples)
+        tm.assert_index_equal(result.columns, mi)
+        pd.Series([1, 2], index=[(0, 1), "c"])
+        pd.Series([], index=[])
+        tm.assert_index_equal(ensure_index(tuples, tupleize_list=True), mi)
+        result = pd.DataFrame([[1, 2]], columns=mi).agg(dict.fromkeys(tuples, "sum"))
+        tm.assert_index_equal(result.index, flat.index)
+        columns = MultiIndex.from_tuples([*tuples, ("i", ""), ("c", "")])
+        df = pd.DataFrame([[1, 2, 7, 5]], columns=columns)
+        df.pivot(index=[("i", "")], columns=[("c", "")], values=tuples)
+        result = Index([1, 2], name=(0, 1)).to_frame()
+        tm.assert_index_equal(result.columns, Index([(0, 1)], tupleize_cols=False))
+        result = MultiIndex.from_arrays([[0], [1]], names=tuples).to_frame()
+        tm.assert_index_equal(result.columns, flat.index)
+        result = pd.lreshape(pd.DataFrame({"a": [1], "b": [2]}), {(0, 1): ["a", "b"]})
+        tm.assert_index_equal(result.columns, Index([(0, 1)], tupleize_cols=False))
+
+
+def test_list_of_tuples_read_csv_pyarrow_no_warning():
+    # GH#18484 names= is user-passed but becomes a MultiIndex already
+    pytest.importorskip("pyarrow")
+    tuples = [(0, 1), (3, 4)]
+    data = io.BytesIO(b"1,2\n3,4")
+    with tm.assert_produces_warning(None):
+        result = pd.read_csv(
+            data, names=tuples, engine="pyarrow", dtype={(0, 1): float}
+        )
+    tm.assert_index_equal(result.columns, MultiIndex.from_tuples(tuples))
+
+
+def test_list_of_tuples_to_excel_columns_no_warning(tmp_path):
+    # GH#18484 columns= selects existing columns
+    pytest.importorskip("openpyxl")
+    tuples = [(0, 1), (3, 4)]
+    df = pd.DataFrame([[1, 2]], columns=Index(tuples, tupleize_cols=False))
+    with tm.assert_produces_warning(None):
+        df.to_excel(tmp_path / "test.xlsx", columns=tuples)
+
+
+@pytest.mark.parametrize(
+    "func, msg",
+    [
+        (lambda tuples: Index(tuples, tupleize_cols=False).join(tuples), "Index.join"),
+        (
+            lambda tuples: pd.DataFrame.from_records({key: [1] for key in tuples}),
+            "Passing a dict to DataFrame.from_records",
+        ),
+    ],
+)
+def test_list_of_tuples_already_deprecated_no_extra_warning(func, msg):
+    # GH#18484 paths with their own deprecation do not also warn about tuples
+    with tm.assert_produces_warning(Pandas4Warning, match=msg) as record:
+        func([(0, 1), (3, 4)])
+    assert len(record) == 1
 
 
 @pytest.mark.parametrize(

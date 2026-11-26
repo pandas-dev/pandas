@@ -244,7 +244,9 @@ def test_iat_dont_wrap_object_datetimelike():
 def test_at_with_tuple_index_get():
     # GH 26989
     # DataFrame.at getter works with Index of tuples
-    df = pd.DataFrame({"a": [1, 2]}, index=[(1, 2), (3, 4)])
+    df = pd.DataFrame(
+        {"a": [1, 2]}, index=pd.Index([(1, 2), (3, 4)], tupleize_cols=False)
+    )
     assert df.index.nlevels == 1
     assert df.at[(1, 2), "a"] == 1
 
@@ -257,7 +259,9 @@ def test_at_with_tuple_index_get():
 def test_at_with_tuple_index_set():
     # GH 26989
     # DataFrame.at setter works with Index of tuples
-    df = pd.DataFrame({"a": [1, 2]}, index=[(1, 2), (3, 4)])
+    df = pd.DataFrame(
+        {"a": [1, 2]}, index=pd.Index([(1, 2), (3, 4)], tupleize_cols=False)
+    )
     assert df.index.nlevels == 1
     df.at[(1, 2), "a"] = 2
     assert df.at[(1, 2), "a"] == 2

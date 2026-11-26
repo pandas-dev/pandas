@@ -317,8 +317,11 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         """passed a manager and a axes dict"""
         for a, axe in axes.items():
             if axe is not None:
-                axe = ensure_index(axe)
                 bm_axis = cls._get_block_manager_axis(a)
+                # MultiIndex.reindex already tupleizes equal-length tuples
+                axe = ensure_index(
+                    axe, tupleize_list=False if mgr.axes[bm_axis]._is_multi else None
+                )
                 mgr = mgr.reindex_axis(axe, axis=bm_axis)
 
         # make a copy if explicitly requested

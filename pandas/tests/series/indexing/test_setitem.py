@@ -56,7 +56,7 @@ class TestSetitemDT64Values:
     def test_setitem_tuple_with_datetimetz_values(self):
         # GH#20441
         arr = pd.date_range("2017", periods=4, tz="US/Eastern", unit="ns")
-        index = [(0, 1), (0, 2), (0, 3), (0, 4)]
+        index = pd.Index([(0, 1), (0, 2), (0, 3), (0, 4)], tupleize_cols=False)
         result = pd.Series(arr, index=index)
         expected = result.copy()
         result[(0, 1)] = np.nan

@@ -1798,7 +1798,8 @@ class DataFrame(NDFrame, OpsMixin):
                         dict(zip(index, data.values(), strict=True))
                     )
                 else:
-                    index = list(data.keys())
+                    # GH#18484 the deprecation covers passed axes, not dict keys
+                    index = ensure_index(list(data.keys()), tupleize_list=False)
                     # error: Incompatible types in assignment (expression has type
                     # "List[Any]", variable has type "Dict[Any, Any]")
                     data = list(data.values())  # type: ignore[assignment]
@@ -2216,7 +2217,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         if isinstance(data, dict):
             if columns is None:
-                columns = arr_columns = ensure_index(sorted(data))
+                columns = arr_columns = ensure_index(sorted(data), tupleize_list=False)
                 arrays = [data[k] for k in columns]
             else:
                 arrays = []

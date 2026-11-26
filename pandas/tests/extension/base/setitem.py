@@ -338,7 +338,7 @@ class BaseSetitemTests:
             df["B"] = data[:5]
 
     def test_setitem_tuple_index(self, data):
-        ser = pd.Series(data[:2], index=[(0, 0), (0, 1)])
+        ser = pd.Series(data[:2], index=pd.Index([(0, 0), (0, 1)], tupleize_cols=False))
         expected = pd.Series(data.take([1, 1]), index=ser.index)
         ser[(0, 0)] = data[1]
         tm.assert_series_equal(ser, expected)
