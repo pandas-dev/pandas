@@ -417,7 +417,15 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         name = ibase.maybe_extract_name(name, data, type(self))
 
         if index is not None:
-            index = ensure_index(index)
+            # all-tuple dict keys reindex a MultiIndex, see Index.reindex
+            tupleize_list = (
+                False
+                if isinstance(data, Mapping)
+                and data
+                and all(isinstance(key, tuple) for key in data)
+                else None
+            )
+            index = ensure_index(index, tupleize_list=tupleize_list)
 
         if dtype is not None:
             dtype = self._validate_dtype(dtype)

@@ -2947,3 +2947,12 @@ def _generate_4_axes_via_gridspec():
     ax_lr = plt.subplot(gs[1, 1])
 
     return gs, [ax_tl, ax_ll, ax_tr, ax_lr]
+
+
+def test_plot_tuple_labels_no_warning():
+    # GH#18484 legend labels are not a passed axis
+    df = pd.DataFrame([[1.0, 2.0], [3.0, 4.0]], columns=["a", "b"])
+    with tm.assert_produces_warning(None):
+        ax = df.plot(y=["a", "b"], label=[("l", 1), ("l", 2)])
+    labels = [text.get_text() for text in ax.get_legend().get_texts()]
+    assert labels == ["(l, 1)", "(l, 2)"]

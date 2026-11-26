@@ -1744,7 +1744,9 @@ class TestReadHtml:
             head_exp = gh_13141_expected["head_extract"]
 
         result = flavor_read_html(StringIO(gh_13141_data), extract_links=arg)[0]
-        expected = pd.DataFrame([data_exp, foot_exp], columns=head_exp)
+        expected = pd.DataFrame(
+            [data_exp, foot_exp], columns=pd.Index(head_exp, tupleize_cols=False)
+        )
         expected = expected.fillna(np.nan)
         tm.assert_frame_equal(result, expected)
 

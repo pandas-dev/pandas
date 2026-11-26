@@ -1825,9 +1825,11 @@ class FrameParser(Parser):
                 (tuple(col) if isinstance(col, list) else col)
                 for col in decoded["columns"]
             ]
-            decoded["columns"] = dedup_names(
-                orig_names,
-                is_potential_multi_index(orig_names, None),
+            # TODO(GH#18484): drop tupleize_cols=False when the deprecation is
+            #  enforced, which also fixes GH#50456
+            decoded["columns"] = Index(
+                dedup_names(orig_names, is_potential_multi_index(orig_names, None)),
+                tupleize_cols=False,
             )
             return DataFrame(dtype=None, **decoded)
         elif orient == "index":

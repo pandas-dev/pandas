@@ -54,7 +54,7 @@ class TestDataFrameRepr:
         )
         index = list(df.index)
         index[0] = ("faz", "boo")
-        df.index = index
+        df.index = pd.Index(index, tupleize_cols=False)
         repr(df)
 
         # this travels an improper code path

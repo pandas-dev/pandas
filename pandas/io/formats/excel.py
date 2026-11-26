@@ -33,6 +33,7 @@ from pandas import (
     PeriodIndex,
 )
 import pandas.core.common as com
+from pandas.core.indexes.api import ensure_index
 
 from pandas.io.formats._color_data import CSS4_COLORS
 from pandas.io.formats.css import (
@@ -582,7 +583,8 @@ class ExcelFormatter:
                 # Deprecated in GH#17295, enforced in 1.0.0
                 raise KeyError("Not all names specified in 'columns' are found")
 
-            self.df = df.reindex(columns=cols)
+            # GH#18484 cols selects columns, not a new axis to tupleize
+            self.df = df.reindex(columns=ensure_index(cols, tupleize_list=False))
             _, indexer = df.columns.reindex(self.df.columns)
             if indexer is not None:
                 self._css_cols = indexer

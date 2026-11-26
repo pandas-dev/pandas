@@ -3089,7 +3089,8 @@ class TestStackUnstackMultiLevel:
 def test_stack_tuple_columns(future_stack):
     # GH#54948 - test stack when the input has a non-MultiIndex with tuples
     df = pd.DataFrame(
-        [[1, 2, 3], [4, 5, 6], [7, 8, 9]], columns=[("a", 1), ("a", 2), ("b", 1)]
+        [[1, 2, 3], [4, 5, 6], [7, 8, 9]],
+        columns=pd.Index([("a", 1), ("a", 2), ("b", 1)], tupleize_cols=False),
     )
     result = df.stack(future_stack=future_stack)
     expected = pd.Series(

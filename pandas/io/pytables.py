@@ -5996,12 +5996,12 @@ def _reindex_axis(
     obj: DataFrame, axis: AxisInt, labels: Index, other=None
 ) -> DataFrame:
     ax = obj._get_axis(axis)
-    labels = ensure_index(labels)
+    labels = ensure_index(labels, tupleize_list=False)
 
     # try not to reindex even if other is provided
     # if it equals our current index
     if other is not None:
-        other = ensure_index(other)
+        other = ensure_index(other, tupleize_list=False)
     if (other is None or labels.equals(other)) and labels.equals(ax):
         return obj
 

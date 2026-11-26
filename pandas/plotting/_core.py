@@ -20,6 +20,7 @@ from pandas.core.dtypes.generic import (
 )
 
 from pandas.core.base import PandasObject
+from pandas.core.indexes.api import Index
 
 if TYPE_CHECKING:
     from collections.abc import (
@@ -36,7 +37,6 @@ if TYPE_CHECKING:
 
     from pandas import (
         DataFrame,
-        Index,
         Series,
     )
     from pandas.core.groupby.generic import DataFrameGroupBy
@@ -1431,8 +1431,9 @@ class PlotAccessor(PandasObject):
                         raise ValueError(
                             "label should be list-like and same length as y"
                         )
-                    label_name = label_kw or data.columns
-                    data.columns = label_name
+                    if label_kw:
+                        # GH#18484 legend labels, not a new axis to tupleize
+                        data.columns = Index(label_kw, tupleize_cols=False)
 
         return plot_backend.plot(data, kind=kind, **kwargs)
 

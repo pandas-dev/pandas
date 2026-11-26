@@ -1055,7 +1055,8 @@ def _list_of_dict_to_arrays(
         gen = (list(x.keys()) for x in data)
         sort = not any(isinstance(d, dict) for d in data)
         pre_cols = lib.fast_unique_multiple_list_gen(gen, sort=sort)
-        columns = ensure_index(pre_cols)
+        # GH#18484 the deprecation covers passed columns, not record keys
+        columns = ensure_index(pre_cols, tupleize_list=False)
 
         # use pre_cols to preserve exact values that were present as dict keys
         # (e.g. otherwise missing values might be coerced to the canonical repr)

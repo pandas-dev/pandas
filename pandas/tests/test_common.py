@@ -285,7 +285,7 @@ class TestIsBoolIndexer:
         tup = ("A", ("B", 2))
         assert not com.is_bool_indexer([tup])
 
-        ser = pd.Series([42], index=[tup])
+        ser = pd.Series([42], index=pd.Index([tup], tupleize_cols=False))
         tm.assert_series_equal(ser[[tup]], ser)
 
 

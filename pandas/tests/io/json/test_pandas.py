@@ -2269,7 +2269,11 @@ class TestPandasContainer:
     )
     def test_tuple_labels(self, orient, expected):
         # GH 20500
-        df = pd.DataFrame([[1]], index=[("a", "b")], columns=[("c", "d")])
+        df = pd.DataFrame(
+            [[1]],
+            index=pd.Index([("a", "b")], tupleize_cols=False),
+            columns=pd.Index([("c", "d")], tupleize_cols=False),
+        )
         result = df.to_json(orient=orient)
         assert result == expected
 

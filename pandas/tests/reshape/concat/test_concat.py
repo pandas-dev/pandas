@@ -1131,8 +1131,10 @@ def test_concat_keys_duplicate_index_equal_lengths():
 def test_concat_tuple_index_series_axis1_not_multiindex():
     # GH#24783 concatenating Series whose index labels are tuples must keep a
     #  flat Index of those tuples, not explode them into a MultiIndex
-    s1 = pd.Series([1.0, 2.0], index=[("a", "b"), ("x", "y", "z")], name="s1")
-    s2 = pd.Series([3.0, 4.0], index=[("a", "b"), ("j", "k", "l")], name="s2")
+    idx1 = pd.Index([("a", "b"), ("x", "y", "z")], tupleize_cols=False)
+    idx2 = pd.Index([("a", "b"), ("j", "k", "l")], tupleize_cols=False)
+    s1 = pd.Series([1.0, 2.0], index=idx1, name="s1")
+    s2 = pd.Series([3.0, 4.0], index=idx2, name="s2")
     result = pd.concat([s1, s2], axis=1, sort=False)
     assert result.index.nlevels == 1
     index_arr = np.empty(3, dtype=object)

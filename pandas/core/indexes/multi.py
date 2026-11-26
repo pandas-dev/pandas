@@ -965,14 +965,17 @@ class MultiIndex(Index):
 
         if level is None:
             new_levels = FrozenList(
-                ensure_index(lev, copy=copy)._view() for lev in levels
+                ensure_index(lev, copy=copy, tupleize_list=False)._view()
+                for lev in levels
             )
             level_numbers: range | list[int] = range(len(new_levels))
         else:
             level_numbers = [self._get_level_number(lev) for lev in level]
             new_levels_list = list(self._levels)
             for lev_num, lev in zip(level_numbers, levels, strict=True):
-                new_levels_list[lev_num] = ensure_index(lev, copy=copy)._view()
+                new_levels_list[lev_num] = ensure_index(
+                    lev, copy=copy, tupleize_list=False
+                )._view()
             new_levels = FrozenList(new_levels_list)
 
         if verify_integrity:
@@ -2317,7 +2320,8 @@ class MultiIndex(Index):
             {level: self._get_level_values(level) for level in range(len(self.levels))},
             copy=False,
         )
-        result.columns = idx_names
+        # GH#18484 tuple names are labels, not a passed axis
+        result.columns = ensure_index(idx_names, tupleize_list=False)
 
         if index:
             result.index = self
@@ -4416,7 +4420,7 @@ class MultiIndex(Index):
                     else:
                         level_unique = level_index._index_as_unique
                     try:
-                        target = ensure_index(k)
+                        target = ensure_index(k, tupleize_list=False)
                     except (NotImplementedError, ValueError):
                         # GH#64807 an Index cannot hold the key at all (float16,
                         #  or a timedelta64 with a month/year unit), so only the
