@@ -447,13 +447,14 @@ class SQLTable(PandasObject):
                 # GH 46891
                 if num_inserted is not None:
                     if lib.is_integer(num_inserted) and num_inserted < 0:
-                        # PEP 249: a rowcount of -1 means the driver can't tell
+                        # PEP 249: a rowcount of -1 means the driver can't tell,
+                        # so it must not be summed with the other chunks
                         count_unknown = True
                     elif total_inserted is None:
                         total_inserted = num_inserted
                     else:
                         total_inserted += num_inserted
-        return None if count_unknown else total_inserted
+        return -1 if count_unknown else total_inserted
 
     def _query_iterator(
         self,

@@ -2963,7 +2963,7 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             passed into ``method`` does not return an integer number of rows.
 
             The number of returned rows affected is the sum of the ``rowcount``
-            attribute of ``sqlite3.Cursor`` or SQLAlchemy connectable, or None if
+            attribute of ``sqlite3.Cursor`` or SQLAlchemy connectable, or -1 if
             any of them is negative (the driver can't tell how many rows were
             written). It may not reflect the exact number of written
             rows as stipulated in the

@@ -1269,16 +1269,16 @@ def test_to_sql_callable(conn, test_frame1, request):
 @pytest.mark.parametrize(
     "chunksize, counts, expected",
     [
-        (None, [-1], None),
-        (2, [-1, -1, -1], None),
-        (2, [2, -1, 1], None),
+        (None, [-1], -1),
+        (2, [-1, -1, -1], -1),
+        (2, [2, -1, 1], -1),
         (2, [2, 2, 1], 5),
         (None, ["done"], "done"),
     ],
 )
 def test_to_sql_unknown_rowcount(conn, chunksize, counts, expected, request):
     # PEP 249 drivers (e.g. duckdb) report a rowcount of -1 when they can't
-    # tell how many rows were written; that must not be summed into the total
+    # tell how many rows were written; that must not be summed with the others
     conn = request.getfixturevalue(conn)
     reported = iter(counts)
 
@@ -1310,7 +1310,7 @@ def test_to_sql_driver_unknown_rowcount(method, chunksize):
     df = pd.DataFrame({"a": range(5)})
     with contextlib.closing(sqlite3.connect(":memory:", factory=Connection)) as conn:
         result = df.to_sql("t", conn, index=False, method=method, chunksize=chunksize)
-        assert result is None
+        assert result == -1
         assert conn.execute("SELECT count(*) FROM t").fetchone() == (5,)
 
 
@@ -1323,7 +1323,7 @@ def test_to_sql_sqlalchemy_unknown_rowcount(conn, method, request, monkeypatch):
     conn = request.getfixturevalue(conn)
     monkeypatch.setattr(CursorResult, "rowcount", property(lambda self: -1))
     df = pd.DataFrame({"a": range(5)})
-    assert df.to_sql("t", conn, index=False, method=method, chunksize=2) is None
+    assert df.to_sql("t", conn, index=False, method=method, chunksize=2) == -1
     assert count_rows(conn, "t") == 5
 
 
@@ -1339,7 +1339,7 @@ def test_to_sql_adbc_unknown_rowcount(sqlite_adbc_conn, monkeypatch):
 
     monkeypatch.setattr(dbapi.Cursor, "adbc_ingest", adbc_ingest)
     df = pd.DataFrame({"a": range(5)})
-    assert df.to_sql("t", sqlite_adbc_conn, index=False) is None
+    assert df.to_sql("t", sqlite_adbc_conn, index=False) == -1
     assert count_rows(sqlite_adbc_conn, "t") == 5
 
 
