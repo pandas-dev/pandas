@@ -311,6 +311,11 @@ class TestSparseArray(base.ExtensionTests):
         )
         tm.assert_series_equal(result, expected)
 
+    def test_where_series_array_other(self, data):
+        cls = type(data)
+        a, b = data[:2]
+        ser = pd.Series(cls._from_sequence([a, a, b, b], dtype=data.dtype))
+
         other = cls._from_sequence([a, b, a, b], dtype=data.dtype)
         cond = np.array([True, False, True, True])
         result = ser.where(cond, other)

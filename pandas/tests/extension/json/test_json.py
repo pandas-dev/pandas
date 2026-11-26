@@ -1,6 +1,5 @@
 import collections
 import operator
-import sys
 
 import numpy as np
 import pytest
@@ -94,17 +93,6 @@ class TestJSONArray(base.ExtensionTests):
         # construct from our dtype & string dtype
         super().test_from_dtype(data)
 
-    @pytest.mark.xfail(reason="collection as scalar, GH-33901")
-    def test_series_constructor_scalar_with_index(self, data, dtype):
-        # TypeError: All values must be of type <class 'collections.abc.Mapping'>
-        rec_limit = sys.getrecursionlimit()
-        try:
-            # Limit to avoid stack overflow on Windows CI
-            sys.setrecursionlimit(100)
-            super().test_series_constructor_scalar_with_index(data, dtype)
-        finally:
-            sys.setrecursionlimit(rec_limit)
-
     @pytest.mark.xfail(reason="Different definitions of NA")
     def test_stack(self):
         """
@@ -120,42 +108,12 @@ class TestJSONArray(base.ExtensionTests):
         # this matches otherwise
         return super().test_unstack(data, index)
 
-    @pytest.mark.xfail(reason="Setting a dict as a scalar")
-    def test_fillna_scalar(self, data_missing):
-        """We treat dictionaries as a mapping in fillna, not a scalar."""
-        super().test_fillna_scalar(data_missing)
-
-    @pytest.mark.xfail(reason="Setting a dict as a scalar")
-    def test_fillna_readonly(self, data_missing):
-        """We treat dictionaries as a mapping in fillna, not a scalar."""
-        super().test_fillna_readonly(data_missing)
-
-    @pytest.mark.xfail(reason="Setting a dict as a scalar")
-    def test_fillna_series(self):
-        """We treat dictionaries as a mapping in fillna, not a scalar."""
-        super().test_fillna_series()
-
-    @pytest.mark.xfail(reason="Setting a dict as a scalar")
-    def test_fillna_frame(self):
-        """We treat dictionaries as a mapping in fillna, not a scalar."""
-        super().test_fillna_frame()
-
     def test_fillna_with_none(self, data_missing):
         # GH#57723
         # EAs that don't have special logic for None will raise, unlike pandas'
         # which interpret None as the NA value for the dtype.
         with pytest.raises(AssertionError):
             super().test_fillna_with_none(data_missing)
-
-    @pytest.mark.xfail(reason="fill value is a dictionary, takes incorrect code path")
-    def test_fillna_limit_frame(self, data_missing):
-        # GH#58001
-        super().test_fillna_limit_frame(data_missing)
-
-    @pytest.mark.xfail(reason="fill value is a dictionary, takes incorrect code path")
-    def test_fillna_limit_series(self, data_missing):
-        # GH#58001
-        super().test_fillna_limit_frame(data_missing)
 
     @pytest.mark.parametrize(
         "limit_area, input_ilocs, expected_ilocs",
@@ -207,19 +165,16 @@ class TestJSONArray(base.ExtensionTests):
         super().test_combine_first(data)
 
     @pytest.mark.xfail(reason="JSONArray.__setitem__ mishandles a boolean mask")
+    def test_where_series_array_other(self, data, as_frame):
+        super().test_where_series_array_other(data, as_frame)
+
+    @pytest.mark.xfail(reason="JSONArray.__setitem__ mishandles a boolean mask")
     def test_where_series_listlike_other(self, data):
         super().test_where_series_listlike_other(data)
 
     @pytest.mark.xfail(reason="JSONArray.__setitem__ mishandles a boolean mask")
     def test_mask_listlike_other_inplace(self, data):
         super().test_mask_listlike_other_inplace(data)
-
-    @pytest.mark.xfail(reason="broadcasting error")
-    def test_where_series(self, data, na_value):
-        # Fails with
-        # *** ValueError: operands could not be broadcast together
-        # with shapes (4,) (4,) (0,)
-        super().test_where_series(data, na_value)
 
     @pytest.mark.xfail(reason="Can't compare dicts.")
     def test_searchsorted(self, data_for_sorting):
@@ -228,10 +183,6 @@ class TestJSONArray(base.ExtensionTests):
     @pytest.mark.xfail(reason="Can't compare dicts.")
     def test_equals(self, data, na_value, as_series):
         super().test_equals(data, na_value, as_series)
-
-    @pytest.mark.skip("fill-value is interpreted as a dict of values")
-    def test_fillna_copy_frame(self, data_missing):
-        super().test_fillna_copy_frame(data_missing)
 
     @pytest.mark.xfail(reason="Fails with CoW")
     def test_equals_same_data_different_object(self, data):
@@ -302,22 +253,6 @@ class TestJSONArray(base.ExtensionTests):
             request.applymarker(mark)
         super().test_compare_array(data, comparison_op)
 
-    @pytest.mark.xfail(reason="ValueError: Must have equal len keys and value")
-    def test_setitem_loc_scalar_mixed(self, data):
-        super().test_setitem_loc_scalar_mixed(data)
-
-    @pytest.mark.xfail(reason="ValueError: Must have equal len keys and value")
-    def test_setitem_loc_scalar_multiple_homogoneous(self, data):
-        super().test_setitem_loc_scalar_multiple_homogoneous(data)
-
-    @pytest.mark.xfail(reason="ValueError: Must have equal len keys and value")
-    def test_setitem_iloc_scalar_mixed(self, data):
-        super().test_setitem_iloc_scalar_mixed(data)
-
-    @pytest.mark.xfail(reason="ValueError: Must have equal len keys and value")
-    def test_setitem_iloc_scalar_multiple_homogoneous(self, data):
-        super().test_setitem_iloc_scalar_multiple_homogoneous(data)
-
     @pytest.mark.parametrize(
         "mask",
         [
@@ -328,12 +263,7 @@ class TestJSONArray(base.ExtensionTests):
         ids=["numpy-array", "boolean-array", "boolean-array-na"],
     )
     def test_setitem_mask(self, data, mask, box_in_series, request):
-        if box_in_series:
-            mark = pytest.mark.xfail(
-                reason="cannot set using a list-like indexer with a different length"
-            )
-            request.applymarker(mark)
-        elif not isinstance(mask, np.ndarray):
+        if not isinstance(mask, np.ndarray):
             mark = pytest.mark.xfail(reason="Issues unwanted DeprecationWarning")
             request.applymarker(mark)
         super().test_setitem_mask(data, mask, box_in_series)
@@ -345,24 +275,9 @@ class TestJSONArray(base.ExtensionTests):
 
         super().test_setitem_mask_raises(data, box_in_series)
 
-    @pytest.mark.xfail(
-        reason="cannot set using a list-like indexer with a different length"
-    )
+    @pytest.mark.xfail(reason="JSONArray.__setitem__ mishandles a boolean mask")
     def test_setitem_mask_boolean_array_with_na(self, data, box_in_series):
         super().test_setitem_mask_boolean_array_with_na(data, box_in_series)
-
-    @pytest.mark.parametrize(
-        "idx",
-        [[0, 1, 2], pd.array([0, 1, 2], dtype="Int64"), np.array([0, 1, 2])],
-        ids=["list", "integer-array", "numpy-array"],
-    )
-    def test_setitem_integer_array(self, data, idx, box_in_series, request):
-        if box_in_series:
-            mark = pytest.mark.xfail(
-                reason="cannot set using a list-like indexer with a different length"
-            )
-            request.applymarker(mark)
-        super().test_setitem_integer_array(data, idx, box_in_series)
 
     @pytest.mark.parametrize(
         "idx",
@@ -394,25 +309,6 @@ class TestJSONArray(base.ExtensionTests):
     @pytest.mark.xfail(reason="slice is not iterable")
     def test_setitem_frame_2d_values(self, data):
         super().test_setitem_frame_2d_values(data)
-
-    @pytest.mark.xfail(
-        reason="cannot set using a list-like indexer with a different length"
-    )
-    @pytest.mark.parametrize("setter", ["loc", None])
-    def test_setitem_mask_broadcast(self, data, setter):
-        super().test_setitem_mask_broadcast(data, setter)
-
-    def test_setitem_slice(self, data, box_in_series, request):
-        if box_in_series:
-            mark = pytest.mark.xfail(
-                reason="cannot set using a slice indexer with a different length"
-            )
-            request.applymarker(mark)
-        super().test_setitem_slice(data, box_in_series)
-
-    @pytest.mark.xfail(reason="slice object is not iterable")
-    def test_setitem_loc_iloc_slice(self, data):
-        super().test_setitem_loc_iloc_slice(data)
 
     @pytest.mark.xfail(reason="slice object is not iterable")
     def test_setitem_slice_mismatch_length_raises(self, data):

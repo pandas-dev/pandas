@@ -119,6 +119,16 @@ One particularly important item is the ``type`` property. This should be the
 class that is the scalar type for your data. For example, if you were writing an
 extension array for IP Address data, this might be ``ipaddress.IPv4Address``.
 
+pandas reads a list-like value (see :func:`pandas.api.types.is_list_like`) as a
+collection of values, so a list-like scalar type such as a ``dict``, ``list`` or
+``tuple`` is only partially supported. Methods that accept either one value or
+many, such as :meth:`Series.fillna`, :meth:`Series.where`, :meth:`Series.mask`,
+:meth:`Series.replace` and the :class:`Series` constructor, as well as setting
+values with ``[]``, ``.loc`` or ``.iloc``, may raise or give incorrect results
+when passed one of these scalars, or when ``na_value`` is list-like. The
+:ref:`extension test suite <extending.extension.testing>` skips most of the
+affected tests when the scalar is list-like.
+
 See the `extension dtype source`_ for interface definition.
 
 :class:`pandas.api.extensions.ExtensionDtype` can be registered to pandas to allow creation via a string dtype name.

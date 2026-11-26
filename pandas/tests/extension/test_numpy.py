@@ -178,11 +178,6 @@ class TestNumpyExtensionArray(base.ExtensionTests):
     def test_from_dtype(self, data):
         pass
 
-    @skip_nested
-    def test_series_constructor_scalar_with_index(self, data, dtype):
-        # ValueError: Length of passed values is 1, index implies 3.
-        super().test_series_constructor_scalar_with_index(data, dtype)
-
     def test_check_dtype(self, data, request, using_infer_string):
         if data.dtype.numpy_dtype == "object":
             request.applymarker(
@@ -210,28 +205,6 @@ class TestNumpyExtensionArray(base.ExtensionTests):
     def test_shift_fill_value(self, data):
         # np.array shape inference. Shift implementation fails.
         super().test_shift_fill_value(data)
-
-    @skip_nested
-    def test_fillna_limit_frame(self, data_missing):
-        # GH#58001
-        # The "scalar" for this array isn't a scalar.
-        super().test_fillna_limit_frame(data_missing)
-
-    @skip_nested
-    def test_fillna_limit_series(self, data_missing):
-        # GH#58001
-        # The "scalar" for this array isn't a scalar.
-        super().test_fillna_limit_series(data_missing)
-
-    @skip_nested
-    def test_fillna_copy_frame(self, data_missing):
-        # The "scalar" for this array isn't a scalar.
-        super().test_fillna_copy_frame(data_missing)
-
-    @skip_nested
-    def test_fillna_copy_series(self, data_missing):
-        # The "scalar" for this array isn't a scalar.
-        super().test_fillna_copy_series(data_missing)
 
     @skip_nested
     def test_searchsorted(self, data_for_sorting, as_series):
@@ -395,21 +368,6 @@ class TestNumpyExtensionArray(base.ExtensionTests):
     def test_reduce_frame(self, data, all_numeric_reductions, skipna):
         pass
 
-    @skip_nested
-    def test_fillna_series(self, data_missing):
-        # Non-scalar "scalar" values.
-        super().test_fillna_series(data_missing)
-
-    @skip_nested
-    def test_fillna_frame(self, data_missing):
-        # Non-scalar "scalar" values.
-        super().test_fillna_frame(data_missing)
-
-    @skip_nested
-    def test_fillna_readonly(self, data_missing):
-        # Non-scalar "scalar" values.
-        super().test_fillna_readonly(data_missing)
-
     def test_fillna_no_op_returns_copy(self, data, request):
         if data.dtype.kind == "c":
             # GH#54761 no cython backfill/pad implementation for complex dtype
@@ -471,13 +429,6 @@ class TestNumpyExtensionArray(base.ExtensionTests):
         super().test_setitem_sequence_broadcasts(data, box_in_series)
 
     @skip_nested
-    @pytest.mark.parametrize("setter", ["loc", None])
-    def test_setitem_mask_broadcast(self, data, setter):
-        # ValueError: cannot set using a list-like indexer with a different
-        # length than the value
-        super().test_setitem_mask_broadcast(data, setter)
-
-    @skip_nested
     def test_setitem_scalar_key_sequence_raise(self, data):
         # Failed: DID NOT RAISE <class 'ValueError'>
         super().test_setitem_scalar_key_sequence_raise(data)
@@ -509,10 +460,6 @@ class TestNumpyExtensionArray(base.ExtensionTests):
     @skip_nested
     def test_setitem_slice(self, data, box_in_series):
         super().test_setitem_slice(data, box_in_series)
-
-    @skip_nested
-    def test_setitem_loc_iloc_slice(self, data):
-        super().test_setitem_loc_iloc_slice(data)
 
     def test_setitem_with_expansion_dataframe_column(self, data, full_indexer):
         # https://github.com/pandas-dev/pandas/issues/32395

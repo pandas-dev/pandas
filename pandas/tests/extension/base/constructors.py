@@ -5,6 +5,7 @@ import pandas as pd
 import pandas._testing as tm
 from pandas.api.extensions import ExtensionArray
 from pandas.core.internals.blocks import EABackedBlock
+from pandas.tests.extension.base.base import skip_if_list_like
 
 
 class BaseConstructorsTests:
@@ -51,6 +52,7 @@ class BaseConstructorsTests:
         tm.assert_series_equal(result, expected)
 
     def test_series_constructor_scalar_with_index(self, data, dtype):
+        skip_if_list_like(data[0])
         scalar = data[0]
         result = pd.Series(scalar, index=[1, 2, 3], dtype=dtype)
         expected = pd.Series([scalar] * 3, index=[1, 2, 3], dtype=dtype)
