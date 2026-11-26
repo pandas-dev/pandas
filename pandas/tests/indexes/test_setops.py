@@ -1121,6 +1121,30 @@ def test_intersection_arrow_dictionary_no_run_end_kernel():
     assert result.dtype == left.dtype
 
 
+@pytest.mark.parametrize(
+    "value_type, left, right, expected",
+    [
+        ("int64", [1, 1, 2, 3], [2, 3, 4], [2, 3]),
+        ("float64", [1.0, 1.0, 2.0, 3.0], [2.0, 3.0, 4.0], [2.0, 3.0]),
+        ("bool", [False, False, True], [True], [True]),
+    ],
+)
+def test_intersection_arrow_dictionary_numeric_values(
+    value_type, left, right, expected
+):
+    # GH#72271 the join output cannot be rebuilt as a dictionary array
+    pa = pytest.importorskip("pyarrow")
+
+    dtype = pd.ArrowDtype(pa.dictionary(pa.int32(), pa.type_for_alias(value_type)))
+    left = pd.Index(left, dtype=dtype)
+    right = pd.Index(right, dtype=dtype)
+
+    result = left.intersection(right)
+
+    assert result.tolist() == expected
+    assert result.dtype == left.dtype
+
+
 @td.skip_if_no("pyarrow")
 @pytest.mark.parametrize("dtype", ["float64[pyarrow]", "float32[pyarrow]"])
 @pytest.mark.parametrize(

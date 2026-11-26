@@ -3534,30 +3534,37 @@ class Index(IndexOpsMixin, PandasObject):
         intersection specialized to the case with matching dtypes.
         """
         if self._can_use_libjoin and other._can_use_libjoin:
+            joined: ArrayLike | None
             try:
-                res_indexer, indexer, _ = self._inner_indexer(other)  # pyright: ignore[reportArgumentType]
+                if is_numeric_dtype(self.dtype):
+                    joined, indexer, _ = self._inner_indexer(other)  # pyright: ignore[reportArgumentType]
+                else:
+                    # Only the indexer is used below, so skip rebuilding the join
+                    # output with _from_join_target
+                    joined = None
+                    _, indexer, _ = libjoin.inner_join_indexer(
+                        self._get_join_target(), other._get_join_target()
+                    )
             except TypeError:
                 # non-comparable; should only be for object dtype
                 pass
             else:
                 res: ArrayLike
                 values = self._values
-                if isinstance(values, ArrowExtensionArray) and isinstance(
-                    res_indexer, ArrowExtensionArray
-                ):
+                if isinstance(values, ArrowExtensionArray):
                     # merge output is sorted, so duplicates are adjacent
-                    if is_numeric_dtype(self.dtype):
-                        taken = res_indexer
+                    if isinstance(joined, ArrowExtensionArray):
+                        taken = joined
                     else:
                         # the join target is lossy for time64[ns]
                         taken = values.take(indexer)
                     fast = taken._unique_by_run_ends()
                     res = taken.unique() if fast is None else fast
                 # TODO: algos.unique1d should preserve DTA/TDA
-                elif is_numeric_dtype(self.dtype):
+                elif joined is not None:
                     # This is faster, because Index.unique() checks for uniqueness
                     # before calculating the unique values.
-                    res = algos.unique1d(res_indexer)
+                    res = algos.unique1d(joined)
                 else:
                     result = self.take(indexer)
                     res = result.drop_duplicates()  # type: ignore[assignment]
