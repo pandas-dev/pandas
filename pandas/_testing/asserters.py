@@ -1259,6 +1259,7 @@ def assert_series_equal(
             assert_numpy_array_equal(
                 lv,
                 rv,
+                strict_nan=True,
                 check_dtype=check_dtype,
                 obj=str(obj),
                 class_obj=f"{obj} values",
