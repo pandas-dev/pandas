@@ -124,6 +124,47 @@ class TestSeriesClip:
         )
         tm.assert_series_equal(result, expected)
 
+    def test_clip_with_datetime_like_threshold_and_missing_values(self):
+        # GH#44785
+        # missing values in a datetime/timedelta threshold must act as no
+        # bounds (keeping the original values) instead of raising a
+        # TypeError from comparing Timestamp/timedelta against ±np.inf.
+        ser = pd.Series(pd.to_datetime(["2020-01-02", "2020-01-01"]))
+        lower = pd.Series([None, "2020-01-03"], dtype="datetime64[ns]")
+        result = ser.clip(lower=lower)
+        expected = pd.Series(pd.to_datetime(["2020-01-02", "2020-01-03"]))
+        tm.assert_series_equal(result, expected)
+
+        ser = pd.Series(pd.to_timedelta(["2 days", "1 day"]))
+        upper = pd.Series([None, "3 days"], dtype="timedelta64[ns]")
+        result = ser.clip(upper=upper)
+        expected = pd.Series(pd.to_timedelta(["2 days", "1 day"]))
+        tm.assert_series_equal(result, expected)
+
+    def test_clip_with_object_and_period_threshold_and_missing_values(self):
+        # GH#44785
+        # object-dtype and period-dtype thresholds with missing values must
+        # not be filled with +/-inf; missing positions act as no bounds
+        ser = pd.Series(pd.to_datetime(["2020-01-02", "2020-01-01"]))
+        lower = pd.Series([pd.NaT, pd.Timestamp("2020-01-03")], dtype=object)
+        result = ser.clip(lower=lower)
+        expected = pd.Series(pd.to_datetime(["2020-01-02", "2020-01-03"]))
+        tm.assert_series_equal(result, expected)
+
+        upper = pd.Series([pd.NaT, pd.Timestamp("2020-01-03")], dtype=object)
+        result = ser.clip(upper=upper)
+        expected = pd.Series(pd.to_datetime(["2020-01-02", "2020-01-01"]))
+        tm.assert_series_equal(result, expected)
+
+        ser = pd.Series(pd.period_range("2020-01", periods=2, freq="M"))
+        lower = pd.Series([pd.NaT, pd.Period("2020-03", "M")], dtype=ser.dtype)
+        result = ser.clip(lower=lower)
+        expected = pd.Series(
+            [pd.Period("2020-01", "M"), pd.Period("2020-03", "M")],
+            dtype=ser.dtype,
+        )
+        tm.assert_series_equal(result, expected)
+
     def test_clip_with_timestamps_and_oob_datetimes_object(self):
         # GH-42794
         ser = pd.Series([datetime(1, 1, 1), datetime(9999, 9, 9)], dtype=object)

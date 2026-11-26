@@ -9007,12 +9007,32 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         # GH 40420
         # Treat missing thresholds as no bounds, not clipping the values
         if is_list_like(threshold):
-            fill_value = np.inf if method.__name__ == "le" else -np.inf
-            threshold_inf = threshold.fillna(fill_value)
+            # GH 44785: track missing positions with a mask instead of
+            # filling with +/-inf, which cannot be compared against
+            # datetime-like thresholds
+            no_bound_mask = isna(threshold)
         else:
-            threshold_inf = threshold
+            no_bound_mask = None
 
-        subset = method(threshold_inf, axis=axis) | isna(self)
+        subset = method(threshold, axis=axis) | isna(self)
+        if no_bound_mask is not None:
+            if isinstance(no_bound_mask, ABCSeries):
+                if isinstance(subset, ABCSeries):
+                    no_bound_mask = no_bound_mask.reindex(subset.index, fill_value=True)
+                elif axis in (0, None):
+                    no_bound_mask = no_bound_mask.reindex(subset.index, fill_value=True)
+                    subset = (subset.T | no_bound_mask).T
+                else:
+                    no_bound_mask = no_bound_mask.reindex(
+                        subset.columns, fill_value=True
+                    )
+            elif no_bound_mask.shape != subset.shape:
+                no_bound_mask = no_bound_mask.reindex(
+                    index=subset.index,
+                    columns=subset.columns,
+                    fill_value=True,
+                )
+            subset = subset | no_bound_mask
 
         # GH 40420
         return self.where(subset, threshold, axis=axis, inplace=inplace)
