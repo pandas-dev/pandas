@@ -755,6 +755,42 @@ def test_dt_timedelta_total_seconds():
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize("unit", ["s", "ms", "us", "ns"])
+@pytest.mark.parametrize("sign", [1, -1])
+def test_dt_timedelta_total_seconds_large_values(unit, sign):
+    # GH#71953 - values past 2**53 ticks used to raise ArrowInvalid
+    values = [
+        sign * (2**53 - 1),
+        sign * (2**53 + 12345),
+        sign * (2**62 + 1),
+        sign * 1_552_212_000_000_000_001,
+        0,
+        None,
+    ]
+    ser = pd.Series(ArrowExtensionArray(pa.array(values, type=pa.duration(unit))))
+    result = ser.dt.total_seconds()
+    expected = (
+        ser.astype(f"m8[{unit}]").dt.total_seconds().astype(ArrowDtype(pa.float64()))
+    )
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("days", [103, 104, 105, 200])
+def test_dt_timedelta_total_seconds_ns_boundary(days):
+    # GH#71953 - the failure started between 104 and 105 days for ns
+    ser = pd.Series(
+        [pd.Timedelta(days=days), pd.Timedelta(days=-days), None],
+        dtype=ArrowDtype(pa.duration("ns")),
+    )
+    result = ser.dt.total_seconds()
+    expected = pd.Series(
+        ArrowExtensionArray(
+            pa.array([days * 86400.0, -days * 86400.0, None], type=pa.float64())
+        )
+    )
+    tm.assert_series_equal(result, expected)
+
+
 def test_dt_timedelta_components():
     # Test that .dt.components returns correct values for Arrow duration arrays
     ser = pd.Series(

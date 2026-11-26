@@ -4789,7 +4789,15 @@ class ArrowExtensionArray(
     def _dt_total_seconds(self) -> Self:
         unit = self._pa_array.type.unit
         unit_per_second = {"s": 1.0, "ms": 1e3, "us": 1e6, "ns": 1e9}
-        result = pc.divide(pc.cast(self._pa_array, pa.int64()), unit_per_second[unit])
+        values = pc.cast(self._pa_array, pa.int64())
+        try:
+            result = pc.divide(values, unit_per_second[unit])
+        except pa.ArrowInvalid:
+            # GH#71953: pyarrow refuses int64 -> float64 past 2**53; the NumPy
+            # path splits whole seconds and remainder to stay precise
+            result = pa.array(
+                self._to_timedeltaarray().total_seconds(), from_pandas=True
+            )
         return self._from_pyarrow_array(result)
 
     def _dt_as_unit(self, unit: str) -> Self:
