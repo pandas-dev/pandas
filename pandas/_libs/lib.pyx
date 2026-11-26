@@ -2622,6 +2622,7 @@ def maybe_convert_numeric(
     # fastpath for ints - try to convert all based on first value
     cdef:
         object val = values[0]
+        bint distinguish_nan_and_na = not is_nan_na()
 
     if util.is_integer_object(val):
         try:
@@ -2638,7 +2639,10 @@ def maybe_convert_numeric(
     # costs ~5x the memory of the array actually returned (GH#35051).
     cdef:
         int maybe_int
+        str val_lower
         Py_ssize_t i, n = values.size
+        Py_ssize_t _len
+        Py_UCS4 c0
         Seen seen = Seen(coerce_numeric)
         ndarray[float64_t, ndim=1] floats = cnp.PyArray_EMPTY(
             1, values.shape, cnp.NPY_FLOAT64, 0
@@ -2682,7 +2686,9 @@ def maybe_convert_numeric(
             fval = val
             if fval != fval:
                 seen.null_ = True
-                if allow_null_in_int:
+                if distinguish_nan_and_na:
+                    seen.float_ = True
+                elif allow_null_in_int:
                     mask[i] = 1
                 else:
                     if convert_to_masked_nullable:
@@ -2770,9 +2776,28 @@ def maybe_convert_numeric(
                 complexes[i] = val
             seen.float_ = True
         else:
+            if isinstance(val, str):
+                _len = len(val)
+                if _len == 3 or _len == 4:
+                    c0 = val[0]
+                    if c0 == "n" or c0 == "N" or c0 == "-" or c0 == "+":
+                        val_lower = val.lower()
+                        if (convert_to_masked_nullable
+                                and val_lower in ("nan", "-nan", "+nan")):
+                            fval = NaN
+                            seen.null_ = True
+                            if distinguish_nan_and_na:
+                                seen.float_ = True
+                            else:
+                                mask[i] = 1
+                                if not allow_null_in_int:
+                                    seen.float_ = True
+                            floats[i] = fval
+                            if have_complexes:
+                                complexes[i] = fval
+                            continue
             try:
                 floatify(val, &fval, &maybe_int)
-
                 if fval in na_values:
                     seen.saw_null()
                     floats[i] = NaN
@@ -2782,7 +2807,8 @@ def maybe_convert_numeric(
                 else:
                     if fval != fval:
                         seen.null_ = True
-                        mask[i] = 1
+                        if not distinguish_nan_and_na:
+                            mask[i] = 1
 
                     floats[i] = fval
                     if have_complexes:
