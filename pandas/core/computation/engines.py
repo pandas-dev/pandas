@@ -5,10 +5,14 @@ Engine classes for :func:`~pandas.eval`
 from __future__ import annotations
 
 import abc
+from copy import deepcopy
 from typing import TYPE_CHECKING
 
 from pandas.errors import NumExprClobberingError
 
+from pandas.core.dtypes.generic import ABCNDFrame
+
+import pandas.core.common as com
 from pandas.core.computation.align import (
     align_terms,
     reconstruct_object,
@@ -22,6 +26,9 @@ from pandas.core.computation.ops import (
 from pandas.io.formats import printing
 
 if TYPE_CHECKING:
+    from collections.abc import Hashable
+    from typing import Any
+
     from pandas.core.computation.expr import Expr
 
 _ne_builtins = frozenset(MATHOPS + REDUCTIONS)
@@ -77,6 +84,10 @@ class AbstractEngine(metaclass=abc.ABCMeta):
         object
             The result of the passed expression.
         """
+        # Collect before alignment: align_terms replaces term values with
+        # their underlying arrays, which drops attrs.
+        operand_attrs = self._shared_operand_attrs()
+
         if not self._is_aligned:
             self.result_type, self.aligned_axes, self.result_name = align_terms(
                 self.expr.terms
@@ -84,13 +95,36 @@ class AbstractEngine(metaclass=abc.ABCMeta):
 
         # make sure no names in resolvers and locals/globals clash
         res = self._evaluate()
-        return reconstruct_object(
+        result = reconstruct_object(
             self.result_type,
             res,
             self.aligned_axes,
             self.expr.terms.return_type,
             self.result_name,
         )
+        if operand_attrs is not None and isinstance(result, ABCNDFrame):
+            result.attrs = deepcopy(operand_attrs)
+        return result
+
+    def _shared_operand_attrs(self) -> dict[Hashable, Any] | None:
+        """
+        Return the attrs shared by all pandas operands that have attrs, or None
+        if none do or their attrs conflict.
+
+        Operands without attrs are ignored, as in binary operations (GH#51607).
+        """
+        try:
+            terms = list(com.flatten(self.expr.terms))
+        except TypeError:
+            terms = [self.expr.terms]
+        all_attrs = [
+            t.value.attrs
+            for t in terms
+            if isinstance(t.value, ABCNDFrame) and t.value.attrs
+        ]
+        if all_attrs and all(a == all_attrs[0] for a in all_attrs[1:]):
+            return all_attrs[0]
+        return None
 
     @property
     def _is_aligned(self) -> bool:
