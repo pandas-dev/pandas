@@ -1,4 +1,15 @@
 import sys
+import warnings
+
+# pytz < 2023.3.post1 calls datetime.utcfromtimestamp at import, which Python 3.12
+# deprecates. Remove once the pytz minimum version is at least 2023.3.post1
+# (pinned lower in https://github.com/pandas-dev/pandas/pull/65133).
+warnings.filterwarnings(
+    "ignore",
+    message=r"datetime\.datetime\.utcfromtimestamp\(\) is deprecated",
+    category=DeprecationWarning,
+    module=r"pytz\.tzinfo",
+)
 
 import pandas  # noqa: F401
 

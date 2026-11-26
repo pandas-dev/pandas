@@ -444,6 +444,9 @@ filterwarnings = [
   "ignore:.*grpcio.*Post-Quantum Cryptography:FutureWarning",
   # NumPy 2.5 DeprecationWarning in fastparquet
   "ignore:The 'generic' unit for NumPy timedelta is deprecated:DeprecationWarning:fastparquet",
+  # From pytz < 2023.3.post1 on Python 3.12+. Remove once the pytz minimum version is
+  # at least 2023.3.post1 (pinned lower in https://github.com/pandas-dev/pandas/pull/65133).
+  "ignore:datetime.datetime.utcfromtimestamp\\(\\) is deprecated:DeprecationWarning:pytz.tzinfo",
 ]
 junit_family = "xunit2"
 
