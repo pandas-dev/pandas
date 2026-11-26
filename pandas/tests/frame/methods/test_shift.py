@@ -207,6 +207,45 @@ class TestDataFrameShift:
         tm.assert_equal(res, exp)
         assert tm.get_dtype(res) == "datetime64[ns, US/Eastern]"
 
+    @pytest.mark.parametrize(
+        "tz", ["Europe/Amsterdam", "dateutil/Europe/Amsterdam", "pytz/Europe/Amsterdam"]
+    )
+    @pytest.mark.parametrize(
+        "offset, expected_wall_times",
+        [
+            # one hour of elapsed time
+            pytest.param(
+                pd.DateOffset(hours=1),
+                [f"2024-03-31 {hour:02d}:00" for hour in range(3, 11)],
+                id="hours",
+            ),
+            # the same wall time on the next day
+            pytest.param(
+                pd.DateOffset(days=1),
+                [f"2024-04-01 {hour:02d}:00" for hour in [1, *range(3, 10)]],
+                id="days",
+            ),
+        ],
+    )
+    def test_shift_freq_dateoffset_across_dst(
+        self, frame_or_series, tz, offset, expected_wall_times
+    ):
+        # GH#57837 the index crosses the spring-forward transition, where
+        #  02:00 local time does not exist
+        if tz.startswith("pytz/"):
+            pytz = pytest.importorskip("pytz")
+            tz = pytz.timezone(tz.removeprefix("pytz/"))
+        index = pd.date_range(
+            "2024-03-31 00:00", "2024-03-31 07:00", freq="h", tz="UTC"
+        ).tz_convert(tz)
+        obj = frame_or_series(range(len(index)), index=index)
+
+        result = obj.shift(freq=offset)
+
+        expected_index = pd.DatetimeIndex(expected_wall_times).tz_localize(tz)
+        expected = frame_or_series(range(len(index)), index=expected_index)
+        tm.assert_equal(result, expected)
+
     def test_shift_by_zero(self, datetime_frame, frame_or_series):
         # shift by 0
         obj = tm.get_obj(datetime_frame, frame_or_series)
