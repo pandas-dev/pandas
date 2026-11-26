@@ -996,7 +996,9 @@ def disable_try_examples(app, what, name, obj, options, lines) -> None:
     jupyterlite-sphinx skips an Examples section whose first line is
     ``.. disable_try_examples``. Doing this at build time rather than with
     try_examples.json ignore_patterns keeps the button hidden, since the
-    extension's resize handler unhides buttons hidden at runtime.
+    extension's resize handler unhides buttons hidden at runtime. This hook
+    runs first because jupyterlite-sphinx connects its own at config-inited,
+    which Sphinx emits after calling this file's setup().
     """
     if not _TRY_EXAMPLES_SKIP.search(name):
         return
