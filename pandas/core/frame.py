@@ -205,6 +205,10 @@ from pandas.io.formats import (
     console,
     format as fmt,
 )
+from pandas.io.formats.glimpse import (
+    format_glimpse,
+    glimpse_columns,
+)
 from pandas.io.formats.info import DataFrameInfo
 import pandas.plotting
 
@@ -3931,6 +3935,130 @@ class DataFrame(NDFrame, OpsMixin):
             verbose=verbose,
             show_counts=show_counts,
         )
+
+    @overload
+    def glimpse(
+        self,
+        *,
+        max_items_per_column: int = ...,
+        max_colname_length: int = ...,
+        return_type: None = ...,
+    ) -> None: ...
+
+    @overload
+    def glimpse(
+        self,
+        *,
+        max_items_per_column: int = ...,
+        max_colname_length: int = ...,
+        return_type: Literal["string"],
+    ) -> str: ...
+
+    @overload
+    def glimpse(
+        self,
+        *,
+        max_items_per_column: int = ...,
+        max_colname_length: int = ...,
+        return_type: Literal["frame", "self"],
+    ) -> DataFrame: ...
+
+    def glimpse(
+        self,
+        *,
+        max_items_per_column: int = 10,
+        max_colname_length: int = 50,
+        return_type: Literal["string", "frame", "self"] | None = None,
+    ) -> str | DataFrame | None:
+        """
+        Print a dense preview of the DataFrame with one line per column.
+
+        Each line shows the column label, its dtype and its first few values,
+        so that wide DataFrames display cleanly. The signature matches
+        ``polars.DataFrame.glimpse``.
+
+        .. versionadded:: 3.2.0
+
+        Parameters
+        ----------
+        max_items_per_column : int, default 10
+            Maximum number of values to show per column.
+        max_colname_length : int, default 50
+            Maximum length of the displayed column labels; longer labels are
+            truncated with a trailing ellipsis.
+        return_type : {None, "string", "frame", "self"}, default None
+            What to return:
+
+            - ``None``: print the preview and return None.
+            - ``"string"``: return the preview as a string instead of printing it.
+            - ``"frame"``: return the preview as a DataFrame with columns
+              ``"column"``, ``"dtype"`` and ``"values"``, where ``"values"``
+              holds a list of formatted strings, with None for missing values.
+            - ``"self"``: print the preview and return the original DataFrame,
+              for use in a method chain.
+
+        Returns
+        -------
+        str, DataFrame or None
+            See ``return_type``.
+
+        See Also
+        --------
+        DataFrame.info : Print a concise summary of a DataFrame.
+        DataFrame.head : Return the first `n` rows.
+        DataFrame.dtypes : Return the dtypes in the DataFrame.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame(
+        ...     {
+        ...         "a": [1.0, 2.8, np.nan],
+        ...         "b": [4, 5, 6],
+        ...         "c": ["usd", "eur", None],
+        ...         "d": pd.to_datetime(["2020-01-01", "2021-01-02", None]),
+        ...     }
+        ... )
+        >>> df.glimpse()
+        Rows: 3
+        Columns: 4
+        $ a        <float64> 1.0, 2.8, NaN
+        $ b          <int64> 4, 5, 6
+        $ c            <str> 'usd', 'eur', NaN
+        $ d <datetime64[us]> 2020-01-01 00:00:00, 2021-01-02 00:00:00, NaT
+
+        Return the preview as a DataFrame:
+
+        >>> df.glimpse(return_type="frame")
+          column           dtype                                            values
+        0      a         float64                                  [1.0, 2.8, None]
+        1      b           int64                                         [4, 5, 6]
+        2      c             str                              ['usd', 'eur', None]
+        3      d  datetime64[us]  [2020-01-01 00:00:00, 2021-01-02 00:00:00, None]
+        """
+        if return_type not in (None, "string", "frame", "self"):
+            raise ValueError(
+                "return_type must be one of None, 'string', 'frame' or 'self', "
+                f"got {return_type!r}"
+            )
+        if not lib.is_integer(max_items_per_column) or max_items_per_column < 0:
+            raise ValueError("max_items_per_column must be a non-negative integer")
+        if not lib.is_integer(max_colname_length) or max_colname_length < 1:
+            raise ValueError("max_colname_length must be a positive integer")
+
+        columns = glimpse_columns(self, max_items_per_column)
+        if return_type == "frame":
+            return DataFrame(
+                {
+                    "column": Series(self.columns.to_flat_index()),
+                    "dtype": Series([dtype for _, dtype, _, _ in columns], dtype="str"),
+                    "values": Series([values for *_, values in columns]),
+                }
+            )
+        text = format_glimpse(self.shape, columns, max_colname_length)
+        if return_type == "string":
+            return text
+        print(text, end="")
+        return self if return_type == "self" else None
 
     def memory_usage(self, index: bool = True, deep: bool = False) -> Series:
         """

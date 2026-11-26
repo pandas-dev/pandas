@@ -32,6 +32,7 @@ Attributes and underlying data
 
    DataFrame.dtypes
    DataFrame.info
+   DataFrame.glimpse
    DataFrame.select_dtypes
    DataFrame.values
    DataFrame.axes
