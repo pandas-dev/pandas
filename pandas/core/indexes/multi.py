@@ -3497,7 +3497,10 @@ class MultiIndex(Index):
         """
         lev = self.levels[0]
         codes = self._codes[0]
-        cat = Categorical.from_codes(codes=codes, categories=lev, validate=False)
+        if isinstance(lev.dtype, CategoricalDtype):
+            cat = lev._values.take(codes, allow_fill=True)
+        else:
+            cat = Categorical.from_codes(codes=codes, categories=lev, validate=False)
         ci = Index(cat, copy=False)
         return ci.get_indexer_for(target)
 
