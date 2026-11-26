@@ -527,7 +527,7 @@ Previous behavior:
 .. code-block:: ipython
 
    In [5]: df = pd.DataFrame({'a': [0, 1, 1],
-                              'b': pd.Series([100, 200, 300], dtype='uint32')})
+      ...:                    'b': pd.Series([100, 200, 300], dtype='uint32')})
 
    In [7]: df.dtypes
    Out[7]:
@@ -569,8 +569,8 @@ Previous behavior:
 .. code-block:: ipython
 
    In [4]: df = pd.DataFrame(np.array(range(1,10)).reshape(3,3),
-                             columns=list('abc'),
-                             index=[[4,4,8], [8,10,12]])
+      ...:                   columns=list('abc'),
+      ...:                   index=[[4,4,8], [8,10,12]])
 
    In [5]: df
    Out[5]:
@@ -823,15 +823,15 @@ Previous signature
 .. code-block:: ipython
 
    In [3]: pd.Series([0,1]).rank(method='average', na_option='keep',
-                                 ascending=True, pct=False)
+      ...:                       ascending=True, pct=False)
    Out[3]:
    0    1
    1    2
    dtype: float64
 
    In [4]: pd.DataFrame([0,1]).rank(axis=0, numeric_only=None,
-                                    method='average', na_option='keep',
-                                    ascending=True, pct=False)
+      ...:                          method='average', na_option='keep',
+      ...:                          ascending=True, pct=False)
    Out[4]:
       0
    0  1
@@ -1034,7 +1034,7 @@ performed with the ``Resampler`` objects with :meth:`~pandas.api.typing.Resample
 .. code-block:: ipython
 
    In [89]: s = pd.Series(np.arange(5, dtype='int64'),
-                 index=pd.date_range('2010-01-01', periods=5, freq='Q'))
+      ...:       index=pd.date_range('2010-01-01', periods=5, freq='Q'))
 
    In [90]: s
    Out[90]:

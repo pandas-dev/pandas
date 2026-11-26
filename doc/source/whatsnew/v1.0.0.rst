@@ -751,7 +751,7 @@ scalar values in the result are instances of the extension dtype's scalar type.
 
 .. code-block:: ipython
 
-   In [1]> df.resample("2D").agg(lambda x: 'a').A.dtype
+   In [1]: df.resample("2D").agg(lambda x: 'a').A.dtype
    Out[1]:
    CategoricalDtype(categories=['a', 'b'], ordered=False)
 
