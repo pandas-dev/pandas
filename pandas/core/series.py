@@ -7525,11 +7525,13 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
             this, other = self.align(other, level=level, join="outer")
 
         this_vals, other_vals = ops.fill_binop(this._values, other._values, fill_value)
-        # GH#43770 func is the bare operator, so comparison_op does not warn
-        ops.maybe_warn_complex_ordering(this_vals, other_vals, func)
 
         with np.errstate(all="ignore"):
-            result = func(this_vals, other_vals)
+            if func.__name__ in ops.ARITHMETIC_BINOPS:
+                result = func(this_vals, other_vals)
+            else:
+                # GH#20442 match the operators, e.g. treat None as missing
+                result = ops.comparison_op(this_vals, other_vals, func)
 
         name = ops.get_op_result_name(self, other)
 
