@@ -2173,6 +2173,41 @@ class TestLocSetitemWithExpansion:
         ser.loc[item] = 1
         tm.assert_index_equal(ser.index, exp_index)
 
+    def test_loc_setitem_with_expansion_zero_dim_iterable_key(self, frame_or_series):
+        # GH#71835 a missing label that defines __iter__ but has ndim == 0
+        #  (e.g. a scalar pint Quantity) is a scalar, not a list-like
+        class Quantity:
+            # mimics pint's Quantity: __iter__ delegates to the magnitude,
+            #  so it raises TypeError when the magnitude is a scalar
+            ndim = 0
+
+            def __init__(self, magnitude):
+                self.magnitude = magnitude
+
+            def __iter__(self):
+                return iter(self.magnitude)
+
+            def __eq__(self, other):
+                return isinstance(other, Quantity) and self.magnitude == other.magnitude
+
+            def __hash__(self):
+                return hash(self.magnitude)
+
+            def __repr__(self):
+                return f"Quantity({self.magnitude})"
+
+        idx = pd.Index([Quantity(1.0), Quantity(2.0)], dtype=object)
+        obj = frame_or_series([0, 1], index=idx)
+        key = Quantity(3.0)
+
+        with pytest.raises(KeyError, match=re.escape("Quantity(3.0)")):
+            obj.loc[key]
+
+        obj.loc[key] = 2
+
+        expected = frame_or_series([0, 1, 2], index=pd.Index([*idx, key], dtype=object))
+        tm.assert_equal(obj, expected)
+
     @pytest.mark.parametrize("dtype", ["Int64", "int64[pyarrow]"])
     def test_loc_setitem_with_expansion_fractional_not_truncated(self, dtype):
         # Assigning a fractional float to an integer EA column should
