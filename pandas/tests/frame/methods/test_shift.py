@@ -887,3 +887,41 @@ class TestDataFrameShift:
             index=[values[2], values[1], values[3]],
         )
         tm.assert_frame_equal(result, expected)
+
+    def test_shift_empty_multiple_periods(self):
+        # GH#71507
+        df = pd.DataFrame(
+            {"price": pd.Series(dtype="int64"), "volume": pd.Series(dtype="float64")}
+        )
+        result = df.shift(periods=[0, 1], suffix="_lag")
+        expected = pd.DataFrame(
+            {
+                "price_lag_0": pd.Series(dtype="int64"),
+                "volume_lag_0": pd.Series(dtype="float64"),
+                "price_lag_1": pd.Series(dtype="float64"),
+                "volume_lag_1": pd.Series(dtype="float64"),
+            }
+        )
+        tm.assert_frame_equal(result, expected)
+
+        result_no_suffix = df.shift(periods=[0, 1])
+        expected_no_suffix = pd.DataFrame(
+            {
+                "price_0": pd.Series(dtype="int64"),
+                "volume_0": pd.Series(dtype="float64"),
+                "price_1": pd.Series(dtype="float64"),
+                "volume_1": pd.Series(dtype="float64"),
+            }
+        )
+        tm.assert_frame_equal(result_no_suffix, expected_no_suffix)
+
+        # Empty Series with multiple periods
+        s = pd.Series(dtype="int64", name="price")
+        result_s = s.shift(periods=[0, 1], suffix="_lag")
+        expected_s = pd.DataFrame(
+            {
+                "price_lag_0": pd.Series(dtype="int64"),
+                "price_lag_1": pd.Series(dtype="float64"),
+            }
+        )
+        tm.assert_frame_equal(result_s, expected_s)
