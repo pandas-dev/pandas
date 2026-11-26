@@ -1,6 +1,5 @@
 from datetime import datetime
 import re
-import time
 
 import numpy as np
 import pytest
@@ -11,6 +10,8 @@ import pandas.util._test_decorators as td
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.arrays import IntervalArray
+from pandas.core.internals import blocks as blocks_module
+from pandas.core.internals.blocks import missing
 
 
 class TestSeriesReplace:
@@ -918,7 +919,6 @@ def test_replace_regex_non_string_arrow_dtype(compile_pattern):
 def test_replace_many_keys_bulk_matches_per_pair(dtype, monkeypatch):
     # GH#6697 a large mapping used one full-length mask per key, so the cost
     #  grew with n_keys * len(ser).  The bulk path must agree with that loop.
-    from pandas.core.internals import blocks as blocks_module
 
     values = np.arange(400)
     ser = pd.Series(values.astype(dtype))
@@ -983,8 +983,6 @@ def test_replace_many_keys_bulk_scales_with_values_not_keys(monkeypatch):
     #  deterministic: a wall-clock ratio between two timings is not enough,
     #  because at a few thousand keys the fast path is dominated by fixed
     #  overhead and the ratio straddles any reasonable bound.
-    from pandas.core.internals import blocks as blocks_module
-    from pandas.core.internals.blocks import missing
 
     n = 10**4
     rng = np.random.default_rng(0)
@@ -1017,37 +1015,28 @@ def test_replace_many_keys_bulk_scales_with_values_not_keys(monkeypatch):
     assert bulk == 0
 
 
-@pytest.mark.slow
-def test_replace_many_keys_bulk_issue_shape():
-    # GH#6697 the shape the issue reports: 974757 rows and 70k keys.  This is
-    #  the test that fails on the per-pair loop and passes here, so it is what
-    #  proves the optimisation is real rather than the result merely being
-    #  right.
-    n = 974_757
-    n_keys = 70_000
-    rng = np.random.default_rng(0)
-    ser = pd.Series(rng.integers(0, n_keys * 4, size=n, dtype=np.int64))
-    mapping = {i: i + 1 for i in range(n_keys)}
+def test_replace_many_keys_bulk_float32_keys(monkeypatch):
+    # GH#6697 a Python float key that float32 cannot hold exactly is skipped,
+    # so the np.float32(0.1) key wins here just as it does in the per-pair loop.
+    ser = pd.Series(np.array([0.1, 0.2], dtype="float32"))
+    mapping = {
+        0.1: 1.0,
+        np.float32(0.1): 2.0,
+        **{1000.0 + i: 0.0 for i in range(6)},
+    }
 
-    tic = time.perf_counter()
+    monkeypatch.setattr(blocks_module, "_BULK_REPLACE_MIN_PAIRS", 10**9)
+    expected = ser.replace(mapping)
+
+    monkeypatch.setattr(blocks_module, "_BULK_REPLACE_MIN_PAIRS", 1)
     result = ser.replace(mapping)
-    elapsed = time.perf_counter() - tic
 
-    # a value the mapping does not cover is left alone
-    assert result.iloc[0] == mapping.get(int(ser.iloc[0]), int(ser.iloc[0]))
-    assert result.dtype == np.dtype("int64")
-    assert (result.to_numpy() != ser.to_numpy()).sum() > 0
-
-    # The per-pair loop needs one full-length mask per key, so at this shape it
-    # takes minutes; the single pass does not.  The bound is the issue's own
-    # scale rather than a microbenchmark, and it is what turns this test red if
-    # the fast path ever stops being taken.
-    assert elapsed < 10
+    tm.assert_series_equal(result, expected)
+    tm.assert_series_equal(result, pd.Series([2.0, 0.2], dtype="float32"))
 
 
 def test_replace_many_keys_bulk_inplace(monkeypatch):
     # GH#6697 inplace must keep the same result and the same array identity
-    from pandas.core.internals import blocks as blocks_module
 
     ser = pd.Series(np.arange(400, dtype=np.int64))
     mapping = {i: i + 1000 for i in range(0, 400, 2)}
