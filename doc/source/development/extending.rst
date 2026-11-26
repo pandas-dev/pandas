@@ -21,7 +21,7 @@ Libraries can use the decorators
 :func:`pandas.api.extensions.register_index_accessor`, to add additional
 "namespaces" to pandas objects. All of these follow a similar convention: you
 decorate a class, providing the name of attribute to add. The class's
-``__init__`` method gets the object being decorated. For example:
+``__init__`` method gets the object the attribute is accessed on. For example:
 
 .. code-block:: python
 
@@ -81,6 +81,27 @@ as a class attribute instead:
 
    class GeoDataFrame(pd.DataFrame):
        plot = pd.api.extensions.Accessor("plot", GeoPlotAccessor)
+
+The same assignment adds an accessor to classes that have no ``register_*_accessor``
+decorator, such as the groupby, resample and window classes in ``pandas.api.typing``.
+The accessor's ``__init__`` then receives the groupby, resample or window object:
+
+.. code-block:: python
+
+   class SpanAccessor:
+       def __init__(self, groupby):
+           self._groupby = groupby
+
+       def __call__(self):
+           return self._groupby.max() - self._groupby.min()
+
+   pd.api.typing.DataFrameGroupBy.span = pd.api.extensions.Accessor(
+       "span", SpanAccessor
+   )
+   df.groupby("key").span()
+
+Unlike the decorators, this assignment does not warn if it replaces an existing
+attribute.
 
 
 .. _extending.extension-types:
