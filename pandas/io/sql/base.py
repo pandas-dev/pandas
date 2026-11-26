@@ -656,6 +656,32 @@ class SQLTable(PandasObject):
                     # Convert tz-aware Datetime SQL columns to UTC
                     utc = col_type is DatetimeTZDtype
                     self.frame[col_name] = _handle_date_column(df_col, utc=utc)
+                elif (
+                    dtype_backend is not lib.no_default
+                    and len(df_col) == 0
+                    and is_object_dtype(df_col)
+                ):
+                    # With a dtype_backend there are no row values to infer
+                    # from when the table is empty, so derive the nullable
+                    # dtype from the reflected SQL column type (GH#72296).
+                    if col_type is np.dtype("int64") or col_type is bool:
+                        if dtype_backend == "pyarrow":
+                            target = (
+                                "bool[pyarrow]"
+                                if col_type is bool
+                                else "int64[pyarrow]"
+                            )
+                        else:
+                            target = "boolean" if col_type is bool else "Int64"
+                    elif col_type is float:
+                        target = (
+                            "double[pyarrow]"
+                            if dtype_backend == "pyarrow"
+                            else "Float64"
+                        )
+                    else:
+                        continue
+                    self.frame[col_name] = df_col.astype(target)
                 elif dtype_backend is lib.no_default and col_type is float:
                     # floats support NA, can always convert!
                     self.frame[col_name] = df_col.astype(col_type)

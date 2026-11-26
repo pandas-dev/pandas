@@ -4016,6 +4016,38 @@ def test_read_sql_dtype_backend_table(
             tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("conn", ["sqlite_engine"])
+@pytest.mark.parametrize(
+    "dtype_backend, expected_dtypes",
+    [
+        ("numpy_nullable", ["Int64", "Float64"]),
+        ("pyarrow", ["int64[pyarrow]", "double[pyarrow]"]),
+    ],
+)
+def test_read_sql_table_empty_dtype_backend(
+    conn, request, dtype_backend, expected_dtypes
+):
+    # GH#72296 dtype_backend must be honoured for an empty table
+    conn = request.getfixturevalue(conn)
+    table = "test_empty"
+    df = pd.DataFrame(
+        {
+            "a": pd.Series([], dtype="int64"),
+            "c": pd.Series([], dtype="float64"),
+        }
+    )
+    df.to_sql(name=table, con=conn, index=False, if_exists="replace")
+
+    result = sql.read_sql_table(table, conn, dtype_backend=dtype_backend)
+    expected = pd.DataFrame(
+        {
+            "a": pd.Series([], dtype=expected_dtypes[0]),
+            "c": pd.Series([], dtype=expected_dtypes[1]),
+        }
+    )
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize("conn", all_connectable)
 @pytest.mark.parametrize("func", ["read_sql", "read_sql_table", "read_sql_query"])
 def test_read_sql_invalid_dtype_backend_table(conn, request, func, dtype_backend_data):
