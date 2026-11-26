@@ -244,6 +244,83 @@ class TestConvertDtypes:
         expected = df.astype({"a": "string"})
         tm.assert_frame_equal(result, expected)
 
+    def test_convert_dtypes_pyarrow_list_struct(self):
+        # GH#65034
+        pa = pytest.importorskip("pyarrow")
+        df = pd.DataFrame(
+            {
+                "a": [[1, 2], [3], None],
+                "b": [{"x": 1}, {"x": 2}, None],
+            }
+        )
+        result = df.convert_dtypes(dtype_backend="pyarrow")
+        expected = pd.DataFrame(
+            {
+                "a": pd.array(
+                    [[1, 2], [3], None], dtype=pd.ArrowDtype(pa.list_(pa.int64()))
+                ),
+                "b": pd.array(
+                    [{"x": 1}, {"x": 2}, None],
+                    dtype=pd.ArrowDtype(pa.struct([("x", pa.int64())])),
+                ),
+            }
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_convert_dtypes_pyarrow_object_inference_scope(self):
+        # GH#65034 pyarrow inference applies only to object columns of
+        # lists/dicts; other object values and extension dtypes keep the
+        # previous behavior
+        pytest.importorskip("pyarrow")
+
+        ser = pd.Series(pd.period_range("2020", periods=3, freq="D"))
+        assert ser.convert_dtypes(dtype_backend="pyarrow").dtype == ser.dtype
+
+        ser = pd.Series(pd.interval_range(0, 3))
+        assert ser.convert_dtypes(dtype_backend="pyarrow").dtype == ser.dtype
+
+        vals = np.empty(2, dtype=object)
+        vals[:] = [
+            pd.Timestamp("2020-01-01", tz="UTC"),
+            pd.Timestamp("2020-01-01", tz="US/Eastern"),
+        ]
+        ser = pd.Series(vals, dtype=object)
+        result = ser.convert_dtypes(dtype_backend="pyarrow")
+        tm.assert_series_equal(result, ser)
+
+        vals = np.empty(2, dtype=object)
+        vals[:] = [2**70, 2**71]
+        ser = pd.Series(vals, dtype=object)
+        result = ser.convert_dtypes(dtype_backend="pyarrow")
+        tm.assert_series_equal(result, ser)
+
+    @pytest.mark.parametrize(
+        "data",
+        [
+            [
+                [pd.Timestamp("2020-01-01", tz="UTC")],
+                [pd.Timestamp("2020-01-01", tz="US/Eastern")],
+            ],
+            [
+                [pd.Timestamp("2020-01-01")],
+                [pd.Timestamp("2020-01-01", tz="US/Eastern")],
+            ],
+            [
+                [pd.Timestamp("2020-01-01", tz="US/Eastern")],
+                [pd.Timestamp("2020-01-01")],
+            ],
+            [[pd.Timestamp("2020-01-01 00:00:00.000000001")]],
+            [[pd.Timedelta(1)], [pd.Timedelta(2)]],
+            [{"a": pd.Timedelta(1)}],
+        ],
+    )
+    def test_convert_dtypes_pyarrow_nested_datetimelike_stays_object(self, data):
+        # GH#65034
+        pytest.importorskip("pyarrow")
+        ser = pd.Series(data)
+        result = ser.convert_dtypes(dtype_backend="pyarrow")
+        tm.assert_series_equal(result, ser)
+
     def test_convert_dtype_pyarrow_timezone_preserve(self):
         # GH 60237
         pytest.importorskip("pyarrow")
