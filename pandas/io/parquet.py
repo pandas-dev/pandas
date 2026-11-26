@@ -20,6 +20,7 @@ from pandas._config.config import _global_config as config
 
 from pandas._libs import lib
 from pandas.compat._optional import import_optional_dependency
+from pandas.compat.pyarrow import pa_version_under19p0
 from pandas.errors import (
     AbstractMethodError,
     Pandas4Warning,
@@ -28,7 +29,18 @@ from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import check_dtype_backend
 
-from pandas import DataFrame
+from pandas.core.dtypes.dtypes import (
+    CategoricalDtype,
+    IntervalDtype,
+    PeriodDtype,
+)
+
+from pandas import (
+    CategoricalIndex,
+    DataFrame,
+    Index,
+    MultiIndex,
+)
 
 from pandas.io._util import (
     arrow_table_to_pandas,
@@ -191,6 +203,57 @@ def _get_path_or_handle(
     return path_or_handle, handles, fs
 
 
+def _is_interval_or_period_categorical(dtype: object) -> bool:
+    return isinstance(dtype, CategoricalDtype) and isinstance(
+        dtype.categories.dtype, (IntervalDtype, PeriodDtype)
+    )
+
+
+def _decode_index(index: Index) -> Index:
+    if isinstance(index, MultiIndex):
+        if not any(
+            _is_interval_or_period_categorical(lev.dtype) for lev in index.levels
+        ):
+            return index
+        decoded = [
+            _decode_index(index.get_level_values(i)) for i in range(index.nlevels)
+        ]
+        return MultiIndex.from_arrays(decoded, names=index.names)
+    if isinstance(index, CategoricalIndex) and _is_interval_or_period_categorical(
+        index.dtype
+    ):
+        return index.categories.take(index.codes, allow_fill=True).rename(index.name)
+    return index
+
+
+def _decode_interval_period_categoricals(df: DataFrame) -> DataFrame:
+    """
+    Replace categoricals of Interval or Period categories by their values.
+
+    pyarrow cannot write a dictionary whose values are an extension type
+    (GH#62235), which is what such a categorical converts to, e.g. the result
+    of :func:`cut`. The intervals or periods are written instead, like other
+    non-string categoricals, which are not read back as categoricals either.
+    """
+    columns = [
+        i
+        for i, dtype in enumerate(df.dtypes)
+        if _is_interval_or_period_categorical(dtype)
+    ]
+    # pyarrow<19 does not read an Interval or Period index back, so keep the
+    #  index as it is there rather than write a file that cannot be read
+    index = df.index if pa_version_under19p0 else _decode_index(df.index)
+    if not columns and index is df.index:
+        return df
+
+    df = df.copy(deep=False)
+    for i in columns:
+        cat = df.iloc[:, i].array
+        df.isetitem(i, cat.categories.take(cat.codes, allow_fill=True).array)
+    df.index = index
+    return df
+
+
 class BaseImpl:
     @staticmethod
     def validate_dataframe(df: DataFrame) -> None:
@@ -233,6 +296,7 @@ class PyArrowImpl(BaseImpl):
         if index is not None:
             from_pandas_kwargs["preserve_index"] = index
 
+        df = _decode_interval_period_categoricals(df)
         with suppress_pyarrow_values_warning():
             table = self.api.Table.from_pandas(df, **from_pandas_kwargs)
 

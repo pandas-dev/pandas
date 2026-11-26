@@ -877,6 +877,111 @@ class TestParquetPyArrow(Base):
         expected["a"] = expected["a"].cat.set_categories(cats.astype("str"))
         check_round_trip(df, temp_file, pa, expected=expected)
 
+    def test_categorical_cut_result(self, pa, temp_file):
+        # GH#62235
+        ser = pd.Series(np.random.default_rng(2).standard_normal(100))
+        df = pd.DataFrame({"col": ser, "bins": pd.cut(ser, bins=10)})
+        original = df.copy()
+
+        # the intervals are written, not the categorical
+        expected = df.copy()
+        expected["bins"] = df["bins"].astype(df["bins"].cat.categories.dtype)
+        check_round_trip(df, temp_file, pa, expected=expected)
+
+        # the caller's DataFrame is not modified
+        tm.assert_frame_equal(df, original)
+        assert isinstance(df["bins"].dtype, pd.CategoricalDtype)
+
+    @pytest.mark.parametrize(
+        "categories",
+        [
+            pd.IntervalIndex.from_breaks([0, 1, 2, 3]),
+            pd.IntervalIndex.from_breaks(pd.date_range("2012-01-01", periods=4)),
+            pd.period_range("2012-01-01", periods=3, freq="D"),
+        ],
+        ids=["interval_int", "interval_datetime", "period"],
+    )
+    def test_categorical_interval_period_categories(self, pa, temp_file, categories):
+        # GH#62235 pyarrow cannot write a dictionary whose values are an
+        #  extension type, so the plain values are written instead
+        # includes a missing value, which upcasts integer intervals to float,
+        #  and an unobserved category
+        values = categories.take([0, -1, 2, 0], allow_fill=True)
+        df = pd.DataFrame(
+            {"a": pd.Categorical(values, categories=categories, ordered=True)}
+        )
+
+        expected = pd.DataFrame({"a": values})
+        check_round_trip(df, temp_file, pa, expected=expected)
+
+    @pytest.mark.skipif(
+        pa_version_under19p0, reason="pyarrow<19 does not read an interval index back"
+    )
+    @pytest.mark.parametrize(
+        "categories",
+        [
+            pd.IntervalIndex.from_breaks([0, 1, 2, 3]),
+            pd.period_range("2012-01-01", periods=3, freq="D"),
+        ],
+        ids=["interval", "period"],
+    )
+    def test_categorical_interval_period_categories_index(
+        self, pa, temp_file, categories
+    ):
+        # GH#62235 includes a missing value and a name
+        values = categories.take([0, -1, 2, 0], allow_fill=True).rename("c")
+        index = pd.CategoricalIndex(
+            pd.Categorical(values, categories=categories, ordered=True), name="c"
+        )
+        df = pd.DataFrame({"a": range(4)}, index=index)
+        original = df.copy()
+
+        expected = df.copy()
+        expected.index = values
+        check_round_trip(df, temp_file, pa, expected=expected)
+
+        # the caller's DataFrame and index are not modified
+        tm.assert_frame_equal(df, original)
+        assert isinstance(df.index, pd.CategoricalIndex)
+
+    @pytest.mark.skipif(
+        pa_version_under19p0, reason="pyarrow<19 does not read an interval index back"
+    )
+    def test_categorical_interval_index(self, pa, temp_file):
+        # GH#62235 e.g. the index of a groupby on the result of pd.cut
+        ser = pd.Series([0.5, 1.5, 2.5, 1.2])
+        df = ser.groupby(pd.cut(ser, [0, 1, 2, 3]), observed=False).sum().to_frame("a")
+        assert isinstance(df.index, pd.CategoricalIndex)
+
+        expected = df.copy()
+        expected.index = pd.IntervalIndex.from_breaks([0, 1, 2, 3])
+        check_round_trip(df, temp_file, pa, expected=expected)
+
+    @pytest.mark.skipif(
+        pa_version_under19p0, reason="pyarrow<19 does not read an interval index back"
+    )
+    def test_categorical_interval_multiindex(self, pa, temp_file):
+        # GH#62235 includes a missing value in the decoded level
+        intervals = pd.IntervalIndex.from_breaks([0, 1, 2, 3])
+        values = intervals.take([0, -1, 1], allow_fill=True)
+        mi = pd.MultiIndex.from_arrays(
+            [
+                pd.CategoricalIndex(pd.Categorical(values, categories=intervals)),
+                [1, 2, 3],
+            ],
+            names=["iv", "n"],
+        )
+        df = pd.DataFrame({"a": [1, 2, 3]}, index=mi)
+        original = df.copy()
+
+        expected = df.copy()
+        expected.index = pd.MultiIndex.from_arrays(
+            [values, [1, 2, 3]], names=["iv", "n"]
+        )
+        check_round_trip(df, temp_file, pa, expected=expected)
+
+        tm.assert_frame_equal(df, original)
+
     @pytest.mark.skipif(
         pa_version_under20p0, reason="pyarrow<20 reads dictionary indices as int32"
     )
