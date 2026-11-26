@@ -56,7 +56,10 @@ from pandas.core import (
     ops,
     roperator,
 )
-from pandas.core.algorithms import isin
+from pandas.core.algorithms import (
+    isin,
+    searchsorted_na_last,
+)
 from pandas.core.array_algos import masked_reductions
 from pandas.core.arrays.base import ExtensionArray
 from pandas.core.arrays.floating import (
@@ -1225,7 +1228,8 @@ class StringArray(BaseStringArray, NumpyExtensionArray):  # type: ignore[misc]
                 "searchsorted requires array to be sorted, which is impossible "
                 "with NAs present."
             )
-        return super().searchsorted(value=value, side=side, sorter=sorter)
+        search = partial(super().searchsorted, side=side, sorter=sorter)
+        return searchsorted_na_last(search, value, self.dtype, len(self))
 
     def _cmp_method(self, other, op):
         from pandas.arrays import (

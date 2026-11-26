@@ -36,6 +36,7 @@ from pandas.core.dtypes.missing import (
 )
 
 from pandas.core import (
+    algorithms,
     arraylike,
     missing,
     nanops,
@@ -198,9 +199,13 @@ class NumpyExtensionArray(
         side: Literal["left", "right"] = "left",
         sorter: NumpySorter | None = None,
     ) -> npt.NDArray[np.intp] | np.intp:
+        if self._ndarray.dtype.kind in "iufcb":
+            # handles NA search values
+            return algorithms.searchsorted(
+                self._ndarray, value, side=side, sorter=sorter
+            )
         # Parent's searchsorted calls _validate_setitem_value, which is
-        # too strict for search (e.g. rejects float into int). Delegate
-        # directly to numpy which handles cross-dtype searches correctly.
+        # too strict for search.
         return self._ndarray.searchsorted(value, side=side, sorter=sorter)  # type: ignore[arg-type]
 
     def _cast_pointwise_result(self, values) -> ArrayLike:

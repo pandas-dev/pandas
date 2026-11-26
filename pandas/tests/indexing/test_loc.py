@@ -3670,6 +3670,70 @@ def test_loc_with_positional_slice_raises():
         ser.loc[:3] = 2
 
 
+def _pyarrow_param(*args):
+    return pytest.param(*args, marks=td.skip_if_no("pyarrow"))
+
+
+@pytest.mark.parametrize(
+    "values, dtype, key",
+    [
+        ([1, 2, 3], "int64", pd.NA),
+        ([1, 2, 3], "Int64", pd.NA),
+        (["a", "b", "c"], "str", np.nan),
+        (["a", "b", "c"], "str", pd.NA),
+        (["a", "b", "c"], "str", pd.NaT),
+        (["a", "b", "c"], "string[python]", np.nan),
+        _pyarrow_param(["a", "b", "c"], "string[pyarrow]", pd.NaT),
+        _pyarrow_param([1, 2, 3], "int64[pyarrow]", np.timedelta64("NaT", "ns")),
+        _pyarrow_param(
+            pd.date_range("2016-01-01", periods=3), "timestamp[ns][pyarrow]", np.nan
+        ),
+        _pyarrow_param(
+            pd.timedelta_range("1D", periods=3), "duration[ns][pyarrow]", pd.NaT
+        ),
+        _pyarrow_param([time(1), time(2)], "time64[us][pyarrow]", np.nan),
+        _pyarrow_param([time(1), time(2)], "time64[us][pyarrow]", pd.NaT),
+        _pyarrow_param([b"a", b"b"], "binary[pyarrow]", np.nan),
+        _pyarrow_param([b"a", b"b"], "binary[pyarrow]", pd.NaT),
+    ],
+)
+def test_loc_slice_with_missing_label_raises(values, dtype, key):
+    # GH#30944 searchsorted places missing values last, slicing still raises
+    index = pd.Index(values, dtype=dtype)
+    ser = pd.Series(range(len(index)), index=index)
+
+    msg = "cannot do slice indexing on Index with these indexers"
+    with pytest.raises(TypeError, match=msg):
+        ser.loc[key:]
+    with pytest.raises(TypeError, match=msg):
+        ser.loc[:key]
+
+
+@pytest.mark.parametrize(
+    "values, dtype, key",
+    [
+        (pd.date_range("2016-01-01", periods=3), "M8[ns]", pd.NaT),
+        _pyarrow_param(
+            pd.date_range("2016-01-01", periods=3), "timestamp[ns][pyarrow]", pd.NaT
+        ),
+        _pyarrow_param([date(2016, 1, 1), date(2016, 1, 2)], "date32[pyarrow]", pd.NaT),
+        (pd.timedelta_range("1D", periods=3), "m8[ns]", np.timedelta64("NaT", "ns")),
+        _pyarrow_param(
+            pd.timedelta_range("1D", periods=3),
+            "duration[ns][pyarrow]",
+            np.timedelta64("NaT", "ns"),
+        ),
+    ],
+)
+def test_loc_slice_with_nat(values, dtype, key):
+    # GH#30944 NaT sorts last for pyarrow dtypes, as for numpy datetimelikes
+    index = pd.Index(values, dtype=dtype)
+    ser = pd.Series(range(len(index)), index=index)
+
+    tm.assert_series_equal(ser.loc[key:], ser.iloc[:0])
+    tm.assert_series_equal(ser.loc[:key], ser)
+
+
 def test_loc_slice_disallows_positional():
     # GH#16121, GH#24612, GH#31810
     dti = pd.date_range("2016-01-01", periods=3)

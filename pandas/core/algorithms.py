@@ -9,6 +9,7 @@ import decimal
 import operator
 from typing import (
     TYPE_CHECKING,
+    Any,
     Literal,
     TypeVar,
     cast,
@@ -24,7 +25,10 @@ from pandas._libs import (
     iNaT,
     lib,
 )
-from pandas._libs.missing import NA
+from pandas._libs.missing import (
+    NA,
+    checknull,
+)
 from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
 
@@ -48,6 +52,7 @@ from pandas.core.dtypes.common import (
     is_list_like,
     is_object_dtype,
     is_signed_integer_dtype,
+    is_string_dtype,
     needs_i8_conversion,
 )
 from pandas.core.dtypes.concat import concat_compat
@@ -65,6 +70,7 @@ from pandas.core.dtypes.generic import (
     ABCSeries,
 )
 from pandas.core.dtypes.missing import (
+    is_valid_na_for_dtype,
     isna,
     na_value_for_dtype,
 )
@@ -79,6 +85,8 @@ from pandas.core.construction import (
 from pandas.core.indexers import validate_indices
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from pandas._typing import (
         AnyArrayLike,
         ArrayLike,
@@ -1550,6 +1558,19 @@ def searchsorted(
     if sorter is not None:
         sorter = ensure_platform_int(sorter)
 
+    if isinstance(arr, np.ndarray) and arr.dtype.kind in "iufcb":
+        return searchsorted_na_last(
+            lambda val: _searchsorted(arr, val, side, sorter), value, arr.dtype, None
+        )
+    return _searchsorted(arr, value, side, sorter)
+
+
+def _searchsorted(
+    arr: ArrayLike,
+    value: NumpyValueArrayLike | ExtensionArray,
+    side: Literal["left", "right"],
+    sorter: NumpySorter | None,
+) -> npt.NDArray[np.intp] | np.intp:
     if (
         isinstance(arr, np.ndarray)
         and arr.dtype.kind in "iu"
@@ -1581,6 +1602,53 @@ def searchsorted(
     # Argument 1 to "searchsorted" of "ndarray" has incompatible type
     # "Union[NumpyValueArrayLike, ExtensionArray]"; expected "NumpyValueArrayLike"
     return arr.searchsorted(value, side=side, sorter=sorter)  # type: ignore[arg-type]
+
+
+def searchsorted_na_last(
+    search: Callable[[Any], npt.NDArray[np.intp] | np.intp],
+    value: Any,
+    dtype: DtypeObj,
+    na_position: int | None,
+) -> npt.NDArray[np.intp] | np.intp:
+    """
+    Call ``search(value)``, placing missing entries of ``value`` at ``na_position``.
+
+    numpy cannot compare pd.NA or None, so they are removed before searching.
+    ``na_position=None`` places them where ``search`` places NaN.
+    """
+
+    def is_missing(obj) -> bool:
+        # NaN is left to numpy for a float dtype, which may hold it as a value
+        return is_valid_na_for_dtype(obj, dtype) and not (
+            dtype.kind == "f" and is_float(obj)
+        )
+
+    if lib.is_scalar(value):
+        if checknull(value) and is_missing(value):
+            return search(np.nan) if na_position is None else np.intp(na_position)
+        return search(value)
+
+    value = extract_array(value, extract_numpy=True)
+    if not isinstance(value, (np.ndarray, ABCExtensionArray)):
+        # numpy would turn NaN into "nan" or infer float64 for a string dtype
+        value = np.asarray(value, dtype=object if is_string_dtype(dtype) else None)
+    if isinstance(value, np.ndarray) and value.dtype != object:
+        # leave NaN and NaT in a non-object ndarray to search
+        return search(value)
+    mask = np.asarray(isna(value), dtype=bool)
+    if mask.any():
+        mask[mask] = [is_missing(obj) for obj in value[mask]]
+    if not mask.any():
+        return search(value)
+
+    rest = value[~mask]
+    if rest.dtype == object:
+        # comparing e.g. floats as objects misplaces them around NaN
+        rest = lib.maybe_convert_objects(rest)
+    result = np.empty(mask.shape, dtype=np.intp)
+    result[mask] = search(np.nan) if na_position is None else na_position
+    result[~mask] = search(rest)
+    return result
 
 
 # ---- #

@@ -47,6 +47,7 @@ from pandas._libs.lib import (
 )
 from pandas._libs.missing import (
     NA,
+    checknull,
     is_matching_na,
 )
 from pandas._libs.tslibs import (
@@ -7381,7 +7382,7 @@ class Index(IndexOpsMixin, PandasObject):
             slc = self.get_loc(label)
         except KeyError:
             try:
-                return self._searchsorted_monotonic(label, side)
+                pos = self._searchsorted_monotonic(label, side)
             except ValueError:
                 if is_integer(original_label) or is_float(original_label):
                     if isinstance(self.dtype, CategoricalDtype):
@@ -7406,6 +7407,26 @@ class Index(IndexOpsMixin, PandasObject):
                     ) from err
                 # label is not comparable with the index values
                 self._raise_invalid_indexer("slice", original_label, err)
+
+            if checknull(label) and not isinstance(self.dtype, CategoricalDtype):
+                # searchsorted places missing values last (GH#30944), but NA and
+                # None are not valid slice bounds, and Arrow and string dtypes
+                # accept only the NaN or NaT that a numpy dtype of the same kind does
+                kind = self.dtype.kind
+                if (
+                    label is NA
+                    or label is None
+                    or (
+                        isinstance(self.dtype, (ArrowDtype, StringDtype))
+                        and not (
+                            (is_float(label) and kind in "iufb")
+                            or (label is NaT and kind == "M")
+                            or (isinstance(label, np.timedelta64) and kind == "m")
+                        )
+                    )
+                ):
+                    self._raise_invalid_indexer("slice", original_label)
+            return pos
 
         if isinstance(slc, np.ndarray):
             # get_loc may return a boolean array, which
