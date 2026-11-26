@@ -23,11 +23,16 @@ from pandas.core.dtypes.common import (
     is_string_dtype,
     pandas_dtype,
 )
+from pandas.core.dtypes.generic import (
+    ABCIndex,
+    ABCSeries,
+)
 
 from pandas.core.arrays.masked import (
     BaseMaskedArray,
     BaseMaskedDtype,
 )
+from pandas.core.construction import extract_array
 
 if TYPE_CHECKING:
     from collections.abc import (
@@ -149,6 +154,12 @@ def _coerce_to_data_and_mask(values, dtype, copy: bool, dtype_cls: type[NumericD
         dtype = dtype_cls._standardize_dtype(dtype)
 
     cls = dtype_cls().construct_array_type()
+    if isinstance(values, (ABCSeries, ABCIndex)):
+        arr = extract_array(values)
+        if isinstance(arr, cls):
+            # take the lossless path below instead of converting through float;
+            #  copy so the result doesn't share memory with the Series or Index
+            values, copy = arr, True
     if isinstance(values, cls):
         values, mask = values._data, values._mask
         if dtype is not None and values.dtype != dtype.numpy_dtype:
@@ -166,7 +177,9 @@ def _coerce_to_data_and_mask(values, dtype, copy: bool, dtype_cls: type[NumericD
             mask = mask.copy()
         return values, mask
 
-    original = values
+    # Unwrap Series/Index so the lossless-cast check below indexes by
+    #  position, not by label
+    original = extract_array(values, extract_numpy=True)
     if not copy:
         values = np.asarray(values)
     else:
