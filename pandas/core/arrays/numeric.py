@@ -23,6 +23,7 @@ from pandas.core.dtypes.common import (
     is_string_dtype,
     pandas_dtype,
 )
+from pandas.core.dtypes.generic import ABCSeries
 
 from pandas.core.arrays.masked import (
     BaseMaskedArray,
@@ -232,7 +233,12 @@ def _coerce_to_data_and_mask(values, dtype, copy: bool, dtype_cls: type[NumericD
             values = np.ones(values.shape, dtype=dtype)
         else:
             idx = np.nanargmax(values)
-            if int(values[idx]) != original[idx]:
+            # GH#62473: index positionally, not by label.
+            if isinstance(original, ABCSeries):
+                original_idx = original.iloc[idx]
+            else:
+                original_idx = original[idx]
+            if int(values[idx]) != original_idx:
                 # We have ints that lost precision during the cast.
                 inferred_type = lib.infer_dtype(original, skipna=True)
                 if (
