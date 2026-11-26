@@ -50,6 +50,33 @@ def _exact_x(dti, freq):
 
 
 class TestTSPlot:
+    @pytest.mark.parametrize("freq", ["10s", "D", "ME"])
+    @pytest.mark.parametrize("index_kind", ["datetime", "period"])
+    def test_empty_time_series_existing_axes(self, freq, index_kind, frame_or_series):
+        # GH#39705
+        index = date_range("2020-01-01", periods=3, freq=freq)
+        if index_kind == "period":
+            index = index.to_period()
+        data = frame_or_series(pd.Series([1.0, 2.0, 3.0], index=index, name="a"))
+        ax = data.plot()
+        line = ax.get_lines()[0]
+        xdata = line.get_xdata().copy()
+        ydata = line.get_ydata().copy()
+        xlim = ax.get_xlim()
+        ylim = ax.get_ylim()
+
+        result = data.iloc[:0].plot(ax=ax)
+
+        assert result is ax
+        assert ax.get_lines()[0] is line
+        tm.assert_numpy_array_equal(line.get_xdata(), xdata)
+        tm.assert_numpy_array_equal(line.get_ydata(), ydata)
+        tm.assert_almost_equal(ax.get_xlim(), xlim)
+        tm.assert_almost_equal(ax.get_ylim(), ylim)
+        assert len(ax.get_lines()) == 2
+        assert len(ax.get_lines()[1].get_xdata()) == 0
+        assert len(ax.get_lines()[1].get_ydata()) == 0
+
     def test_ts_plot_with_tz(self, tz_aware_fixture):
         # GH2877, GH17173, GH31205, GH31580
         tz = tz_aware_fixture
