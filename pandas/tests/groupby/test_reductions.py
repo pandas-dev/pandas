@@ -879,6 +879,22 @@ def test_multifunc_skipna(func, values, dtype, result_dtype, skipna):
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.high_memory
+@pytest.mark.skipif(np.intp().itemsize < 8, reason="requires 64-bit array lengths")
+@pytest.mark.parametrize("dtype", ["float64", "Float64"])
+@pytest.mark.parametrize("n", [2**31, 2**31 + 1])
+def test_median_large_group(dtype, n):
+    # Zero strides keep values and keys small, but grouping still needs >48 GiB.
+    values = np.broadcast_to(np.array([1.0]), (n,))
+    keys = np.broadcast_to(np.array([0], dtype="int64"), (n,))
+    series = pd.Series(values, dtype=dtype, copy=False)
+
+    result = series.groupby(keys).median()
+
+    expected = pd.Series([1.0], index=pd.Index([0], dtype="int64"), dtype=dtype)
+    tm.assert_series_equal(result, expected)
+
+
 def test_cython_median():
     arr = np.random.default_rng(2).standard_normal(1000)
     arr[::2] = np.nan
