@@ -1,10 +1,14 @@
 from datetime import datetime
+from itertools import pairwise
 import warnings
 
 import numpy as np
 import pytest
 
-from pandas.compat import is_platform_arm
+from pandas.compat import (
+    PYPY,
+    is_platform_arm,
+)
 from pandas.errors import Pandas4Warning
 
 from pandas.core.dtypes.dtypes import CategoricalDtype
@@ -194,6 +198,135 @@ def test_apply_axis1_masked_heterogeneous_dtypes():
     result = df.apply(lambda x: x.sum(), axis=1)
     expected = pd.Series([2.5, 4.5, 6.5])
     tm.assert_series_equal(result, expected)
+
+
+def _keep_row_frame(dtype):
+    # int64 and object go through the NumPy row path, Int64 the masked EA path
+    if dtype == "object":
+        data = {"a": ["x", "y", "z", "w"], "b": [1, "q", None, 2.5]}
+    else:
+        data = {"a": [1, 2, 3, 4], "b": [10, 20, 30, 40]}
+    return pd.DataFrame(data, index=[10, 11, 12, 13], dtype=dtype)
+
+
+@pytest.mark.parametrize("dtype", ["int64", "Int64", "object"])
+@pytest.mark.parametrize(
+    "keep, unwrap",
+    [
+        (lambda row: [row], lambda res: res[0]),
+        (lambda row: (row,), lambda res: res[0]),
+        (lambda row: {"r": row}, lambda res: res["r"]),
+    ],
+    ids=["list", "tuple", "dict"],
+)
+def test_apply_axis1_keeps_row_in_result(dtype, keep, unwrap):
+    # GH#54250 rows kept in the result must not all show the last row
+    df = _keep_row_frame(dtype)
+    result = df.apply(keep, axis=1)
+    assert len(result) == len(df)
+    for i in range(len(df)):
+        tm.assert_series_equal(unwrap(result.iloc[i]), df.iloc[i])
+
+
+@pytest.mark.parametrize("dtype", ["int64", "Int64", "object"])
+def test_apply_axis1_keeps_row_outside(dtype):
+    # GH#54250 rows stored outside func keep their own values
+    df = _keep_row_frame(dtype)
+    kept = []
+    df.apply(kept.append, axis=1)
+    assert len(kept) == len(df)
+    for i, row in enumerate(kept):
+        tm.assert_series_equal(row, df.iloc[i])
+
+
+@pytest.mark.parametrize("dtype", ["int64", "Int64", "object"])
+def test_apply_axis1_keeps_some_rows(dtype):
+    # GH#54250 keeping only some rows; kept rows and the result are both correct
+    df = _keep_row_frame(dtype)
+    kept = []
+
+    def func(row):
+        if row.name % 2 == 0:
+            kept.append(row)
+        return row.iloc[0]
+
+    result = df.apply(func, axis=1)
+    expected = df.apply(lambda row: row.iloc[0], axis=1)
+    tm.assert_series_equal(result, expected)
+    assert len(kept) == 2
+    tm.assert_series_equal(kept[0], df.iloc[0])
+    tm.assert_series_equal(kept[1], df.iloc[2])
+
+
+def test_apply_axis1_keeps_row_after_setitem():
+    # GH#54250 a row whose manager setitem replaced (GH#35462) and that func
+    # then kept stays intact
+    df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+    df_orig = df.copy()
+    kept = []
+
+    def func(row):
+        mgr = row._mgr
+        row.loc["a"] += 100
+        assert row._mgr is not mgr
+        kept.append(row)
+        return row.iloc[0]
+
+    result = df.apply(func, axis=1)
+    tm.assert_series_equal(result, pd.Series([101, 102, 103]))
+    for i, row in enumerate(kept):
+        expected = df_orig.iloc[i].copy()
+        expected.loc["a"] += 100
+        tm.assert_series_equal(row, expected)
+    tm.assert_frame_equal(df, df_orig)
+
+
+@pytest.mark.skipif(PYPY, reason="row reuse relies on CPython refcounting")
+@pytest.mark.parametrize("dtype", ["int64", "Int64"])
+def test_apply_axis1_reuses_row_when_not_kept(dtype):
+    # GH#54250 if func keeps nothing, one row object is still reused for all rows
+    df = _keep_row_frame(dtype)
+    ids = set()
+    df.apply(lambda row: ids.add(id(row)), axis=1)
+    assert len(ids) == 1
+
+
+@pytest.mark.parametrize("dtype", ["int64", "Int64", "object"])
+def test_apply_axis1_keeps_row_pypy(monkeypatch, dtype):
+    # GH#54250 on PyPy (PYPY) every row is a new object
+    monkeypatch.setattr("pandas.core.apply.PYPY", True)
+    df = _keep_row_frame(dtype)
+    result = df.apply(lambda row: [row], axis=1)
+    for i in range(len(df)):
+        tm.assert_series_equal(result.iloc[i][0], df.iloc[i])
+
+    # consecutive rows are alive at the same time, so their ids must differ
+    ids = []
+    df.apply(lambda row: ids.append(id(row)), axis=1)
+    assert len(ids) == len(df)
+    assert all(prev != cur for prev, cur in pairwise(ids))
+
+
+@pytest.mark.parametrize(
+    "data, dtype",
+    [
+        (["x", "y", "z"], "string"),
+        (["x", "y", "z"], "category"),
+        (["2020-01-01", "2020-01-02", "2020-01-03"], "datetime64[ns, UTC]"),
+        (["2020-01-01", "2020-01-02", "2020-01-03"], "period[D]"),
+        ([1, 2, 3], "int64[pyarrow]"),
+    ],
+)
+def test_apply_axis1_keeps_row_ea_dtypes(data, dtype):
+    # GH#54250 other extension dtypes go through the same EA row path
+    if "pyarrow" in dtype:
+        pytest.importorskip("pyarrow")
+    df = pd.DataFrame({"a": data, "b": data[::-1]}, index=[10, 11, 12], dtype=dtype)
+    kept = []
+    result = df.apply(lambda row: kept.append(row) or [row], axis=1)
+    for i in range(len(df)):
+        tm.assert_series_equal(result.iloc[i][0], df.iloc[i])
+        tm.assert_series_equal(kept[i], df.iloc[i])
 
 
 @pytest.mark.parametrize(
