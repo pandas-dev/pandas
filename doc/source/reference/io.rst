@@ -230,6 +230,15 @@ SQL
    read_sql
    DataFrame.to_sql
 
+.. currentmodule:: pandas.io.sql
+
+.. autosummary::
+   :toctree: api/
+
+   has_table
+
+.. currentmodule:: pandas
+
 STATA
 ~~~~~
 .. autosummary::
@@ -237,6 +246,14 @@ STATA
 
    read_stata
    DataFrame.to_stata
+
+.. currentmodule:: pandas.api.typing
+
+.. autosummary::
+   :toctree: api/
+
+   StataReader
+   StataReader.read
 
 .. currentmodule:: pandas.io.stata
 
@@ -246,4 +263,5 @@ STATA
    StataReader.data_label
    StataReader.value_labels
    StataReader.variable_labels
+   StataWriter
    StataWriter.write_file
