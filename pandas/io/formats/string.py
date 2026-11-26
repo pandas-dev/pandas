@@ -167,20 +167,20 @@ class StringFormatter:
             # is_truncated_horizontally remains False.
             return self.adj.adjoin(1, *strcols)
 
-        # Account for the " ..." separator column that will be inserted
-        # after horizontal truncation (GH#32461)
-        adj_dif += 4 + 1  # 4 chars for " ..." + 1 adjoin spacing
+        # Measure the same left/right groups that horizontal truncation keeps.
+        offset = int(self.fmt.index)
+        col_num = max((n_cols - offset - 1) // 2, 1)
+        # Start with the full width and remove the central column(s).
+        # Adding " ..." contributes four characters and one adjoining space.
+        kept_width = total_width + 5
+        for col_len in col_lens[offset + col_num : n_cols - col_num]:
+            kept_width -= col_len + 1
+        while kept_width >= width and col_num > 1:
+            kept_width -= col_lens[offset + col_num - 1] + col_lens[-col_num] + 2
+            col_num -= 1
 
-        while adj_dif > 0 and n_cols > 1:
-            mid = round(n_cols / 2)
-            # adjoin adds one
-            adj_dif -= col_lens.pop(mid) + 1
-            n_cols -= 1
-
-        # subtract index column
-        max_cols_fitted = n_cols - self.fmt.index
         # GH-21180. Ensure that we print at least two.
-        max_cols_fitted = max(max_cols_fitted, 2)
+        max_cols_fitted = 2 * col_num
         self.fmt.max_cols_fitted = max_cols_fitted
 
         # Reuse already-formatted columns instead of re-truncating and
