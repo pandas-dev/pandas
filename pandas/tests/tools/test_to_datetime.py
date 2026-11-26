@@ -56,6 +56,11 @@ PARSING_ERR_MSG = (
     r"alongside this."
 )
 
+
+class StrSubclass(str):
+    __slots__ = ()
+
+
 if PY314:
     NOT_99 = ", not 99"
     DAY_IS_OUT_OF_RANGE = (
@@ -3398,6 +3403,9 @@ class TestGuessDatetimeFormat:
             ["2011-12-30 00:00:00.000000", "random_string"],
             ["now", "2011-12-30 00:00:00.000000"],
             ["today", "2011-12-30 00:00:00.000000"],
+            # GH#71987 str subclasses
+            [np.str_("2011-12-30 00:00:00.000000")],
+            [np.nan, StrSubclass("2011-12-30 00:00:00.000000")],
         ],
     )
     def test_guess_datetime_format_for_array(self, test_list):
@@ -4740,6 +4748,57 @@ def test_to_datetime_lxml_elementunicoderesult_with_format(cache):
 
     out = pd.to_datetime(pd.Series([val]), format="%Y-%m-%d %H:%M:%S", cache=cache)
     assert out.iloc[0] == pd.Timestamp(s)
+
+
+@pytest.mark.parametrize("box", [str, np.str_, StrSubclass])
+def test_to_datetime_str_subclass_infers_format(box, cache):
+    # GH#71987 str subclasses such as np.str_ should go through format
+    # inference like str, instead of being parsed element-by-element
+    values = [box("12-01-2000"), box("13-01-2000")]
+    msg = 'time data "13-01-2000" doesn\'t match format "%m-%d-%Y"'
+    with pytest.raises(ValueError, match=re.escape(msg)):
+        pd.to_datetime(values, cache=cache)
+
+
+@pytest.mark.parametrize("box", [str, np.str_, StrSubclass])
+def test_to_datetime_str_subclass_infers_format_after_null(box, cache):
+    # GH#71987 the format is inferred from the first non-null element
+    values = [None, box("12-01-2000"), box("13-01-2000")]
+    msg = 'time data "13-01-2000" doesn\'t match format "%m-%d-%Y"'
+    with pytest.raises(ValueError, match=re.escape(msg)):
+        pd.to_datetime(values, cache=cache)
+
+
+@pytest.mark.parametrize("box", [str, np.str_, StrSubclass])
+def test_to_datetime_str_subclass_inference_independent_of_cache(box, cache):
+    # GH#71987 the result for str subclasses should not depend on whether
+    # the cache (which converts values to plain str) is used
+    values = [box("2000-01-01 00:00:00.5")] * 30 + [box("2000-01-01 00:00:00")] * 30
+    assert len(values) > start_caching_at
+    msg = 'time data "2000-01-01 00:00:00" doesn\'t match format'
+    with pytest.raises(ValueError, match=re.escape(msg)):
+        pd.to_datetime(values, cache=cache)
+
+
+@pytest.mark.parametrize("box", [np.str_, StrSubclass])
+def test_to_datetime_str_subclass_coerce_matches_str(box, cache):
+    # GH#71987 with errors="coerce", elements not matching the inferred
+    # format become NaT, like for str input
+    data = ["12-01-2000", "13-01-2000"]
+    result = pd.to_datetime([box(x) for x in data], errors="coerce", cache=cache)
+    expected = pd.to_datetime(data, errors="coerce", cache=cache)
+    tm.assert_index_equal(result, expected)
+    assert result[1] is pd.NaT
+
+
+@pytest.mark.parametrize("box", [str, np.str_, StrSubclass])
+def test_to_datetime_str_subclass_warns_if_format_not_inferred(box, cache):
+    # GH#71987
+    values = [box("foo"), box("2015-06-19 05:33:20")]
+    with tm.assert_produces_warning(UserWarning, match="Could not infer format"):
+        result = pd.to_datetime(values, errors="coerce", cache=cache)
+    assert result[0] is pd.NaT
+    assert result[1] == pd.Timestamp("2015-06-19 05:33:20")
 
 
 def test_to_datetime_missing_component_no_runtime_warning():
