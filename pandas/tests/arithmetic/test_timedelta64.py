@@ -1620,7 +1620,7 @@ class TestTimedeltaArraylikeMulDivOps:
     ):
         raw = np.arange(1, np.prod(left_shape) + 1).astype("timedelta64[ns]")
         if nat and raw.size:
-            raw[0] = np.timedelta64("NaT")
+            raw[0] = np.timedelta64("NaT", "ns")
         raw = raw.reshape(left_shape)
         values = pd.array(raw.ravel()).reshape(left_shape)
         factors = np.arange(1, np.prod(right_shape) + 1, dtype=dtype).reshape(
