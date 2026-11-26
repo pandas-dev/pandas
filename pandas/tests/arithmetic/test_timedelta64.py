@@ -1608,6 +1608,32 @@ class TestTimedeltaArraylikeAddSubOps:
 
 
 class TestTimedeltaArraylikeMulDivOps:
+    @pytest.mark.parametrize("dtype", ["int32", "int64"])
+    @pytest.mark.parametrize("reverse", [False, True])
+    @pytest.mark.parametrize("nat", [False, True])
+    @pytest.mark.parametrize(
+        "left_shape,right_shape",
+        [((2,), (2, 2)), ((2, 1), (2, 3)), ((1,), (1, 3)), ((0, 1), (0, 2))],
+    )
+    def test_td64arr_mul_integer_broadcast(
+        self, dtype, reverse, nat, left_shape, right_shape
+    ):
+        raw = np.arange(1, np.prod(left_shape) + 1).astype("timedelta64[ns]")
+        if nat and raw.size:
+            raw[0] = np.timedelta64("NaT", "ns")
+        raw = raw.reshape(left_shape)
+        values = pd.array(raw.ravel()).reshape(left_shape)
+        factors = np.arange(1, np.prod(right_shape) + 1, dtype=dtype).reshape(
+            right_shape
+        )
+
+        result = factors * values if reverse else values * factors
+
+        expected = raw * factors
+        result_shape = result.shape
+        assert result_shape == expected.shape
+        tm.assert_numpy_array_equal(result.asi8, expected.view("int64"))
+
     # Tests for timedelta64[ns]
     # __mul__, __rmul__, __div__, __rdiv__, __floordiv__, __rfloordiv__
 
