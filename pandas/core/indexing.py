@@ -1428,7 +1428,11 @@ class _LocationIndexer(_NDFrameIndexerBase):
     @final
     def __getitem__(self, key):
         check_dict_or_set_indexers(key)
-        if type(key) is tuple:
+        # GH#48188 accept tuple subclasses (e.g. namedtuples) for ``.iloc``,
+        # matching ``__setitem__`` which already uses ``isinstance``; ``.loc``
+        # keeps the stricter ``type is tuple`` check because tuple values are
+        # valid single labels in a ``MultiIndex``.
+        if type(key) is tuple or (self.name == "iloc" and isinstance(key, tuple)):
             key = (list(x) if is_iterator(x) else x for x in key)
             key = tuple(com.apply_if_callable(x, self.obj) for x in key)
             if self._is_scalar_access(key):

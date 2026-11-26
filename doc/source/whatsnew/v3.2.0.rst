@@ -324,6 +324,7 @@ Indexing
 - Bug in :meth:`DataFrame.isetitem` with several positions silently corrupting the :class:`DataFrame`, or dropping columns of ``value``, when an arraylike ``value`` did not have one column per position; it now raises ``ValueError`` (:issue:`68445`)
 - Bug in :meth:`DataFrame.loc` and :meth:`DataFrame.at` setitem with a new row label leaving the new row in the :class:`DataFrame`, and upcasting its columns, when the assignment raised (:issue:`15490`)
 - Bug in :meth:`DataFrame.loc` and :meth:`DataFrame.at` setitem with a single row label adding a new column from a list-like value raising or setting the wrong value (:issue:`30649`)
+- Bug in :meth:`DataFrame.iloc` and :meth:`Series.iloc` raising ``TypeError`` when the key was a :class:`~collections.namedtuple` (or other tuple subclass), where ``.iloc[...] = value`` already worked (:issue:`48188`)
 - Bug in :meth:`DataFrame.loc` and :meth:`DataFrame.iloc` raising an exception when assigning values using zero-dimensional NumPy array indexers (:issue:`70256`)
 - Bug in :meth:`DataFrame.loc` and :meth:`DataFrame.iloc` raising or flattening a 2D value (e.g. a list of lists) set into a single ``object`` cell of a mixed-dtype :class:`DataFrame` (:issue:`69152`)
 - Bug in :meth:`DataFrame.loc` and :meth:`DataFrame.iloc` setitem on a 1-column :class:`DataFrame` with an extension dtype raising when the column key is an all-``False`` boolean mask or an empty list-like (:issue:`70232`)
