@@ -429,6 +429,22 @@ def test_apply_broadcast_series_lambda_func(int_frame_const_col):
     tm.assert_frame_equal(result, expected)
 
 
+def test_apply_broadcast_extension_frame():
+    # GH#22791 the results need not fit the columns' NumPy dtype
+    df = pd.DataFrame(
+        {"a": pd.array([1, None], dtype="Int64"), "b": pd.array([3, 4], dtype="Int64")}
+    )
+    result = df.apply(lambda x: x / 2, result_type="broadcast")
+    expected = pd.DataFrame({"a": [0.5, pd.NA], "b": [1.5, 2.0]}, dtype=object)
+    tm.assert_frame_equal(result, expected)
+
+    # a single column's values were already numeric, so they stay numeric
+    df = df[["b"]]
+    result = df.apply(lambda x: x, result_type="broadcast")
+    expected = pd.DataFrame({"b": [3, 4]})
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize("axis", [0, 1])
 def test_apply_raw_float_frame(float_frame, axis, engine):
     if engine == "numba":
