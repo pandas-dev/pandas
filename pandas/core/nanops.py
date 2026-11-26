@@ -2177,6 +2177,58 @@ def _pearson_corr(a: np.ndarray, b: np.ndarray) -> float:
     return np.float64(min(max(result, -1.0), 1.0))
 
 
+def finite_corr_matrix(mat: np.ndarray, min_periods: int | None = None) -> np.ndarray:
+    """
+    Pearson correlation between the columns of an all-finite 2D float64 array.
+
+    Without missing values every pair of columns uses all rows, so the pairwise
+    computation reduces to a single matrix product, which BLAS evaluates quickly.
+
+    Parameters
+    ----------
+    mat : np.ndarray[float64, ndim=2]
+    min_periods : int or None, default None
+        Every entry is NaN if ``mat`` has fewer rows than this.
+
+    Returns
+    -------
+    np.ndarray[float64, ndim=2]
+    """
+    nobs, ncols = mat.shape
+    if nobs < 2 or (min_periods is not None and nobs < min_periods):
+        return np.full((ncols, ncols), np.nan)
+
+    # F-order because it is faster on tall frames
+    centered = np.array(mat, order="F")
+
+    # a column whose sum overflows comes out all-NaN
+    with np.errstate(all="ignore"):
+        # twice because the first mean rounds, which can dominate nearly-constant data
+        centered -= centered.mean(axis=0)
+        centered -= centered.mean(axis=0)
+
+        high = centered.max(axis=0)
+        low = centered.min(axis=0)
+        constant = high == low
+        # so that ssq * ssq cannot overflow or underflow
+        scale = np.maximum(high, -low)
+        scale[constant] = 1.0
+        centered /= scale
+
+        correl = np.dot(centered.T, centered)
+
+        ssq = np.diag(correl).copy()
+        # row blocks bound the scratch memory; dividing by sqrt(ssq_i * ssq_j)
+        # keeps the result symmetric and the diagonal exactly 1
+        for start in range(0, ncols, 256):
+            rows = slice(start, start + 256)
+            correl[rows] /= np.sqrt(np.outer(ssq[rows], ssq))
+
+    correl[constant, :] = np.nan
+    correl[:, constant] = np.nan
+    return np.clip(correl, -1.0, 1.0, out=correl)
+
+
 @disallow("M8", "m8")
 def nancov(
     a: np.ndarray,
