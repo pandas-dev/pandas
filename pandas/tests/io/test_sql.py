@@ -1000,13 +1000,15 @@ adbc_connectable_types = [
 ]
 
 
-all_connectable = [*sqlalchemy_connectable, "sqlite_buildin", *adbc_connectable]
+# Every connection but the ADBC ones, for what ADBC drivers do not implement;
+# the test_adbc_*_not_implemented tests check the errors they raise instead
+no_adbc_connectable = [*sqlalchemy_connectable, "sqlite_buildin"]
 
-all_connectable_iris = [
-    *sqlalchemy_connectable_iris,
-    "sqlite_buildin_iris",
-    *adbc_connectable_iris,
-]
+no_adbc_connectable_iris = [*sqlalchemy_connectable_iris, "sqlite_buildin_iris"]
+
+all_connectable = [*no_adbc_connectable, *adbc_connectable]
+
+all_connectable_iris = [*no_adbc_connectable_iris, *adbc_connectable_iris]
 
 all_connectable_types = [
     *sqlalchemy_connectable_types,
@@ -1097,12 +1099,10 @@ def test_dataframe_to_sql_arrow_dtypes_missing(conn, request, nulls_fixture):
 @pytest.mark.parametrize("method", [None, "multi"])
 def test_to_sql(conn, method, test_frame1, request):
     if method == "multi" and "adbc" in conn:
-        request.node.add_marker(
-            pytest.mark.xfail(
-                reason="'method' not implemented for ADBC drivers", strict=True
-            )
+        pytest.skip(
+            "'method' not implemented for ADBC drivers, "
+            "see test_adbc_to_sql_not_implemented"
         )
-
     conn = request.getfixturevalue(conn)
     with pandasSQL_builder(conn, need_transaction=True) as pandasSQL:
         pandasSQL.to_sql(test_frame1, "test_frame", method=method)
@@ -1147,15 +1147,8 @@ def test_read_iris_query(conn, request):
     assert "SepalWidth" in iris_frame.columns
 
 
-@pytest.mark.parametrize("conn", all_connectable_iris)
+@pytest.mark.parametrize("conn", no_adbc_connectable_iris)
 def test_read_iris_query_chunksize(conn, request):
-    if "adbc" in conn:
-        request.node.add_marker(
-            pytest.mark.xfail(
-                reason="'chunksize' not implemented for ADBC drivers",
-                strict=True,
-            )
-        )
     conn = request.getfixturevalue(conn)
     iris_frame = pd.concat(read_sql_query("SELECT * FROM iris", conn, chunksize=7))
     check_iris_frame(iris_frame)
@@ -1178,13 +1171,6 @@ def test_read_sql_query_chunksize_consumed_in_other_thread(sqlite_str_iris):
 
 @pytest.mark.parametrize("conn", sqlalchemy_connectable_iris)
 def test_read_iris_query_expression_with_parameter(conn, request):
-    if "adbc" in conn:
-        request.node.add_marker(
-            pytest.mark.xfail(
-                reason="'chunksize' not implemented for ADBC drivers",
-                strict=True,
-            )
-        )
     conn = request.getfixturevalue(conn)
     from sqlalchemy import (
         MetaData,
@@ -1204,16 +1190,8 @@ def test_read_iris_query_expression_with_parameter(conn, request):
         autoload_con.dispose()
 
 
-@pytest.mark.parametrize("conn", all_connectable_iris)
+@pytest.mark.parametrize("conn", no_adbc_connectable_iris)
 def test_read_iris_query_string_with_parameter(conn, request, sql_strings):
-    if "adbc" in conn:
-        request.node.add_marker(
-            pytest.mark.xfail(
-                reason="'chunksize' not implemented for ADBC drivers",
-                strict=True,
-            )
-        )
-
     for db, query in sql_strings["read_parameters"].items():
         if db in conn:
             break
@@ -1236,10 +1214,6 @@ def test_read_iris_table(conn, request):
 
 @pytest.mark.parametrize("conn", sqlalchemy_connectable_iris)
 def test_read_iris_table_chunksize(conn, request):
-    if "adbc" in conn:
-        request.node.add_marker(
-            pytest.mark.xfail(reason="chunksize argument NotImplemented with ADBC")
-        )
     conn = request.getfixturevalue(conn)
     iris_frame = pd.concat(read_sql_table("iris", conn, chunksize=7))
     check_iris_frame(iris_frame)
@@ -1265,16 +1239,11 @@ def test_to_sql_callable(conn, test_frame1, request):
     assert count_rows(conn, "test_frame") == len(test_frame1)
 
 
-@pytest.mark.parametrize("conn", all_connectable_types)
+@pytest.mark.parametrize(
+    "conn", [*sqlalchemy_connectable_types, *adbc_connectable_types]
+)
 def test_default_type_conversion(conn, request):
     conn_name = conn
-    if conn_name == "sqlite_buildin_types":
-        request.applymarker(
-            pytest.mark.xfail(
-                reason="sqlite_buildin connection does not implement read_sql_table"
-            )
-        )
-
     conn = request.getfixturevalue(conn)
     df = sql.read_sql_table("types", conn)
 
@@ -1431,15 +1400,14 @@ def test_insertion_method_on_conflict_do_nothing(conn, request):
         pandasSQL.drop_table("test_insert_conflict")
 
 
-@pytest.mark.parametrize("conn", all_connectable)
+@pytest.mark.parametrize(
+    "conn",
+    [
+        *postgresql_connectable,
+        pytest.param("postgresql_adbc_conn", marks=pytest.mark.db),
+    ],
+)
 def test_to_sql_on_public_schema(conn, request):
-    if "sqlite" in conn or "mysql" in conn:
-        request.applymarker(
-            pytest.mark.xfail(
-                reason="test for public schema only specific to postgresql"
-            )
-        )
-
     conn = request.getfixturevalue(conn)
 
     test_data = pd.DataFrame([[1, 2.1, "a"], [2, 3.1, "b"]], columns=list("abc"))
@@ -1594,15 +1562,8 @@ def flavor(conn_name):
     raise ValueError(f"unsupported connection: {conn_name}")
 
 
-@pytest.mark.parametrize("conn", all_connectable_iris)
+@pytest.mark.parametrize("conn", no_adbc_connectable_iris)
 def test_read_sql_iris_parameter(conn, request, sql_strings):
-    if "adbc" in conn:
-        request.node.add_marker(
-            pytest.mark.xfail(
-                reason="'params' not implemented for ADBC drivers",
-                strict=True,
-            )
-        )
     conn_name = conn
     conn = request.getfixturevalue(conn)
     query = sql_strings["read_parameters"][flavor(conn_name)]
@@ -1671,16 +1632,8 @@ def test_read_sql_escaped_percent_without_params(conn, request):
     assert result.iloc[0, 0] == expected
 
 
-@pytest.mark.parametrize("conn", all_connectable_iris)
+@pytest.mark.parametrize("conn", no_adbc_connectable_iris)
 def test_read_sql_iris_named_parameter(conn, request, sql_strings):
-    if "adbc" in conn:
-        request.node.add_marker(
-            pytest.mark.xfail(
-                reason="'params' not implemented for ADBC drivers",
-                strict=True,
-            )
-        )
-
     conn_name = conn
     conn = request.getfixturevalue(conn)
     query = sql_strings["read_named_parameters"][flavor(conn_name)]
@@ -1715,12 +1668,8 @@ def test_api_read_sql_view(conn, request):
     check_iris_frame(iris_frame)
 
 
-@pytest.mark.parametrize("conn", all_connectable_iris)
+@pytest.mark.parametrize("conn", no_adbc_connectable_iris)
 def test_api_read_sql_with_chunksize_no_result(conn, request):
-    if "adbc" in conn:
-        request.node.add_marker(
-            pytest.mark.xfail(reason="chunksize argument NotImplemented with ADBC")
-        )
     conn = request.getfixturevalue(conn)
     query = 'SELECT * FROM iris_view WHERE "SepalLength" < 0.0'
     with_batch = sql.read_sql_query(query, conn, chunksize=5)
@@ -1836,12 +1785,8 @@ def test_api_roundtrip(conn, request, test_frame1):
     tm.assert_frame_equal(result, test_frame1)
 
 
-@pytest.mark.parametrize("conn", all_connectable)
+@pytest.mark.parametrize("conn", no_adbc_connectable)
 def test_api_roundtrip_chunksize(conn, request, test_frame1):
-    if "adbc" in conn:
-        request.node.add_marker(
-            pytest.mark.xfail(reason="chunksize argument NotImplemented with ADBC")
-        )
     conn = request.getfixturevalue(conn)
     if sql.has_table("test_frame_roundtrip", conn):
         with sql.SQLDatabase(conn, need_transaction=True) as pandasSQL:
@@ -1985,7 +1930,10 @@ def test_api_custom_dateparsing_error(
     conn = request.getfixturevalue(conn)
     if text == "types" and conn_name == "sqlite_buildin_types":
         request.applymarker(
-            pytest.mark.xfail(reason="failing combination of arguments")
+            pytest.mark.xfail(
+                raises=(NotImplementedError, pd.errors.DatabaseError),
+                reason="a sqlite3 connection cannot read a table by its name",
+            )
         )
 
     expected = types_data_frame.astype({"DateCol": "datetime64[us]"})
@@ -2112,8 +2060,17 @@ def test_api_complex_raises(conn, request):
 )
 def test_api_to_sql_index_label(conn, request, index_name, index_label, expected):
     if "adbc" in conn:
+        if index_label:
+            raises = NotImplementedError
+        else:
+            # pyarrow warns about an index name that is not a string
+            raises = (AssertionError, UserWarning)
         request.node.add_marker(
-            pytest.mark.xfail(reason="index_label argument NotImplemented with ADBC")
+            pytest.mark.xfail(
+                raises=raises,
+                reason="ADBC does not implement index_label and writes the index "
+                "after the columns, as __index_level_0__ when it has no name",
+            )
         )
     conn = request.getfixturevalue(conn)
     if sql.has_table("test_index_label", conn):
@@ -2137,7 +2094,11 @@ def test_api_to_sql_index_label_multiindex(conn, request):
         )
     elif "adbc" in conn_name:
         request.node.add_marker(
-            pytest.mark.xfail(reason="index_label argument NotImplemented with ADBC")
+            pytest.mark.xfail(
+                raises=AssertionError,
+                reason="ADBC writes the index after the columns, as "
+                "__index_level_0__ and __index_level_1__ when it has no names",
+            )
         )
 
     conn = request.getfixturevalue(conn)
@@ -2259,44 +2220,23 @@ def test_api_integer_col_names(conn, request):
     sql.to_sql(df, "test_frame_integer_col_names", conn, if_exists="replace")
 
 
-@pytest.mark.parametrize("conn", all_connectable)
+@pytest.mark.parametrize("conn", no_adbc_connectable)
 def test_api_get_schema(conn, request, test_frame1):
-    if "adbc" in conn:
-        request.node.add_marker(
-            pytest.mark.xfail(
-                reason="'get_schema' not implemented for ADBC drivers",
-                strict=True,
-            )
-        )
     conn = request.getfixturevalue(conn)
     create_sql = sql.get_schema(test_frame1, "test", con=conn)
     assert "CREATE" in create_sql
 
 
-@pytest.mark.parametrize("conn", all_connectable)
+@pytest.mark.parametrize("conn", no_adbc_connectable)
 def test_api_get_schema_with_schema(conn, request, test_frame1):
     # GH28486
-    if "adbc" in conn:
-        request.node.add_marker(
-            pytest.mark.xfail(
-                reason="'get_schema' not implemented for ADBC drivers",
-                strict=True,
-            )
-        )
     conn = request.getfixturevalue(conn)
     create_sql = sql.get_schema(test_frame1, "test", con=conn, schema="pypi")
     assert "CREATE TABLE pypi." in create_sql
 
 
-@pytest.mark.parametrize("conn", all_connectable)
+@pytest.mark.parametrize("conn", no_adbc_connectable)
 def test_api_get_schema_dtypes(conn, request):
-    if "adbc" in conn:
-        request.node.add_marker(
-            pytest.mark.xfail(
-                reason="'get_schema' not implemented for ADBC drivers",
-                strict=True,
-            )
-        )
     conn_name = conn
     conn = request.getfixturevalue(conn)
     float_frame = pd.DataFrame({"a": [1.1, 1.2], "b": [2.1, 2.2]})
@@ -2312,15 +2252,8 @@ def test_api_get_schema_dtypes(conn, request):
     assert "INTEGER" in create_sql
 
 
-@pytest.mark.parametrize("conn", all_connectable)
+@pytest.mark.parametrize("conn", no_adbc_connectable)
 def test_api_get_schema_keys(conn, request, test_frame1):
-    if "adbc" in conn:
-        request.node.add_marker(
-            pytest.mark.xfail(
-                reason="'get_schema' not implemented for ADBC drivers",
-                strict=True,
-            )
-        )
     conn_name = conn
     conn = request.getfixturevalue(conn)
     frame = pd.DataFrame({"Col1": [1.1, 1.2], "Col2": [2.1, 2.2]})
@@ -2341,12 +2274,8 @@ def test_api_get_schema_keys(conn, request, test_frame1):
     assert constraint_sentence in create_sql
 
 
-@pytest.mark.parametrize("conn", all_connectable)
+@pytest.mark.parametrize("conn", no_adbc_connectable)
 def test_api_chunksize_read(conn, request):
-    if "adbc" in conn:
-        request.node.add_marker(
-            pytest.mark.xfail(reason="chunksize argument NotImplemented with ADBC")
-        )
     conn_name = conn
     conn = request.getfixturevalue(conn)
     if sql.has_table("test_chunksize", conn):
@@ -2432,7 +2361,10 @@ def test_api_unicode_column_name(conn, request):
 def test_api_to_sql_column_name_special_characters(conn, method, request):
     # GH#8762 psycopg2 raised KeyError on parentheses in a column name
     if method == "multi" and "adbc" in conn:
-        pytest.skip("'method' not implemented for ADBC drivers, see test_to_sql")
+        pytest.skip(
+            "'method' not implemented for ADBC drivers, "
+            "see test_adbc_to_sql_not_implemented"
+        )
     conn = request.getfixturevalue(conn)
     df = pd.DataFrame(
         [[1, 2, 3, 4], [5, 6, 7, 8]],
@@ -2470,14 +2402,10 @@ def test_api_escaped_table_name(conn, request):
     tm.assert_frame_equal(res, df)
 
 
-@pytest.mark.parametrize("conn", all_connectable)
+@pytest.mark.parametrize("conn", [*sqlalchemy_connectable, *adbc_connectable])
 def test_api_table_name_quoted(conn, request):
     # GH#65065 ADBCDatabase did not escape SQL identifiers in
     # delete_rows, read_table, and to_sql (DROP TABLE path)
-    conn_name = conn
-    if conn_name == "sqlite_buildin":
-        pytest.skip("sqlite_buildin connection does not implement read_sql_table")
-
     conn = request.getfixturevalue(conn)
 
     tricky_name = "my table"
@@ -2513,13 +2441,9 @@ def test_api_read_sql_duplicate_columns(conn, request):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("conn", all_connectable)
+@pytest.mark.parametrize("conn", [*sqlalchemy_connectable, *adbc_connectable])
 def test_read_table_columns(conn, request, test_frame1):
     # test columns argument in read_table
-    conn_name = conn
-    if conn_name == "sqlite_buildin":
-        request.applymarker(pytest.mark.xfail(reason="Not Implemented"))
-
     conn = request.getfixturevalue(conn)
     sql.to_sql(test_frame1, "test_frame", conn)
 
@@ -2529,13 +2453,9 @@ def test_read_table_columns(conn, request, test_frame1):
     assert result.columns.tolist() == cols
 
 
-@pytest.mark.parametrize("conn", all_connectable)
+@pytest.mark.parametrize("conn", [*sqlalchemy_connectable, *adbc_connectable])
 def test_read_table_index_col(conn, request, test_frame1):
     # test columns argument in read_table
-    conn_name = conn
-    if conn_name == "sqlite_buildin":
-        request.applymarker(pytest.mark.xfail(reason="Not Implemented"))
-
     conn = request.getfixturevalue(conn)
     sql.to_sql(test_frame1, "test_frame", conn)
 
@@ -2552,15 +2472,10 @@ def test_read_table_index_col(conn, request, test_frame1):
     assert result.columns.tolist() == ["C", "D"]
 
 
-@pytest.mark.parametrize("conn", all_connectable_iris)
+@pytest.mark.parametrize("conn", [*sqlalchemy_connectable_iris, *adbc_connectable_iris])
 def test_read_sql_delegate(conn, request):
-    if conn == "sqlite_buildin_iris":
-        request.applymarker(
-            pytest.mark.xfail(
-                reason="sqlite_buildin connection does not implement read_sql_table"
-            )
-        )
-
+    # test_sqlite_read_sql_delegate and test_sqlite_read_sql_table_not_implemented
+    # have the sqlite3 connection
     conn = request.getfixturevalue(conn)
     iris_frame1 = sql.read_sql_query("SELECT * FROM iris", conn)
     iris_frame2 = sql.read_sql("SELECT * FROM iris", conn)
@@ -2781,13 +2696,9 @@ def test_query_by_select_obj(conn, request):
     assert all_names == {"Iris-setosa"}
 
 
-@pytest.mark.parametrize("conn", all_connectable)
+@pytest.mark.parametrize("conn", [*sqlalchemy_connectable, *adbc_connectable])
 def test_column_with_percentage(conn, request):
     # GH 37157
-    conn_name = conn
-    if conn_name == "sqlite_buildin":
-        request.applymarker(pytest.mark.xfail(reason="Not Implemented"))
-
     conn = request.getfixturevalue(conn)
     df = pd.DataFrame({"A": [0, 1, 2], "%_variation": [3, 4, 5]})
     df.to_sql(name="test_column_percentage", con=conn, index=False)
@@ -2830,6 +2741,12 @@ def test_sqlite_read_sql_delegate(sqlite_buildin_iris):
     msg = "Execution failed on sql 'iris': near \"iris\": syntax error"
     with pytest.raises(sql.DatabaseError, match=msg):
         sql.read_sql("iris", conn)
+
+
+def test_sqlite_read_sql_table_not_implemented(sqlite_buildin_iris):
+    msg = "read_sql_table not supported for a DBAPI connection"
+    with pytest.raises(NotImplementedError, match=msg):
+        sql.read_sql_table("iris", sqlite_buildin_iris)
 
 
 def test_get_schema2(test_frame1):
@@ -3850,13 +3767,11 @@ def test_temporary_table(conn, request):
     tm.assert_frame_equal(df, expected)
 
 
-@pytest.mark.parametrize("conn", all_connectable)
+@pytest.mark.parametrize("conn", no_adbc_connectable)
 def test_invalid_engine(conn, request, test_frame1):
-    if conn == "sqlite_buildin" or "adbc" in conn:
+    if conn == "sqlite_buildin":
         request.applymarker(
-            pytest.mark.xfail(
-                reason="SQLiteDatabase/ADBCDatabase does not raise for bad engine"
-            )
+            pytest.mark.xfail(reason="SQLiteDatabase does not raise for bad engine")
         )
 
     conn = request.getfixturevalue(conn)
@@ -3950,11 +3865,24 @@ def test_read_sql_dtype_backend(
 
     tm.assert_frame_equal(result, expected)
 
-    if "adbc" in conn_name:
-        # adbc does not support chunksize argument
-        request.applymarker(
-            pytest.mark.xfail(reason="adbc does not support chunksize argument")
-        )
+
+@pytest.mark.parametrize("conn", no_adbc_connectable)
+@pytest.mark.parametrize("func", ["read_sql", "read_sql_query"])
+def test_read_sql_dtype_backend_chunksize(
+    conn,
+    request,
+    string_storage,
+    func,
+    dtype_backend,
+    dtype_backend_data,
+    dtype_backend_expected,
+):
+    # GH#50048
+    conn_name = conn
+    conn = request.getfixturevalue(conn)
+    table = "test"
+    df = dtype_backend_data
+    df.to_sql(name=table, con=conn, index=False, if_exists="replace")
 
     with pd.option_context("mode.string_storage", string_storage):
         iterator = getattr(pd, func)(
@@ -3968,7 +3896,7 @@ def test_read_sql_dtype_backend(
             tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("conn", all_connectable)
+@pytest.mark.parametrize("conn", [*sqlalchemy_connectable, *adbc_connectable])
 @pytest.mark.parametrize("func", ["read_sql", "read_sql_table"])
 def test_read_sql_dtype_backend_table(
     conn,
@@ -4093,13 +4021,9 @@ def dtype_backend_expected():
     return func
 
 
-@pytest.mark.parametrize("conn", all_connectable)
+@pytest.mark.parametrize("conn", no_adbc_connectable)
 def test_chunksize_empty_dtypes(conn, request):
     # GH#50245
-    if "adbc" in conn:
-        request.node.add_marker(
-            pytest.mark.xfail(reason="chunksize argument NotImplemented with ADBC")
-        )
     conn = request.getfixturevalue(conn)
     dtypes = {"a": "int64", "b": "object"}
     df = pd.DataFrame(columns=["a", "b"]).astype(dtypes)
@@ -4323,6 +4247,60 @@ def test_read_sql_query_driver_objects_not_stringified(
     conn.execute("INSERT INTO test VALUES (?)", ('{"hello": ["4", "5"], "hi": 6}',))
     result = read_sql_query("SELECT * FROM test", conn, dtype_backend=dtype_backend)
     assert result["a"].tolist() == [{"hello": ["4", "5"], "hi": 6}]
+
+
+@pytest.mark.parametrize("conn", adbc_connectable)
+@pytest.mark.parametrize(
+    "kwargs, msg",
+    [
+        ({"index_label": "idx"}, "'index_label' is not implemented for ADBC drivers"),
+        ({"chunksize": 2}, "'chunksize' is not implemented for ADBC drivers"),
+        ({"dtype": {"A": "TEXT"}}, "'dtype' is not implemented for ADBC drivers"),
+        ({"method": "multi"}, "'method' is not implemented for ADBC drivers"),
+        ({"engine": "sqlalchemy"}, "engine != 'auto' not implemented for ADBC drivers"),
+    ],
+)
+def test_adbc_to_sql_not_implemented(conn, request, test_frame1, kwargs, msg):
+    conn = request.getfixturevalue(conn)
+    with pytest.raises(NotImplementedError, match=msg):
+        sql.to_sql(test_frame1, "test_frame", conn, **kwargs)
+    assert not sql.has_table("test_frame", conn)
+
+
+@pytest.mark.parametrize("conn", adbc_connectable_iris)
+@pytest.mark.parametrize(
+    "kwargs, msg",
+    [
+        ({"coerce_float": False}, "'coerce_float' is not implemented for ADBC drivers"),
+        ({"params": ("Iris-setosa",)}, "'params' is not implemented for ADBC drivers"),
+        ({"chunksize": 7}, "'chunksize' is not implemented for ADBC drivers"),
+    ],
+)
+def test_adbc_read_sql_query_not_implemented(conn, request, kwargs, msg):
+    conn = request.getfixturevalue(conn)
+    with pytest.raises(NotImplementedError, match=msg):
+        read_sql_query("SELECT * FROM iris", conn, **kwargs)
+
+
+@pytest.mark.parametrize("conn", adbc_connectable_iris)
+@pytest.mark.parametrize(
+    "kwargs, msg",
+    [
+        ({"coerce_float": False}, "'coerce_float' is not implemented for ADBC drivers"),
+        ({"chunksize": 7}, "'chunksize' is not implemented for ADBC drivers"),
+    ],
+)
+def test_adbc_read_sql_table_not_implemented(conn, request, kwargs, msg):
+    conn = request.getfixturevalue(conn)
+    with pytest.raises(NotImplementedError, match=msg):
+        read_sql_table("iris", conn, **kwargs)
+
+
+@pytest.mark.parametrize("conn", adbc_connectable)
+def test_adbc_get_schema_not_implemented(conn, request, test_frame1):
+    conn = request.getfixturevalue(conn)
+    with pytest.raises(NotImplementedError, match="not implemented for adbc"):
+        sql.get_schema(test_frame1, "test", con=conn)
 
 
 @pytest.mark.db
