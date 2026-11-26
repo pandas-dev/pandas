@@ -19,6 +19,7 @@ from warnings import (
 from pandas._config.config import _global_config as config
 
 from pandas._libs import lib
+from pandas._libs.tslibs import to_offset
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import (
     AbstractMethodError,
@@ -28,7 +29,11 @@ from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import check_dtype_backend
 
-from pandas import DataFrame
+from pandas import (
+    DataFrame,
+    DatetimeIndex,
+    TimedeltaIndex,
+)
 
 from pandas.io._util import (
     arrow_table_to_pandas,
@@ -191,6 +196,22 @@ def _get_path_or_handle(
     return path_or_handle, handles, fs
 
 
+def _roundtrippable_freqstr(index: DatetimeIndex | TimedeltaIndex) -> str | None:
+    """
+    Return the index's freqstr if it parses back to an equal offset, else None.
+
+    This excludes e.g. ``DateOffset(months=1)`` or offsets with holidays.
+    """
+    freq = index.freq
+    if freq is None:
+        return None
+    try:
+        roundtrips = to_offset(freq.freqstr) == freq
+    except ValueError:
+        return None
+    return freq.freqstr if roundtrips else None
+
+
 class BaseImpl:
     @staticmethod
     def validate_dataframe(df: DataFrame) -> None:
@@ -236,8 +257,14 @@ class PyArrowImpl(BaseImpl):
         with suppress_pyarrow_values_warning():
             table = self.api.Table.from_pandas(df, **from_pandas_kwargs)
 
+        df_metadata: dict[str, str] = {}
         if df.attrs:
-            df_metadata = {"PANDAS_ATTRS": json.dumps(df.attrs)}
+            df_metadata["PANDAS_ATTRS"] = json.dumps(df.attrs)
+        if index is not False and isinstance(df.index, (DatetimeIndex, TimedeltaIndex)):
+            freqstr = _roundtrippable_freqstr(df.index)
+            if freqstr is not None:
+                df_metadata["PANDAS_INDEX_FREQ"] = freqstr
+        if df_metadata:
             existing_metadata = table.schema.metadata
             merged_metadata = {**existing_metadata, **df_metadata}
             table = table.replace_schema_metadata(merged_metadata)
@@ -314,10 +341,9 @@ class PyArrowImpl(BaseImpl):
                 **kwargs,
             )
 
-            df_metadata = None
-            if pa_table.schema.metadata:
-                if b"PANDAS_ATTRS" in pa_table.schema.metadata:
-                    df_metadata = pa_table.schema.metadata[b"PANDAS_ATTRS"]
+            schema_metadata = pa_table.schema.metadata or {}
+            df_metadata = schema_metadata.get(b"PANDAS_ATTRS")
+            index_freq = schema_metadata.get(b"PANDAS_INDEX_FREQ")
 
             with catch_warnings():
                 filterwarnings(
@@ -333,6 +359,14 @@ class PyArrowImpl(BaseImpl):
 
             if df_metadata is not None:
                 result.attrs = json.loads(df_metadata)
+            if index_freq is not None and isinstance(
+                result.index, (DatetimeIndex, TimedeltaIndex)
+            ):
+                try:
+                    result.index = result.index.set_freq(index_freq.decode())
+                except ValueError:
+                    # values no longer match freq, e.g. rows filtered on read (GH#41543)
+                    pass
             return result
         finally:
             if handles is not None:
