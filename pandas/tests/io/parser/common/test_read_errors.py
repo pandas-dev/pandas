@@ -8,6 +8,7 @@ import csv
 from io import StringIO
 from pathlib import Path
 
+import numpy as np
 import pytest
 
 from pandas.errors import (
@@ -316,6 +317,103 @@ def test_index_col_false_single_data_row_with_names(all_parsers):
     # GH#2442 - a trailing delimiter is truncated, not treated as a bad line
     result = parser.read_csv(StringIO("a,b\n1,2,\n"), **kwargs)
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("on_bad_lines", ["warn", "skip"])
+@pytest.mark.parametrize(
+    "data, kwargs, line",
+    [
+        ("a,b,c\n0,1,2,3,4\n5,6,7\n8,9,10,11\n12,13,14\n", {}, 2),
+        (
+            "a,b,c\n0,1,2,3,4\n5,6,7\n8,9,10,11\n12,13,14\n",
+            {"names": ["a", "b", "c"], "header": 0},
+            2,
+        ),
+        (
+            "0,1,2,3,4\n5,6,7\n8,9,10,11\n12,13,14\n",
+            {"names": ["a", "b", "c"], "header": None},
+            1,
+        ),
+    ],
+)
+def test_wide_first_row_is_bad_line(
+    all_parsers, request, on_bad_lines, data, kwargs, line
+):
+    # GH#47490 - the next row has the header's width, so the wide first row is a
+    # bad line rather than the start of an implicit index; later rows are then
+    # measured against the header
+    parser = all_parsers
+    msg = f"Skipping line {line}"
+    if parser.engine == "pyarrow":
+        if kwargs.get("header", "infer") is None:
+            request.applymarker(
+                pytest.mark.xfail(reason="pyarrow takes the width from the first row")
+            )
+        msg = "Expected 3 columns, but found 5"
+    expected = pd.DataFrame({"a": [5, 12], "b": [6, 13], "c": [7, 14]})
+
+    warn = ParserWarning if on_bad_lines == "warn" else None
+    with tm.assert_produces_warning(
+        warn, match=msg if warn else None, check_stacklevel=False
+    ):
+        result = parser.read_csv(StringIO(data), on_bad_lines=on_bad_lines, **kwargs)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_wide_first_row_is_bad_line_index_col(all_parsers):
+    # GH#47490 - an explicit index_col is taken from the remaining rows
+    parser = all_parsers
+    data = "a,b,c\n0,1,2,3,4\n5,6,7\n8,9,10\n"
+    result = parser.read_csv(StringIO(data), on_bad_lines="skip", index_col="b")
+    expected = pd.DataFrame(
+        {"a": [5, 8], "c": [7, 10]}, index=pd.Index([6, 9], name="b")
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@xfail_pyarrow  # the wider rows are dropped as bad lines
+@pytest.mark.parametrize(
+    "data, kwargs, index, values",
+    [
+        ("a,b\nx,1,2\ny,3,4\n", {}, ["x", "y"], [[1, 2], [3, 4]]),
+        ("a,b\nx,1,2\n", {}, ["x"], [[1, 2]]),
+        # the row after the first is itself a bad line
+        ("a,b\nx,1,2\ny,3,4,5\nz,6\n", {}, ["x", "z"], [[1, 2], [6, np.nan]]),
+        (
+            "a,b\nx,1,2\ny,3,4\nz,5\n",
+            {"names": ["a", "b"], "header": 0},
+            ["x", "y", "z"],
+            [[1, 2], [3, 4], [5, np.nan]],
+        ),
+        # usecols is excluded from the rule
+        (
+            "a,b,c\nx,0,1,2\ny,5,6\n",
+            {"usecols": ["a", "b"]},
+            ["x", "y"],
+            [[0, 1], [5, 6]],
+        ),
+    ],
+)
+def test_wide_first_row_implicit_index_with_on_bad_lines(
+    all_parsers, data, kwargs, index, values
+):
+    # GH#47490 - the row after the first is not the header's width, so the extra
+    # field is still an implicit index
+    parser = all_parsers
+    result = parser.read_csv(StringIO(data), on_bad_lines="skip", **kwargs)
+    expected = pd.DataFrame(values, columns=["a", "b"], index=index)
+    tm.assert_frame_equal(result, expected)
+
+
+@skip_pyarrow  # ValueError: MultiIndex columns are not supported
+def test_wide_first_row_mi_columns_with_on_bad_lines(all_parsers):
+    # GH#47490 - MultiIndex columns are excluded from the rule
+    parser = all_parsers
+    data = "a,b\nc,d\ni,\nx,1,2\ny,3\n"
+    result = parser.read_csv(
+        StringIO(data), header=[0, 1], index_col=0, on_bad_lines="skip"
+    )
+    assert list(result.index) == ["x", "y"]
 
 
 @skip_pyarrow  # AttributeError: 'bool' object has no attribute 'copy'

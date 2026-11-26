@@ -182,6 +182,11 @@ typedef struct parser_t {
   // straight out of line_fields, which the boundary throws away.
   int64_t prev_line_fields;
 
+  // Raw field count (before padding or bad-line handling) of the first line
+  // ended after this is set to -1; skiprows lines don't count.
+  // See TextReader._skip_wide_first_row (GH#47490).
+  int64_t lookahead_fields;
+
   // Message storage, kept last so every other field keeps its offset.
   // error_msg points into error_buf (or is NULL) and is never freed.  Warnings
   // get their own buffer so formatting one can never rewrite a pending error
