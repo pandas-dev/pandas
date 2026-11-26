@@ -185,3 +185,12 @@ class TestTranspose:
             # When dtypes are unequal, we get NumPy object array
             data = blk.values._data if dtype1 == dtype2 else blk.values
             assert data.flags["F_CONTIGUOUS"]
+
+
+def test_transpose_empty_frame_preserves_dtype():
+    # GH#44336
+    df = pd.DataFrame({"x": pd.to_datetime([])})
+    tm.assert_frame_equal(df.T.T, df)
+
+    df = pd.DataFrame({"x": np.array([], dtype="int64")})
+    tm.assert_frame_equal(df.T.T, df)
