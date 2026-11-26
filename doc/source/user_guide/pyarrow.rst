@@ -111,6 +111,22 @@ To convert a :external+pyarrow:py:class:`pyarrow.Table` to a :class:`DataFrame`,
    df
    df.dtypes
 
+When starting from a :external+pyarrow:py:class:`pyarrow.Array` or
+:external+pyarrow:py:class:`pyarrow.ChunkedArray`, wrap it in
+:class:`arrays.ArrowExtensionArray` to preserve Arrow types and use
+``pyarrow.compute`` functions within pandas. Alternatively, call
+``to_pandas()`` to convert to pandas' default NumPy-based types.
+Integer arrays containing nulls are converted to ``float64``.
+
+.. ipython:: python
+
+   arr = pa.array([1, 2, None])
+
+   # Converted to the default NumPy-based type system
+   arr.to_pandas()
+
+   # Stays in the Arrow type system
+   pd.Series(pd.arrays.ArrowExtensionArray(arr))
 
 Operations
 ----------
