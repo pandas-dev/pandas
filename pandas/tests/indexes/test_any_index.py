@@ -161,6 +161,17 @@ class TestConversion:
         assert ser.index is not index
         assert ser.name != index.name
 
+    @pytest.mark.parametrize("flag", [True, False, np.True_, np.False_])
+    def test_to_series_index_bool(self, index, flag):
+        # GH#34351
+        result = index.to_series(index=flag)
+
+        expected = index.to_series()
+        if not flag:
+            expected = expected.reset_index(drop=True)
+        tm.assert_series_equal(result, expected, check_index_type=True)
+        assert result._values is not index._values
+
     def test_tolist_matches_list(self, index):
         assert index.tolist() == list(index)
 
