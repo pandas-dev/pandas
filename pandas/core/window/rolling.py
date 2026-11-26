@@ -1871,6 +1871,7 @@ class RollingAndExpandingMixin(BaseWindow):
             method=method,
             ascending=ascending,
             percentile=pct,
+            step=self.step or 1,
         )
 
         return self._apply(window_func, name="rank", numeric_only=numeric_only)

@@ -103,6 +103,7 @@ def roll_rank(
     percentile: bool,
     method: WindowingRankType,
     ascending: bool,
+    step: int = ...,
 ) -> np.ndarray: ...  # np.ndarray[float]
 def roll_nunique(
     values: np.ndarray,  # const float64_t[:]
