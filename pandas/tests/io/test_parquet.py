@@ -243,6 +243,15 @@ def check_partition_names(path, expected):
     assert dataset.partitioning.schema.names == expected
 
 
+@pytest.mark.parametrize("storage_options", [None, {"token": "anon"}])
+@pytest.mark.parametrize("path", [["file.parquet"], ["gs://bucket/file.parquet"]])
+def test_read_parquet_list_path(engine, path, storage_options):
+    # GH#62922
+    msg = "path must be a string, path object or file-like object, not list"
+    with pytest.raises(TypeError, match=msg):
+        read_parquet(path, engine=engine, storage_options=storage_options)
+
+
 def test_invalid_engine(df_compat, temp_file):
     msg = "engine must be one of 'pyarrow', 'fastparquet'"
     with pytest.raises(ValueError, match=msg):
