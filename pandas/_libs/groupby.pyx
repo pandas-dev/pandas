@@ -73,12 +73,12 @@ cdef enum InterpolationEnumType:
 
 cdef float64_t median_linear_mask(
     float64_t* a,
-    int n,
+    Py_ssize_t n,
     uint8_t* mask,
     bint skipna=True
 ) noexcept nogil:
     cdef:
-        int i, j, na_count = 0
+        Py_ssize_t i, j, na_count = 0
         float64_t* tmp
         float64_t result
 
@@ -117,12 +117,12 @@ cdef float64_t median_linear_mask(
 
 cdef float64_t median_linear(
     float64_t* a,
-    int n,
+    Py_ssize_t n,
     bint is_datetimelike=False,
     bint skipna=True,
 ) noexcept nogil:
     cdef:
-        int i, j, na_count = 0
+        Py_ssize_t i, j, na_count = 0
         float64_t* tmp
         float64_t result
 
@@ -170,7 +170,7 @@ cdef float64_t median_linear(
     return result
 
 
-cdef float64_t calc_median_linear(float64_t* a, int n) noexcept nogil:
+cdef float64_t calc_median_linear(float64_t* a, Py_ssize_t n) noexcept nogil:
     cdef:
         float64_t result
 
