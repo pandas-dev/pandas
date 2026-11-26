@@ -1781,6 +1781,7 @@ class DataFrame(NDFrame, OpsMixin):
            c   2  4
         """
         index: list[Hashable] | Index | None = None
+        check_list_like = False
         if not isinstance(data, dict):
             warnings.warn(
                 f"Passing a {type(data).__name__} to DataFrame.from_dict is "
@@ -1802,6 +1803,7 @@ class DataFrame(NDFrame, OpsMixin):
                     # error: Incompatible types in assignment (expression has type
                     # "List[Any]", variable has type "Dict[Any, Any]")
                     data = list(data.values())  # type: ignore[assignment]
+                    check_list_like = not is_list_like(data[0])
         elif orient in ("columns", "tight"):
             if columns is not None:
                 raise ValueError(f"cannot use columns parameter with orient='{orient}'")
@@ -1823,7 +1825,26 @@ class DataFrame(NDFrame, OpsMixin):
             )
 
         if orient != "tight":
-            return cls(data, index=index, columns=columns, dtype=dtype)
+            result = cls(data, index=index, columns=columns, dtype=dtype)
+            if (
+                check_list_like
+                # a list-like value forces object dtype unless dtype is given
+                and (dtype is not None or result._mgr.get_dtypes()[0] == object)
+                and any(map(is_list_like, data))
+            ):
+                # GH#31041 a scalar after a list-like raises or is
+                #  deprecated, so this order should raise too
+                warnings.warn(
+                    "Constructing a DataFrame with orient='index' and a "
+                    "list-like value after a scalar value is deprecated "
+                    "and will raise in a future version. Each value is "
+                    "currently stored as a single element of a "
+                    "one-column DataFrame; use Series.to_frame to build "
+                    "one explicitly.",
+                    Pandas4Warning,
+                    stacklevel=find_stack_level(),
+                )
+            return result
         else:
             realdata = data["data"]
 

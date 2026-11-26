@@ -258,6 +258,56 @@ class TestFromDict:
         with pytest.raises(TypeError, match=msg):
             pd.DataFrame.from_dict({"a": [1, 2, 3], "b": 1.5}, orient="index")
 
+    @pytest.mark.parametrize(
+        "first", ["B", 5, np.nan, None], ids=["str", "int", "nan", "None"]
+    )
+    @pytest.mark.parametrize(
+        "later",
+        [
+            ["A1", "A2"],
+            ("A1", "A2"),
+            np.array(["A1", "A2"]),
+            pd.Series(["A1", "A2"]),
+            {0: "A1", 1: "A2"},
+        ],
+        ids=["list", "tuple", "ndarray", "Series", "dict"],
+    )
+    def test_from_dict_orient_index_scalar_then_list_like_deprecated(
+        self, first, later
+    ):
+        # GH#31041 the list-like value is held as one element instead of
+        #  being a row, as it is when it comes first
+        data = {"b": first, "a": later, "c": first}
+        msg = "list-like value after a scalar value is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = pd.DataFrame.from_dict(data, orient="index")
+        expected = pd.Series(data).to_frame()
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
+        "later", ["A", b"A", np.array(1)], ids=["str", "bytes", "0d"]
+    )
+    def test_from_dict_orient_index_scalar_then_scalar_no_warning(self, later):
+        # GH#31041 str, bytes and 0-d arrays are not list-like rows
+        with tm.assert_produces_warning(None):
+            result = pd.DataFrame.from_dict({"b": 5, "a": later}, orient="index")
+        assert result.shape == (2, 1)
+
+    @pytest.mark.parametrize("dtype", ["string", "arrow_list"])
+    def test_from_dict_orient_index_scalar_then_list_like_dtype(self, dtype):
+        # GH#31041 warns even when dtype gives a non-object column
+        if dtype == "string":
+            dtype = pd.StringDtype(na_value=np.nan)
+        else:
+            pa = pytest.importorskip("pyarrow")
+            dtype = pd.ArrowDtype(pa.list_(pa.int64()))
+        data = {"b": None, "a": [1, 2]}
+        msg = "list-like value after a scalar value is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = pd.DataFrame.from_dict(data, orient="index", dtype=dtype)
+        expected = pd.Series(data, dtype=dtype).to_frame()
+        tm.assert_frame_equal(result, expected)
+
     def test_from_dict_orient_invalid(self):
         msg = (
             "Expected 'index', 'columns' or 'tight' for orient parameter. "
