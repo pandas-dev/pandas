@@ -584,11 +584,11 @@ class TestDataFrameShift:
         # GH#31971
         ser = pd.Series([pd.Timestamp("2020-01-01"), pd.Timestamp("2020-01-02")])
 
-        with pytest.raises(TypeError, match="value should be a"):
+        with pytest.raises(TypeError, match="Value should be a"):
             ser.shift(1, fill_value=0)
 
         df = ser.to_frame()
-        with pytest.raises(TypeError, match="value should be a"):
+        with pytest.raises(TypeError, match="Value should be a"):
             df.shift(1, fill_value=0)
 
         # axis = 1

@@ -108,11 +108,14 @@ def test_none_to_nan(cls, dtype):
 def test_setitem_validates(cls, dtype):
     arr = cls._from_sequence(["a", "b"], dtype=dtype)
 
-    msg = "Invalid value '10' for dtype 'str"
+    # GH#60218 name the array's own dtype, "string" for the NA variants
+    msg = f"Invalid value '10' for dtype '{dtype}'"
     with pytest.raises(TypeError, match=msg):
         arr[0] = 10
+    with pytest.raises(TypeError, match=msg):
+        arr.insert(0, 10)
 
-    msg = "Invalid value for dtype 'str"
+    msg = f"Invalid value for dtype '{dtype}'"
     with pytest.raises(TypeError, match=msg):
         arr[:] = np.array([1, 2])
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 import operator
 from operator import (
     le,
@@ -18,7 +19,10 @@ import warnings
 
 import numpy as np
 
-from pandas._libs import lib
+from pandas._libs import (
+    lib,
+    missing as libmissing,
+)
 from pandas._libs.interval import (
     VALID_CLOSED,
     Interval,
@@ -43,6 +47,10 @@ from pandas.compat.numpy import function as nv
 from pandas.errors import (
     IntCastingNaNError,
     Pandas4Warning,
+)
+from pandas.errors.messages import (
+    INVALID_SETITEM_LISTLIKE,
+    INVALID_SETITEM_VALUE,
 )
 from pandas.util._decorators import set_module
 from pandas.util._exceptions import find_stack_level
@@ -1189,7 +1197,11 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             value_left, value_right = array.left, array.right
         except TypeError as err:
             # wrong type: not interval or NA
-            msg = f"'value' should be an interval type, got {type(value)} instead."
+            msg = INVALID_SETITEM_LISTLIKE.format(dtype=self.dtype)
+            msg = (
+                f"{msg}. Value should be an 'Interval' or missing value "
+                "(or array of those)."
+            )
             raise TypeError(msg) from err
 
         mask = array.isna()
@@ -1204,10 +1216,23 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         try:
             self.left._validate_fill_value(value_left)
         except (LossySetitemError, TypeError) as err:
-            msg = (
-                "'value' should be a compatible interval type, "
-                f"got {type(value)} instead."
-            )
+            nan_only = False
+            if mask.any() and is_integer_dtype(self.dtype.subtype):
+                # missing entries upcast array.dtype, so reporting it would mislead
+                #  when they are the only problem
+                try:
+                    self.left._validate_fill_value(np.asarray(value_left[~mask]))
+                    nan_only = True
+                except (LossySetitemError, TypeError):
+                    pass
+            if nan_only:
+                msg = "Cannot set float NaN to integer-backed IntervalArray"
+            else:
+                msg = INVALID_SETITEM_LISTLIKE.format(dtype=self.dtype)
+                msg = (
+                    f"{msg}. Value should be intervals with a compatible subtype, "
+                    f"got '{array.dtype}' instead."
+                )
             raise TypeError(msg) from err
 
         return value_left, value_right
@@ -1216,16 +1241,35 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         if isinstance(value, Interval):
             self._check_closed_matches(value, name="value")
             left, right = value.left, value.right
-            self.left._validate_fill_value(left)
-            self.left._validate_fill_value(right)
+            for endpoint in (left, right):
+                try:
+                    self.left._validate_fill_value(endpoint)
+                except TypeError as err:
+                    if self.dtype.subtype.kind == "M" and isinstance(
+                        endpoint, datetime
+                    ):
+                        # tz-awareness mismatch; keep the more specific message
+                        raise
+                    msg = INVALID_SETITEM_VALUE.format(value=value, dtype=self.dtype)
+                    msg = (
+                        f"{msg}. Value should be an 'Interval' with a compatible "
+                        f"subtype, got endpoint '{endpoint!s}' instead."
+                    )
+                    raise TypeError(msg) from err
         elif is_valid_na_for_dtype(value, self.dtype) or is_valid_na_for_dtype(
             value, self.left.dtype
         ):
             # GH#18295
             left = right = self.left._na_value
         else:
+            if libmissing.checknull(value):
+                # a wrong-kind NA prints as e.g. 'NaT', contradicting the hint below
+                msg = INVALID_SETITEM_LISTLIKE.format(dtype=self.dtype)
+            else:
+                msg = INVALID_SETITEM_VALUE.format(value=value, dtype=self.dtype)
             raise TypeError(
-                "can only insert Interval objects and NA into an IntervalArray"
+                f"{msg}. Value should be an 'Interval' or missing value, "
+                f"got '{type(value).__name__}' instead."
             )
         return left, right
 

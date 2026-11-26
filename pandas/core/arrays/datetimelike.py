@@ -27,6 +27,7 @@ from pandas._libs import (
     algos,
     groupby as libgroupby,
     lib,
+    missing as libmissing,
 )
 from pandas._libs.tslibs import (
     BaseOffset,
@@ -76,6 +77,10 @@ from pandas.errors import (
     InvalidComparison,
     Pandas4Warning,
     PerformanceWarning,
+)
+from pandas.errors.messages import (
+    INVALID_SETITEM_LISTLIKE,
+    INVALID_SETITEM_VALUE,
 )
 from pandas.util._decorators import (
     cache_readonly,
@@ -598,20 +603,20 @@ class DatetimeLikeArrayMixin(OpsMixin, NDArrayBackedExtensionArray):
         str
         """
         if hasattr(value, "dtype") and getattr(value, "ndim", 0) > 0:
+            prefix = INVALID_SETITEM_LISTLIKE.format(dtype=self.dtype)
             msg_got = f"{value.dtype} array"
         else:
+            if libmissing.checknull(value):
+                # a wrong-kind NA prints as e.g. 'NaT', contradicting the hint below
+                prefix = INVALID_SETITEM_LISTLIKE.format(dtype=self.dtype)
+            else:
+                prefix = INVALID_SETITEM_VALUE.format(value=value, dtype=self.dtype)
             msg_got = f"'{type(value).__name__}'"
         if allow_listlike:
-            msg = (
-                f"value should be a '{self._scalar_type.__name__}', 'NaT', "
-                f"or array of those. Got {msg_got} instead."
-            )
+            expected = f"a '{self._scalar_type.__name__}', 'NaT', or array of those"
         else:
-            msg = (
-                f"value should be a '{self._scalar_type.__name__}' or 'NaT'. "
-                f"Got {msg_got} instead."
-            )
-        return msg
+            expected = f"a '{self._scalar_type.__name__}' or 'NaT'"
+        return f"{prefix}. Value should be {expected}, got {msg_got} instead."
 
     def _validate_listlike(self, value, allow_object: bool = False):
         if isinstance(value, np.ndarray) and value.ndim == 2:

@@ -1,3 +1,5 @@
+import re
+
 import numpy as np
 import pytest
 
@@ -88,7 +90,7 @@ class TestMethods:
         expected = IntervalArray.from_tuples([(np.nan, np.nan), (1.0, 2.0)])
         tm.assert_interval_array_equal(result, expected)
 
-        msg = "can only insert Interval objects and NA into an IntervalArray"
+        msg = "Value should be an 'Interval' or missing value, got 'NaTType'"
         with pytest.raises(TypeError, match=msg):
             a.shift(1, fill_value=pd.NaT)
 
@@ -106,7 +108,7 @@ class TestMethods:
         tm.assert_interval_array_equal(result, expected)
         assert result.isna().tolist() == [False, False, True]
 
-        msg = "can only insert Interval objects and NA into an IntervalArray"
+        msg = "Value should be an 'Interval' or missing value, got 'timedelta64'"
         with pytest.raises(TypeError, match=msg):
             a.shift(1, fill_value=np.timedelta64("NaT", "ns"))
 
@@ -179,8 +181,11 @@ class TestSetitem:
         result = IntervalArray.from_arrays(left, right, copy=True)
 
         if result.dtype.subtype.kind not in ["m", "M"]:
-            msg = "can only insert Interval objects and NA into an IntervalArray"
-            with pytest.raises(TypeError, match=msg):
+            msg = re.escape(
+                f"Invalid value for dtype '{result.dtype}'. Value should be an "
+                "'Interval' or missing value, got 'NaTType' instead."
+            )
+            with pytest.raises(TypeError, match=f"^{msg}$"):
                 result[0] = pd.NaT
         if result.dtype.subtype.kind in ["i", "u"]:
             msg = "Cannot set float NaN to integer-backed IntervalArray"
@@ -322,9 +327,70 @@ class TestReductions:
 
 def test_fillna_non_scalar_raises():
     arr = IntervalArray.from_tuples([None, (0, 1)])
-    msg = "'value' should be an interval type, got <class 'list'> instead."
+    msg = re.escape(
+        "Invalid value for dtype 'interval[float64, right]'. Value should be an "
+        "'Interval' or missing value (or array of those)."
+    )
     with pytest.raises(TypeError, match=msg):
         arr.fillna([1, 1])
+
+
+def test_setitem_incompatible_subtype_raises():
+    # GH#60218
+    arr = IntervalArray.from_breaks([0, 1, 2])
+    msg = re.escape(
+        "Invalid value '(0, 5.5]' for dtype 'interval[int64, right]'. Value should "
+        "be an 'Interval' with a compatible subtype, got endpoint '5.5' instead."
+    )
+    with pytest.raises(TypeError, match=msg):
+        arr[0] = pd.Interval(0, 5.5)
+
+    msg = re.escape(f"got endpoint '{2**70}' instead.")
+    with pytest.raises(TypeError, match=msg):
+        arr[0] = pd.Interval(0, 2**70)
+
+    msg = re.escape(
+        "Invalid value for dtype 'interval[int64, right]'. Value should be intervals "
+        "with a compatible subtype, got 'interval[float64, right]' instead."
+    )
+    with pytest.raises(TypeError, match=msg):
+        arr[:1] = [pd.Interval(0.5, 1.5)]
+
+    msg = "Cannot set float NaN to integer-backed IntervalArray"
+    with pytest.raises(TypeError, match=msg):
+        arr[:2] = [pd.Interval(0, 1), None]
+
+    # the missing entry is not the only problem, so don't blame it
+    msg = re.escape(
+        "Invalid value for dtype 'interval[int64, right]'. Value should be intervals "
+        "with a compatible subtype, got 'interval[datetime64[us], right]' instead."
+    )
+    with pytest.raises(TypeError, match=msg):
+        arr[:2] = [pd.Interval(pd.Timestamp("2020"), pd.Timestamp("2021")), None]
+    with pytest.raises(TypeError, match=re.escape("got 'interval[float64, right]'")):
+        arr[:2] = [pd.Interval(0.5, 1.5), None]
+
+
+@pytest.mark.parametrize(
+    "breaks",
+    [pd.date_range("2020", periods=3), pd.timedelta_range(0, periods=3)],
+)
+def test_setitem_incompatible_datetimelike_subtype_raises(breaks):
+    # GH#60218
+    arr = IntervalArray.from_breaks(breaks)
+    msg = re.escape(
+        f"Invalid value '(0, 1]' for dtype '{arr.dtype}'. Value should be an "
+        "'Interval' with a compatible subtype, got endpoint '0' instead."
+    )
+    with pytest.raises(TypeError, match=f"^{msg}$"):
+        arr[0] = pd.Interval(0, 1)
+
+
+def test_setitem_tz_mismatch_keeps_message():
+    arr = IntervalArray.from_breaks(pd.date_range("2020", periods=3))
+    value = pd.Interval(pd.Timestamp("2020", tz="UTC"), pd.Timestamp("2021", tz="UTC"))
+    with pytest.raises(TypeError, match="Cannot compare tz-naive and tz-aware"):
+        arr[0] = value
 
 
 def test_endpoint_dtype_mismatch_raises():

@@ -51,7 +51,7 @@ class TestSearchsorted:
 
         other = np.array([0, 1], dtype=np.int64)
 
-        msg = "value should be a 'Period', 'NaT', or array of those. Got"
+        msg = "Value should be a 'Period', 'NaT', or array of those, got"
         with pytest.raises(TypeError, match=msg):
             pidx.searchsorted(other)
 

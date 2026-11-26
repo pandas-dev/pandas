@@ -33,6 +33,7 @@ from pandas.errors import (
     AbstractMethodError,
     Pandas4Warning,
 )
+from pandas.errors.messages import INVALID_SETITEM_VALUE
 from pandas.util._exceptions import find_stack_level
 from pandas.util._validators import validate_min_count
 
@@ -461,9 +462,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             #  OverflowError, not TypeError, which Index.where catches and upcasts
             return value
 
-        # Note: without the "str" here, the f-string rendering raises in
-        #  py38 builds.
-        raise TypeError(f"Invalid value '{value!s}' for dtype '{self.dtype}'")
+        raise TypeError(INVALID_SETITEM_VALUE.format(value=value, dtype=self.dtype))
 
     def insert(self, loc: int, item) -> Self:
         if not is_valid_na_for_dtype(item, self.dtype):
@@ -512,7 +511,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
             (kind == "b" and casted_kind == "b")
             or (kind in "iuf" and casted_kind in "iuf")
         ):
-            raise TypeError(f"Invalid value '{value!s}' for dtype '{self.dtype}'")
+            raise TypeError(INVALID_SETITEM_VALUE.format(value=value, dtype=self.dtype))
         return self._coerce_to_array(casted, dtype=self.dtype)
 
     def __setitem__(self, key, value) -> None:

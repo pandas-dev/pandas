@@ -21,6 +21,6 @@ class TestSearchSorted:
     )
     def test_searchsorted_invalid_argument_dtype(self, arg):
         idx = pd.TimedeltaIndex(["1 day", "2 days", "3 days"])
-        msg = "value should be a 'Timedelta', 'NaT', or array of those. Got"
+        msg = "Value should be a 'Timedelta', 'NaT', or array of those, got"
         with pytest.raises(TypeError, match=msg):
             idx.searchsorted(arg)
