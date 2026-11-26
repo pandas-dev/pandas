@@ -172,7 +172,7 @@ class TestGetIndexer:
         [
             np.timedelta64(1, "s"),
             np.array([1, 2, 3], dtype="timedelta64[s]"),
-            np.timedelta64("NaT"),
+            np.timedelta64("NaT", "s"),
         ],
     )
     @pytest.mark.parametrize(
