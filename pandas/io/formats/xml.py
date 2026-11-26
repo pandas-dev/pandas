@@ -15,7 +15,11 @@ from typing import (
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import cache_readonly
 
-from pandas.core.dtypes.common import is_list_like
+from pandas.core.dtypes.common import (
+    is_bool,
+    is_bool_dtype,
+    is_list_like,
+)
 from pandas.core.dtypes.missing import isna
 
 from pandas.io.common import (
@@ -222,6 +226,10 @@ class _BaseXMLFormatter:
         if self.index:
             df = df.reset_index()
 
+        self._bool_cols: set[Any] = {
+            col for col, dt in df.dtypes.items() if is_bool_dtype(dt)
+        }
+
         if self.na_rep is not None:
             # cast so a string fill value works for any dtype, GH#54872
             df = df.astype(object).fillna(self.na_rep)
@@ -300,7 +308,12 @@ class _BaseXMLFormatter:
             attr_name = self._get_flat_col_name(col)
             try:
                 if not isna(d[col]):
-                    elem_row.attrib[attr_name] = str(d[col])
+                    val = d[col]
+                    elem_row.attrib[attr_name] = (
+                        ("true" if val else "false")
+                        if col in self._bool_cols and is_bool(val)
+                        else str(val)
+                    )
             except KeyError as err:
                 raise KeyError(f"no valid column, {col}") from err
         return elem_row
@@ -336,7 +349,12 @@ class _BaseXMLFormatter:
         for col in self.elem_cols:
             elem_name = self._get_flat_col_name(col)
             try:
-                val = None if isna(d[col]) or d[col] == "" else str(d[col])
+                if isna(d[col]) or d[col] == "":
+                    val = None
+                elif col in self._bool_cols and is_bool(d[col]):
+                    val = "true" if d[col] else "false"
+                else:
+                    val = str(d[col])
                 sub_element_cls(elem_row, elem_name).text = val
             except KeyError as err:
                 raise KeyError(f"no valid column, {col}") from err
