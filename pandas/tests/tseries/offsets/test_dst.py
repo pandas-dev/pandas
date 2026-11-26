@@ -221,7 +221,10 @@ class TestDST:
     def test_all_offset_classes(self, tup):
         offset, test_values = tup
 
-        first = Timestamp(test_values[0], tz="US/Eastern") + offset()
+        kwargs = {}
+        if offset in (QuarterBegin, BQuarterBegin):
+            kwargs["startingMonth"] = 3
+        first = Timestamp(test_values[0], tz="US/Eastern") + offset(**kwargs)
         second = Timestamp(test_values[1], tz="US/Eastern")
         assert first == second
 
