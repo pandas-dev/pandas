@@ -80,6 +80,31 @@ of multi-axis indexing.
   :ref:`Advanced Indexing <advanced>` and :ref:`Advanced
   Hierarchical <advanced.advanced_hierarchical>`.
 
+  .. note::
+
+     If a label or position appears more than once in the indexer, the
+     corresponding values are written in order, so the last one wins. For example:
+
+     .. ipython:: python
+
+        sr = pd.Series([10, 9, 8, 7])
+        sr.loc[[1, 2, 1]] = [5, 4, 3]
+        sr
+
+     This holds when the value being assigned is a scalar or a list-like
+     (for example a list or an array). If the value is a :class:`Series`,
+     ``.loc`` aligns it to the indexer labels first, so a repeated label
+     gets the same value at every occurrence:
+
+     .. ipython:: python
+
+        sr = pd.Series(list("abcd"))
+        sr.loc[[1, 2, 1]] = pd.Series(["x", "y", "z"])
+        sr
+
+     ``.iloc`` does not align by label, so the last value wins there
+     regardless of the right-hand side.
+
 * ``.loc``, ``.iloc``, and also ``[]`` indexing can accept a ``callable`` as indexer. See more at :ref:`Selection By Callable <indexing.callable>`.
 
   .. note::
