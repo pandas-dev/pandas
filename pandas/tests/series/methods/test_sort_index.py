@@ -215,6 +215,30 @@ class TestSeriesSortIndex:
 
 
 class TestSeriesSortIndexKey:
+    def test_sort_index_key_map_unordered_categorical(self):
+        # GH#58153
+        idx = pd.CategoricalIndex(["March", "Dec", "April"])
+        ser = pd.Series([1, 2, 3], index=idx)
+        mapping = {"March": 0, "April": 1, "Dec": 3}
+
+        result = ser.sort_index(key=lambda x: x.map(mapping))
+
+        tm.assert_series_equal(result, ser.iloc[[0, 2, 1]])
+
+    def test_sort_index_key_map_categorical_multiindex_level(self):
+        # GH#58153
+        level = pd.CategoricalIndex(["March", "Dec", "April"])
+        idx = pd.MultiIndex.from_arrays([level, [1, 1, 1]], names=["m", "n"])
+        ser = pd.Series([1, 2, 3], index=idx)
+        mapping = {"March": 0, "April": 1, "Dec": 3}
+
+        def key(lev):
+            return lev.map(mapping) if lev.name == "m" else lev
+
+        result = ser.sort_index(level="m", key=key)
+
+        tm.assert_series_equal(result, ser.iloc[[0, 2, 1]])
+
     def test_sort_index_multiindex_key(self):
         mi = pd.MultiIndex.from_tuples([[1, 1, 3], [1, 1, 1]], names=list("ABC"))
         s = pd.Series([1, 2], mi)
