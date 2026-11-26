@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from datetime import UTC
+import zoneinfo
+
 import numpy as np
 import pytest
 
@@ -56,6 +59,61 @@ def test_get_common_dtype_timestamp_tz(other, expected):
     dtype = ArrowDtype(pa.timestamp("ns", tz="US/Eastern"))
     result = dtype._get_common_dtype([dtype, other])
     assert result == (None if expected is None else ArrowDtype(expected))
+
+
+def test_get_common_dtype_timestamp_tz_equivalent_different_units():
+    arrow_us = ArrowDtype(pa.timestamp("us", tz="UTC"))
+    arrow_ns = ArrowDtype(pa.timestamp("ns", tz="UTC"))
+    zi_ns = pd.DatetimeTZDtype("ns", zoneinfo.ZoneInfo("UTC"))
+    std_ns = pd.DatetimeTZDtype("ns", UTC)
+    dateutil_utc_ns = pd.DatetimeTZDtype("ns", "dateutil/UTC")
+
+    expected = arrow_ns
+    for numpy_tz in [zi_ns, std_ns, dateutil_utc_ns]:
+        assert find_common_type([arrow_us, numpy_tz]) == expected
+        assert find_common_type([numpy_tz, arrow_us]) == expected
+
+
+def test_concat_timestamp_tz_arrow_and_equivalent_numpy_different_units():
+    arrow_ns = ArrowDtype(pa.timestamp("ns", tz="UTC"))
+    s_pa = pd.Series(
+        pd.array(
+            [pd.Timestamp("2024-01-02", tz="UTC")],
+            dtype=arrow_ns,
+        )
+    )
+    expected = pd.Series(
+        pd.array(
+            [
+                pd.Timestamp("2024-01-01", tz="UTC"),
+                pd.Timestamp("2024-01-02", tz="UTC"),
+            ],
+            dtype=arrow_ns,
+        )
+    )
+    expected_rev = pd.Series(
+        pd.array(
+            [
+                pd.Timestamp("2024-01-02", tz="UTC"),
+                pd.Timestamp("2024-01-01", tz="UTC"),
+            ],
+            dtype=arrow_ns,
+        )
+    )
+
+    for tz in [zoneinfo.ZoneInfo("UTC"), "dateutil/UTC"]:
+        s_np = pd.Series(pd.DatetimeIndex(["2024-01-01"], tz=tz).as_unit("us"))
+        res1 = pd.concat([s_np, s_pa], ignore_index=True)
+        res2 = pd.concat([s_pa, s_np], ignore_index=True)
+        tm.assert_series_equal(res1, expected)
+        tm.assert_series_equal(res2, expected_rev)
+
+
+def test_get_common_dtype_non_utc_dateutil_falls_back():
+    dateutil_east = pd.DatetimeTZDtype("us", "dateutil/US/Eastern")
+    null_arrow = ArrowDtype(pa.null())
+    assert null_arrow._get_common_dtype([null_arrow, dateutil_east]) is None
+    assert find_common_type([null_arrow, dateutil_east]) == object
 
 
 def test_concat_null_and_numpy_tz_aware():
