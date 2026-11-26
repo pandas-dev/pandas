@@ -8,6 +8,7 @@ from datetime import (
     datetime,
     time,
     timedelta,
+    timezone,
 )
 from decimal import Decimal
 from io import StringIO
@@ -4300,17 +4301,8 @@ def test_roundtripping_datetimes_detect_types(sqlite_builtin_detect_types):
     "dtype_backend",
     [
         lib.no_default,
-        pytest.param(
-            "numpy_nullable",
-            marks=pytest.mark.xfail(reason="GH#59242 casts to string", strict=True),
-        ),
-        pytest.param(
-            "pyarrow",
-            marks=[
-                td.skip_if_no("pyarrow"),
-                pytest.mark.xfail(reason="GH#59242 casts to string", strict=True),
-            ],
-        ),
+        "numpy_nullable",
+        pytest.param("pyarrow", marks=td.skip_if_no("pyarrow")),
     ],
 )
 def test_read_sql_query_driver_objects_not_stringified(
@@ -4323,6 +4315,108 @@ def test_read_sql_query_driver_objects_not_stringified(
     conn.execute("INSERT INTO test VALUES (?)", ('{"hello": ["4", "5"], "hi": 6}',))
     result = read_sql_query("SELECT * FROM test", conn, dtype_backend=dtype_backend)
     assert result["a"].tolist() == [{"hello": ["4", "5"], "hi": 6}]
+
+
+@pytest.mark.parametrize("conn", all_connectable)
+def test_read_sql_binary_column(conn, request, dtype_backend):
+    # GH#59242 bytes, decodable as UTF-8 or not, must not be cast to string
+    conn_name = conn
+    conn = request.getfixturevalue(conn)
+    values = [b"\x01\x23\x45\x67\x89\xab\xcd\xef", b"abc", None]
+    if "adbc" in conn_name:
+        # ADBC maps Arrow binary to the database's binary type
+        sql_dtype = None
+    elif conn_name == "sqlite_buildin":
+        sql_dtype = {"a": "BLOB"}
+    else:
+        sqlalchemy = pytest.importorskip("sqlalchemy")
+        sql_dtype = {"a": sqlalchemy.LargeBinary}
+    pd.DataFrame({"a": values}, dtype=object).to_sql(
+        name="test_binary", con=conn, index=False, if_exists="replace", dtype=sql_dtype
+    )
+
+    result = pd.read_sql("SELECT * FROM test_binary", conn, dtype_backend=dtype_backend)
+
+    if dtype_backend == "pyarrow":
+        pa = pytest.importorskip("pyarrow")
+        expected = pd.DataFrame(
+            {"a": pd.array(values, dtype=pd.ArrowDtype(pa.binary()))}
+        )
+    else:
+        # psycopg2 returns bytea as memoryview, which is kept as is
+        result["a"] = result["a"].map(bytes, na_action="ignore")
+        expected = pd.DataFrame({"a": values}, dtype=object)
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "first, second, values",
+    [
+        ("1", "'x'", [1, "x"]),
+        ("1.5", "'x'", [1.5, "x"]),
+        ("'a'", "x'78'", ["a", b"x"]),
+    ],
+)
+def test_read_sql_mixed_types_not_stringified(
+    sqlite_buildin, dtype_backend, first, second, values
+):
+    # GH#59242 SQLite columns can mix storage classes; keep them as object
+    # rather than casting to string, raising, or coercing in pyarrow
+    query = f"SELECT {first} AS a UNION ALL SELECT {second}"
+    result = pd.read_sql(query, sqlite_buildin, dtype_backend=dtype_backend)
+    expected = pd.DataFrame({"a": values}, dtype=object)
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("binary_type", [memoryview, bytearray])
+def test_read_sql_binary_like_column(
+    sqlite_builtin_detect_types, monkeypatch, dtype_backend, binary_type
+):
+    # GH#59242 drivers such as psycopg2 return binary data as memoryview
+    monkeypatch.setitem(sqlite3.converters, "BINLIKE", binary_type)
+    conn = sqlite_builtin_detect_types
+    conn.execute("CREATE TABLE test (a BINLIKE)")
+    conn.executemany("INSERT INTO test VALUES (?)", [(b"\x89",), (None,)])
+    result = read_sql_query("SELECT * FROM test", conn, dtype_backend=dtype_backend)
+    values = [b"\x89", None]
+    if dtype_backend == "pyarrow":
+        pa = pytest.importorskip("pyarrow")
+        expected = pd.DataFrame(
+            {"a": pd.array(values, dtype=pd.ArrowDtype(pa.binary()))}
+        )
+    else:
+        expected = pd.DataFrame({"a": values}, dtype=object)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_read_sql_tz_aware_time_keeps_offset(
+    sqlite_builtin_detect_types, monkeypatch, dtype_backend
+):
+    # GH#59242 tz-aware times (e.g. psycopg2 TIMETZ) stay object, since
+    # Arrow's time types can't hold the offset
+    monkeypatch.setitem(
+        sqlite3.converters, "TIMETZ", lambda b: time.fromisoformat(b.decode())
+    )
+    conn = sqlite_builtin_detect_types
+    conn.execute("CREATE TABLE test (a TIMETZ)")
+    conn.executemany("INSERT INTO test VALUES (?)", [("01:00:00+05:00",), (None,)])
+    result = read_sql_query("SELECT * FROM test", conn, dtype_backend=dtype_backend)
+    tz = timezone(timedelta(hours=5))
+    expected = pd.DataFrame({"a": [time(1, 0, tzinfo=tz), None]}, dtype=object)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_read_sql_int_outside_int64_not_stringified(
+    sqlite_builtin_detect_types, monkeypatch, dtype_backend
+):
+    # GH#59242 Python ints that Arrow can't hold stay object
+    monkeypatch.setitem(sqlite3.converters, "BIGNUM", int)
+    conn = sqlite_builtin_detect_types
+    conn.execute("CREATE TABLE test (a BIGNUM TEXT)")
+    conn.executemany("INSERT INTO test VALUES (?)", [(str(2**70),), ("1",)])
+    result = read_sql_query("SELECT * FROM test", conn, dtype_backend=dtype_backend)
+    expected = pd.DataFrame({"a": [2**70, 1]}, dtype=object)
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.db

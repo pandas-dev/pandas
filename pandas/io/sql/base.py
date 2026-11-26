@@ -191,14 +191,32 @@ def _convert_arrays_to_dataframe(
 
         result_arrays = []
         for arr in arrays:
-            pa_array = pa.array(arr, from_pandas=True)
+            inferred = lib.infer_dtype(arr, skipna=True)
+            # e.g. psycopg2 returns bytea as memoryview, which infers as "mixed"
+            is_binary = inferred == "mixed" and all(
+                v is None or isinstance(v, (bytes, bytearray, memoryview)) for v in arr
+            )
+            # pa.array drops the offset of tz-aware times, e.g. psycopg2 TIMETZ
+            is_tz_time = inferred == "time" and any(
+                getattr(v, "tzinfo", None) is not None for v in arr
+            )
+            # GH#59242 keep mixed columns as object, as read_excel does (GH#63830)
+            if (inferred in ("mixed", "mixed-integer") and not is_binary) or is_tz_time:
+                result_arrays.append(arr)
+                continue
+            try:
+                pa_array = pa.array(arr, from_pandas=True)
+            except (pa.ArrowInvalid, pa.ArrowTypeError, OverflowError):
+                # e.g. Python ints outside the int64 range
+                result_arrays.append(arr)
+                continue
             if arr.dtype == "string":
                 # TODO: Arrow still infers strings arrays as regular strings instead
                 # of large_string, which is what we preserver everywhere else for
                 # dtype_backend="pyarrow". We may want to reconsider this
                 pa_array = pa_array.cast(pa.string())
             result_arrays.append(ArrowExtensionArray(pa_array))
-        arrays = result_arrays  # type: ignore[assignment]
+        arrays = result_arrays
     if arrays:
         return DataFrame._from_arrays(
             arrays, columns=columns, index=range(idx_len), verify_integrity=False
