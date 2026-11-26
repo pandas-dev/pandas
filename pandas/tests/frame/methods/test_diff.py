@@ -227,6 +227,29 @@ class TestDataFrameDiff:
         result = df.diff(axis=1, periods=-1)
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "periods, expected",
+        [
+            (1, {"a": [np.nan, np.nan], "b": [True, False], "c": [True, True]}),
+            (2, {"a": [np.nan, np.nan], "b": [np.nan, np.nan], "c": [False, True]}),
+            (-1, {"a": [True, False], "b": [True, True], "c": [np.nan, np.nan]}),
+            (3, {"a": [np.nan, np.nan], "b": [np.nan, np.nan], "c": [np.nan, np.nan]}),
+        ],
+    )
+    def test_diff_axis1_bool(self, periods, expected):
+        # GH#52579 bool uses xor, columns without a counterpart are float NaN
+        df = pd.DataFrame({"a": [True, False], "b": [False, False], "c": [True, True]})
+        result = df.diff(periods=periods, axis=1)
+        tm.assert_frame_equal(result, pd.DataFrame(expected))
+
+    def test_diff_axis1_bool_column_labels(self):
+        # GH#52579 unsorted and duplicate column labels keep their order
+        df = pd.DataFrame([[True, False, True]], columns=["z", "a", "a"])
+        result = df.diff(axis=1)
+        expected = pd.DataFrame({0: [np.nan], 1: [True], 2: [True]})
+        expected.columns = ["z", "a", "a"]
+        tm.assert_frame_equal(result, expected)
+
     def test_diff_sparse(self):
         # GH#28813 .diff() should work for sparse dataframes as well
         sparse_df = pd.DataFrame([[0, 1], [1, 0]], dtype="Sparse[int]")
