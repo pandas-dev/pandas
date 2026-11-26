@@ -4,9 +4,11 @@
 
 from __future__ import annotations
 
+import codecs
 from functools import partial
 import io
 from os import PathLike
+import re
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -551,18 +553,15 @@ class _EtreeFrameParser(_XMLFrameParser):
             parse,
         )
 
-        handle_data = get_data_from_filepath(
-            filepath_or_buffer=raw_doc,
+        with get_handle(
+            stringify_path(raw_doc),
+            "r",
             encoding=self.encoding,
             compression=self.compression,
             storage_options=self.storage_options,
-        )
-
-        with handle_data as xml_data:
+        ) as handles:
             curr_parser = XMLParser(encoding=self.encoding)
-            document = parse(xml_data, parser=curr_parser)
-
-        return document.getroot()
+            return parse(handles.handle, parser=curr_parser).getroot()
 
 
 class _LxmlFrameParser(_XMLFrameParser):
@@ -659,33 +658,23 @@ class _LxmlFrameParser(_XMLFrameParser):
     ) -> etree._Element:
         from lxml.etree import (
             XMLParser,
-            fromstring,
             parse,
         )
 
-        handle_data = get_data_from_filepath(
-            filepath_or_buffer=raw_doc,
+        with get_handle(
+            stringify_path(raw_doc),
+            "r",
             encoding=self.encoding,
             compression=self.compression,
             storage_options=self.storage_options,
-        )
-
-        with handle_data as xml_data:
-            curr_parser = XMLParser(encoding=self.encoding, resolve_entities="internal")
-
-            if isinstance(xml_data, io.StringIO):
-                if self.encoding is None:
-                    raise TypeError(
-                        "Can not pass encoding None when input is StringIO."
-                    )
-
-                document = fromstring(
-                    xml_data.getvalue().encode(self.encoding), parser=curr_parser
-                )
-            else:
-                document = parse(xml_data, parser=curr_parser)
-
-        return document
+        ) as handles:
+            # The text is already decoded, so libxml2 gets UTF-8 rather than
+            # decoding it again with its own codecs. Stream rather than read into
+            # memory: libxml2 < 2.12 fails on in-memory inputs over ~1GB when given
+            # an encoding, GH#59447.
+            curr_parser = XMLParser(encoding="utf-8", resolve_entities="internal")
+            reader = _Utf8Reader(handles.handle, self.encoding or "utf-8")
+            return parse(reader, parser=curr_parser).getroot()
 
     def _transform_doc(self) -> etree._XSLTResultTree:
         """
@@ -701,6 +690,63 @@ class _LxmlFrameParser(_XMLFrameParser):
         new_doc = transformer(self.xml_doc)
 
         return new_doc
+
+
+_S = r"[ \t\r\n]"  # XML whitespace
+# the encoding of a well-formed XML declaration; libxml2 rejects any other
+_DECL_ENCODING = re.compile(
+    rf"""\A(<\?xml{_S}+version{_S}*={_S}*(["'])[^"']*\2)"""
+    rf"""({_S}+encoding{_S}*={_S}*(["'])[A-Za-z][A-Za-z0-9._-]*\4)"""
+    rf"""(?=({_S}+standalone{_S}*={_S}*(["'])(?:yes|no)\6)?{_S}*\?>)"""
+)
+
+
+class _Utf8Reader:
+    """
+    Binary file-like view of a text handle, encoded as UTF-8.
+
+    The XML declaration's ``encoding`` is blanked out (same length, so error
+    columns don't shift) and a leading byte order mark is dropped: libxml2
+    < 2.12 would decode every chunk after the declaration with the former, and
+    fails on the latter when streamed. Unlike ``_BytesIOWrapper`` this hides
+    ``getvalue``, which lxml would use to parse a ``StringIO`` whole.
+    """
+
+    def __init__(self, handle: IO[str], encoding: str) -> None:
+        self.handle = handle
+        self.encoding = encoding
+        self.decoder: codecs.IncrementalDecoder | None = None
+        self.first = True
+
+    def _read_text(self, size: int) -> str:
+        data = self.handle.read(size)
+        if not isinstance(data, bytes):
+            return data
+        # a reader returning bytes that get_handle could not tell from a text one
+        if self.decoder is None:
+            self.decoder = codecs.getincrementaldecoder(self.encoding)()
+        text = self.decoder.decode(data, final=not data)
+        while data and not text:  # the chunk ended inside a character
+            data = self.handle.read(size)
+            text = self.decoder.decode(data, final=not data)
+        return text
+
+    def read(self, size: int = -1) -> bytes:
+        text = self._read_text(size)
+        if self.first:
+            self.first = False
+            # read through the first ">", which ends any XML declaration
+            while ">" not in text:
+                more = self._read_text(size)
+                if not more:
+                    break
+                text += more
+            text = _DECL_ENCODING.sub(
+                lambda match: match[1] + " " * len(match[3]),
+                text.removeprefix("\ufeff"),
+                count=1,
+            )
+        return text.encode("utf-8")
 
 
 def get_data_from_filepath(
@@ -877,7 +923,6 @@ def read_xml(
     dtype: DtypeArg | None = None,
     converters: ConvertersArg | None = None,
     parse_dates: ParseDatesArg | None = None,
-    # encoding can not be None for lxml and StringIO input
     encoding: str | None = "utf-8",
     parser: XMLParsers = "lxml",
     stylesheet: FilePath | ReadBuffer[bytes] | ReadBuffer[str] | None = None,
