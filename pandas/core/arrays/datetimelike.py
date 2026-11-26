@@ -1772,11 +1772,10 @@ class DatelikeOps(DatetimeLikeArrayMixin):
 
     def strftime(self, date_format: str) -> npt.NDArray[np.object_]:
         """
-        Convert to Index using specified date_format.
+        Format the values as strings using the specified date_format.
 
-        Return an Index of formatted strings specified by date_format, which
-        supports the same string format as the python standard library. Details
-        of the string format can be found in `python string format
+        The date_format supports the same string format as the python standard
+        library. Details of the string format can be found in `python string format
         doc <https://docs.python.org/3/library/datetime.html
         #strftime-and-strptime-behavior>`__.
 
@@ -1785,35 +1784,36 @@ class DatelikeOps(DatetimeLikeArrayMixin):
         preferably replaced with their supported equivalents (such as `"%H:%M"`,
         `"%I:%M:%S %p"`).
 
-        Note that `PeriodIndex` support additional directives, detailed in
+        Period values support additional directives, detailed in
         `Period.strftime`.
 
         Parameters
         ----------
         date_format : str
-            Date format string (e.g. "%%Y-%%m-%%d").
+            Date format string (e.g. "%Y-%m-%d").
 
         Returns
         -------
-        ndarray[object]
-            NumPy ndarray of formatted strings.
+        Series or array
+            The formatted strings.
 
         See Also
         --------
         to_datetime : Convert the given argument to datetime.
-        DatetimeIndex.normalize : Return DatetimeIndex with times to midnight.
-        DatetimeIndex.round : Round the DatetimeIndex to the specified freq.
-        DatetimeIndex.floor : Floor the DatetimeIndex to the specified freq.
+        DatetimeIndex.strftime : Format a DatetimeIndex as strings.
         Timestamp.strftime : Format a single Timestamp.
         Period.strftime : Format a single Period.
 
         Examples
         --------
-        >>> rng = pd.date_range(pd.Timestamp("2018-03-10 09:00"), periods=3, freq="s")
-        >>> rng.strftime("%B %d, %Y, %r")
-        Index(['March 10, 2018, 09:00:00 AM', 'March 10, 2018, 09:00:01 AM',
-               'March 10, 2018, 09:00:02 AM'],
-              dtype='str')
+        >>> ser = pd.Series(
+        ...     pd.date_range(pd.Timestamp("2018-03-10 09:00"), periods=3, freq="s")
+        ... )
+        >>> ser.dt.strftime("%B %d, %Y, %r")
+        0    March 10, 2018, 09:00:00 AM
+        1    March 10, 2018, 09:00:01 AM
+        2    March 10, 2018, 09:00:02 AM
+        dtype: str
         """
         result = self._format_native_types(date_format=date_format, na_rep=np.nan)
         if using_string_dtype():
@@ -1916,7 +1916,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
     @cache_readonly
     def unit(self) -> TimeUnit:
         """
-        The precision unit of the datetime data.
+        The precision unit of the datetime or timedelta data.
 
         Returns the precision unit for the dtype.
         It means the smallest time frame that can be stored within this dtype.
@@ -1928,14 +1928,14 @@ class TimelikeOps(DatetimeLikeArrayMixin):
 
         See Also
         --------
-        TimelikeOps.as_unit : Converts to a specific unit.
+        Series.dt.as_unit : Converts to a specific unit.
 
         Examples
         --------
-        >>> idx = pd.DatetimeIndex(["2020-01-02 01:02:03.004005006"])
-        >>> idx.unit
+        >>> ser = pd.Series(pd.to_datetime(["2020-01-02 01:02:03.004005006"]))
+        >>> ser.dt.unit
         'ns'
-        >>> idx.as_unit("s").unit
+        >>> ser.dt.as_unit("s").dt.unit
         's'
         """
         # error: Incompatible return value type (got "str", expected
@@ -1966,23 +1966,25 @@ class TimelikeOps(DatetimeLikeArrayMixin):
 
         Examples
         --------
-        For :class:`pandas.DatetimeIndex`:
+        For datetime values:
 
-        >>> idx = pd.DatetimeIndex(["2020-01-02 01:02:03.004005006"])
-        >>> idx
-        DatetimeIndex(['2020-01-02 01:02:03.004005006'],
-                      dtype='datetime64[ns]', freq=None)
-        >>> idx.as_unit("s")
-        DatetimeIndex(['2020-01-02 01:02:03'], dtype='datetime64[s]', freq=None)
+        >>> ser = pd.Series(pd.to_datetime(["2020-01-02 01:02:03.004005006"]))
+        >>> ser
+        0   2020-01-02 01:02:03.004005006
+        dtype: datetime64[ns]
+        >>> ser.dt.as_unit("s")
+        0   2020-01-02 01:02:03
+        dtype: datetime64[s]
 
-        For :class:`pandas.TimedeltaIndex`:
+        For timedelta values:
 
-        >>> tdelta_idx = pd.to_timedelta(["1 day 3 min 2 us 42 ns"])
-        >>> tdelta_idx
-        TimedeltaIndex(['1 days 00:03:00.000002042'],
-                        dtype='timedelta64[ns]', freq=None)
-        >>> tdelta_idx.as_unit("s")
-        TimedeltaIndex(['1 days 00:03:00'], dtype='timedelta64[s]', freq=None)
+        >>> tdelta_ser = pd.Series(pd.to_timedelta(["1 day 3 min 2 us 42 ns"]))
+        >>> tdelta_ser
+        0   1 days 00:03:00.000002042
+        dtype: timedelta64[ns]
+        >>> tdelta_ser.dt.as_unit("s")
+        0   1 days 00:03:00
+        dtype: timedelta64[s]
         """
         if unit not in ["s", "ms", "us", "ns"]:
             raise ValueError("Supported units are 's', 'ms', 'us', 'ns'")
@@ -2068,7 +2070,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
             :ref:`frequency aliases <timeseries.offset_aliases>` for
             a list of possible `freq` values.
         ambiguous : 'infer', bool-ndarray, 'NaT', default 'raise'
-            Only relevant for DatetimeIndex:
+            Only relevant for datetime values:
 
             - 'infer' will attempt to infer fall dst-transition hours based on
               order. Requires that the timestamps are monotonically increasing.
@@ -2174,7 +2176,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
             :ref:`frequency aliases <timeseries.offset_aliases>` for
             a list of possible `freq` values.
         ambiguous : 'infer', bool-ndarray, 'NaT', default 'raise'
-            Only relevant for DatetimeIndex:
+            Only relevant for datetime values:
 
             - 'infer' will attempt to infer fall dst-transition hours based on
               order. Requires that the timestamps are monotonically increasing.
@@ -2280,7 +2282,7 @@ class TimelikeOps(DatetimeLikeArrayMixin):
             :ref:`frequency aliases <timeseries.offset_aliases>` for
             a list of possible `freq` values.
         ambiguous : 'infer', bool-ndarray, 'NaT', default 'raise'
-            Only relevant for DatetimeIndex:
+            Only relevant for datetime values:
 
             - 'infer' will attempt to infer fall dst-transition hours based on
               order. Requires that the timestamps are monotonically increasing.
