@@ -319,9 +319,11 @@ class ArrowTemporalProperties(PandasDelegate, PandasObject, NoNewAttributesMixin
             ._dt_isocalendar()
             ._pa_array.combine_chunks()
         )
+        # GH#72217 field() drops the struct null bitmap; flatten() applies it
+        fields = result.flatten()
         iso_calendar_df = DataFrame(
             {
-                col: type(self._parent.array)(result.field(i))  # type: ignore[call-arg]
+                col: type(self._parent.array)(fields[i])  # type: ignore[call-arg]
                 for i, col in enumerate(["year", "week", "day"])
             },
             index=self._parent.index,
