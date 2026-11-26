@@ -153,7 +153,9 @@ class _Unstacker:
                 self.unique_nan_index = np.flatnonzero(nan_mask)[0]
 
             self.removed_level = self.removed_level.take(unique_codes)
-            self.removed_level_full = self.removed_level_full.take(unique_codes)
+            # GH#66673 unique_codes index into the pruned level, not the full
+            #  one, and the result only keeps the values that are used anyway.
+            self.removed_level_full = self.removed_level
         elif any(lev.hasnans for lev in self.index.levels):
             # remove_unused_levels returns the index unpruned when a level holds
             #  NaN as a value (GH#37510) -- and only then -- so the unstacked
