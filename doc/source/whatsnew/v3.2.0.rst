@@ -511,6 +511,7 @@ Groupby/resample/rolling
 
 Reshaping
 ^^^^^^^^^
+- Bug in :func:`merge_asof` returning incorrect nearest matches or tolerance checks when signed integer or datetime key distances exceed the signed integer range, and raising for integer tolerances larger than the key dtype can hold
 - Bug in :func:`concat` and the :class:`DataFrame` constructor losing the ``freq`` of a :class:`DatetimeIndex` or :class:`TimedeltaIndex` depending on the order of the inputs (:issue:`64253`)
 - Bug in :func:`concat` raising ``ArrowInvalid`` when casting integers exceeding ``2**53`` to a PyArrow float dtype, e.g. ``int64[pyarrow]`` with ``uint64[pyarrow]``; these now round as with NumPy dtypes (:issue:`58819`)
 - Bug in :func:`concat` raising ``ValueError`` when tuple ``keys`` contain a missing value such as ``None`` (:issue:`57993`)
