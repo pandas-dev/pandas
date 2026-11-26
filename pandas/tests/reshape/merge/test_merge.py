@@ -1591,6 +1591,19 @@ class TestMergeDtypes:
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize(
+        "left_dtype, right_dtype", [("int64", "uint64"), ("uint64", "int64")]
+    )
+    def test_merge_int64_uint64_large_keys(self, left_dtype, right_dtype):
+        # GH#56367
+        left = pd.DataFrame({"key": [2**53]}, dtype=left_dtype)
+        right = pd.DataFrame({"key": [2**53 + 1]}, dtype=right_dtype)
+
+        result = left.merge(right, on="key", how="inner")
+
+        expected = pd.DataFrame({"key": []}, dtype=left_dtype)
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize(
         "int_vals, float_vals, exp_vals",
         [
             ([1, 2, 3], [1.0, 2.0, 3.0], {"X": [1, 2, 3], "Y": [1.0, 2.0, 3.0]}),
