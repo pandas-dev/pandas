@@ -1,4 +1,5 @@
 from datetime import datetime
+import inspect
 import sys
 
 import numpy as np
@@ -9,6 +10,11 @@ from pandas.compat import PYPY
 import pandas as pd
 import pandas._testing as tm
 from pandas.core.accessor import PandasDelegate
+from pandas.core.arrays import (
+    Categorical,
+    DatetimeArray,
+    SparseArray,
+)
 from pandas.core.base import (
     NoNewAttributesMixin,
     PandasObject,
@@ -91,6 +97,25 @@ class TestPandasDelegate:
         # GH 12924
         delegate = self.Delegate(self.Delegator())
         sys.getsizeof(delegate)
+
+    @pytest.mark.parametrize(
+        "accessor, name, delegate",
+        [
+            ("dt", "day_of_year", DatetimeArray),
+            ("dt", "unit", DatetimeArray),
+            ("sparse", "npoints", SparseArray),
+            ("cat", "categories", Categorical),
+        ],
+    )
+    def test_delegated_property_unwraps_to_delegate(self, accessor, name, delegate):
+        # GH#53667 the docs' "source" link follows inspect.unwrap
+        fget = getattr(getattr(pd.Series, accessor), name).fget
+        assert inspect.unwrap(fget) is getattr(delegate, name).fget
+
+    def test_delegated_cython_property_keeps_signature(self):
+        # GH#53667 cython-defined delegates are not wrapped, since
+        # inspect.signature (used e.g. by dask) would raise
+        inspect.signature(pd.Series.dt.start_time.fget)
 
 
 class TestNoNewAttributesMixin:
