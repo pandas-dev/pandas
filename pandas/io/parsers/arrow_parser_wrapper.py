@@ -1,6 +1,12 @@
 from __future__ import annotations
 
 from collections import defaultdict
+import csv
+from io import (
+    BufferedReader,
+    RawIOBase,
+    TextIOWrapper,
+)
 from typing import (
     TYPE_CHECKING,
     cast,
@@ -120,6 +126,49 @@ class _NewlineTerminatedReader:
                 break
             data += chunk
         return data
+
+
+class _RewindableReader(RawIOBase):
+    """
+    Capture bytes read from ``src`` so they can be replayed once.
+
+    This lets the parser inspect the CSV header without seeking, since sources
+    such as compressed files and remote streams may not be seekable.
+    """
+
+    def __init__(self, src: ReadBuffer[bytes] | _NewlineTerminatedReader) -> None:
+        self.src = src
+        self._captured = bytearray()
+        self._replay_pos: int | None = None
+
+    def readable(self) -> bool:
+        return True
+
+    def readinto(self, buffer) -> int:
+        data = self.read(len(buffer))
+        buffer[: len(data)] = data
+        return len(data)
+
+    def read(self, size: int = -1) -> bytes:
+        if self._replay_pos is None:
+            data = self.src.read(size)
+            self._captured.extend(data)
+            return data
+
+        if size < 0:
+            data = bytes(self._captured[self._replay_pos :])
+            self._replay_pos = len(self._captured)
+            return data + self.src.read()
+
+        end = min(self._replay_pos + size, len(self._captured))
+        data = bytes(self._captured[self._replay_pos : end])
+        self._replay_pos = end
+        if len(data) < size:
+            data += self.src.read(size - len(data))
+        return data
+
+    def rewind(self) -> None:
+        self._replay_pos = 0
 
 
 class ArrowParserWrapper(ParserBase):
@@ -344,6 +393,61 @@ class ArrowParserWrapper(ParserBase):
             "skip_rows_after_names": skip_rows_after_names,
             "encoding": self.encoding,
         }
+
+    def _sort_pyarrow_usecols(
+        self, src: ReadBuffer[bytes] | _NewlineTerminatedReader
+    ) -> ReadBuffer[bytes] | _NewlineTerminatedReader | _RewindableReader:
+        include_columns = self.convert_options.get("include_columns")
+        if (
+            self.usecols_dtype != "string"
+            or include_columns is None
+            or len(include_columns) == 0
+            or self.header is None
+            or self.names is not None
+        ):
+            return src
+
+        replay = _RewindableReader(src)
+        buffer = BufferedReader(replay)
+        encoding = self.encoding
+        if encoding.lower().replace("_", "-") in ("utf-8", "utf8"):
+            encoding = "utf-8-sig"
+        text = TextIOWrapper(buffer, encoding=encoding, newline="")
+
+        def option_text(name: str, default: str | None) -> str | None:
+            value = self.parse_options.get(name, default)
+            return value.decode(self.encoding) if isinstance(value, bytes) else value
+
+        raw_names = None
+        try:
+            for _ in range(cast("int", self.read_options["skip_rows"])):
+                text.readline()
+            delimiter = option_text("delimiter", ",")
+            assert delimiter is not None
+            reader = csv.reader(
+                text,
+                delimiter=delimiter,
+                quotechar=option_text("quote_char", '"'),
+                escapechar=option_text("escape_char", None),
+            )
+            ignore_empty_lines = self.parse_options.get("ignore_empty_lines", True)
+            raw_names = next(
+                (row for row in reader if row or not ignore_empty_lines), None
+            )
+        finally:
+            text.detach()
+            buffer.detach()
+            replay.rewind()
+
+        if raw_names is not None:
+            positions: dict[str, int] = {}
+            for i, name in enumerate(raw_names):
+                positions.setdefault(name, i)
+            self.convert_options["include_columns"] = sorted(
+                include_columns,
+                key=lambda name: positions.get(name, len(positions)),
+            )
+        return replay
 
     def _index_col_should_parse_dates(self, name, position: int) -> bool:
         """
@@ -627,12 +731,13 @@ class ArrowParserWrapper(ParserBase):
         pa = import_optional_dependency("pyarrow")
         pyarrow_csv = import_optional_dependency("pyarrow.csv")
         self._get_pyarrow_options()
-        convert_options = self._get_convert_options()
         src: ReadBuffer[bytes] | _NewlineTerminatedReader = self.src
         if "a\n".encode(self.encoding).endswith(b"a\n"):
             # the reader appends b"\n", a newline only in ASCII-compatible
             # encodings
             src = _NewlineTerminatedReader(self.src)
+        src = self._sort_pyarrow_usecols(src)
+        convert_options = self._get_convert_options()
 
         try:
             table = pyarrow_csv.read_csv(

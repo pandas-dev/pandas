@@ -549,3 +549,36 @@ b,2,y
         {"col1": pd.array(["a", "b"]), "col2": np.array([1, 2], dtype="uint8")}
     )
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("usecols", [["c", "a"], ["a", "c"], {"c", "a"}])
+def test_usecols_names_keep_file_order(all_parsers, usecols, monkeypatch):
+    # GH#67010 the selected columns come back in file order on every engine,
+    # regardless of the order (or container) given in usecols
+    parser = all_parsers
+    data = "a,b,c\n1,2,3\n4,5,6"
+
+    if parser.engine == "pyarrow":
+        import pyarrow.csv as pyarrow_csv
+
+        original_read_csv = pyarrow_csv.read_csv
+
+        def read_csv(*args, **kwargs):
+            assert kwargs["convert_options"].include_columns == ["a", "c"]
+            return original_read_csv(*args, **kwargs)
+
+        monkeypatch.setattr(pyarrow_csv, "read_csv", read_csv)
+
+    result = parser.read_csv(StringIO(data), usecols=usecols)
+    expected = pd.DataFrame({"a": [1, 4], "c": [3, 6]})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_usecols_names_keep_file_order_numpy_skiprows(all_parsers):
+    # GH#67010 numpy integers are accepted for skiprows
+    parser = all_parsers
+    data = "skip\na,b,c\n1,2,3\n4,5,6"
+
+    result = parser.read_csv(StringIO(data), usecols=["c", "a"], skiprows=np.int64(1))
+    expected = pd.DataFrame({"a": [1, 4], "c": [3, 6]})
+    tm.assert_frame_equal(result, expected)
