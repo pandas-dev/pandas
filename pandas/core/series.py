@@ -2129,7 +2129,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         else:
             pa_array = data
 
-        ser = arrow_table_to_pandas(pa.table({"col": pa_array}))["col"]
+        ser = arrow_table_to_pandas(pa.table({"col": pa_array}))._ixs(0, axis=1)
 
         # for pyarrow, preserve to_pandas() behaviour of using a field name
         name = None

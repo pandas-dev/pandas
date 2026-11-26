@@ -442,7 +442,7 @@ def col(col_name: Hashable) -> Expression:
         msg = f"Expected Hashable, got: {type(col_name)}"
         raise TypeError(msg)
 
-    def func(df: DataFrame) -> Series:
+    def func(df: DataFrame) -> Series | DataFrame:
         if col_name not in df.columns:
             columns_str = str(df.columns.tolist())
             max_len = 90

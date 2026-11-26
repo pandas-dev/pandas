@@ -69,11 +69,11 @@ class PandasDataFrameXchg(DataFrameXchg):
         return PandasColumn(self._df.iloc[:, i], allow_copy=self._allow_copy)
 
     def get_column_by_name(self, name: str) -> PandasColumn:
-        return PandasColumn(self._df[name], allow_copy=self._allow_copy)
+        return PandasColumn(self._df[name], allow_copy=self._allow_copy)  # type: ignore[arg-type]
 
     def get_columns(self) -> list[PandasColumn]:
         return [
-            PandasColumn(self._df[name], allow_copy=self._allow_copy)
+            PandasColumn(self._df[name], allow_copy=self._allow_copy)  # pyright: ignore[reportArgumentType]
             for name in self._df.columns
         ]
 

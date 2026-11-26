@@ -378,8 +378,8 @@ def test_multi_chunk_column() -> None:
 
     # Check that the rechunking we did didn't modify the original DataFrame.
     tm.assert_frame_equal(df, df_orig)
-    assert len(df["a"].array._pa_array.chunks) == 2
-    assert len(df_orig["a"].array._pa_array.chunks) == 2
+    assert len(df["a"].array._pa_array.chunks) == 2  # type: ignore[union-attr]
+    assert len(df_orig["a"].array._pa_array.chunks) == 2  # type: ignore[union-attr]
 
 
 def test_timestamp_ns_pyarrow():

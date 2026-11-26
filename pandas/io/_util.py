@@ -194,7 +194,7 @@ def _post_convert_dtypes(
                     # Any key that the user didn't explicitly specify
                     #  that got converted to IntegerDtype now gets converted
                     #  to numpy dtype.
-                    dtype[col] = df[col].dtype.numpy_dtype
+                    dtype[col] = df[col].dtype.numpy_dtype  # pyright: ignore[reportAttributeAccessIssue]
 
             # Ignore non-existent columns from dtype mapping
             # like other parsers do

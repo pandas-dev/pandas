@@ -29,6 +29,7 @@ from typing import (
     Any,
     Literal,
     Self,
+    TypeAlias,
     cast,
     overload,
 )
@@ -209,11 +210,15 @@ from pandas.io.formats.info import DataFrameInfo
 import pandas.plotting
 
 if TYPE_CHECKING:
+    import array
+    from collections import deque
     from collections.abc import (
         Callable,
         Hashable,
+        ItemsView,
         Iterable,
         Iterator,
+        KeysView,
         Mapping,
         Sequence,
     )
@@ -280,6 +285,24 @@ if TYPE_CHECKING:
     from pandas.core.interchange.dataframe_protocol import DataFrame as DataFrameXchg
 
     from pandas.io.formats.style import Styler
+
+    # Key types that are not treated as a column label (barring hashable
+    # subclasses), so DataFrame.__getitem__ returns a DataFrame; a 0-d ndarray is
+    # unpacked to a scalar, so only ndim >= 1 qualifies.
+    _FrameGetitemKey: TypeAlias = (
+        slice
+        | "DataFrame"
+        | Series
+        | Index
+        | ExtensionArray
+        | np.ndarray[tuple[int, *tuple[int, ...]], np.dtype[Any]]
+        | list[Any]
+        | deque[Any]
+        | array.array[Any]
+        | KeysView[Any]
+        | ItemsView[Any, Any]
+        | Iterator[Any]
+    )
 
 
 # -----------------------------------------------------------------------
@@ -4297,6 +4320,17 @@ class DataFrame(NDFrame, OpsMixin):
         for i in range(len(self.columns)):
             yield self._get_column_array(i)
 
+    @overload
+    def __getitem__(self, key: Expression) -> Series | Self: ...
+    @overload
+    def __getitem__(self, key: _FrameGetitemKey) -> Self: ...
+    @overload
+    def __getitem__(self, key: Callable[[Self], _FrameGetitemKey]) -> Self: ...
+    @overload
+    def __getitem__(
+        self,
+        key: Hashable | Iterable[Any],
+    ) -> Series | Self: ...
     def __getitem__(self, key):
         check_dict_or_set_indexers(key)
         key = lib.item_from_zerodim(key)
@@ -14580,7 +14614,7 @@ class DataFrame(NDFrame, OpsMixin):
 
         df = self.reset_index(drop=True)
         if len(columns) == 1:
-            result = df[columns[0]].explode()
+            result = df[columns[0]].explode()  # type: ignore[call-arg]
         else:
             mylen = lambda x: len(x) if (is_list_like(x) and len(x) > 0) else 1
             exploded = {}
@@ -14597,7 +14631,7 @@ class DataFrame(NDFrame, OpsMixin):
                     )
                 else:
                     counts = series.apply(mylen).to_numpy()
-                    exploded[c] = series.explode()
+                    exploded[c] = series.explode()  # type: ignore[assignment, call-arg]
 
                 if counts0 is None:
                     counts0 = counts
