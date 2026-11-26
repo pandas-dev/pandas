@@ -808,6 +808,27 @@ class TestAsOfMerge:
                 trades, quotes, right_on="bid", left_index=True, right_index=True
             )
 
+    @pytest.mark.parametrize("side", ["left", "right"])
+    @pytest.mark.parametrize("shared_by", [True, False])
+    def test_by_array_wrong_length(self, side, shared_by):
+        # GH#58279
+        left_size = 3 if side == "left" else 2
+        right_size = 3 if side == "right" else 2
+        left = pd.DataFrame(
+            {"t": range(1, left_size + 1), "a": range(1, left_size + 1)}
+        )
+        right = pd.DataFrame(
+            {"t": range(1, right_size + 1), "b": [10, 20, 30][:right_size]}
+        )
+        key = np.array([1, 2])
+        kwargs = {"by": [key]} if shared_by else {"left_by": [key], "right_by": [key]}
+        msg = (
+            "Array-like join key must have the same length as the "
+            rf"{side} DataFrame \(3\), got 2"
+        )
+        with pytest.raises(ValueError, match=msg):
+            pd.merge_asof(left, right, on="t", **kwargs)
+
     def test_basic_left_by_right_by(self, trades, asof, quotes):
         # GH14253
         expected = asof
