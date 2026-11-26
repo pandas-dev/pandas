@@ -895,6 +895,58 @@ def test_colspecs_with_comment():
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("skip_blank_lines", [True, False])
+def test_comment_line_outside_inferred_colspecs(skip_blank_lines):
+    # GH#53922 the inferred colspecs start after the "#", so the comment line was
+    #  sliced into data
+    data = "# file :: atlas/series\n   93.5000    17.9877\n\n   94.5000    18.0374\n"
+    result = read_fwf(
+        StringIO(data), comment="#", header=None, skip_blank_lines=skip_blank_lines
+    )
+    rows = [[93.5, 17.9877], [94.5, 18.0374]]
+    if not skip_blank_lines:
+        rows.insert(1, [np.nan, np.nan])
+    expected = pd.DataFrame(rows)
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("comment_line", ["#NA", "#N/A", "#N/A N/A"])
+def test_comment_line_outside_colspecs_matching_na_value(comment_line):
+    # GH#53922 a comment line reading as a default NA string is still dropped
+    data = f"{comment_line}\n   93.5000    17.9877\n   94.5000    18.0374\n"
+    result = read_fwf(
+        StringIO(data), colspecs=[(3, 10), (14, 21)], comment="#", header=None
+    )
+    expected = pd.DataFrame([[93.5, 17.9877], [94.5, 18.0374]])
+    tm.assert_frame_equal(result, expected)
+
+
+def test_comment_between_colspecs():
+    # GH#53922 a comment starting in a gap between columns ends the line
+    data = "  1  2    3  4\n  7  8 #N/A#11\n  9# 10   5  6\n"
+    result = read_fwf(
+        StringIO(data),
+        colspecs=[(0, 3), (4, 6), (7, 11), (12, 14)],
+        comment="#",
+        na_values="#N/A",
+        header=None,
+    )
+    expected = pd.DataFrame(
+        [[1, 2.0, 3.0, 4.0], [7, 8.0, np.nan, np.nan], [9, np.nan, np.nan, np.nan]]
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_comment_between_colspecs_negative_bounds():
+    # GH#53922 a negative colspec is measured from the end of the whole line
+    data = "  1 #     99\n  2       88\n"
+    result = read_fwf(
+        StringIO(data), colspecs=[(0, 3), (-3, None)], comment="#", header=None
+    )
+    expected = pd.DataFrame([[1, np.nan], [2, 88.0]])
+    tm.assert_frame_equal(result, expected)
+
+
 def test_skip_rows_and_n_rows():
     # GH#44021
     data = """a\tb
