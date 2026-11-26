@@ -222,6 +222,37 @@ def test_join_multi_with_nan():
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("keys", [[81, 82], [82, 81, 99]])
+def test_join_level_with_nan(join_type, keys):
+    # GH#60908 NaN entries were dropped from one level only, or matched to another key
+    midx = pd.MultiIndex.from_arrays(
+        [[np.nan, 81, 82], ["x", "y", "z"]], names=["foo", "bar"]
+    )
+    other = pd.Index(keys, dtype=np.float64, name="foo")
+    result, lidx, ridx = midx.join(other, how=join_type, return_indexers=True)
+
+    if join_type in ("inner", "right"):
+        expected_lidx = np.array([1, 2], dtype=np.intp)
+    else:
+        expected_lidx = np.arange(3, dtype=np.intp)
+    expected_ridx = other.get_indexer(midx.get_level_values(0)[expected_lidx])
+
+    tm.assert_index_equal(result, midx[expected_lidx], exact=False)
+    # same level dtype as without the NaN entry
+    assert result.levels[0].dtype == midx[1:].join(other, how=join_type).levels[0].dtype
+    if lidx is not None:
+        tm.assert_numpy_array_equal(lidx, expected_lidx)
+    tm.assert_numpy_array_equal(ridx, expected_ridx)
+
+    flipped = {"left": "right", "right": "left"}.get(join_type, join_type)
+    result2, ridx2, lidx2 = other.join(midx, how=flipped, return_indexers=True)
+    tm.assert_index_equal(result2, result)
+    tm.assert_numpy_array_equal(ridx2, ridx)
+    assert (lidx2 is None) == (lidx is None)
+    if lidx is not None:
+        tm.assert_numpy_array_equal(lidx2, lidx)
+
+
 @pytest.mark.parametrize("val", [0, 5])
 def test_join_dtypes(any_numeric_ea_dtype, val):
     # GH#49830
