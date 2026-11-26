@@ -195,6 +195,24 @@ def test_value_counts_bins(index_or_series, using_infer_string):
     assert s.nunique() == 0
 
 
+@pytest.mark.parametrize("normalize", [True, False])
+def test_value_counts_bins_dropna_false(index_or_series, normalize):
+    # GH#25970
+    obj = index_or_series([1, 1, 2, 0, 1, np.nan, 4, 4, np.nan, 3])
+    result = obj.value_counts(bins=2, dropna=False, normalize=normalize)
+    index = pd.IntervalIndex([pd.Interval(-0.005, 2.0), pd.Interval(2.0, 4.0), np.nan])
+    expected = pd.Series([5, 3, 2], index=index, name="count")
+    if normalize:
+        expected = (expected / 10).rename("proportion")
+    tm.assert_series_equal(result, expected)
+
+    # values outside explicit bins are counted with the NaNs, as in pd.cut
+    result = obj.value_counts(bins=[0, 2, 3], dropna=False, sort=False)
+    index = pd.IntervalIndex([pd.Interval(-0.001, 2.0), pd.Interval(2.0, 3.0), np.nan])
+    expected = pd.Series([5, 1, 4], index=index, name="count")
+    tm.assert_series_equal(result, expected)
+
+
 def test_value_counts_datetime64(index_or_series, unit):
     klass = index_or_series
 
