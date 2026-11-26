@@ -1086,20 +1086,21 @@ class TestTableOrientReader:
             pd.read_json(out, orient="table")
 
     def test_read_json_table_orient_perturbed_float_labels(self):
-        # GH#19129 the default parser reads the schema's 0.3 as 0.30000000000000004
+        # GH#19129 precise_float=False reads the schema's 0.3 as
+        #  0.30000000000000004
         df = pd.DataFrame([[1.0, 2.0]], columns=[0.3, 0.7])
         data = df.to_json(orient="table")
         with pytest.raises(ValueError, match="try precise_float=True"):
-            pd.read_json(StringIO(data), orient="table")
+            pd.read_json(StringIO(data), orient="table", precise_float=False)
 
-        result = pd.read_json(StringIO(data), orient="table", precise_float=True)
+        result = pd.read_json(StringIO(data), orient="table")
         tm.assert_frame_equal(result, df)
 
         # to_json writes the schema name rounded to double_precision
         df = pd.DataFrame([[1.0]], columns=[1 / 3])
         data = df.to_json(orient="table")
         with pytest.raises(ValueError, match="rounded by to_json's double_precision"):
-            pd.read_json(StringIO(data), orient="table", precise_float=True)
+            pd.read_json(StringIO(data), orient="table")
 
     def test_read_json_table_orient_non_string_index_names(self):
         # GH#19129

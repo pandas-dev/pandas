@@ -630,7 +630,7 @@ def test_pyarrow_engine_date_unit(pyarrow_jsonl):
 def test_pyarrow_engine_precise_float(pyarrow_jsonl):
     msg = "The 'precise_float' option is not supported with the 'pyarrow' engine"
     with pytest.raises(ValueError, match=msg):
-        pd.read_json(pyarrow_jsonl, lines=True, engine="pyarrow", precise_float=True)
+        pd.read_json(pyarrow_jsonl, lines=True, engine="pyarrow", precise_float=False)
 
 
 @pytest.mark.parametrize("convert_axes", [True, False])
@@ -720,7 +720,7 @@ def test_pyarrow_engine_allows_default_options(pyarrow_jsonl, encoding):
             typ="frame",
             convert_dates=True,
             keep_default_dates=True,
-            precise_float=False,
+            precise_float=True,
             date_unit=None,
             encoding=encoding,
             encoding_errors="strict",

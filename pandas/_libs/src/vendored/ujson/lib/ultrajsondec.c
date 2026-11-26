@@ -41,13 +41,16 @@ https://www.opensource.apple.com/source/tcl/tcl-14/tcl/license.terms
 // Licence at LICENSES/ULTRAJSON_LICENSE
 
 #include "pandas/vendored/ujson/lib/ultrajson.h"
-#include <errno.h>
 #include <limits.h>
 #include <locale.h>
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
+
+// Defined in pandas/_libs/src/parser/fast_float_wrappers.cpp
+int fast_float_strtod(const char *start, const char *end, double *value,
+                      const char **endptr, char decimal);
 
 #ifndef TRUE
 #  define TRUE 1
@@ -100,18 +103,33 @@ double createDouble(double intNeg, double intValue, double frcValue,
   return (intValue + (frcValue * g_pow10[frcDecimalCount])) * intNeg;
 }
 
+static int hasExponent(const char *start, const char *end) {
+  for (; start < end; start++) {
+    if (*start == 'e' || *start == 'E') {
+      return 1;
+    }
+  }
+  return 0;
+}
+
 JSOBJ FASTCALL_MSVC decodePreciseFloat(struct DecoderState *ds) {
-  char *end;
+  const char *end;
   double value;
-  errno = 0;
 
-  value = strtod(ds->start, &end);
-
-  if (errno == ERANGE) {
-    return SetError(ds, -1, "Range error when decoding numeric as double");
+  if (fast_float_strtod(ds->start, ds->end, &value, &end, '.') != 0) {
+    return SetError(ds, -1, "Unexpected character found when decoding double");
+  }
+  // fast_float stops at an exponent marker with no digits ("1e", "1e+");
+  // treat the empty exponent as 0
+  if ((*end == 'e' || *end == 'E') && !hasExponent(ds->start, end)) {
+    end++;
+    if (*end == '+' || *end == '-') {
+      end++;
+    }
   }
 
-  ds->start = end;
+  ds->lastType = JT_DOUBLE;
+  ds->start = (char *)end;
   return ds->dec->newDouble(ds->prv, value);
 }
 

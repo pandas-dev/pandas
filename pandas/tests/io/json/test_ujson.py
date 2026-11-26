@@ -1055,6 +1055,60 @@ class TestPandasJSONTests:
         result = ujson.ujson_loads(float_str, precise_float=precise_float)
         assert result == json.loads(float_str)
 
+    @pytest.mark.parametrize(
+        "float_str",
+        [
+            "4.56",
+            "-4.56",
+            "0.1",
+            "1.7976931348623157e308",
+            "2.2250738585072011e-308",
+            "1e-320",
+            "1e400",
+            "-1e400",
+            "1e-400",
+            "-0.0",
+            "3.14159265358979323846264338327950288",
+            "1.",
+            "-.5",
+        ],
+    )
+    def test_decode_float_closest_value(self, float_str):
+        # GH#62464
+        result = ujson.ujson_loads(float_str)
+        assert result == float(float_str)
+        assert np.signbit(result) == np.signbit(float(float_str))
+
+    @pytest.mark.parametrize("precise_float", [True, False])
+    @pytest.mark.parametrize(
+        "float_str, expected",
+        [
+            ("1e", 1.0),
+            ("1E+", 1.0),
+            ("1.5e-", 1.5),
+            ("-.5e", -0.5),
+            ("[2.e,3]", [2.0, 3]),
+        ],
+    )
+    def test_decode_float_missing_exponent_digits(
+        self, float_str, expected, precise_float
+    ):
+        # GH#62464 an exponent marker with no digits is read as exponent 0
+        assert ujson.ujson_loads(float_str, precise_float=precise_float) == expected
+
+    @pytest.mark.parametrize("precise_float", [True, False])
+    @pytest.mark.parametrize("float_str", ["1e1e", "1e+1E", "1.5e-2e3"])
+    def test_decode_float_second_exponent_raises(self, float_str, precise_float):
+        with pytest.raises(ValueError, match="Trailing data"):
+            ujson.ujson_loads(float_str, precise_float=precise_float)
+
+    @pytest.mark.parametrize("float_str", ["-.", "-e", "-.e", "-e5", "-E+5", "-e999"])
+    def test_decode_float_no_mantissa_digits_raises(self, float_str):
+        # GH#62464 previously read as -0.0, or NaN for large exponents
+        msg = "Unexpected character found when decoding double"
+        with pytest.raises(ValueError, match=msg):
+            ujson.ujson_loads(float_str)
+
     def test_decode_with_trailing_whitespaces(self):
         assert {} == ujson.ujson_loads("{}\n\t ")
 

@@ -415,7 +415,7 @@ def parse_table_schema(json, precise_float: bool) -> DataFrame:
     df.columns = range(len(names))
 
     if dict_records:
-        # a float name can miss its "data" key if the default parser perturbed it
+        # a float name can miss its "data" key if precise_float=False perturbed it
         #  (0.3 -> 0.30000000000000004) or to_json rounded it to double_precision;
         #  raise rather than return NaN
         unmatched = [

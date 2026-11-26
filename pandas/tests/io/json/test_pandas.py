@@ -842,6 +842,26 @@ class TestPandasContainer:
         result = pd.read_json(StringIO(df.to_json()), precise_float=True)
         tm.assert_frame_equal(result, df)
 
+    @pytest.mark.parametrize("typ", ["frame", "series"])
+    def test_read_json_floats_closest_value(self, typ):
+        # GH#62464
+        strs = [
+            "4.56",
+            "0.1",
+            "1.7976931348623157e308",
+            "2.2250738585072011e-308",
+            "1e-320",
+            "1e400",
+            "-1e-400",
+            "3.14159265358979323846264338327950288",
+        ]
+        data = "[" + ",".join(strs) + "]"
+        result = pd.read_json(StringIO(data), typ=typ)
+        expected = pd.Series([float(x) for x in strs])
+        if typ == "frame":
+            expected = expected.to_frame(0)
+        tm.assert_equal(result, expected, check_exact=True)
+
     def test_typ(self):
         s = pd.Series(range(6), index=["a", "b", "c", "d", "e", "f"], dtype="int64")
         result = pd.read_json(StringIO(s.to_json()), typ="series")

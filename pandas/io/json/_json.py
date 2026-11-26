@@ -507,7 +507,7 @@ def _validate_pyarrow_engine_options(
         raise_unsupported("convert_dates")
     if keep_default_dates is not True and keep_default_dates is not lib.no_default:
         raise_unsupported("keep_default_dates")
-    if precise_float is not False:
+    if precise_float is not True:
         raise_unsupported("precise_float")
     if date_unit is not None:
         raise_unsupported("date_unit")
@@ -645,7 +645,7 @@ def read_json(
     convert_axes: bool | None = None,
     convert_dates: bool | list[str] | lib.NoDefault = lib.no_default,
     keep_default_dates: bool | lib.NoDefault = lib.no_default,
-    precise_float: bool = False,
+    precise_float: bool = True,
     date_unit: str | None = None,
     encoding: str | None = None,
     encoding_errors: str | None = "strict",
@@ -772,10 +772,13 @@ def read_json(
             Pass ``dtype=False`` to disable type conversion, or parse date
             columns with :func:`~pandas.to_datetime` after reading.
 
-    precise_float : bool, default False
-        Set to enable usage of higher precision (strtod) function when
-        decoding string to double values. Default (False) is to use fast but
-        less precise builtin functionality.
+    precise_float : bool, default True
+        Parse floating point values to the closest representable value. Set to
+        False to use the less precise method that was the default before
+        pandas 3.2.
+
+        .. versionchanged:: 3.2.0
+            The default changed from False to True.
 
     date_unit : str, default None
         The timestamp unit to detect if converting dates. The default behaviour
@@ -1061,8 +1064,7 @@ class JsonReader(abc.Iterator[DataFrame | Series], Generic[FrameSeriesStrT]):
         the default datelike columns. See :func:`~pandas.read_json` for the
         criteria used to determine whether a column label is datelike.
     precise_float : bool
-        Set to enable usage of higher precision (strtod) function when
-        decoding string to double values.
+        Parse floating point values to the closest representable value.
     date_unit : str or None
         The timestamp unit to detect if converting dates. The default
         behaviour is to try and detect the correct precision, but if this
@@ -1461,7 +1463,7 @@ class Parser:
         convert_axes: bool = True,
         convert_dates: bool | list[str] = True,
         keep_default_dates: bool = False,
-        precise_float: bool = False,
+        precise_float: bool = True,
         date_unit=None,
         dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
     ) -> None:
