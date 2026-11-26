@@ -24,6 +24,7 @@ from numpy cimport (
     intp_t,
     ndarray,
     uint8_t,
+    uint64_t,
 )
 
 cnp.import_array()
@@ -306,7 +307,7 @@ timedelta-like}
         Py_ssize_t i, n = vals.shape[0]
         Py_ssize_t delta_idx_offset, delta_idx
         int64_t v, left, right, val, new_local, remaining_mins
-        int64_t first_delta, delta
+        int64_t first_delta, delta, adj, w, shifted, out_of_bounds = 0
         int64_t shift_delta = 0
         ndarray[int64_t] result_a, result_b, dst_hours
         int64_t[::1] result
@@ -379,6 +380,23 @@ timedelta-like}
 
     elif info.use_fixed:
         delta = info.delta
+        # Branch-free so the C compiler can vectorize.  out_of_bounds is negative
+        #  if any (v - adj) - delta overflowed.  A result equal to NPY_NAT is also
+        #  out of bounds but does not overflow; for delta > 0, using adj = 1 makes
+        #  this case overflow too.  If out_of_bounds is negative, the loop below
+        #  raises OutOfBoundsDatetime for the first out-of-bounds value.
+        adj = delta > 0
+        for i in range(n):
+            v = vals[i]
+            w = <int64_t>(<uint64_t>v - <uint64_t>adj)
+            shifted = <int64_t>(<uint64_t>w - <uint64_t>delta)
+            out_of_bounds |= (w ^ delta) & (w ^ shifted)
+            result[i] = (
+                NPY_NAT if v == NPY_NAT
+                else <int64_t>(<uint64_t>shifted + <uint64_t>adj)
+            )
+        if out_of_bounds >= 0:
+            return result.base  # to return underlying ndarray
         for i in range(n):
             v = vals[i]
             if v == NPY_NAT:
@@ -387,7 +405,9 @@ timedelta-like}
                 result[i] = _shift_to_utc(v, delta, creso)
                 if result[i] == NPY_NAT:
                     raise_out_of_bounds(v, BS_UNDERFLOW, creso)
-        return result.base  # to return underlying ndarray
+        raise AssertionError(
+            "out_of_bounds flagged a value that _shift_to_utc accepts"
+        )
 
     # Determine whether each date lies left of the DST transition (store in
     # result_a) or right of the DST transition (store in result_b)
