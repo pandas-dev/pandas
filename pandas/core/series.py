@@ -1664,7 +1664,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         buf: None = ...,
         *,
         na_rep: str | lib.NoDefault = ...,
-        float_format: str | None = ...,
+        float_format: fmt.FloatFormatType | None = ...,
         header: bool = ...,
         index: bool = ...,
         length: bool = ...,
@@ -1680,7 +1680,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         buf: FilePath | WriteBuffer[str],
         *,
         na_rep: str | lib.NoDefault = ...,
-        float_format: str | None = ...,
+        float_format: fmt.FloatFormatType | None = ...,
         header: bool = ...,
         index: bool = ...,
         length: bool = ...,
@@ -1695,7 +1695,7 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         self,
         buf: FilePath | WriteBuffer[str] | None = None,
         na_rep: str | lib.NoDefault = lib.no_default,
-        float_format: str | None = None,
+        float_format: fmt.FloatFormatType | None = None,
         header: bool = True,
         index: bool = True,
         length: bool = False,
@@ -1718,9 +1718,9 @@ class Series(base.IndexOpsMixin, NDFrame):  # type: ignore[misc]
         na_rep : str, optional
             String representation of missing values. By default ``NaN``,
             ``NaT``, ``None`` and ``NA`` are each shown as themselves.
-        float_format : one-parameter function, optional
-            Formatter function to apply to columns' elements if they are
-            floats, default None.
+        float_format : str or one-parameter function, optional
+            Formatter to apply to the elements if they are floats, e.g.
+            ``"%.2f"``, ``"{:.2f}"`` or ``"{:.2f}".format``, default None.
         header : bool, default True
             Add the Series header (index name).
         index : bool, default True

@@ -1111,11 +1111,11 @@ class DataFrame(NDFrame, OpsMixin):
             name.
             The result of each function must be a unicode string.
             List/tuple must be of length equal to the number of columns.
-        float_format : one-parameter function, optional, default None
-            Formatter function to apply to columns' elements if they are
-            floats. This function must return a unicode string and will be
-            applied only to the non-``NaN`` elements, with ``NaN`` being
-            handled by ``na_rep``.
+        float_format : str or one-parameter function, optional, default None
+            Formatter to apply to columns' elements if they are floats, e.g.
+            ``"%.2f"``, ``"{:.2f}"`` or ``"{:.2f}".format``. It is applied
+            only to the non-``NaN`` elements, with ``NaN`` being handled by
+            ``na_rep``.
         sparsify : bool, optional, default True
             Set to False for a DataFrame with a hierarchical index to print
             every multiindex key at each row.
@@ -3261,11 +3261,11 @@ class DataFrame(NDFrame, OpsMixin):
             name.
             The result of each function must be a unicode string.
             List/tuple must be of length equal to the number of columns.
-        float_format : one-parameter function, optional, default None
-            Formatter function to apply to columns' elements if they are
-            floats. This function must return a unicode string and will be
-            applied only to the non-``NaN`` elements, with ``NaN`` being
-            handled by ``na_rep``.
+        float_format : str or one-parameter function, optional, default None
+            Formatter to apply to columns' elements if they are floats, e.g.
+            ``"%.2f"``, ``"{:.2f}"`` or ``"{:.2f}".format``. It is applied
+            only to the non-``NaN`` elements, with ``NaN`` being handled by
+            ``na_rep``.
         sparsify : bool, optional, default True
             Set to False for a DataFrame with a hierarchical index to print
             every multiindex key at each row.

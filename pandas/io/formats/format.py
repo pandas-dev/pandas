@@ -135,6 +135,28 @@ VALID_JUSTIFY_PARAMETERS = (
 )
 
 
+def _validate_float_format(fmt: FloatFormatType | None) -> FloatFormatType | None:
+    """
+    Validates and processes the float_format argument.
+    Converts new-style format strings to callables.
+    """
+    if fmt is None or callable(fmt):
+        return fmt
+
+    if isinstance(fmt, str):
+        if "%" in fmt:
+            # Old-style strings are applied with "%" by the array formatters
+            return fmt
+        else:
+            try:
+                _ = fmt.format(1.0)  # Test with an arbitrary float
+                return fmt.format
+            except (ValueError, KeyError, IndexError) as e:
+                raise ValueError(f"Invalid new-style format string {fmt!r}") from e
+
+    raise ValueError("float_format must be a string or callable")
+
+
 class SeriesFormatter:
     """
     Implement the main logic of Series.to_string, which underlies
@@ -150,7 +172,7 @@ class SeriesFormatter:
         index: bool = True,
         na_rep: str | lib.NoDefault = lib.no_default,
         name: bool = False,
-        float_format: str | None = None,
+        float_format: FloatFormatType | None = None,
         dtype: bool = True,
         max_rows: int | None = None,
         min_rows: int | None = None,
@@ -167,7 +189,7 @@ class SeriesFormatter:
 
         if float_format is None:
             float_format = config["display"]["float_format"]
-        self.float_format = float_format
+        self.float_format = _validate_float_format(float_format)
         self.dtype = dtype
         self.adj = printing.get_adjustment()
 
@@ -392,11 +414,11 @@ class DataFrameFormatter:
         name.
         The result of each function must be a unicode string.
         List/tuple must be of length equal to the number of columns.
-    float_format : one-parameter function, optional, default None
-        Formatter function to apply to columns' elements if they are
-        floats. This function must return a unicode string and will be
-        applied only to the non-``NaN`` elements, with ``NaN`` being
-        handled by ``na_rep``.
+    float_format : str or one-parameter function, optional, default None
+        Formatter to apply to columns' elements if they are floats, e.g.
+        ``"%.2f"``, ``"{:.2f}"`` or ``"{:.2f}".format``. It is applied
+        only to the non-``NaN`` elements, with ``NaN`` being handled by
+        ``na_rep``.
     sparsify : bool, optional, default True
         Set to False for a DataFrame with a hierarchical index to print
         every multiindex key at each row.
@@ -463,7 +485,7 @@ class DataFrameFormatter:
         self.na_rep = na_rep
         self.formatters = self._initialize_formatters(formatters)
         self.justify = self._initialize_justify(justify)
-        self.float_format = self._validate_float_format(float_format)
+        self.float_format = _validate_float_format(float_format)
         self.sparsify = self._initialize_sparsify(sparsify)
         self.show_index_names = index_names
         self.decimal = decimal
@@ -875,29 +897,6 @@ class DataFrameFormatter:
             names.append(columns.name)
         return names
 
-    def _validate_float_format(
-        self, fmt: FloatFormatType | None
-    ) -> FloatFormatType | None:
-        """
-        Validates and processes the float_format argument.
-        Converts new-style format strings to callables.
-        """
-        if fmt is None or callable(fmt):
-            return fmt
-
-        if isinstance(fmt, str):
-            if "%" in fmt:
-                # Keeps old-style format strings as they are (C code handles them)
-                return fmt
-            else:
-                try:
-                    _ = fmt.format(1.0)  # Test with an arbitrary float
-                    return fmt.format
-                except (ValueError, KeyError, IndexError) as e:
-                    raise ValueError(f"Invalid new-style format string {fmt!r}") from e
-
-        raise ValueError("float_format must be a string or callable")
-
 
 class DataFrameRenderer:
     """Class for creating dataframe output in multiple formats.
@@ -1258,8 +1257,11 @@ class _GenericArrayFormatter:
         user_float_format: Any = self.float_format
         if user_float_format is None:
             user_float_format = config["display"]["float_format"]
+        float_format: Callable[[Any], str]
         if user_float_format is None:
             float_format = partial(printing.format_with_precision, sign=" ")
+        elif isinstance(user_float_format, str):
+            float_format = lambda value: user_float_format % value
         else:
             float_format = user_float_format
 
