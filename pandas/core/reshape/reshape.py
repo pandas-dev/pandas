@@ -31,6 +31,7 @@ from pandas.core.dtypes.common import (
     is_integer,
     needs_i8_conversion,
 )
+from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.dtypes import ExtensionDtype
 from pandas.core.dtypes.missing import (
     isna,
@@ -1016,15 +1017,19 @@ def stack_v3(frame: DataFrame, level: list[int]) -> Series | DataFrame:
     result: Series | DataFrame
     if not isinstance(frame.columns, MultiIndex):
         # GH#58817 Fast path when we're stacking the columns of a non-MultiIndex.
-        # When columns are homogeneous EAs, we pass through object
-        # dtype but this is still slightly faster than the normal path.
         if len(frame.columns) > 0 and frame._is_homogeneous_type:
             dtype = frame._mgr.blocks[0].dtype
         else:
             dtype = None
-        result = frame._constructor_sliced(
-            frame._values.reshape(-1, order="F"), dtype=dtype
-        )
+        if isinstance(dtype, ExtensionDtype):
+            # .values can cast through float64, losing large ints
+            result = frame._constructor_sliced(
+                concat_compat(list(frame._iter_column_arrays()))
+            )
+        else:
+            result = frame._constructor_sliced(
+                frame._values.reshape(-1, order="F"), dtype=dtype
+            )
     else:
         result = stack_reshape(frame, level, set_levels, stack_cols)
 
