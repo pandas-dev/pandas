@@ -905,7 +905,8 @@ static void PdBlock_iterBegin(JSOBJ _obj, JSONTypeContext *tc) {
     return;
   }
 
-  blkCtxt->npyCtxts = PyObject_Malloc(sizeof(NpyArrContext *) * blkCtxt->ncols);
+  // zeroed so PdBlock_iterEnd can skip columns never reached on error
+  blkCtxt->npyCtxts = PyObject_Calloc(blkCtxt->ncols, sizeof(NpyArrContext *));
   if (!blkCtxt->npyCtxts) {
     PyErr_NoMemory();
     GET_TC(tc)->iterNext = NpyArr_iterNextNone;
@@ -929,6 +930,7 @@ static void PdBlock_iterBegin(JSOBJ _obj, JSONTypeContext *tc) {
     PyObject *values = PyObject_CallMethod(array, "__array__", NULL);
     if ((!values) || (!PyArray_CheckExact(values))) {
       // Didn't get a numpy array
+      Py_XDECREF(values);
       ((JSONObjectEncoder *)tc->encoder)->errorMsg = "";
       GET_TC(tc)->iterNext = NpyArr_iterNextNone;
       goto ARR_RET;
@@ -938,6 +940,11 @@ static void PdBlock_iterBegin(JSOBJ _obj, JSONTypeContext *tc) {
 
     // init a dedicated context for this column
     NpyArr_iterBegin(obj, tc);
+    if (!GET_TC(tc)->npyarr) {
+      Py_DECREF(values);
+      GET_TC(tc)->newObj = NULL;
+      goto ARR_RET;
+    }
 
     GET_TC(tc)->itemValue = NULL;
     ((PyObjectEncoder *)tc->encoder)->npyCtxtPassthru = NULL;
@@ -958,7 +965,7 @@ static void PdBlock_iterEnd(JSOBJ obj, JSONTypeContext *tc) {
   PdBlockContext *blkCtxt = GET_TC(tc)->pdblock;
 
   if (blkCtxt) {
-    for (int i = 0; i < blkCtxt->ncols; i++) {
+    for (int i = 0; blkCtxt->npyCtxts && i < blkCtxt->ncols; i++) {
       npyarr = blkCtxt->npyCtxts[i];
       if (npyarr) {
         if (npyarr->array) {
