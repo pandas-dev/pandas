@@ -315,6 +315,7 @@ Interval
 
 Indexing
 ^^^^^^^^
+- Bug in :class:`Index`, :class:`Series` and :class:`DataFrame` constructors raising ``TypeError`` when passed an :class:`enum.Enum` class as ``data``, ``index`` or ``columns``, a regression since pandas 2.0 (:issue:`54386`)
 - Bug in :class:`Index` where creating or converting to numpy string dtypes would raise ``NotImplementedError`` now raises ``TypeError`` (:issue:`50127`)
 - Bug in :meth:`DataFrame.__setitem__` silently corrupting the :class:`DataFrame` when the key matched several columns and ``value`` was a timezone-aware ``datetime64`` or ``period`` scalar, or a one-dimensional :class:`Series` of either dtype; it now broadcasts across the matched columns as the other dtypes already did (:issue:`71078`)
 - Bug in :meth:`DataFrame.__setitem__` silently corrupting the :class:`DataFrame` when the key matched several unique columns, e.g. a partial date string on :class:`DatetimeIndex` columns; ``value`` now broadcasts across them (:issue:`71098`)

@@ -6,6 +6,7 @@ from datetime import (
     datetime,
     tzinfo,
 )
+import enum
 import functools
 from itertools import zip_longest
 import operator
@@ -523,6 +524,11 @@ class Index(IndexOpsMixin, PandasObject):
         refs = None
         if not copy and isinstance(data, (ABCSeries, Index)):
             refs = data._references
+
+        if isinstance(data, type) and issubclass(data, enum.Enum):
+            # GH#54386 an Enum class holds its members, so treat it like a list
+            #  of them here (it is still a single label elsewhere, e.g. in drop)
+            data = list(data)
 
         # GH 63306, GH 63388
         data, copy = cls._maybe_copy_array_input(data, copy, dtype)

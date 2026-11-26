@@ -910,6 +910,16 @@ class TestIndex:
         with pytest.raises(KeyError, match="not found in axis"):
             index.drop(Color)
 
+    def test_constructor_enum_class(self):
+        # GH#54386 an Enum class is treated like a list of its members
+        class Color(enum.Enum):
+            RED = 1
+            BLUE = 2
+
+        result = Index(Color)
+        expected = Index(list(Color))
+        tm.assert_index_equal(result, expected)
+
     def test_drop_with_duplicates_in_index(self, index):
         # GH38051
         if len(index) == 0 or isinstance(index, MultiIndex):
