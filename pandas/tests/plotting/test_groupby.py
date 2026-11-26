@@ -277,3 +277,11 @@ class TestDataFrameGroupByPlots:
         df = pd.DataFrame({"x": [1, 2, 3, 4], "y": [4, 3, 2, 1], "z": list("abab")})
         res = call(df.groupby("z"))
         assert [ax.get_title() for ax in res] == [expected, expected]
+
+    def test_series_groupby_plot_secondary_y_group_key(self):
+        # GH#13041 secondary_y names a group, not each group's column
+        ser = pd.Series([1, 2, 3, 4], name="v")
+        with tm.assert_produces_warning(None):
+            res = ser.groupby(np.array(["A", "A", "B", "B"])).plot(secondary_y="B")
+        assert not hasattr(res["A"], "left_ax")
+        assert hasattr(res["B"], "left_ax")
