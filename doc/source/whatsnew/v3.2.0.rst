@@ -551,6 +551,7 @@ ExtensionArray
 - Bug in comparisons between PyArrow-backed data and objects PyArrow cannot convert raising ``pyarrow.ArrowInvalid`` or ``pyarrow.ArrowTypeError``; ``==``/``!=`` now compare elementwise, ordered comparisons raise ``TypeError``, and a missing value on either side propagates instead of answering ``False`` (:issue:`62682`)
 - Bug in constructing or setting values into a numeric, boolean or temporal :class:`ArrowDtype` from a NumPy string array sometimes crashing the interpreter or returning incorrect values (:issue:`71827`)
 - Bug in constructing or setting values into an :class:`ArrowDtype` array from a list mixing strings and ``np.nan`` raising instead of treating ``np.nan`` as missing (:issue:`64578`)
+- Bug in item assignment, :meth:`Series.where`, :meth:`Series.mask`, :meth:`Series.replace` and their :class:`DataFrame` equivalents on a PyArrow ``dictionary`` dtype replacing a missing value that should be kept with the last value of the dictionary (:issue:`72159`)
 
 Styler
 ^^^^^^

@@ -3917,6 +3917,23 @@ class ArrowExtensionArray(
             # GH#52059 replace_with_mask segfaults for chunked array
             # https://github.com/apache/arrow/issues/34634
             values = values.combine_chunks()
+        if pa.types.is_dictionary(values.type):
+            # pc.replace_with_mask has no dictionary kernel, and the NumPy
+            #  fallback below decodes a missing index (-1) to the last
+            #  dictionary value: replace on the decoded values instead, which
+            #  goes through the workarounds below for the value type
+            value_type = values.type.value_type
+            if isinstance(replacements, (pa.Array, pa.Scalar)):
+                replacements = replacements.cast(value_type)
+            result = cls._replace_with_mask(values.cast(value_type), mask, replacements)
+            # encode each chunk on its own: one dictionary for all chunks
+            #  may not fit the index type
+            if isinstance(result, pa.ChunkedArray):
+                return pa.chunked_array(
+                    [pc.dictionary_encode(c).cast(values.type) for c in result.chunks],
+                    type=values.type,
+                )
+            return pc.dictionary_encode(result).cast(values.type)
         if pa_version_under25p0 and pa.types.is_null(values.type):
             # GH#66703 pc.replace_with_mask aborts the process for null dtype
             # (apache/arrow#47447, fixed in pyarrow 25.0.0). The null type
