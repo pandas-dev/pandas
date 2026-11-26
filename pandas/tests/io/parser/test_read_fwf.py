@@ -895,6 +895,32 @@ def test_colspecs_with_comment():
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "data",
+    [
+        "# a comment :: wider/than/the/data\n  1   2\n  3   4\n",
+        "  1   2\n# a comment :: wider/than/the/data\n  3   4\n",
+        "  1   2\n  3   4\n# a comment :: wider/than/the/data\n",
+        "# first comment :: wider/than/data\n# second comment :: also/wide\n"
+        "  1   2\n  3   4\n",
+    ],
+    ids=["first", "middle", "last", "consecutive"],
+)
+def test_fwf_full_line_comment_skipped(data):
+    # GH#53922
+    result = read_fwf(StringIO(data), comment="#", header=None)
+    expected = pd.DataFrame([[1, 2], [3, 4]])
+    tm.assert_frame_equal(result, expected)
+
+
+def test_fwf_full_line_comment_before_header():
+    # GH#53922
+    data = "# a comment :: wider/than/the/data\n  a   b\n  1   2\n  3   4\n"
+    result = read_fwf(StringIO(data), comment="#")
+    expected = pd.DataFrame({"a": [1, 3], "b": [2, 4]})
+    tm.assert_frame_equal(result, expected)
+
+
 def test_skip_rows_and_n_rows():
     # GH#44021
     data = """a\tb
