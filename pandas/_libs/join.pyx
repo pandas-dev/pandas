@@ -4,9 +4,12 @@ import numpy as np
 
 cimport numpy as cnp
 from numpy cimport (
+    float32_t,
+    float64_t,
     int64_t,
     intp_t,
     ndarray,
+    uint64_t,
 )
 
 cnp.import_array()
@@ -737,6 +740,7 @@ def asof_join_backward_on_X_by_Y(const numeric_t[:] left_values,
         bint has_tolerance = False
         numeric_t tolerance_ = 0
         numeric_t diff = 0
+        uint64_t unsigned_tolerance = 0, unsigned_diff = 0
         kh_int64_t *hash_table = NULL
         khiter_t loc
         int ret = 0
@@ -744,7 +748,10 @@ def asof_join_backward_on_X_by_Y(const numeric_t[:] left_values,
     # if we are using tolerance, set our objects
     if tolerance is not None:
         has_tolerance = True
-        tolerance_ = tolerance
+        if numeric_t is float32_t or numeric_t is float64_t:
+            tolerance_ = tolerance
+        else:
+            unsigned_tolerance = min(tolerance, <uint64_t>-1)
 
     left_size = len(left_values)
     right_size = len(right_values)
@@ -808,9 +815,15 @@ def asof_join_backward_on_X_by_Y(const numeric_t[:] left_values,
 
         # if needed, verify that tolerance is met
         if has_tolerance and found_right_pos != -1:
-            diff = left_values[left_pos] - right_values[found_right_pos]
-            if diff > tolerance_:
-                right_indexer[left_pos] = -1
+            if numeric_t is float32_t or numeric_t is float64_t:
+                diff = left_values[left_pos] - right_values[found_right_pos]
+                if diff > tolerance_:
+                    right_indexer[left_pos] = -1
+            else:
+                unsigned_diff = (<uint64_t>left_values[left_pos]
+                                 - <uint64_t>right_values[found_right_pos])
+                if unsigned_diff > unsigned_tolerance:
+                    right_indexer[left_pos] = -1
 
     if use_hashtable:
         kh_destroy_int64(hash_table)
@@ -834,6 +847,7 @@ def asof_join_forward_on_X_by_Y(const numeric_t[:] left_values,
         bint has_tolerance = False
         numeric_t tolerance_ = 0
         numeric_t diff = 0
+        uint64_t unsigned_tolerance = 0, unsigned_diff = 0
         kh_int64_t *hash_table = NULL
         khiter_t loc
         int ret = 0
@@ -841,7 +855,10 @@ def asof_join_forward_on_X_by_Y(const numeric_t[:] left_values,
     # if we are using tolerance, set our objects
     if tolerance is not None:
         has_tolerance = True
-        tolerance_ = tolerance
+        if numeric_t is float32_t or numeric_t is float64_t:
+            tolerance_ = tolerance
+        else:
+            unsigned_tolerance = min(tolerance, <uint64_t>-1)
 
     left_size = len(left_values)
     right_size = len(right_values)
@@ -906,9 +923,15 @@ def asof_join_forward_on_X_by_Y(const numeric_t[:] left_values,
 
         # if needed, verify that tolerance is met
         if has_tolerance and found_right_pos != -1:
-            diff = right_values[found_right_pos] - left_values[left_pos]
-            if diff > tolerance_:
-                right_indexer[left_pos] = -1
+            if numeric_t is float32_t or numeric_t is float64_t:
+                diff = right_values[found_right_pos] - left_values[left_pos]
+                if diff > tolerance_:
+                    right_indexer[left_pos] = -1
+            else:
+                unsigned_diff = (<uint64_t>right_values[found_right_pos]
+                                 - <uint64_t>left_values[left_pos])
+                if unsigned_diff > unsigned_tolerance:
+                    right_indexer[left_pos] = -1
 
     if use_hashtable:
         kh_destroy_int64(hash_table)
@@ -932,6 +955,7 @@ def asof_join_nearest_on_X_by_Y(const numeric_t[:] left_values,
         ndarray[intp_t] left_indexer, right_indexer
         Py_ssize_t left_size, i
         numeric_t bdiff, fdiff
+        uint64_t unsigned_bdiff, unsigned_fdiff
 
     # search both forward and backward
     bli, bri = asof_join_backward_on_X_by_Y(
@@ -961,9 +985,18 @@ def asof_join_nearest_on_X_by_Y(const numeric_t[:] left_values,
     for i in range(len(bri)):
         # choose timestamp from right with smaller difference
         if bri[i] != -1 and fri[i] != -1:
-            bdiff = left_values[bli[i]] - right_values[bri[i]]
-            fdiff = right_values[fri[i]] - left_values[fli[i]]
-            right_indexer[i] = bri[i] if bdiff <= fdiff else fri[i]
+            if numeric_t is float32_t or numeric_t is float64_t:
+                bdiff = left_values[bli[i]] - right_values[bri[i]]
+                fdiff = right_values[fri[i]] - left_values[fli[i]]
+                right_indexer[i] = bri[i] if bdiff <= fdiff else fri[i]
+            else:
+                unsigned_bdiff = (<uint64_t>left_values[bli[i]]
+                                  - <uint64_t>right_values[bri[i]])
+                unsigned_fdiff = (<uint64_t>right_values[fri[i]]
+                                  - <uint64_t>left_values[fli[i]])
+                right_indexer[i] = (
+                    bri[i] if unsigned_bdiff <= unsigned_fdiff else fri[i]
+                )
         else:
             right_indexer[i] = bri[i] if bri[i] != -1 else fri[i]
         left_indexer[i] = bli[i]

@@ -11,6 +11,61 @@ from pandas.core.reshape.merge import MergeError
 
 
 class TestAsOfMerge:
+    @pytest.mark.parametrize(
+        "dtype", ["int8", "int16", "int32", "int64", "datetime64[ns]"]
+    )
+    @pytest.mark.parametrize("grouped", [False, True])
+    @pytest.mark.parametrize("direction", ["backward", "forward", "nearest"])
+    @pytest.mark.parametrize("tolerance", [None, 1])
+    def test_integer_distance_overflow(self, dtype, grouped, direction, tolerance):
+        bounds = np.iinfo("int64" if dtype == "datetime64[ns]" else dtype)
+        low, high = int(bounds.min) + 1, int(bounds.max)
+        left = pd.DataFrame(
+            {"key": pd.Series([low + 1, high - 1], dtype=dtype), "group": [0, 0]}
+        )
+        right = pd.DataFrame(
+            {
+                "key": pd.Series([low, high], dtype=dtype),
+                "group": [0, 0],
+                "value": [0, 1],
+            }
+        )
+        expected_values = {"nearest": [0, 1], "backward": [0, 0], "forward": [1, 1]}[
+            direction
+        ]
+        if tolerance is not None:
+            if direction == "backward":
+                expected_values = [0, np.nan]
+            elif direction == "forward":
+                expected_values = [np.nan, 1]
+            if dtype == "datetime64[ns]":
+                tolerance = pd.Timedelta(tolerance, unit="ns")
+
+        result = pd.merge_asof(
+            left,
+            right,
+            on="key",
+            by="group" if grouped else None,
+            direction=direction,
+            tolerance=tolerance,
+        )
+
+        expected = pd.Series(expected_values, name="value")
+        tm.assert_series_equal(result["value"], expected)
+
+    @pytest.mark.parametrize("direction", ["backward", "forward", "nearest"])
+    @pytest.mark.parametrize("tolerance", [200, 2**64])
+    def test_integer_tolerance_wider_than_dtype(self, direction, tolerance):
+        left = pd.DataFrame({"key": pd.Series([100], dtype="int8")})
+        right = pd.DataFrame({"key": pd.Series([-100], dtype="int8"), "value": [1]})
+
+        result = pd.merge_asof(
+            left, right, on="key", direction=direction, tolerance=tolerance
+        )
+
+        expected = pd.Series([np.nan] if direction == "forward" else [1], name="value")
+        tm.assert_series_equal(result["value"], expected)
+
     def prep_data(self, df, dedupe=False):
         if dedupe:
             df = df.drop_duplicates(["time", "ticker"], keep="last").reset_index(
