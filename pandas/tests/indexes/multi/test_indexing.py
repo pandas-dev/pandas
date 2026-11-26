@@ -1616,6 +1616,48 @@ def test_get_indexer_for_multiindex_with_nans(nulls_fixture):
     tm.assert_numpy_array_equal(result, expected)
 
 
+@pytest.mark.parametrize("na_code", [-1, 2])
+@pytest.mark.parametrize("other_na_code", [-1, 0])
+def test_get_indexer_na_level_entry(na_code, other_na_code):
+    # GH#60642 a code pointing at the level's NA entry means the same as -1
+    idx = pd.MultiIndex(
+        levels=[[1.0, 2.0, np.nan]], codes=[[0, 1, na_code]], verify_integrity=False
+    )
+    other = pd.MultiIndex(
+        levels=[[np.nan, 2.0, 3.0]],
+        codes=[[other_na_code, 1, 2]],
+        verify_integrity=False,
+    )
+
+    result = idx.get_indexer(other)
+    tm.assert_numpy_array_equal(result, np.array([2, 1, -1], dtype=np.intp))
+
+    result = other.get_indexer(idx)
+    tm.assert_numpy_array_equal(result, np.array([-1, 1, 0], dtype=np.intp))
+
+    assert idx.get_loc((np.nan,)) == 2
+    assert other.get_loc((np.nan,)) == 0
+
+
+def test_get_loc_na_level_entry_pyint_engine():
+    # GH#60642 levels needing more than 64 bits use MultiIndexPyIntEngine
+    levels = [[1.0, np.nan]] + [range(2**20)] * 3 + [range(2**10)] * 2
+    idx = pd.MultiIndex(levels=levels, codes=[[0, 1]] * 6, verify_integrity=False)
+    assert idx._engine.values.dtype == object
+    assert idx.get_loc((np.nan, 1, 1, 1, 1, 1)) == 1
+
+
+@pytest.mark.parametrize("method, expected", [("pad", [0, 1]), ("backfill", [1, 2])])
+def test_get_indexer_fill_method_groupby_na_codes(method, expected):
+    # GH#60642 NA keys must not change the engine's sort order
+    df = pd.DataFrame({"x": [1.0, 2.0, np.nan], "y": ["a", "a", "a"], "v": 1})
+    idx = df.groupby(["x", "y"], dropna=False).sum().index
+    target = pd.MultiIndex.from_tuples([(1.5, "a"), (2.5, "a")], names=["x", "y"])
+
+    result = idx.get_indexer(target, method=method)
+    tm.assert_numpy_array_equal(result, np.array(expected, dtype=np.intp))
+
+
 def test_get_loc_namedtuple_behaves_like_tuple():
     # GH57922
     NamedIndex = namedtuple("NamedIndex", ("a", "b"))
