@@ -7,11 +7,14 @@ import pandas as pd
 import pandas._testing as tm
 from pandas.tests.plotting.common import (
     _check_axes_shape,
+    _check_colors,
     _check_legend_labels,
     _check_legend_marker,
 )
 
 mpl = pytest.importorskip("matplotlib")
+
+from pandas.plotting._matplotlib.style import get_standard_colors
 
 
 class TestDataFrameGroupByPlots:
@@ -277,3 +280,112 @@ class TestDataFrameGroupByPlots:
         df = pd.DataFrame({"x": [1, 2, 3, 4], "y": [4, 3, 2, 1], "z": list("abab")})
         res = call(df.groupby("z"))
         assert [ax.get_title() for ax in res] == [expected, expected]
+
+
+class TestSeriesGroupByPlotColors:
+    @pytest.mark.parametrize("kind", ["line", "bar"])
+    @pytest.mark.parametrize("n_groups", [2, 5])
+    @pytest.mark.parametrize("accessor", [False, True])
+    @pytest.mark.parametrize("kwarg", ["colormap", "cmap"])
+    def test_plot_colormap(self, kind, n_groups, accessor, kwarg):
+        values = pd.Series(np.tile([1, 2, 3], n_groups))
+        groups = np.repeat(np.arange(n_groups), 3)
+        grouped = values.groupby(groups)
+        _, ax = mpl.pyplot.subplots()
+
+        if accessor:
+            getattr(grouped.plot, kind)(ax=ax, **{kwarg: "viridis"})
+        else:
+            grouped.plot(kind=kind, ax=ax, **{kwarg: "viridis"})
+
+        colors = get_standard_colors(n_groups, colormap="viridis")
+        if kind == "line":
+            _check_colors(ax.get_lines(), linecolors=colors)
+        else:
+            _check_colors(
+                ax.patches, facecolors=[color for color in colors for _ in range(3)]
+            )
+
+    @pytest.mark.parametrize("accessor", [False, True])
+    def test_plot_conflicting_cmap_and_colormap(self, accessor):
+        values = pd.Series([1, 2, 3, 4])
+        grouped = values.groupby([0, 0, 1, 1])
+        kwargs = {"colormap": "viridis", "cmap": None}
+
+        with pytest.raises(
+            TypeError, match="Only specify one of `cmap` and `colormap`"
+        ):
+            if accessor:
+                grouped.plot.line(**kwargs)
+            else:
+                grouped.plot(**kwargs)
+
+    def test_plot_color_overrides_colormap(self):
+        values = pd.Series(np.tile([1, 2, 3], 2))
+        groups = np.repeat([0, 1], 3)
+        _, ax = mpl.pyplot.subplots()
+
+        with tm.assert_produces_warning(
+            UserWarning, match="'color' and 'colormap' cannot be used simultaneously"
+        ):
+            values.groupby(groups).plot(ax=ax, color="red", colormap="viridis")
+
+        _check_colors(ax.get_lines(), linecolors=["red", "red"])
+
+    @pytest.mark.parametrize("style", ["r--", ["r--"]])
+    def test_plot_style_color_overrides_colormap(self, style):
+        values = pd.Series(np.tile([1, 2, 3], 2))
+        groups = np.repeat([0, 1], 3)
+        _, ax = mpl.pyplot.subplots()
+
+        values.groupby(groups).plot(ax=ax, colormap="viridis", style=style)
+
+        _check_colors(ax.get_lines(), linecolors=["red", "red"])
+
+    def test_plot_style_without_color_uses_colormap(self):
+        n_groups = 2
+        values = pd.Series(np.tile([1, 2, 3], n_groups))
+        groups = np.repeat(np.arange(n_groups), 3)
+        _, ax = mpl.pyplot.subplots()
+
+        values.groupby(groups).plot(ax=ax, colormap="viridis", style="--")
+
+        colors = get_standard_colors(n_groups, colormap="viridis")
+        _check_colors(ax.get_lines(), linecolors=colors)
+        assert [line.get_linestyle() for line in ax.get_lines()] == ["--", "--"]
+
+    def test_plot_default_colors(self):
+        values = pd.Series(np.tile([1, 2, 3], 3))
+        groups = np.repeat([0, 1, 2], 3)
+        _, ax = mpl.pyplot.subplots()
+
+        values.groupby(groups).plot(ax=ax)
+
+        default_colors = mpl.pyplot.rcParams["axes.prop_cycle"].by_key()["color"]
+        _check_colors(ax.get_lines(), linecolors=default_colors[:3])
+
+    @pytest.mark.parametrize("accessor", [False, True])
+    def test_plot_pie_colormap(self, accessor):
+        values = pd.Series(np.tile([1, 2, 3], 2))
+        groups = np.repeat([0, 1], 3)
+        grouped = values.groupby(groups)
+        _, ax = mpl.pyplot.subplots()
+
+        if accessor:
+            grouped.plot.pie(ax=ax, colormap="viridis")
+        else:
+            grouped.plot(kind="pie", ax=ax, colormap="viridis")
+
+        colors = [tuple(patch.get_facecolor()) for patch in ax.patches[:3]]
+        assert len(set(colors)) == 3
+
+    def test_plot_colormap_more_groups_than_colors(self):
+        n_groups = 12
+        values = pd.Series(np.tile([1, 2, 3], n_groups))
+        groups = np.repeat(np.arange(n_groups), 3)
+        _, ax = mpl.pyplot.subplots()
+
+        values.groupby(groups).plot(ax=ax, colormap="tab10")
+
+        colors = get_standard_colors(n_groups, colormap="tab10")
+        _check_colors(ax.get_lines(), linecolors=colors)

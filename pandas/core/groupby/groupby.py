@@ -37,6 +37,8 @@ import warnings
 
 import numpy as np
 
+from pandas._config import get_option
+
 from pandas._libs import (
     Timestamp,
     lib,
@@ -175,30 +177,83 @@ class GroupByPlot(PandasObject):
         if group.ndim == 2 and kwargs.get("ax") is None:
             kwargs.setdefault("title", pprint_thing(key))
 
+    def _get_group_colors(self, kwargs: dict[str, Any]) -> Iterator[Any] | None:
+        # GH#56697: each group is plotted separately, so a colormap would give
+        #  every group its first color. Pick one color per group instead.
+        colormap = kwargs.get("colormap")
+        if "cmap" in kwargs:
+            if colormap:
+                # let plotting raise "Only specify one of `cmap` and `colormap`"
+                return None
+            colormap = kwargs["cmap"]
+        if colormap is None or kwargs.get("color") is not None:
+            return None
+        backend = kwargs.get("backend") or get_option("plotting.backend")
+        if backend != "matplotlib":
+            return None
+        if self._groupby._selected_obj.ndim != 1:
+            # DataFrameGroupBy on a shared ax is left for a follow-up (GH#56697)
+            return None
+        if kwargs.get("kind", "line") == "pie":
+            return None
+
+        import matplotlib as mpl
+
+        style = kwargs.get("style")
+        if style is not None:
+            if isinstance(style, dict):
+                styles = list(style.values())
+            elif isinstance(style, str):
+                styles = [style]
+            else:
+                styles = list(style)
+            if any(not set(mpl.colors.BASE_COLORS).isdisjoint(s) for s in styles):
+                # a color in ``style`` takes precedence, as in DataFrame.plot
+                return None
+
+        from pandas.plotting._matplotlib.style import get_standard_colors
+
+        return iter(
+            get_standard_colors(num_colors=self._groupby.ngroups, colormap=colormap)
+        )
+
+    @staticmethod
+    def _set_group_color(kwargs: dict[str, Any], colors: Iterator[Any] | None) -> None:
+        if colors is not None:
+            kwargs["color"] = next(colors)
+            kwargs.pop("colormap", None)
+            kwargs.pop("cmap", None)
+
     def __call__(self, *args, **kwargs):
-        def f(self, key):
+        colors = self._get_group_colors(kwargs)
+
+        def plot_group(group, key):
             local_kwargs = kwargs.copy()
             # ax and title can also be passed positionally after x, y, kind
             if len(args) <= 3:
-                GroupByPlot._set_default_title(local_kwargs, self, key)
-            return self.plot(*args, **local_kwargs)
+                GroupByPlot._set_default_title(local_kwargs, group, key)
+            GroupByPlot._set_group_color(local_kwargs, colors)
+            return group.plot(*args, **local_kwargs)
 
-        f.__name__ = "plot"
+        plot_group.__name__ = "plot"
 
-        return self._groupby._python_apply_plot(f)
+        return self._groupby._python_apply_plot(plot_group)
 
     def __getattr__(self, name: str):
         def attr(*args, **kwargs):
-            def f(self, key):
+            colors = self._get_group_colors({**kwargs, "kind": name})
+
+            def plot_group(group, key):
                 local_kwargs = kwargs.copy()
-                GroupByPlot._set_default_title(local_kwargs, self, key)
+                GroupByPlot._set_default_title(local_kwargs, group, key)
 
                 if name == "scatter" and kwargs.get("legend"):
                     local_kwargs.setdefault("label", key)
+                GroupByPlot._set_group_color(local_kwargs, colors)
 
-                return getattr(self.plot, name)(*args, **local_kwargs)
+                return getattr(group.plot, name)(*args, **local_kwargs)
 
-            return self._groupby._python_apply_plot(f)
+            return self._groupby._python_apply_plot(plot_group)
 
         return attr
 
