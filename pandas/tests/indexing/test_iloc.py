@@ -1,7 +1,10 @@
 """test positional based indexing with iloc"""
 
 from array import array as std_array
-from collections import deque
+from collections import (
+    deque,
+    namedtuple,
+)
 from datetime import datetime
 import re
 
@@ -1929,6 +1932,43 @@ class TestILocErrors:
         )
         with pytest.raises(IndexError, match=msg):
             df.iloc[indexer]
+
+
+class TestILocNamedTuple:
+    # GH#48188 namedtuples are tuple subclasses and should work with .iloc,
+    # matching the behaviour of the existing .__setitem__ path.
+    def test_iloc_getitem_namedtuple_scalar(self):
+        Indexer = namedtuple("Indexer", ["row", "col"])
+        df = pd.DataFrame([[1, 2], [3, 4]], columns=["a", "b"])
+
+        result = df.iloc[Indexer(0, 1)]
+        assert result == df.iloc[0, 1]
+
+    def test_iloc_getitem_namedtuple_list_and_slice(self):
+        Indexer = namedtuple("Indexer", ["row", "col"])
+        df = pd.DataFrame(np.arange(9).reshape(3, 3), columns=["a", "b", "c"])
+
+        result = df.iloc[Indexer([0, 2], slice(None))]
+        tm.assert_frame_equal(result, df.iloc[[0, 2], :])
+
+        result = df.iloc[Indexer(slice(None), [0, 2])]
+        tm.assert_frame_equal(result, df.iloc[:, [0, 2]])
+
+    def test_iloc_getitem_namedtuple_series(self):
+        Indexer = namedtuple("Indexer", ["row"])
+        ser = pd.Series([10, 20, 30])
+
+        result = ser.iloc[Indexer(1)]
+        assert result == ser.iloc[1]
+
+    def test_iloc_setitem_namedtuple(self):
+        # Regression test: __setitem__ already uses ``isinstance(key, tuple)``
+        # and therefore accepts namedtuples; pin that behaviour.
+        Indexer = namedtuple("Indexer", ["row", "col"])
+        df = pd.DataFrame([[1, 2], [3, 4]], columns=["a", "b"])
+
+        df.iloc[Indexer(0, 1)] = 99
+        assert df.iloc[0, 1] == 99
 
 
 class TestILocSetItemDuplicateColumns:
