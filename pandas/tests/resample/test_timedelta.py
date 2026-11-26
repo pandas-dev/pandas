@@ -112,6 +112,19 @@ def test_resample_day_offset_origin_with_timedeltaindex():
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize("origin", ["end", "end_day"])
+def test_resample_day_origin_end_with_timedeltaindex(origin):
+    # GH#47653: origin="end" still defaults closed/label to "right" here, so
+    # Day must keep matching the equivalent Hour freq
+    ts = pd.Series(np.arange(10), index=timedelta_range("3h", periods=10, freq="7h"))
+
+    msg = "The 'origin' keyword does not take effect"
+    with tm.assert_produces_warning(RuntimeWarning, match=msg):
+        result = ts.resample("D", origin=origin).sum()
+    expected = ts.resample("24h", origin=origin).sum()
+    tm.assert_series_equal(result, expected, check_freq=False)
+
+
 def test_resample_categorical_data_with_timedeltaindex():
     # GH #12169
     df = pd.DataFrame(
