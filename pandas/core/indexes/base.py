@@ -4366,7 +4366,7 @@ class Index(IndexOpsMixin, PandasObject):
         ValueError if its a duplicate axis
         """
         # trying to reindex on an axis with duplicates
-        if not self._index_as_unique and len(indexer):
+        if not self.is_unique and len(indexer):
             raise ValueError("cannot reindex on an axis with duplicate labels")
 
     def reindex(
@@ -4482,7 +4482,13 @@ class Index(IndexOpsMixin, PandasObject):
             # GH#42568
             raise ValueError("cannot reindex on an axis with duplicate labels")
         else:
+            self._check_indexing_method(method, limit, tolerance)
             indexer, _ = self.get_indexer_non_unique(target)
+            if len(indexer) != len(target):
+                raise ValueError(
+                    "cannot reindex with a target label that matches multiple "
+                    "intervals in an overlapping IntervalIndex"
+                )
 
         target = self._wrap_reindex_result(target, indexer, preserve_names)  # type: ignore[arg-type]
         return target, indexer
