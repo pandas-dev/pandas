@@ -184,6 +184,7 @@ Other deprecations
 - Deprecated the ``include_start`` and ``include_end`` keywords in :meth:`DatetimeIndex.indexer_between_time`; use ``inclusive`` instead, as in :meth:`DataFrame.between_time` (:issue:`40245`)
 - Deprecated constructing a :class:`DataFrame` column, :class:`Index` or :func:`array` from a NumPy structured (compound) array, and casting to a compound dtype with :meth:`DataFrame.astype`, :meth:`Series.astype` or :func:`array`; these will raise in a future version, as the :class:`Series` constructor already does. Use ``pd.DataFrame(arr)`` for one column per field or ``arr.astype(object)`` for tuples (:issue:`4464`, :issue:`49388`, :issue:`60108`)
 - Deprecated the undocumented ``how="begin"`` and ``how="finish"`` aliases in :meth:`Period.asfreq`, :meth:`Period.to_timestamp`, and the ``asfreq`` and ``to_timestamp`` methods of other period-holding objects; use ``"start"`` and ``"end"`` instead (:issue:`49132`)
+- Deprecated setting with ``ser[key] = value`` ignoring the index of a :class:`Series` ``value`` when ``key`` is a list-like of labels, a slice, or a label matching several rows; in a future version ``value`` will be aligned on the index, as :meth:`Series.loc` does. Use ``ser[key] = value.array`` to keep the current behavior (:issue:`37516`, :issue:`51386`)
 
 .. ---------------------------------------------------------------------------
 .. _whatsnew_320.performance:

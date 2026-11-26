@@ -973,7 +973,7 @@ class _LocationIndexer(_NDFrameIndexerBase):
             ndropped = ax.nlevels - value_ax.nlevels
             if (
                 not isinstance(ax, MultiIndex)
-                or not 0 < ndropped <= _count_leading_scalars(keys[axis])
+                or not 0 < ndropped <= count_leading_scalars(keys[axis])
                 or not (
                     isinstance(idx, slice)
                     or (is_list_like_indexer(idx) and getattr(idx, "ndim", 1) == 1)
@@ -3754,7 +3754,7 @@ def _tuplify(ndim: int, loc: Hashable) -> tuple[Hashable | slice, ...]:
     return tuple(_tup)
 
 
-def _count_leading_scalars(key) -> int:
+def count_leading_scalars(key) -> int:
     """
     Number of leading MultiIndex levels pinned to a single label by ``key``.
     """

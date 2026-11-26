@@ -1508,7 +1508,7 @@ class TestCanHoldElement:
         if is_scalar(elem):
             ser[0] = elem
         else:
-            ser[: len(elem)] = elem
+            ser.iloc[: len(elem)] = elem
 
         if inplace:
             assert ser._values is arr  # i.e. setting was done inplace

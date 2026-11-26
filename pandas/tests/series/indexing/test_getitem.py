@@ -583,9 +583,11 @@ def test_getitem_dataframe_raises():
 def test_getitem_assignment_series_alignment():
     # https://github.com/pandas-dev/pandas/issues/37427
     # with getitem, when assigning with a Series, it is not first aligned
+    # GH#37516 deprecated
     ser = pd.Series(range(10))
     idx = np.array([2, 4, 9])
-    ser[idx] = pd.Series([10, 11, 12])
+    with tm.assert_produces_warning(Pandas4Warning, match="ignores the index"):
+        ser[idx] = pd.Series([10, 11, 12])
     expected = pd.Series([0, 1, 10, 3, 11, 5, 6, 7, 8, 12])
     tm.assert_series_equal(ser, expected)
 
