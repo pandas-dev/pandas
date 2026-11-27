@@ -914,6 +914,47 @@ class TestExcelWriter:
         expected = pd.DataFrame([[np.nan, "x", "y", "z"], [np.nan, 1, np.nan, 2]])
         tm.assert_frame_equal(result, expected)
 
+    def test_to_excel_multiindex_empty_str_column_label(
+        self, merge_cells, ext, tmp_excel
+    ):
+        # GH#45865 an empty-string column label was merged with the preceding
+        # label of the level despite the two labels being distinct
+        columns = pd.MultiIndex.from_tuples([("A", 1), ("", 1)])
+        df = pd.DataFrame([[0, 1]], columns=columns)
+
+        df.to_excel(tmp_excel, merge_cells=merge_cells)
+        # header=None since read_excel would forward-fill the empty header cell
+        result = pd.read_excel(tmp_excel, header=None, nrows=2)
+        expected = pd.DataFrame([[np.nan, "A", np.nan], [np.nan, 1, 1]])
+        tm.assert_frame_equal(result, expected)
+
+        if ext in {".xlsx", ".xlsm"}:
+            # the empty-string label reads back as NaN, so inspect the written
+            # cells to check that the header was not merged
+            openpyxl = pytest.importorskip("openpyxl")
+            ws = openpyxl.load_workbook(tmp_excel).active
+            assert not ws.merged_cells.ranges
+
+    def test_to_excel_multiindex_empty_str_index_label(
+        self, merge_cells, ext, tmp_excel
+    ):
+        # GH#45865 an empty-string index label was merged with the preceding
+        # label of the level despite the two labels being distinct
+        index = pd.MultiIndex.from_tuples([("a", 1), ("", 2)])
+        df = pd.DataFrame({"A": [10, 20]}, index=index)
+
+        df.to_excel(tmp_excel, merge_cells=merge_cells)
+        result = pd.read_excel(tmp_excel, header=None, index_col=None)
+        expected = pd.DataFrame([[np.nan, np.nan, "A"], ["a", 1, 10], [np.nan, 2, 20]])
+        tm.assert_frame_equal(result, expected)
+
+        if ext in {".xlsx", ".xlsm"}:
+            # the empty-string label reads back as NaN, so inspect the written
+            # cells to check that the index labels were not merged
+            openpyxl = pytest.importorskip("openpyxl")
+            ws = openpyxl.load_workbook(tmp_excel).active
+            assert not ws.merged_cells.ranges
+
     def test_to_excel_multiindex_values_format_identically(
         self, merge_cells, tmp_excel
     ):
