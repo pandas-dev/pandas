@@ -775,3 +775,11 @@ def test_setitem_str_list_with_nan(using_nan_is_na):
     arr[:2] = ["a", np.nan]
     expected = pd.array(["a", None, "z"], dtype=dtype)
     tm.assert_extension_array_equal(arr, expected)
+
+
+def test_time64_ns_index_is_unique():
+    arr = ArrowExtensionArray(pa.array([0, 1, 2], type=pa.time64("ns")))
+    idx = pd.Index(arr)
+
+    assert idx.is_unique
+    assert idx.get_loc(time(0, 0)) == 0
