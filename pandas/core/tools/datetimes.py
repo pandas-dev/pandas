@@ -929,6 +929,15 @@ def to_datetime(
         - "mixed", to infer the format for each element individually. This is risky,
           and you should probably use it along with `dayfirst`.
 
+        When ``format`` is not specified, the format is inferred from the first
+        non-null element (if it is a string) and applied to every element.
+        Elements that do not match the inferred format raise a ``ValueError``, or
+        become :const:`NaT` when ``errors="coerce"``. For example, ISO 8601
+        strings that mix values with and without fractional seconds cannot be
+        parsed this way; use ``format="ISO8601"`` instead. If the format cannot
+        be inferred, a warning is emitted and each element is parsed
+        individually.
+
         .. deprecated:: 3.1.0
 
             Passing integer or float values together with ``format`` is
@@ -1106,6 +1115,27 @@ def to_datetime(
 
     >>> pd.to_datetime([1, 2, 3], unit="D", origin=pd.Timestamp("1960-01-01"))
     DatetimeIndex(['1960-01-02', '1960-01-03', '1960-01-04'],
+                  dtype='datetime64[us]', freq=None)
+
+    **Inferring the format**
+
+    When ``format`` is not specified, the format is inferred from the first
+    non-null element and applied to every element. A string that does not match
+    raises a ``ValueError``, or becomes :const:`NaT` when ``errors="coerce"``.
+
+    A common failure is a mix of ISO 8601 strings where some include fractional
+    seconds and others do not:
+
+    >>> values = ["2025-01-01 17:45:05.123456", "2025-01-01 17:45:05"]
+    >>> pd.to_datetime(values)  # doctest: +SKIP
+    ValueError: time data "2025-01-01 17:45:05" doesn't match format
+    "%Y-%m-%d %H:%M:%S.%f"
+
+    Pass ``format="ISO8601"`` to parse ISO 8601 strings that are not all in
+    exactly the same format:
+
+    >>> pd.to_datetime(values, format="ISO8601")
+    DatetimeIndex(['2025-01-01 17:45:05.123456', '2025-01-01 17:45:05'],
                   dtype='datetime64[us]', freq=None)
 
     **Differences with strptime behavior**
