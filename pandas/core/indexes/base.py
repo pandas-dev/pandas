@@ -4,6 +4,7 @@ from collections import abc
 from copy import deepcopy
 from datetime import (
     datetime,
+    time,
     tzinfo,
 )
 import functools
@@ -5453,16 +5454,19 @@ class Index(IndexOpsMixin, PandasObject):
         if isinstance(vals, StringArray):
             # GH#45652 much more performant than ExtensionEngine
             return vals._ndarray
-        if isinstance(vals, ArrowExtensionArray) and self.dtype.kind in "Mm":
+        if isinstance(vals, ArrowExtensionArray):
             import pyarrow as pa
 
             pa_type = vals._pa_array.type
-            if pa.types.is_timestamp(pa_type):
-                vals = vals._to_datetimearray()
-                return vals._ndarray.view("i8")
-            elif pa.types.is_duration(pa_type):
-                vals = vals._to_timedeltaarray()
-                return vals._ndarray.view("i8")
+            if pa.types.is_time64(pa_type):
+                return vals.astype("int64[pyarrow]")
+            if self.dtype.kind in "Mm":
+                if pa.types.is_timestamp(pa_type):
+                    vals = vals._to_datetimearray()
+                    return vals._ndarray.view("i8")
+                elif pa.types.is_duration(pa_type):
+                    vals = vals._to_timedeltaarray()
+                    return vals._ndarray.view("i8")
         if self._engine_target_is_object_cast:
             return vals.astype(object)
         return vals
@@ -5485,6 +5489,11 @@ class Index(IndexOpsMixin, PandasObject):
             return False
         if isinstance(vals, ArrowExtensionArray):
             dtype = self.dtype
+            if dtype.kind == "O":
+                import pyarrow as pa
+
+                if pa.types.is_time64(vals._pa_array.type):
+                    return False
             if dtype.kind in "Mm":
                 import pyarrow as pa
 
@@ -7230,6 +7239,12 @@ class Index(IndexOpsMixin, PandasObject):
         If we have a float key and are not a floating index, then try to cast
         to an int if equivalent.
         """
+        if isinstance(key, time) and isinstance(self._values, ArrowExtensionArray):
+            import pyarrow as pa
+
+            pa_type = self._values._pa_array.type
+            if pa.types.is_time64(pa_type):
+                key = pa.scalar(key, type=pa_type).cast(pa.int64()).as_py()
         if (
             is_float(key)
             and np.isnan(key)
