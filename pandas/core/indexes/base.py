@@ -631,6 +631,13 @@ class Index(IndexOpsMixin, PandasObject):
         elif dtype == np.float16:
             # float16 not supported (no indexing engine)
             raise NotImplementedError("float16 indexes are not supported")
+        elif isinstance(dtype, ArrowDtype):
+            import pyarrow as pa
+
+            if pa.types.is_struct(dtype.pyarrow_dtype):
+                raise TypeError(
+                    "Arrow struct values are unhashable and cannot be Index labels"
+                )
         if isinstance(data, np.ndarray):
             warn_non_native_byteorder(data)
 

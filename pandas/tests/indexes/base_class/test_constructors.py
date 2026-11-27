@@ -69,6 +69,16 @@ class TestIndexConstructor:
         idx = pd.Index(ser)
         assert idx._values.flags.writeable
 
+    def test_constructor_arrow_struct_dtype_raises(self):
+        # GH#64889
+        pa = pytest.importorskip("pyarrow")
+        data = pa.array([{"x": 1, "y": True}])
+        msg = "Arrow struct values are unhashable and cannot be Index labels"
+        with pytest.raises(TypeError, match=msg):
+            pd.Index(pd.arrays.ArrowExtensionArray(data))
+        with pytest.raises(TypeError, match=msg):
+            pd.Index([], dtype=pd.ArrowDtype(data.type))
+
     def test_constructor_structured_ndarray_deprecated(self):
         # GH#49388
         arr = np.array([(1.0, 2), (3.0, 4)], dtype=[("x", "f8"), ("y", "i8")])
