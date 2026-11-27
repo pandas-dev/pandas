@@ -510,14 +510,21 @@ def _get_level_lengths_from_codes(codes: list[np.ndarray]) -> list[dict[int, int
     GH#45865: the spans are computed from the level codes rather than from the
     formatted labels, in which an empty-string label is indistinguishable
     from the sparsified repeat of the preceding label.
+
+    The deepest level is never merged: sparsify_labels always prints it, and
+    merging it would also merge adjacent duplicate labels, which would then
+    be lost on read-back.
     """
     if len(codes) == 0 or len(codes[0]) == 0:
         return []
 
-    return get_level_lengths(
-        [[False, *(level_codes[:-1] == level_codes[1:])] for level_codes in codes],
-        sentinel=True,
-    )
+    continuations = [
+        [False, *(level_codes[:-1] == level_codes[1:])] for level_codes in codes[:-1]
+    ]
+    # like sparsify_labels, never merge the deepest level
+    continuations.append([False] * len(codes[-1]))
+
+    return get_level_lengths(continuations, sentinel=True)
 
 
 class ExcelFormatter:

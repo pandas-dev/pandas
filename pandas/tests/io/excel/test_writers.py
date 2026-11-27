@@ -955,6 +955,47 @@ class TestExcelWriter:
             ws = openpyxl.load_workbook(tmp_excel).active
             assert not ws.merged_cells.ranges
 
+    def test_to_excel_multiindex_single_level_duplicate_column_labels(
+        self, merge_cells, ext, tmp_excel
+    ):
+        # GH#45865 the deepest level of a MultiIndex is never merged, so
+        # adjacent duplicate labels of single-level columns are all written
+        columns = pd.MultiIndex.from_tuples([("a",), ("a",), ("b",)])
+        df = pd.DataFrame([[1, 2, 3]], columns=columns)
+
+        df.to_excel(tmp_excel, merge_cells=merge_cells)
+        # header=None since read_excel would mangle the duplicate labels
+        result = pd.read_excel(tmp_excel, header=None, nrows=1)
+        expected = pd.DataFrame([[np.nan, "a", "a", "b"]])
+        tm.assert_frame_equal(result, expected)
+
+        if ext in {".xlsx", ".xlsm"}:
+            # inspect the written cells: a merged duplicate label would be
+            # lost on read-back, as only the first cell of a merge is written
+            openpyxl = pytest.importorskip("openpyxl")
+            ws = openpyxl.load_workbook(tmp_excel).active
+            assert not ws.merged_cells.ranges
+
+    def test_to_excel_multiindex_single_level_duplicate_index_labels(
+        self, merge_cells, ext, tmp_excel
+    ):
+        # GH#45865 the deepest level of a MultiIndex is never merged, so
+        # adjacent duplicate labels of a single-level index are all written
+        index = pd.MultiIndex.from_tuples([("a",), ("a",), ("b",)])
+        df = pd.DataFrame({"A": [1, 2, 3]}, index=index)
+
+        df.to_excel(tmp_excel, merge_cells=merge_cells)
+        result = pd.read_excel(tmp_excel, header=None, index_col=None)
+        expected = pd.DataFrame([[np.nan, "A"], ["a", 1], ["a", 2], ["b", 3]])
+        tm.assert_frame_equal(result, expected)
+
+        if ext in {".xlsx", ".xlsm"}:
+            # inspect the written cells: a merged duplicate label would be
+            # lost on read-back, as only the first cell of a merge is written
+            openpyxl = pytest.importorskip("openpyxl")
+            ws = openpyxl.load_workbook(tmp_excel).active
+            assert not ws.merged_cells.ranges
+
     def test_to_excel_multiindex_values_format_identically(
         self, merge_cells, tmp_excel
     ):
