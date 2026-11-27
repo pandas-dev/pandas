@@ -2001,8 +2001,18 @@ class PlotAccessor(PandasObject):
             KDE is evaluated at the points passed. If `ind` is an integer,
             `ind` number of equally spaced points are used.
         weights : NumPy array, optional
-            Weights of datapoints. This must be the same shape as datapoints.
-            If None (default), the samples are assumed to be equally weighted.
+            Weights of datapoints. If None (default), the samples are assumed
+            to be equally weighted. For a Series, this must be a one-dimensional
+            array with the same length as the Series. For a DataFrame, a
+            one-dimensional array with the same number of rows as the DataFrame
+            is applied to each column. For a DataFrame with multiple columns, a
+            two-dimensional array with the same number of rows as the DataFrame
+            can specify weights for each column; its columns correspond to the
+            plotted columns in plotting order, as non-plottable columns are
+            dropped before plotting. Weights are normalized to sum to 1
+            internally. Missing values in the data are dropped together with
+            their corresponding weights. The remaining weights must be finite
+            and non-negative, and must sum to a positive value.
         **kwargs
             Additional keyword arguments, such as ``ax``, ``figsize``,
             ``title`` and ``legend``, are documented in
@@ -2056,6 +2066,14 @@ class PlotAccessor(PandasObject):
 
             >>> ax = s.plot.kde(ind=[1, 2, 3, 4, 5])
 
+        Weights can be specified to adjust the contribution of each datapoint:
+
+        .. plot::
+            :context: close-figs
+
+            >>> weights = np.array([1, 2, 1, 2, 1, 1, 4])
+            >>> ax = s.plot.kde(weights=weights)
+
         For DataFrame, it works in the same way:
 
         .. plot::
@@ -2090,6 +2108,17 @@ class PlotAccessor(PandasObject):
             :context: close-figs
 
             >>> ax = df.plot.kde(ind=[1, 2, 3, 4, 5, 6])
+
+        For a DataFrame with multiple columns, weights can be specified
+        separately for each column with a two-dimensional array:
+
+        .. plot::
+            :context: close-figs
+
+            >>> weights = np.array(
+            ...     [[1, 2], [2, 1], [1, 3], [2, 1], [1, 2], [1, 1], [4, 1]]
+            ... )
+            >>> ax = df.plot.kde(weights=weights)
         """
         return self(kind="kde", bw_method=bw_method, ind=ind, weights=weights, **kwargs)
 
