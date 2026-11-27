@@ -51,15 +51,13 @@ jobs:
       run: |
         pixi run \
           --environment doctests \
-          build-pandas \
-          --editable \
-          -Csetup-args="--werror"
+          build-pandas
 
     - name: Run doctests
-      run: pixi run --environment doctests ci-doctests
+      run: pixi run ci-doctests
 
     - name: Run scripts tests
-      run: pixi run --environment doctests ci-scripts-tests
+      run: pixi run ci-scripts-tests
 
   type-checking:
     name: Type Checking
@@ -88,12 +86,10 @@ jobs:
       run: |
         pixi run \
           --environment typing \
-          build-pandas \
-          --editable \
-          -Csetup-args="--werror"
+          build-pandas
 
     - name: Typing Checks
-      run: pixi run --environment typing ci-typing
+      run: pixi run ci-typing
 
   asv-benchmarks:
     name: ASV Benchmarks
@@ -122,9 +118,7 @@ jobs:
       run: |
         pixi run \
           --environment asv \
-          build-pandas \
-          --editable \
-          -Csetup-args="--werror"
+          build-pandas
 
     - name: Run ASV benchmarks
-      run: pixi run --environment asv ci-asv
+      run: pixi run ci-asv

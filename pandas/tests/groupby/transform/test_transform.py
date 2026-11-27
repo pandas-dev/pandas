@@ -839,15 +839,18 @@ def test_cython_transform_frame_column(
     df = request.getfixturevalue(df_fix)
     gb = df.groupby(group_keys=False, **gb_target)
     c = column
+    # object dtype applies the Series method group-by-group, so it raises
+    #  exactly when that does for some group, GH#49758
+    object_fallback = c in ("string", "string_missing") and not using_infer_string
     if (
         c not in ["float", "int", "float_missing"]
         and op != "shift"
         and not (c == "timedelta" and op == "cumsum")
+        and not (c in ("string", "string_missing") and op == "cumsum")
+        and not object_fallback
     ):
         if c == "timedelta":
             msg = f"timedelta64 type does not support {op} operations"
-        elif c in ("string", "string_missing") and not using_infer_string:
-            msg = f"{op} is not supported for object dtype"
         else:
             # datetime, or the string columns under the str dtype
             msg = "does not support operation"
@@ -856,7 +859,17 @@ def test_cython_transform_frame_column(
         with pytest.raises(TypeError, match=msg):
             getattr(gb[c], op)()
     else:
-        expected = gb[c].apply(targop)
+        try:
+            expected = gb[c].apply(targop)
+        except TypeError:
+            if not object_fallback:
+                raise
+            msg = f"{op} is not supported for object dtype"
+            with pytest.raises(TypeError, match=msg):
+                gb[c].transform(op)
+            with pytest.raises(TypeError, match=msg):
+                getattr(gb[c], op)()
+            return
         expected.name = c
         if c in ["string_missing", "string"]:
             expected = expected.fillna(np.nan)
@@ -1289,6 +1302,22 @@ def test_transform_udf_reduction_keeps_column_dtypes(keys, expected_values):
     expected = pd.DataFrame(
         {"a": expected_values, "b": np.array(expected_values, dtype=np.float64)}
     )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_transform_udf_reduction_keeps_dtypes_beside_string_column():
+    # GH#41584 the string column must not make the other columns object
+    df = pd.DataFrame(
+        {
+            "x": list("abcd"),
+            "i": [5, 6, 7, 8],
+            "f": [5.5, 6.5, 7.5, 8.5],
+            "b": [True, False, True, False],
+            "g": [1, 2, 3, 3],
+        }
+    )
+    result = df.groupby("g").transform(lambda x: x.iloc[0])
+    expected = df.drop(columns="g").iloc[[0, 1, 2, 2]].reset_index(drop=True)
     tm.assert_frame_equal(result, expected)
 
 

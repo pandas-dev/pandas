@@ -32,7 +32,7 @@ jobs:
     strategy:
       matrix:
         platform: [ubuntu-24.04, ubuntu-24.04-arm]
-        environment: [py311, py312, py313, py314]
+        environment: [py311, py312, py313, py314, py315]
         # Prevent the include jobs from overriding other jobs
         pytest_marker_expression: [""]
         pandas_future: ["default"]
@@ -158,16 +158,10 @@ jobs:
 
     - name: Build pandas
       id: build
-      # matrix.name == 'Minimum Versions' can be removed once Cython >=3.2
-      # python3.14t/cpython/pyatomic_gcc.h:63:10:
-      #   error: ‘__atomic_fetch_add_8’
-      #   writing 8 bytes into a region of size 0 overflows the destination [-Werror=stringop-overflow=]
       run: |
         pixi run \
           --environment ${{ matrix.environment }} \
-          build-pandas \
-          --editable \
-          ${{ ! (matrix.name == 'Freethreading' || matrix.name == 'Minimum Versions') && '-Csetup-args="--werror"' || '' }}
+          build-pandas
 
     - name: Import check
       run: |
@@ -221,7 +215,7 @@ jobs:
     strategy:
       matrix:
         os: [macos-15-intel, macos-15, windows-2025]
-        environment: [py311, py312, py313, py314]
+        environment: [py311, py312, py313, py314, py315]
       fail-fast: false
     runs-on: ${{ matrix.os }}
     name: ${{ format('{0} {1}', matrix.os, matrix.environment) }}
@@ -252,9 +246,7 @@ jobs:
         run: |
           pixi run \
             --environment ${{ matrix.environment }} \
-            build-pandas \
-            --editable \
-            "${{ matrix.os == 'windows-2025' && '-Csetup-args="--vsenv" -Csetup-args="--werror"' || '-Csetup-args="--werror"' }}"
+            build-pandas
 
       - name: Test
         uses: ./.github/actions/run-tests
@@ -293,7 +285,7 @@ jobs:
           . ~/virtualenvs/pandas-dev/bin/activate
           python -m pip install --no-cache-dir -U pip wheel meson[ninja] meson-python
           python -m pip install numpy -Csetup-args="-Dallow-noblas=true"
-          python -m pip install --no-cache-dir versioneer[toml] cython "python-dateutil<3" "pytest>=8.3.4" pytest-xdist>=3.6.1 pytest-cov
+          python -m pip install --no-cache-dir versioneer[toml] cython python-dateutil "pytest>=8.3.4" pytest-xdist>=3.6.1 pytest-cov
           python -m pip install --no-cache-dir --no-build-isolation -e . -Csetup-args="--werror" -Csetup-args=-Dc_args="-Wno-overflow -Wno-type-limits -Wno-shift-count-overflow -Wno-sign-compare"
           python -m pip list --no-cache-dir
 
@@ -336,7 +328,7 @@ jobs:
           /opt/python/cp313-cp313/bin/python -m venv ~/virtualenvs/pandas-dev
           . ~/virtualenvs/pandas-dev/bin/activate
           python -m pip install --no-cache-dir -U pip wheel meson-python meson[ninja]
-          python -m pip install --no-cache-dir versioneer[toml] cython numpy "python-dateutil<3" "pytest>=8.3.4" pytest-xdist>=3.6.1 pytest-cov
+          python -m pip install --no-cache-dir versioneer[toml] cython numpy python-dateutil "pytest>=8.3.4" pytest-xdist>=3.6.1 pytest-cov
           python -m pip install --no-cache-dir --no-build-isolation -e . -Csetup-args="--werror"
           python -m pip list --no-cache-dir
       - name: Run Tests
@@ -369,9 +361,7 @@ jobs:
         run: |
           pixi run \
             --environment mingw \
-            build-pandas \
-            --editable \
-            -Csetup-args="--werror"
+            build-pandas
     concurrency:
       group: ${{ github.event_name == 'push' && github.run_number || github.ref }}-mingw
       cancel-in-progress: true
@@ -403,8 +393,6 @@ jobs:
           pixi run \
             --environment sanitizers \
             build-pandas \
-            --editable \
-            -Csetup-args="--werror" \
             -- \
             -Csetup-args="-Dbuildtype=debugoptimized" \
             -Csetup-args="-Db_sanitize=address,undefined" \
@@ -419,8 +407,6 @@ jobs:
         uses: ./.github/actions/run-tests
         env:
           LD_PRELOAD: ${{ env.ASAN_LIB_PATH }}
-          ASAN_OPTIONS: detect_leaks=0
-          UBSAN_OPTIONS: halt_on_error=1:suppressions=${{ github.workspace }}/ci/suppressions/ubsan.txt
         with:
           environment: sanitizers
           numprocesses: "auto"
@@ -460,7 +446,7 @@ jobs:
           # system zoneinfo, including legacy names, for tests that set TZ
           apt-get update -q && apt-get install -y -q --no-install-recommends tzdata tzdata-legacy
           python -m pip install --no-cache-dir -U pip wheel "meson[ninja]" meson-python "versioneer[toml]" cython
-          python -m pip install --no-cache-dir numpy "python-dateutil<3" tzdata "pytest>=8.3.4" "pytest-xdist>=3.6.1" hypothesis
+          python -m pip install --no-cache-dir numpy python-dateutil tzdata "pytest>=8.3.4" "pytest-xdist>=3.6.1" hypothesis
           python -m pip list
 
       - name: Build pandas
@@ -504,7 +490,7 @@ jobs:
 
       - name: Upload sanitizer logs
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: sanitizer-logs
           path: /tmp/sanitizer-logs/
@@ -530,7 +516,7 @@ jobs:
     #    To freeze this file, uncomment out the ``if: false`` condition, and migrate the jobs
     #    to the corresponding posix/windows-macos/sdist etc. workflows.
     # Feel free to modify this comment as necessary.
-    # if: false
+    if: false
     permissions:
       contents: read
     runs-on: ${{ matrix.os }}
@@ -560,14 +546,14 @@ jobs:
       - name: Set up Python Dev Version
         uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
-          python-version: '3.15-dev'
+          python-version: '3.16-dev'
 
       - name: Build Environment
         run: |
           python --version
           python -m pip install --upgrade pip wheel meson[ninja] meson-python
           python -m pip install --pre --extra-index-url https://pypi.anaconda.org/scientific-python-nightly-wheels/simple numpy
-          python -m pip install versioneer[toml] "python-dateutil<3" tzdata cython "pytest>=8.3.4" pytest-xdist>=3.6.1 pytest-cov
+          python -m pip install versioneer[toml] python-dateutil tzdata cython "pytest>=8.3.4" pytest-xdist>=3.6.1 pytest-cov
           python -m pip install -ve . --no-build-isolation --no-index --no-deps \
             -Csetup-args="--werror" \
             ${{ matrix.os != 'windows-2025' && '-Csetup-args=-Dcpp_args="-Wno-missing-field-initializers"' || '' }} \
@@ -635,7 +621,7 @@ jobs:
       - name: Test pandas for Pyodide
         run: |
           source .venv-pyodide/bin/activate
-          python -m pip install "python-dateutil<3" "pytest>=8.3.4" pytest-cov
+          python -m pip install "pytest>=8.3.4" pytest-cov
           # do not import pandas from the checked out repo
           cd ../..
           # pytest>=9.2 fd capture fstats an unlinked tmpfile, which fails on Emscripten

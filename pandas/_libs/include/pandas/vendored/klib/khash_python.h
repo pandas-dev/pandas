@@ -4,6 +4,10 @@
 
 #include <Python.h>
 
+// numpy scalar types below need import_array() in the including module
+#include <numpy/arrayobject.h>
+#include <numpy/arrayscalars.h>
+#include <numpy/npy_math.h>
 #include <pymem.h>
 #include <string.h>
 
@@ -17,7 +21,27 @@ typedef struct {
 } khcomplex128_t;
 
 static const int KHASH_TRACE_DOMAIN = 424242;
+
+// For tests only: while positive, each malloc/realloc decrements this and the
+// one that takes it to 0 fails. Each extension module gets its own copy. calloc
+// is exempt because callers of kh_init_* do not check for NULL yet.
+static int khash_alloc_fail_countdown = 0;
+
+// Returns the previous countdown, which is still positive if no failure fired.
+static inline int khash_set_alloc_fail_countdown(int countdown) {
+  int prev = khash_alloc_fail_countdown;
+  khash_alloc_fail_countdown = countdown;
+  return prev;
+}
+
+static inline int khash_alloc_should_fail(void) {
+  return khash_alloc_fail_countdown > 0 && --khash_alloc_fail_countdown == 0;
+}
+
 static void *traced_malloc(size_t size) {
+  if (khash_alloc_should_fail()) {
+    return NULL;
+  }
   void *ptr = malloc(size);
   if (ptr != NULL) {
     PyTraceMalloc_Track(KHASH_TRACE_DOMAIN, (uintptr_t)ptr, size);
@@ -34,9 +58,15 @@ static void *traced_calloc(size_t num, size_t size) {
 }
 
 static void *traced_realloc(void *old_ptr, size_t size) {
-  PyTraceMalloc_Untrack(KHASH_TRACE_DOMAIN, (uintptr_t)old_ptr);
+  if (khash_alloc_should_fail()) {
+    return NULL;
+  }
+  // taken before the call: gcc warns on any use of old_ptr after realloc
+  uintptr_t old_addr = (uintptr_t)old_ptr;
   void *ptr = realloc(old_ptr, size);
   if (ptr != NULL) {
+    // a failed realloc leaves old_ptr allocated, so it stays tracked
+    PyTraceMalloc_Untrack(KHASH_TRACE_DOMAIN, old_addr);
     PyTraceMalloc_Track(KHASH_TRACE_DOMAIN, (uintptr_t)ptr, size);
   }
   return ptr;
@@ -190,14 +220,66 @@ static inline int floatobject_cmp(PyFloatObject *a, PyFloatObject *b) {
 // NaNs should be in the same equivalency class, see GH 41836
 // PyObject_RichCompareBool for complexobjects has a different behavior
 // needs to be replaced
+static inline int complex_values_cmp(double a_re, double a_im, double b_re,
+                                     double b_im) {
+  return (isnan(a_re) && isnan(b_re) && isnan(a_im) && isnan(b_im)) ||
+         (isnan(a_re) && isnan(b_re) && a_im == b_im) ||
+         (a_re == b_re && isnan(a_im) && isnan(b_im)) ||
+         (a_re == b_re && a_im == b_im);
+}
+
 static inline int complexobject_cmp(PyComplexObject *a, PyComplexObject *b) {
-  return (isnan(a->cval.real) && isnan(b->cval.real) && isnan(a->cval.imag) &&
-          isnan(b->cval.imag)) ||
-         (isnan(a->cval.real) && isnan(b->cval.real) &&
-          a->cval.imag == b->cval.imag) ||
-         (a->cval.real == b->cval.real && isnan(a->cval.imag) &&
-          isnan(b->cval.imag)) ||
-         (a->cval.real == b->cval.real && a->cval.imag == b->cval.imag);
+  return complex_values_cmp(a->cval.real, a->cval.imag, b->cval.real,
+                            b->cval.imag);
+}
+
+// Reads builtin and numpy (except float16) float/complex scalars into re/im;
+// returns 1 for float, 2 for complex, 0 otherwise. numpy scalars hash a NaN by
+// identity and compare it unequal to itself, see GH#16632.
+static inline int inexact_value(PyObject *a, double *re, double *im) {
+  PyTypeObject *tp = Py_TYPE(a);
+  if (tp == &PyComplex_Type) {
+    *re = ((PyComplexObject *)a)->cval.real;
+    *im = ((PyComplexObject *)a)->cval.imag;
+    return 2;
+  }
+  // cheap early exits for str/int and for types without __float__ (e.g.
+  // date, None), which every type below has
+  if (PyType_HasFeature(tp, Py_TPFLAGS_UNICODE_SUBCLASS |
+                                Py_TPFLAGS_LONG_SUBCLASS |
+                                Py_TPFLAGS_BYTES_SUBCLASS) ||
+      tp->tp_as_number == NULL || tp->tp_as_number->nb_float == NULL) {
+    return 0;
+  }
+  *im = 0.0;
+  if (tp == &PyFloat_Type || tp == &PyDoubleArrType_Type) {
+    *re = PyFloat_AS_DOUBLE(a);
+    return 1;
+  }
+  if (tp == &PyFloatArrType_Type) {
+    *re = PyArrayScalar_VAL(a, Float);
+    return 1;
+  }
+  if (tp == &PyLongDoubleArrType_Type) {
+    *re = (double)PyArrayScalar_VAL(a, LongDouble);
+    return 1;
+  }
+  if (tp == &PyCDoubleArrType_Type) {
+    *re = npy_creal(PyArrayScalar_VAL(a, CDouble));
+    *im = npy_cimag(PyArrayScalar_VAL(a, CDouble));
+    return 2;
+  }
+  if (tp == &PyCFloatArrType_Type) {
+    *re = npy_crealf(PyArrayScalar_VAL(a, CFloat));
+    *im = npy_cimagf(PyArrayScalar_VAL(a, CFloat));
+    return 2;
+  }
+  if (tp == &PyCLongDoubleArrType_Type) {
+    *re = (double)npy_creall(PyArrayScalar_VAL(a, CLongDouble));
+    *im = (double)npy_cimagl(PyArrayScalar_VAL(a, CLongDouble));
+    return 2;
+  }
+  return 0;
 }
 
 // Clear exceptions only if the exception is Exception and let other
@@ -256,6 +338,13 @@ static inline int pyobject_cmp(PyObject *a, PyObject *b) {
     }
     // frozenset isn't yet supported
   }
+  // NaNs in numpy scalars, and across numpy and builtin scalars
+  double a_re, a_im, b_re, b_im;
+  int kind = inexact_value(a, &a_re, &a_im);
+  if (kind && (isnan(a_re) || isnan(a_im)) &&
+      inexact_value(b, &b_re, &b_im) == kind) {
+    return complex_values_cmp(a_re, a_im, b_re, b_im);
+  }
 
   int result = PyObject_RichCompareBool(a, b, Py_EQ);
   if (result < 0) {
@@ -285,9 +374,9 @@ static inline Py_hash_t floatobject_hash(PyFloatObject *key) {
 #define _PandasHASH_IMAG 1000003UL
 
 // replaces _Py_HashDouble with _Pandas_HashDouble
-static inline Py_hash_t complexobject_hash(PyComplexObject *key) {
-  Py_uhash_t realhash = (Py_uhash_t)_Pandas_HashDouble(key->cval.real);
-  Py_uhash_t imaghash = (Py_uhash_t)_Pandas_HashDouble(key->cval.imag);
+static inline Py_hash_t complex_values_hash(double re, double im) {
+  Py_uhash_t realhash = (Py_uhash_t)_Pandas_HashDouble(re);
+  Py_uhash_t imaghash = (Py_uhash_t)_Pandas_HashDouble(im);
   if (realhash == (Py_uhash_t)-1 || imaghash == (Py_uhash_t)-1) {
     return -1;
   }
@@ -296,6 +385,10 @@ static inline Py_hash_t complexobject_hash(PyComplexObject *key) {
     return -2;
   }
   return (Py_hash_t)combined;
+}
+
+static inline Py_hash_t complexobject_hash(PyComplexObject *key) {
+  return complex_values_hash(key->cval.real, key->cval.imag);
 }
 
 // we could use any hashing algorithm, this is the original CPython's for tuples
@@ -361,7 +454,14 @@ static inline khuint32_t kh_python_hash_func(PyObject *key) {
     // hash tuple subclasses as builtin tuples
     hash = tupleobject_hash((PyTupleObject *)key);
   } else {
-    hash = PyObject_Hash(key);
+    // must match pyobject_cmp for numpy NaNs; complex_values_hash(nan, 0.0)
+    // equals floatobject_hash(nan)
+    double re, im;
+    if (inexact_value(key, &re, &im) && (isnan(re) || isnan(im))) {
+      hash = complex_values_hash(re, im);
+    } else {
+      hash = PyObject_Hash(key);
+    }
   }
 
   if (hash == -1) {
@@ -536,7 +636,7 @@ static inline khuint_t kh_put_str_starts_item(kh_str_starts_t *table,
                                               const char *key, size_t len,
                                               int *ret) {
   khuint_t result = kh_put_str(table->table, kh_strview(key, len), ret);
-  if (*ret != 0) {
+  if (*ret > 0) {
     // The empty key gets its own flag rather than a slot in starts[]. Sharing
     // starts['\0'] with it would make every token that merely *begins* with an
     // embedded NUL look like a candidate.
@@ -607,8 +707,8 @@ static inline void kh_destroy_str_starts(kh_str_starts_t *table) {
   KHASH_FREE(table);
 }
 
-static inline void kh_resize_str_starts(kh_str_starts_t *table, khuint_t val) {
-  kh_resize_str(table->table, val);
+static inline int kh_resize_str_starts(kh_str_starts_t *table, khuint_t val) {
+  return kh_resize_str(table->table, val);
 }
 
 // utility function: given the number of elements

@@ -44,6 +44,7 @@ class TextReader:
     block_workers: int
     trim_after_read: bool
     warning_sink: list[tuple[str, type[Warning]]] | None
+    convert_only: set[int] | None
     def __init__(
         self,
         source: ReadCsvBuffer[str] | ReadCsvBuffer[bytes],
@@ -82,6 +83,7 @@ class TextReader:
         float_precision: Literal["round_trip", "legacy", "high"] | None = ...,
         skip_blank_lines: bool = ...,
         encoding_errors: bytes | str = ...,
+        warning_sink: list[tuple[str, type[Warning]]] | None = ...,
     ) -> None: ...
     def set_noconvert(self, i: int) -> None: ...
     def remove_noconvert(self, i: int) -> None: ...
@@ -103,3 +105,4 @@ def _maybe_upcast(
     dtype_backend: str = ...,
     na_mask: np.ndarray | None = ...,
 ) -> np.ndarray: ...
+def _set_khash_alloc_fail_countdown(countdown: int) -> int: ...

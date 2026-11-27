@@ -24,7 +24,7 @@ pandas provides two types of classes for handling data:
 1. :class:`Series`: a one-dimensional labeled array holding data of any type
     such as integers, strings, Python objects etc.
 2. :class:`DataFrame`: a two-dimensional data structure that holds data like
-   a two-dimension array or a table with rows and columns.
+   a two-dimensional array or a table with rows and columns.
 
 Object creation
 ---------------
@@ -215,7 +215,7 @@ Selecting a row matching a label:
 
    df.loc[dates[0]]
 
-Selecting all rows (``:``) with a select column labels:
+Selecting all rows (``:``) with selected column labels:
 
 .. ipython:: python
 
@@ -463,15 +463,15 @@ code snippet below. See more at :ref:`Vectorized String Methods
 Merge
 -----
 
-Concat
-~~~~~~
-
 pandas provides various facilities for easily combining together :class:`Series` and
 :class:`DataFrame` objects with various kinds of set logic for the indexes
 and relational algebra functionality in the case of join / merge-type
 operations.
 
 See the :ref:`Merging section <merging>`.
+
+Concat
+~~~~~~
 
 Concatenating pandas objects together row-wise with :func:`concat`:
 

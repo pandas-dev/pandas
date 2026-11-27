@@ -835,44 +835,42 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
     qyear = _field_accessor(
         "qyear",
         """
-        Fiscal year the Period lies in according to its starting-quarter.
+        Fiscal year each period lies in, according to its starting quarter.
 
-        The `year` and the `qyear` of the period will be the same if the fiscal
+        The `year` and the `qyear` of a period will be the same if the fiscal
         and calendar years are the same. When they are not, the fiscal year
         can be different from the calendar year of the period.
 
-        Returns
-        -------
-        int
-            The fiscal year of the period.
-
         See Also
         --------
-        PeriodIndex.quarter : The quarter of the date.
-        PeriodIndex.year : The year of the period.
+        PeriodIndex.qyear : Fiscal year of each period in a PeriodIndex.
+        Period.qyear : Fiscal year of a single Period.
 
         Examples
         --------
-        If the natural and fiscal year are the same, `qyear` and `year` will
-        be the same.
-
-        >>> per = pd.Period('2018Q1', freq='Q')
-        >>> per.qyear
-        2018
-        >>> per.year
-        2018
-
         If the fiscal year starts in April (`Q-MAR`), the first quarter of
-        2018 will start in April 2017. `year` will then be 2017, but `qyear`
-        will be the fiscal year, 2018.
+        fiscal 2018 starts in April 2017, so its `year` is 2017 while its
+        `qyear` is 2018.
 
-        >>> per = pd.Period('2018Q1', freq='Q-MAR')
-        >>> per.start_time
-        Timestamp('2017-04-01 00:00:00')
-        >>> per.qyear
-        2018
-        >>> per.year
-        2017
+        >>> ser = pd.Series(pd.period_range("2018Q1", periods=4, freq="Q-MAR"))
+        >>> ser
+        0    2018Q1
+        1    2018Q2
+        2    2018Q3
+        3    2018Q4
+        dtype: period[Q-MAR]
+        >>> ser.dt.qyear
+        0    2018
+        1    2018
+        2    2018
+        3    2018
+        dtype: int64
+        >>> ser.dt.year
+        0    2017
+        1    2017
+        2    2017
+        3    2018
+        dtype: int64
         """,
     )
 
@@ -972,8 +970,12 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         Parameters
         ----------
         freq : str or DateOffset, optional
-            Target frequency. The default is 'D' for week or longer,
-            's' otherwise.
+            Target frequency. By default the result is exactly the start (or end)
+            of each period. With ``how="start"``, the result is the start of
+            ``asfreq(freq, how="start")``, except that a ``freq`` coarser than
+            daily gives midnight on that period's last day, so
+            ``to_timestamp("M")`` gives month-end dates. With ``how="end"``,
+            ``freq`` only affects the resolution ('ns' gives nanosecond unit).
         how : {'start', 'end', 's', 'e'}, default 'start'
             Whether to use the start or end of the time period being converted.
             Case-insensitive.
@@ -1001,6 +1003,12 @@ class PeriodArray(dtl.DatelikeOps, libperiod.PeriodMixin):
         >>> idx.to_timestamp()
         DatetimeIndex(['2023-01-01', '2023-02-01', '2023-03-01'],
         dtype='datetime64[us]', freq='MS')
+
+        A ``freq`` coarser than daily gives the last day of each period:
+
+        >>> idx.to_timestamp("M")
+        DatetimeIndex(['2023-01-31', '2023-02-28', '2023-03-31'],
+        dtype='datetime64[us]', freq='ME')
 
         The frequency will not be inferred if the index contains less than
         three elements, or if the values of index are not strictly monotonic:
