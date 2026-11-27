@@ -14991,10 +14991,10 @@ class DataFrame(NDFrame, OpsMixin):
                     if not result_columns:
                         return self.copy().__finalize__(self, "diff")
 
-                    result = concat(result_columns, axis=1)
-                    result.columns = self.columns
+                    result_df = concat(result_columns, axis=1)
+                    result_df.columns = self.columns
 
-                    return result.__finalize__(self, "diff")
+                    return result_df.__finalize__(self, "diff")
 
                 return self - self.shift(periods, axis=axis)
 
