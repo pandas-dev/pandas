@@ -105,7 +105,7 @@ class TestDatetimeIndexTimezones:
         rng3 = pd.date_range("3/11/2012 03:00", periods=15, freq="h", unit=unit)
         rng3 = rng3.tz_localize("US/Eastern")
 
-        tm.assert_index_equal(rng._with_freq(None), rng3)
+        tm.assert_index_equal(rng, rng3)
 
         # DST transition time
         val = rng[0]

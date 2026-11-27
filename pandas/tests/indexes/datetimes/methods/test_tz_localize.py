@@ -296,8 +296,11 @@ class TestTZLocalize:
             localized.tz_localize(tz)
         reset = localized.tz_localize(None)
         assert reset.tzinfo is None
-        expected = idx._with_freq(None)
-        tm.assert_index_equal(reset, expected)
+        # no DST transition in the range, so the freq survives the round trip;
+        # tzlocal() resolves to the machine's zone, which is not guaranteed to
+        # be transition-free in the range, so the freq is not checked for it
+        check_freq = not isinstance(tz, dateutil.tz.tzlocal)
+        tm.assert_index_equal(reset, idx, check_freq=check_freq)
 
     def test_dti_tz_localize_naive(self):
         rng = pd.date_range("1/1/2011", periods=100, freq="h")
@@ -305,7 +308,7 @@ class TestTZLocalize:
         conv = rng.tz_localize("US/Pacific")
         exp = pd.date_range("1/1/2011", periods=100, freq="h", tz="US/Pacific")
 
-        tm.assert_index_equal(conv, exp._with_freq(None))
+        tm.assert_index_equal(conv, exp)
 
     def test_dti_tz_localize_tzlocal(self):
         # GH#13583
@@ -650,4 +653,90 @@ def test_dti_tz_localize_non_tick_freq_invalidated_by_nat(start, kwargs):
     result = dti.tz_localize("Europe/London", **kwargs)
 
     assert result.isna().any()
+    assert result.freq is None
+
+
+@pytest.mark.parametrize("freq", ["h", "2h", "10min", "30s"])
+def test_dti_tz_localize_preserves_tick_freq(freq, unit):
+    # GH#36575 Tick freqs hold in absolute time, which tz_localize leaves
+    #  unchanged away from DST transitions, so the freq survives
+    dti = pd.date_range("2020-01-01", periods=8, freq=freq).as_unit(unit)
+
+    result = dti.tz_localize("Europe/London")
+
+    expected = pd.date_range("2020-01-01", periods=8, freq=freq, tz="Europe/London")
+    expected = expected.as_unit(unit)
+    tm.assert_index_equal(result, expected)
+    assert result.freq == freq
+
+    # round-trip back to tz-naive also keeps the freq
+    assert result.tz_localize(None).freq == freq
+
+
+def test_dti_tz_localize_tick_freq_invalidated_by_spring_forward():
+    # GH#36575 crossing a spring-forward leaves the wall times alone but
+    #  changes their absolute spacing, so the Tick freq no longer holds;
+    #  2h steps never hit the nonexistent hour, so nonexistent="raise"
+    #  alone would not catch this
+    dti = pd.date_range("2020-03-28 22:00", periods=3, freq="2h")
+
+    result = dti.tz_localize("Europe/London")
+
+    assert result[2] == pd.Timestamp("2020-03-29 02:00:00+01:00")
+    assert result.freq is None
+
+
+@pytest.mark.parametrize("ambiguous", [True, False])
+def test_dti_tz_localize_tick_freq_invalidated_by_fall_back(ambiguous):
+    # GH#36575 resolving the ambiguous hour stretches one absolute gap,
+    #  no matter which pass the ambiguous time resolves to
+    dti = pd.date_range("2020-10-25 00:00", periods=4, freq="h")
+
+    result = dti.tz_localize("Europe/London", ambiguous=ambiguous)
+
+    assert result.freq is None
+
+
+def test_dti_tz_localize_tick_freq_invalidated_by_shift():
+    # GH#36575 shifting a nonexistent time can leave the result evenly
+    #  spaced at a different step, so the original freq must not survive
+    dti = pd.date_range("2020-03-29 00:30", periods=3, freq="h")
+
+    result = dti.tz_localize("Europe/London", nonexistent="shift_forward")
+
+    assert result[1] == pd.Timestamp("2020-03-29 02:00", tz="Europe/London")
+    assert result.freq is None
+
+
+@pytest.mark.parametrize(
+    "start, kwargs",
+    [
+        # 2020-10-25 01:30 is ambiguous in Europe/London
+        ("2020-10-25 00:30", {"ambiguous": "NaT"}),
+        # 2020-03-29 01:30 does not exist in Europe/London
+        ("2020-03-29 00:30", {"nonexistent": "NaT"}),
+    ],
+)
+def test_dti_tz_localize_tick_freq_invalidated_by_nat(start, kwargs):
+    # GH#36575 introducing NaT invalidates the freq
+    dti = pd.date_range(start, periods=3, freq="h")
+
+    result = dti.tz_localize("Europe/London", **kwargs)
+
+    assert result.isna().any()
+    assert result.freq is None
+
+
+def test_dti_tz_localize_none_tick_freq_invalidated_by_dst():
+    # GH#36575 stripping the tz across a DST transition changes the wall
+    #  spacing, so the Tick freq no longer holds for the tz-naive result
+    dti = pd.date_range("2020-03-28 22:00", periods=3, freq="2h", tz="Europe/London")
+
+    result = dti.tz_localize(None)
+
+    assert list(result) == [
+        pd.Timestamp("2020-03-28 22:00:00"),
+        pd.Timestamp("2020-03-29 00:00:00"),
+        pd.Timestamp("2020-03-29 03:00:00"),
+    ]
     assert result.freq is None
