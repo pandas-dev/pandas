@@ -503,6 +503,30 @@ class CSSToExcelConverter:
             raise ValueError(f"Unexpected color {color_string}")
 
 
+def _get_level_lengths_from_codes(codes: list[np.ndarray]) -> list[dict[int, int]]:
+    """
+    Compute the spans of merged equal labels for each level of a MultiIndex.
+
+    GH#45865: the spans are computed from the level codes rather than from the
+    formatted labels, in which an empty-string label is indistinguishable
+    from the sparsified repeat of the preceding label.
+
+    The deepest level is never merged: sparsify_labels always prints it, and
+    merging it would also merge adjacent duplicate labels, which would then
+    be lost on read-back.
+    """
+    if len(codes) == 0 or len(codes[0]) == 0:
+        return []
+
+    continuations = [
+        [False, *(level_codes[:-1] == level_codes[1:])] for level_codes in codes[:-1]
+    ]
+    # like sparsify_labels, never merge the deepest level
+    continuations.append([False] * len(codes[-1]))
+
+    return get_level_lengths(continuations, sentinel=True)
+
+
 class ExcelFormatter:
     """
     Class for formatting a DataFrame to a list of ExcelCells,
@@ -673,8 +697,11 @@ class ExcelFormatter:
 
         columns = self.columns
         merge_columns = self.merge_cells in {True, "columns"}
-        level_strs = columns._format_multi(sparsify=merge_columns, include_names=False)
-        level_lengths = get_level_lengths(level_strs)
+        if merge_columns:
+            level_lengths = _get_level_lengths_from_codes(columns.codes)
+        else:
+            level_strs = columns._format_multi(sparsify=False, include_names=False)
+            level_lengths = get_level_lengths(level_strs)
         coloffset = 0
         lnum = 0
 
@@ -844,10 +871,7 @@ class ExcelFormatter:
 
             if self.merge_cells and self.merge_cells != "columns":
                 # Format hierarchical rows as merged cells.
-                level_strs = self.df.index._format_multi(
-                    sparsify=True, include_names=False
-                )
-                level_lengths = get_level_lengths(level_strs)
+                level_lengths = _get_level_lengths_from_codes(self.df.index.codes)
 
                 for spans, levels, level_codes in zip(
                     level_lengths,
