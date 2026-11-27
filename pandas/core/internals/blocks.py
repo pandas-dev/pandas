@@ -851,6 +851,23 @@ class Block(PandasObject, libinternals.Block):
         if not pairs:
             return [self.copy(deep=False)]
 
+        if (
+            isinstance(self.dtype, StringDtype)
+            and any(dest is None for _, dest in pairs)
+            and not any(should_use_regex(regex, src) for src, _ in pairs)
+        ):
+            # Preserve literal None if another matched replacement needs object dtype.
+            can_preserve_dtype = all(
+                (not is_list_like(dest) and self._can_hold_element(dest))
+                or not missing.mask_missing(values, src).any()
+                for src, dest in pairs
+            )
+            if can_preserve_dtype:
+                pairs = [
+                    (src, self.dtype.na_value if dest is None else dest)
+                    for src, dest in pairs
+                ]
+
         src_len = len(pairs) - 1
 
         # With inplace, the masks must see the original values: either compare against

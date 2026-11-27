@@ -64,7 +64,7 @@ class TestDataFrameReplace:
                     pd.Timestamp("1940-04-25"),
                 ],
                 "name": ["Alfred", "Batman", ""],
-                "toy": [None, "Batmobile", "Joker"],
+                "toy": pd.Series([None, "Batmobile", "Joker"], dtype=object),
             }
         )
         once = df.replace({np.nan: None})
@@ -1757,3 +1757,106 @@ def test_replace_list_multiple_unchanged_columns(replace_kwargs):
 
     expected = pd.DataFrame({"a": ["x", 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]})
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "to_replace, expected", [(np.nan, ["a", None, "b"]), ("a", [None, None, "b"])]
+)
+@pytest.mark.parametrize("form", ["dict", "lists", "list_scalar"])
+@pytest.mark.parametrize("inplace", [True, False])
+def test_replace_none_preserves_string_dtype(
+    frame_or_series, string_dtype_no_object, to_replace, expected, form, inplace
+):
+    """https://github.com/pandas-dev/pandas/issues/65892"""
+    obj = frame_or_series(["a", None, "b"], dtype=string_dtype_no_object)
+    original = obj.copy(deep=True)
+    view = obj.copy(deep=False)
+    expected = frame_or_series(expected, dtype=string_dtype_no_object)
+
+    if form == "dict":
+        result = obj.replace({to_replace: None}, inplace=inplace)
+    elif form == "list_scalar":
+        result = obj.replace([to_replace], None, inplace=inplace)
+    else:
+        result = obj.replace([to_replace], [None], inplace=inplace)
+    tm.assert_equal(view, original)
+
+    if inplace:
+        assert result is obj
+        tm.assert_equal(obj, expected)
+    else:
+        tm.assert_equal(result, expected)
+        tm.assert_equal(obj, original)
+
+
+@pytest.mark.parametrize("matched", [True, False])
+@pytest.mark.parametrize("reverse", [True, False])
+@pytest.mark.parametrize("use_dict", [True, False])
+@pytest.mark.parametrize("inplace", [True, False])
+def test_replace_none_string_dtype_mixed_destinations(
+    frame_or_series, string_dtype_no_object, matched, reverse, use_dict, inplace
+):
+    """https://github.com/pandas-dev/pandas/issues/65892"""
+    obj = frame_or_series(["a", "b"], dtype=string_dtype_no_object)
+    original = obj.copy(deep=True)
+    pairs = [("a", None), ("b" if matched else "missing", 1)]
+    if reverse:
+        pairs.reverse()
+
+    if use_dict:
+        result = obj.replace(dict(pairs), inplace=inplace)
+    else:
+        src, dest = zip(*pairs, strict=True)
+        result = obj.replace(list(src), list(dest), inplace=inplace)
+
+    dtype = object if matched else string_dtype_no_object
+    expected = frame_or_series(pd.array([None, 1 if matched else "b"], dtype=dtype))
+    tm.assert_equal(result, expected)
+    if matched:
+        assert result.to_numpy().flat[0] is None
+    if not inplace:
+        tm.assert_equal(obj, original)
+
+
+@pytest.mark.parametrize("pa_type", ["string", "large_string"])
+def test_replace_none_mixed_destinations_arrow_dtype(pa_type):
+    pa = pytest.importorskip("pyarrow")
+    ser = pd.Series(["a", "b"], dtype=pd.ArrowDtype(getattr(pa, pa_type)()))
+    result = ser.replace({"a": None, "b": 1})
+    expected = pd.Series([None, 1], dtype=object)
+    tm.assert_series_equal(result, expected)
+    assert result.iloc[0] is None
+
+
+@pytest.mark.parametrize("use_dict", [True, False])
+def test_replace_none_then_regex_value_string_dtype(string_dtype_no_object, use_dict):
+    pattern = re.compile("z")
+    ser = pd.Series(["a", "b"], dtype=string_dtype_no_object)
+    if use_dict:
+        result = ser.replace({"a": None, "b": pattern})
+    else:
+        result = ser.replace(["a", "b"], [None, pattern])
+    expected = pd.Series([None, pattern], dtype=object)
+    tm.assert_series_equal(result, expected)
+    assert result.iloc[0] is None
+
+
+def test_replace_none_and_arrow_scalar_regex():
+    pa = pytest.importorskip("pyarrow")
+    value = pa.scalar("z")
+    ser = pd.Series([None, "b"], dtype=pd.StringDtype("pyarrow"))
+    result = ser.replace({np.nan: None, "b": value}, regex=True)
+    expected = pd.Series([None, value], dtype=object)
+    tm.assert_series_equal(result, expected)
+    assert result.iloc[0] is None
+
+
+@pytest.mark.parametrize("inplace", [True, False])
+def test_replace_none_then_array_value_string_dtype(string_dtype_no_object, inplace):
+    obj = pd.Series(["a", "a", "b"], dtype=string_dtype_no_object)
+    original = obj.copy(deep=True)
+    result = obj.replace(["a", "a"], [None, np.array(["z"])], inplace=inplace)
+    expected = pd.Series(["z", "z", "b"], dtype=object)
+    tm.assert_equal(result, expected)
+    if not inplace:
+        tm.assert_equal(obj, original)
