@@ -7,6 +7,7 @@ from datetime import (
 import importlib.resources
 import io
 from pathlib import Path
+import re
 import struct
 import subprocess
 import sys
@@ -219,6 +220,37 @@ def test_maybe_get_tz_offset_only():
 
     tz = timezones.maybe_get_tz("UTC-02:45")
     assert tz == timezone(-timedelta(hours=2, minutes=45))
+
+
+@pytest.mark.parametrize(
+    "tz_str, expected",
+    [
+        ("+0545", timedelta(hours=5, minutes=45)),
+        ("-0130", -timedelta(hours=1, minutes=30)),
+        ("+09", timedelta(hours=9)),
+        ("UTC+0930", timedelta(hours=9, minutes=30)),
+        ("UTC-09", -timedelta(hours=9)),
+        ("+05:30:15", timedelta(hours=5, minutes=30, seconds=15)),
+        ("-053015", -timedelta(hours=5, minutes=30, seconds=15)),
+        ("UTC+05:30:15", timedelta(hours=5, minutes=30, seconds=15)),
+    ],
+)
+def test_maybe_get_tz_offset_formats(tz_str, expected):
+    # GH#41865
+    tz = timezones.maybe_get_tz(tz_str)
+    assert tz == timezone(expected)
+    assert pd.Timestamp(0, tz=tz_str).utcoffset() == expected
+
+
+@pytest.mark.parametrize(
+    "tz_str",
+    ["+09%30abcdef1234", "UTC+09%30", "+093", "+09:3", "+0930:15", "+09:60", "+24"],
+)
+def test_maybe_get_tz_invalid_offset(tz_str):
+    # GH#41865
+    msg = f"Invalid UTC offset: '{re.escape(tz_str)}'"
+    with pytest.raises(ValueError, match=msg):
+        timezones.maybe_get_tz(tz_str)
 
 
 def test_zoneinfo_utc_to_local_post_2037():

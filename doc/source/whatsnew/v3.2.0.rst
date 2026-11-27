@@ -257,6 +257,7 @@ Timedelta
 
 Timezones
 ^^^^^^^^^
+- Bug in :class:`Timestamp`, :meth:`Series.dt.tz_localize` and :class:`DatetimeTZDtype` parsing a UTC offset string without a colon, such as ``"+0545"``, with the wrong minutes, raising for an hours-only offset such as ``"+09"``, and dropping the seconds of an offset such as ``"+05:30:15"``; malformed offset strings now raise ``ValueError`` (:issue:`41865`)
 - Bug in :meth:`DataFrame.query` and :meth:`DataFrame.eval` comparing a timezone-aware datetime column to a string without a UTC offset raising ``TypeError`` or returning incorrect results; the string is now localized to the column's timezone, as in ``df["col"] < "2000-01-02"`` (:issue:`26236`)
 - Bug in timezone-aware datetimes outside the range of :class:`datetime.datetime` with a ``zoneinfo`` time zone, where localizing, converting or displaying them and :meth:`Timestamp.utcoffset` raised ``NotImplementedError``, for example after adding a large :class:`Timedelta`; they now follow the time zone's rules (:issue:`68009`)
 -

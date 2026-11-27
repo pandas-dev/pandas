@@ -24,6 +24,7 @@ from pandas.core.dtypes.common import (
     is_interval_dtype,
     is_period_dtype,
     is_string_dtype,
+    pandas_dtype,
 )
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
@@ -308,6 +309,13 @@ class TestDatetimeTZDtype(Base):
     def test_construction_from_string(self, dtype):
         result = DatetimeTZDtype.construct_from_string("datetime64[ns, US/Eastern]")
         assert is_dtype_equal(dtype, result)
+
+    def test_construction_from_string_offset_with_seconds(self):
+        # GH#41865
+        dtype = DatetimeTZDtype("ns", "UTC+05:30:15")
+        assert str(dtype) == "datetime64[ns, UTC+05:30:15]"
+        assert DatetimeTZDtype.construct_from_string(str(dtype)) == dtype
+        assert pandas_dtype("datetime64[ns, UTC+05:30:15]") == dtype
 
     @pytest.mark.parametrize(
         "string",

@@ -4,6 +4,7 @@ from datetime import (
     timezone,
 )
 import pickle
+import re
 import zoneinfo
 from zoneinfo._zoneinfo import ZoneInfo as _ZoneInfo
 
@@ -165,6 +166,35 @@ cpdef inline object get_timezone(tzinfo tz):  # no-cython-lint
         return tz
 
 
+# [UTC]±HH, ±HH:MM, ±HHMM, ±HH:MM:SS or ±HHMMSS
+cdef object _utc_offset_re = re.compile(
+    r"(?:UTC)?(?P<sign>[+-])(?P<hours>\d{2})"
+    r"(?:(?P<sep>:?)(?P<minutes>\d{2})(?:(?P=sep)(?P<seconds>\d{2}))?)?",
+    re.ASCII,
+)
+
+
+cdef tzinfo _parse_utc_offset(str tz):
+    """
+    Construct a fixed-offset timezone from a string like "+05:45" or "UTC-0130".
+    """
+    cdef:
+        int hours, minutes, seconds
+
+    match = _utc_offset_re.fullmatch(tz)
+    if match is None:
+        raise ValueError(f"Invalid UTC offset: '{tz}'")
+    hours = int(match["hours"])
+    minutes = int(match["minutes"] or 0)
+    seconds = int(match["seconds"] or 0)
+    if hours > 23 or minutes > 59 or seconds > 59:
+        raise ValueError(f"Invalid UTC offset: '{tz}'")
+    offset = timedelta(hours=hours, minutes=minutes, seconds=seconds)
+    if match["sign"] == "-":
+        offset = -offset
+    return timezone(offset)
+
+
 cpdef inline tzinfo maybe_get_tz(object tz):  # no-cython-lint
     """
     (Maybe) Construct a timezone object from a string. If tz is a string, use
@@ -179,14 +209,8 @@ cpdef inline tzinfo maybe_get_tz(object tz):  # no-cython-lint
             # On Python 3 on Windows, the filename is not always set correctly.
             if isinstance(tz, _dateutil_tzfile) and ".tar.gz" in tz._filename:
                 tz._filename = zone
-        elif tz[0] in {"-", "+"}:
-            hours = int(tz[0:3])
-            minutes = int(tz[0] + tz[4:6])
-            tz = timezone(timedelta(hours=hours, minutes=minutes))
-        elif tz[0:4] in {"UTC-", "UTC+"}:
-            hours = int(tz[3:6])
-            minutes = int(tz[3] + tz[7:9])
-            tz = timezone(timedelta(hours=hours, minutes=minutes))
+        elif tz[0] in {"-", "+"} or tz[0:4] in {"UTC-", "UTC+"}:
+            tz = _parse_utc_offset(tz)
         elif tz == "UTC" or tz == "utc":
             tz = utc_stdlib
         else:
