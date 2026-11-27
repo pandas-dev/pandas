@@ -387,6 +387,7 @@ I/O
 - Bug in :func:`read_csv` with ``engine="c"``, ``header=None`` and a callable ``usecols`` returning no rows or putting values under the wrong column labels, or a ``defaultdict`` ``dtype`` ignoring some of its integer keys (:issue:`71880`)
 - Bug in :func:`read_csv` with ``engine="pyarrow"`` and ``parse_dates`` converting a non-date ``index_col`` (e.g. integers) to strings (:issue:`71873`)
 - Bug in :func:`read_csv` with ``engine="pyarrow"`` raising ``EmptyDataError`` for input whose only line lacks a trailing newline (:issue:`62635`)
+- Bug in :func:`read_csv` with ``engine="pyarrow"`` raising ``IndexError`` when a ``dtype`` dictionary omits a named ``index_col`` (:issue:`68041`)
 - Bug in :func:`read_csv` with ``engine="pyarrow"`` silently wrapping values outside the range of the requested integer ``dtype`` instead of raising (:issue:`38013`)
 - Bug in :func:`read_csv` with ``engine="python"`` and ``index_col`` reading a date like ``"20180101"`` as nanoseconds since the epoch when ``dtype`` is a pyarrow timestamp dtype (:issue:`24542`)
 - Bug in :func:`read_csv` with the default ``low_memory=True`` where a column whose type was inferred differently in different parts of the file could differ from ``low_memory=False``, such as silently rounding integers beyond the ``int64`` range to ``float64`` (:issue:`68706`)
