@@ -94,6 +94,7 @@ from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_dataclass,
     is_dict_like,
+    is_extension_array_dtype,
     is_float,
     is_float_dtype,
     is_hashable,
@@ -14947,11 +14948,57 @@ class DataFrame(NDFrame, OpsMixin):
         axis = self._get_axis_number(axis)
         if axis == 1:
             if periods != 0:
-                # in the periods == 0 case, this is equivalent diff of 0 periods
-                #  along axis=0, and the Manager method may be somewhat more
-                #  performant, so we dispatch in that case.
+                # Boolean columns must use XOR when both columns being
+                # compared have boolean dtype. Other dtype combinations
+                # retain subtraction behavior.
+                if any(is_bool_dtype(dtype) for dtype in self.dtypes):
+                    from pandas.core.reshape.concat import concat
+
+                    ncols = len(self.columns)
+                    result_columns = []
+
+                    for i in range(ncols):
+                        previous_i = i - periods
+                        current = self.iloc[:, i]
+
+                        if previous_i < 0 or previous_i >= ncols:
+                            if is_bool_dtype(
+                                current.dtype
+                            ) and not is_extension_array_dtype(current.dtype):
+                                # NumPy bool cannot represent missing values.
+                                # Match the expected float64 result containing NaN.
+                                result = self._constructor_sliced(
+                                    np.nan, index=self.index
+                                )
+                            else:
+                                # Preserve nullable Boolean, datetime, and other dtypes
+                                # where their missing-value representation allows it.
+                                result = current.iloc[:0].reindex(self.index)
+                        else:
+                            previous = self.iloc[:, previous_i]
+
+                            if is_bool_dtype(current.dtype) and is_bool_dtype(
+                                previous.dtype
+                            ):
+                                # Boolean difference: XOR.
+                                result = current ^ previous
+                            else:
+                                # Preserve subtraction for other dtype pairs.
+                                result = current - previous
+
+                        result_columns.append(result)
+
+                    if not result_columns:
+                        return self.copy().__finalize__(self, "diff")
+
+                    result_df = concat(result_columns, axis=1)
+                    result_df.columns = self.columns
+
+                    return result_df.__finalize__(self, "diff")
+
                 return self - self.shift(periods, axis=axis)
-            # With periods=0 this is equivalent to a diff with axis=0
+
+            # With periods == 0, use the axis=0 implementation.
             axis = 0
 
         new_data = self._mgr.diff(n=periods)

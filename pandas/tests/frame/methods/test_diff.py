@@ -192,6 +192,70 @@ class TestDataFrameDiff:
         expected = (df - pd.NaT).astype(object)
         tm.assert_frame_equal(result, expected)
 
+    def test_diff_axis1_nullable_boolean(self):
+        # GH#72326
+        df = pd.DataFrame(
+            {
+                "a": [True, False, pd.NA],
+                "b": [False, False, True],
+            },
+            dtype="boolean",
+        )
+
+        result = df.diff(axis=1)
+
+        expected = pd.DataFrame(
+            {
+                "a": [pd.NA, pd.NA, pd.NA],
+                "b": [True, False, pd.NA],
+            },
+            dtype="boolean",
+        )
+
+        tm.assert_frame_equal(result, expected)
+
+    def test_diff_axis1_numpy_boolean(self):
+        # GH#72326
+        df = pd.DataFrame(
+            {
+                "a": np.array([True, False]),
+                "b": np.array([False, False]),
+            }
+        )
+
+        result = df.diff(axis=1)
+
+        expected = pd.DataFrame(
+            {
+                "a": [np.nan, np.nan],
+                "b": [True, False],
+            }
+        )
+
+        tm.assert_frame_equal(result, expected)
+
+    def test_diff_axis1_mixed_boolean_numeric(self):
+        # GH#72326
+        df = pd.DataFrame(
+            {
+                "a": [1, 2],
+                "b": [True, False],
+                "c": [False, False],
+            }
+        )
+
+        result = df.diff(axis=1)
+
+        expected = pd.DataFrame(
+            {
+                "a": [np.nan, np.nan],
+                "b": [0, -2],
+                "c": [True, False],
+            }
+        )
+
+        tm.assert_frame_equal(result, expected)
+
     def test_diff_axis1_mixed_dtypes(self):
         # GH#32995 operate column-wise when we have mixed dtypes and axis=1
         df = pd.DataFrame({"A": range(3), "B": 2 * np.arange(3, dtype=np.float64)})
