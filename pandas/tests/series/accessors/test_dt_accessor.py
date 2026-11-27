@@ -7,7 +7,6 @@ from datetime import (
     timezone,
 )
 import locale
-import unicodedata
 
 from dateutil.tz import (
     tzlocal,
@@ -543,21 +542,11 @@ class TestSeriesDatetimeValues:
         ser = pd.Series(pd.date_range(freq="ME", start="2012", end="2013"))
         result = ser.dt.month_name(locale=time_locale)
         expected = pd.Series([month.capitalize() for month in expected_months])
-
-        # work around https://github.com/pandas-dev/pandas/issues/22342
-        result = result.str.normalize("NFD")
-        expected = expected.str.normalize("NFD")
-
         tm.assert_series_equal(result, expected)
 
         for s_date, expected in zip(ser, expected_months, strict=True):
             result = s_date.month_name(locale=time_locale)
-            expected = expected.capitalize()
-
-            result = unicodedata.normalize("NFD", result)
-            expected = unicodedata.normalize("NFD", expected)
-
-            assert result == expected
+            assert result == expected.capitalize()
 
         ser = pd.concat([ser, pd.Series([pd.NaT])])
         assert np.isnan(ser.dt.month_name(locale=time_locale).iloc[-1])

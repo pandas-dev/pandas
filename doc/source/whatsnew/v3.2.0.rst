@@ -240,6 +240,7 @@ Datetimelike
 - Bug in :func:`infer_freq` returning ``None`` for a semi-monthly :class:`DatetimeIndex`, e.g. one built with ``freq="SME"`` or ``freq="SMS"`` (:issue:`45819`)
 - Bug in :meth:`DataFrame.astype`, :meth:`Series.astype`, :meth:`Index.astype`, :class:`DatetimeIndex`, :func:`array` and :func:`to_datetime` where ``float`` dtype data outside the ``int64`` range, such as ``inf``, silently became a valid-looking ``datetime64``/``timedelta64`` value or ``NaT``; these now raise ``OutOfBoundsDatetime``/``OutOfBoundsTimedelta`` (:issue:`68926`)
 - Bug in :meth:`DataFrame.to_csv` and ``astype(str)`` raising for some timezone-aware datetime data outside the range of :class:`datetime.datetime` (:issue:`44764`)
+- Bug in :meth:`DatetimeIndex.day_name` and :meth:`DatetimeIndex.month_name` with ``locale`` returning names starting with ``"İ"`` as ``"I"`` followed by a combining dot, or raising for some valid locale names (:issue:`22342`)
 - Bug in :meth:`DatetimeIndex.strftime`, :meth:`Series.dt.strftime`, and :meth:`DataFrame.to_csv` with ``date_format`` on Windows silently replacing values that :meth:`Timestamp.strftime` cannot format (e.g. ``%y`` for years before 1900) with their default string representation; these now raise ``ValueError`` (:issue:`58178`)
 - Bug in :meth:`Series.isin`, :meth:`DataFrame.isin`, and :meth:`Index.isin` on datetime-like data missing ``numpy.datetime64`` or ``numpy.timedelta64`` values (``NaT``, or any value on numpy < 2.2) when ``values`` also held non-datetime-like entries (:issue:`71186`)
 - Bug in :meth:`Series.quantile` and :meth:`DataFrame.quantile` with ``datetime64`` or ``timedelta64`` data and ``interpolation="linear"`` or ``"midpoint"`` losing precision for large values, so that e.g. ``q=0`` did not return the minimum, and returning an incorrect value when the values spanned more than the ``int64`` range (:issue:`49110`)
@@ -388,6 +389,7 @@ I/O
 - Bug in :func:`read_csv` with ``engine="pyarrow"`` raising ``EmptyDataError`` for input whose only line lacks a trailing newline (:issue:`62635`)
 - Bug in :func:`read_csv` with ``engine="pyarrow"`` silently wrapping values outside the range of the requested integer ``dtype`` instead of raising (:issue:`38013`)
 - Bug in :func:`read_csv` with ``engine="python"`` and ``index_col`` reading a date like ``"20180101"`` as nanoseconds since the epoch when ``dtype`` is a pyarrow timestamp dtype (:issue:`24542`)
+- Bug in :func:`read_csv` with the default ``low_memory=True`` where a column whose type was inferred differently in different parts of the file could differ from ``low_memory=False``, such as silently rounding integers beyond the ``int64`` range to ``float64`` (:issue:`68706`)
 - Bug in :func:`read_csv`, :func:`read_excel`, :func:`read_fwf` and :func:`read_html` returning wrong column labels and treating header rows as data when ``header`` was a list not in increasing order, such as ``header=[1, 0]`` (:issue:`47011`)
 - Bug in :func:`read_csv`, :func:`read_html` and other I/O functions raising ``UnicodeEncodeError`` for URLs containing non-ASCII characters (:issue:`21499`)
 - Bug in :func:`read_csv`, :meth:`DataFrame.to_csv` and other I/O functions raising ``URLError`` for ``sftp://`` URLs instead of reading or writing them with ``fsspec`` (:issue:`46765`)
@@ -484,6 +486,7 @@ Plotting
 
 Groupby/resample/rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
+- Bug in :meth:`.DataFrameGroupBy.agg` and :meth:`.Resampler.agg` with a list of functions raising ``TypeError`` with ``numeric_only=True`` instead of excluding non-numeric columns, and raising ``ValueError`` when there are no columns to aggregate (:issue:`53839`)
 - Bug in :meth:`.DataFrameGroupBy.apply` and :meth:`.SeriesGroupBy.apply` with ``group_keys=False`` not preserving the order of the rows of the input when the index has duplicates (:issue:`57906`)
 - Bug in :meth:`.DataFrameGroupBy.cumsum`, :meth:`.DataFrameGroupBy.cummin`, :meth:`.DataFrameGroupBy.cummax`, and :meth:`.DataFrameGroupBy.rank` (and Series variants) on ``datetime64``, ``timedelta64``, and :class:`PeriodDtype` data treating ``NaT`` as a regular value and losing precision when the group key contains ``NA`` (:issue:`69923`)
 - Bug in :meth:`.DataFrameGroupBy.cumsum`, :meth:`.DataFrameGroupBy.cumprod`, :meth:`.DataFrameGroupBy.cummin`, :meth:`.DataFrameGroupBy.cummax`, and :meth:`.DataFrameGroupBy.rank` raising ``NotImplementedError``, often with no message, instead of ``TypeError`` on columns that do not support them, e.g. ``object`` columns and :class:`ArrowDtype` date, time and binary columns (:issue:`69791`)

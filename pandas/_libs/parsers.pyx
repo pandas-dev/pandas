@@ -454,6 +454,9 @@ cdef class TextReader:
         # depends on which rows the parser saw, so the parallel reader checks
         # this and falls back to a serial read (GH#66259).
         public bint na_left_literal
+        # When not None, only these field positions are converted; the rest
+        # are skipped.  Used to re-read diverged low_memory columns.
+        public object convert_only  # set[int] | None
         uint64_t parser_start  # this is modified after __init__
         const char *encoding_errors
         object _encoding_errors
@@ -541,7 +544,8 @@ cdef class TextReader:
                   float_precision=None,
                   bint skip_blank_lines=True,
                   encoding_errors=b"strict",
-                  dtype_backend="numpy"):
+                  dtype_backend="numpy",
+                  warning_sink=None):
 
         # set encoding for native Python and C library
         if isinstance(encoding_errors, str):
@@ -664,8 +668,9 @@ cdef class TextReader:
         self.block_workers = 0
         self._largest_str_batch = 0
         self.trim_after_read = True
-        self.warning_sink = None
+        self.warning_sink = warning_sink
         self.na_left_literal = False
+        self.convert_only = None
 
         # None by identity, not in the tuple; see tzconversion.pyx (GH#66939)
         if float_precision is None or float_precision in (
@@ -1320,6 +1325,9 @@ cdef class TextReader:
                                              name in usecols):
                     continue
                 nused += 1
+
+            if self.convert_only is not None and i not in self.convert_only:
+                continue
 
             conv = self._get_converter(i, name)
             col_dtype = self._get_col_dtype(i, is_default_dict_dtype, name)

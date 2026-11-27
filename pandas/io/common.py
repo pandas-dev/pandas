@@ -7,12 +7,16 @@ from abc import (
     abstractmethod,
 )
 import codecs
-from collections import defaultdict
+from collections import (
+    defaultdict,
+    deque,
+)
 from collections.abc import (
     Hashable,
     Mapping,
     Sequence,
 )
+from contextlib import contextmanager
 import dataclasses
 import functools
 import gzip
@@ -80,6 +84,7 @@ BaseBufferT = TypeVar("BaseBufferT", bound=BaseBuffer)
 
 
 if TYPE_CHECKING:
+    from collections.abc import Generator
     from types import TracebackType
 
     from pandas._typing import (
@@ -1268,6 +1273,11 @@ class _BytesIOWrapper:
     def __getattr__(self, attr: str) -> Any:
         return getattr(self.buffer, attr)
 
+    def seek(self, *args: Any, **kwargs: Any) -> int:
+        # Bytes read ahead of the buffer's own position are stale once it moves.
+        self.overflow = b""
+        return self.buffer.seek(*args, **kwargs)
+
     def read(self, n: int | None = -1) -> bytes:
         assert self.buffer is not None
         bytestring = self.buffer.read(n).encode(self.encoding, self.errors)
@@ -1280,6 +1290,77 @@ class _BytesIOWrapper:
             to_return = combined_bytestring[:n]
             self.overflow = combined_bytestring[n:]
             return to_return
+
+
+def can_rewind(handle: Any) -> bool:
+    """
+    Whether ``rewound`` can restore ``handle`` exactly.
+
+    Only an io stream's position covers what it has read ahead; e.g. a
+    ``codecs`` reader drops the text it has decoded but not handed out.
+    """
+    inner = handle
+    # a non-UTF-8 encoding puts a TextIOWrapper over any decompressor
+    while isinstance(inner, (_BytesIOWrapper, _IOWrapper, TextIOWrapper)):
+        inner = inner.buffer
+    if not isinstance(inner, (IOBase, mmap.mmap)) or isinstance(
+        inner, tarfile.ExFileObject
+    ):
+        return False
+    # A decompressor rewinds the stream under it to byte 0, which is where the
+    # compressed data starts only if it opened that file itself.
+    if isinstance(inner, gzip.GzipFile):
+        if inner.myfileobj is None:
+            return False
+    elif type(inner).__name__ in ("BZ2File", "LZMAFile"):
+        if not getattr(inner, "_closefp", False):
+            return False
+    try:
+        return bool(handle.seekable())
+    except (AttributeError, OSError, ValueError):
+        return False
+
+
+@contextmanager
+def rewound(handle: Any, start: int) -> Generator[None]:
+    """
+    Read ``handle`` from ``start``, then restore it exactly as it was.
+
+    A ``_BytesIOWrapper`` also holds decoded bytes it has not handed out yet,
+    which ``tell()`` does not count and ``seek()`` drops, so the position alone
+    does not describe where the caller had got to.
+    """
+    overflow = handle.overflow if isinstance(handle, _BytesIOWrapper) else None
+    resume = handle.tell()
+    try:
+        handle.seek(start)
+        yield
+    finally:
+        handle.seek(resume)
+        if overflow is not None:
+            handle.overflow = overflow
+
+
+class ReplayHandle:
+    """
+    Serve ``chunks`` and then the rest of ``handle`` through ``read``, the only
+    method the c engine calls on its source; it accepts reads of any length.
+
+    ``start`` is where ``handle`` stood before ``chunks`` were read from it (None
+    if unknown), so that a reader can still replay the whole source.
+    """
+
+    def __init__(
+        self, chunks: list[bytes | str], handle: IO[Any], start: int | None
+    ) -> None:
+        self._chunks = deque(chunks)
+        self.handle = handle
+        self.start = start
+
+    def read(self, size: int) -> bytes | str:
+        if self._chunks:
+            return self._chunks.popleft()
+        return self.handle.read(size)
 
 
 def _maybe_memory_map(
