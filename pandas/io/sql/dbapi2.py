@@ -32,10 +32,6 @@ from pandas.core.dtypes.common import (
     is_list_like,
 )
 
-from pandas.core.api import (
-    DataFrame,
-)
-
 from pandas.io.sql.base import (
     PandasSQL,
     SQLTable,
@@ -59,6 +55,10 @@ if TYPE_CHECKING:
     from pandas._typing import (
         DtypeArg,
         DtypeBackend,
+    )
+
+    from pandas.core.api import (
+        DataFrame,
     )
 
 
@@ -312,12 +312,15 @@ class DBAPI2Database(PandasSQL):
             if not data:
                 cursor.close()
                 if not has_read_data:
-                    result = DataFrame.from_records(
-                        [], columns=columns, coerce_float=coerce_float
+                    yield wrap_result(
+                        [],
+                        columns,
+                        index_col=index_col,
+                        coerce_float=coerce_float,
+                        parse_dates=parse_dates,
+                        dtype=dtype,
+                        dtype_backend=dtype_backend,
                     )
-                    if dtype:
-                        result = result.astype(dtype)
-                    yield result
                 break
 
             has_read_data = True

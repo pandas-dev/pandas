@@ -4116,6 +4116,44 @@ def test_chunksize_empty_dtypes(conn, request):
 
 
 @pytest.mark.parametrize("conn", all_connectable)
+def test_read_sql_chunksize_empty_index_and_parse_dates(conn, request):
+    # GH#72289
+    if "adbc" in conn:
+        request.node.add_marker(
+            pytest.mark.xfail(reason="chunksize argument NotImplemented with ADBC")
+        )
+    conn = request.getfixturevalue(conn)
+    df = pd.DataFrame({"a": [1], "d": ["2020-01-01"]})
+    df.to_sql(name="test_empty_chunk_query", con=conn, index=False, if_exists="replace")
+
+    query = "SELECT * FROM test_empty_chunk_query WHERE a > 5"
+    kw = {"index_col": "a", "parse_dates": ["d"]}
+
+    full = read_sql_query(query, conn, **kw)
+    chunk = next(read_sql_query(query, conn, chunksize=10, **kw))
+
+    tm.assert_frame_equal(chunk, full)
+
+
+@pytest.mark.parametrize("conn", sqlite_connectable)
+def test_read_sql_table_chunksize_empty_index_and_parse_dates(conn, request):
+    # GH#72289
+    conn = request.getfixturevalue(conn)
+    df = pd.DataFrame(
+        {"a": pd.Series([1], dtype="int64"), "d": pd.to_datetime(["2020-01-01"])}
+    )
+    df.iloc[0:0].to_sql(
+        name="test_empty_chunk_table", con=conn, index=False, if_exists="replace"
+    )
+
+    kw = {"index_col": "a", "parse_dates": ["d"]}
+    full = sql.read_sql_table("test_empty_chunk_table", conn, **kw)
+    chunk = next(sql.read_sql_table("test_empty_chunk_table", conn, chunksize=10, **kw))
+
+    tm.assert_frame_equal(chunk, full)
+
+
+@pytest.mark.parametrize("conn", all_connectable)
 @pytest.mark.parametrize("dtype_backend", [lib.no_default, "numpy_nullable"])
 @pytest.mark.parametrize("func", ["read_sql", "read_sql_query"])
 def test_read_sql_dtype(conn, request, func, dtype_backend):

@@ -468,9 +468,18 @@ class SQLTable(PandasObject):
                 data = result.fetchmany(chunksize)
                 if not data:
                     if not has_read_data:
-                        yield DataFrame.from_records(
-                            [], columns=columns, coerce_float=coerce_float
+                        self.frame = _convert_arrays_to_dataframe(
+                            [], columns, coerce_float, dtype_backend
                         )
+
+                        self._harmonize_columns(
+                            parse_dates=parse_dates, dtype_backend=dtype_backend
+                        )
+
+                        if self.index is not None:
+                            self.frame = self.frame.set_index(self.index)
+
+                        yield self.frame
                     break
 
                 has_read_data = True
