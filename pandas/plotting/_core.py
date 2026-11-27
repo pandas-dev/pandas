@@ -2004,14 +2004,15 @@ class PlotAccessor(PandasObject):
             Weights of datapoints. If None (default), the samples are assumed
             to be equally weighted. For a Series, this must be a one-dimensional
             array with the same length as the Series. For a DataFrame, a
-            one-dimensional array with the same length as the DataFrame is
-            applied to each column. For a DataFrame with multiple columns, a
-            two-dimensional array with the same shape as the DataFrame can be
-            used to specify weights for each column. Weights are normalized to
-            sum to 1 internally. Missing values in the data are dropped together
-            with their corresponding weights. The remaining weights must be
-            finite and non-negative, and must sum to a positive value. See
-            ``scipy.stats.gaussian_kde`` for more information.
+            one-dimensional array with the same number of rows as the DataFrame
+            is applied to each column. For a DataFrame with multiple columns, a
+            two-dimensional array with the same number of rows as the DataFrame
+            can specify weights for each column; its columns correspond to the
+            plotted columns in plotting order, as non-plottable columns are
+            dropped before plotting. Weights are normalized to sum to 1
+            internally. Missing values in the data are dropped together with
+            their corresponding weights. The remaining weights must be finite
+            and non-negative, and must sum to a positive value.
         **kwargs
             Additional keyword arguments, such as ``ax``, ``figsize``,
             ``title`` and ``legend``, are documented in
