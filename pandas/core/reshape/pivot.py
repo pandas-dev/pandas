@@ -109,7 +109,9 @@ def pivot_table(
     dropna : bool, default True
         Do not include columns whose entries are all NaN. If True,
 
-        * rows with an NA value in any column will be omitted before computing margins,
+        * rows with an NA value in any column will be omitted before computing
+          margins (for ``aggfunc="size"``, which counts rows, only rows with
+          NA group keys are omitted),
         * index/column keys containing NA values will be dropped (see ``dropna``
           parameter in :meth:``DataFrame.groupby``).
 
@@ -397,7 +399,28 @@ def __internal_pivot_table(
             table = table.astype(np.int64)
 
     if margins:
-        if dropna:
+        margin_observed = dropna
+        if aggfunc == "size":
+            # GH#27799 "size" counts rows instead of aggregating the value
+            # columns, so its result has no values level; pass no values so
+            # the margins are computed from the row counts, and drop only
+            # rows with NA group keys, mirroring groupby(dropna=True)
+            values = []
+            # the margins must count the same rows the table counted, so
+            # they see unobserved categories when observed=False
+            margin_observed = observed
+            if dropna:
+                key_cols = []
+                for key in keys:
+                    if isinstance(key, Grouper):
+                        key = key.key
+                    try:
+                        if key in data:
+                            key_cols.append(key)
+                    except TypeError:
+                        pass
+                data = data.dropna(subset=key_cols)
+        elif dropna:
             data = data[data.notna().all(axis=1)]
         table = _add_margins(
             table,
@@ -407,14 +430,20 @@ def __internal_pivot_table(
             cols=columns,
             aggfunc=aggfunc,
             kwargs=kwargs,
-            observed=dropna,
+            observed=margin_observed,
             margins_name=margins_name,
             fill_value=fill_value,
             dropna=dropna,
         )
 
     # discard the top level
-    if values_passed and not values_multi and table.columns.nlevels > 1:
+    if (
+        values_passed
+        and not values_multi
+        # GH#27799 "size" has no values level to discard
+        and aggfunc != "size"
+        and table.columns.nlevels > 1
+    ):
         table.columns = table.columns.droplevel(0)
     if len(index) == 0 and len(columns) > 0:
         table = table.T

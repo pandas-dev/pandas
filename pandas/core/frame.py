@@ -14073,7 +14073,8 @@ class DataFrame(NDFrame, OpsMixin):
             Do not include columns whose entries are all NaN. If True,
 
             * rows with an NA value in any column will be omitted before computing
-              margins,
+              margins (for ``aggfunc="size"``, which counts rows, only rows with
+              NA group keys are omitted),
             * index/column keys containing NA values will be dropped (see ``dropna``
               parameter in :meth:`DataFrame.groupby`).
 

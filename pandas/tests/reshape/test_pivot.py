@@ -1413,6 +1413,88 @@ class TestPivotTable:
         )
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize("values", [None, "C", ["C"]])
+    def test_pivot_table_aggfunc_size_margins(self, values):
+        # GH#27799 "size" counts rows, so a missing value in a column it does
+        # not aggregate must not change the counts or the margins
+        df = pd.DataFrame(
+            {
+                "A": ["a", "a", "b", "b", "b"],
+                "B": ["x", "y", "x", "x", "y"],
+                "C": [0.0, np.nan, 2.0, 3.0, 4.0],
+            }
+        )
+        result = df.pivot_table(
+            index="A", columns="B", values=values, aggfunc="size", margins=True
+        )
+        expected = pd.crosstab(df["A"], df["B"], margins=True)
+        tm.assert_frame_equal(result, expected)
+
+    def test_pivot_table_aggfunc_size_margins_observed(self):
+        # GH#27799 with observed=False, unobserved categories count 0 in the
+        # table, so the margins must count them as 0 as well
+        df = pd.DataFrame(
+            {
+                "A": pd.Categorical(["a", "a", "b"], categories=["a", "b", "c"]),
+                "B": pd.Categorical(["x", "y", "x"], categories=["x", "y", "z"]),
+                "C": [1.0, 2.0, 3.0],
+            }
+        )
+        result = df.pivot_table(
+            index="A", columns="B", aggfunc="size", margins=True, observed=False
+        )
+        expected = pd.DataFrame(
+            {
+                "x": [1, 1, 0, 2],
+                "y": [1, 0, 0, 1],
+                "z": [0, 0, 0, 0],
+                "All": [2, 1, 0, 3],
+            },
+            index=pd.Index(["a", "b", "c", "All"], name="A"),
+        )
+        expected.columns.name = "B"
+        tm.assert_frame_equal(result, expected)
+
+    def test_pivot_table_aggfunc_size_margins_fill_value(self):
+        # GH#27799 (example from the issue report)
+        df = pd.DataFrame(
+            {
+                "nr": [1, 2, 3, 4, 5, 6, 7, 8],
+                "nr2": [1, 2, 3, 4, 5, 6, 7, 8],
+                "cl": list("aabbcccc"),
+            }
+        )
+        df["cl_cat"] = df.cl.astype("category")
+        result = df.pivot_table(
+            index="nr", columns="nr2", aggfunc="size", fill_value=0, margins=True
+        )
+        # every row/column of the 8x8 identity counts exactly one row,
+        # and the grand total counts all 8 rows
+        counts = np.ones((9, 9), dtype=np.int64)
+        counts[:8, :8] = np.eye(8, dtype=np.int64)
+        counts[8, 8] = 8
+        expected = pd.DataFrame(
+            counts,
+            index=pd.Index([*range(1, 9), "All"], name="nr"),
+            columns=pd.Index([*range(1, 9), "All"], name="nr2"),
+        )
+        tm.assert_frame_equal(result, expected)
+
+    def test_pivot_table_aggfunc_size_margins_name(self):
+        # GH#27799 the margins label must also be honored for "size"
+        df = pd.DataFrame(
+            {"A": ["a", "a", "b", "b"], "B": ["x", "y", "x", "y"], "C": range(4)}
+        )
+        result = df.pivot_table(
+            index="A",
+            columns="B",
+            aggfunc="size",
+            margins=True,
+            margins_name="Total",
+        )
+        expected = pd.crosstab(df["A"], df["B"], margins=True, margins_name="Total")
+        tm.assert_frame_equal(result, expected)
+
     @pytest.mark.parametrize("margin_name", ["foo", "one", 666, None, ["a", "b"]])
     def test_pivot_table_with_margins_set_margin_name(self, margin_name, data):
         # see gh-3335
