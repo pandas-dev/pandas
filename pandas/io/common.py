@@ -7,12 +7,16 @@ from abc import (
     abstractmethod,
 )
 import codecs
-from collections import defaultdict
+from collections import (
+    defaultdict,
+    deque,
+)
 from collections.abc import (
     Hashable,
     Mapping,
     Sequence,
 )
+from contextlib import contextmanager
 import dataclasses
 import functools
 import gzip
@@ -43,8 +47,11 @@ from typing import (
     overload,
 )
 from urllib.parse import (
+    quote,
     urljoin,
     urlparse as parse_url,
+    urlsplit,
+    urlunsplit,
     uses_netloc,
     uses_params,
     uses_relative,
@@ -77,6 +84,7 @@ BaseBufferT = TypeVar("BaseBufferT", bound=BaseBuffer)
 
 
 if TYPE_CHECKING:
+    from collections.abc import Generator
     from types import TracebackType
 
     from pandas._typing import (
@@ -265,10 +273,16 @@ def stringify_path(
     Any other object is passed through unchanged, which includes bytes,
     strings, buffers, or anything else that's not even path-like.
     """
-    if not convert_file_like and is_file_like(filepath_or_buffer):
+    if (
+        not convert_file_like
+        and is_file_like(filepath_or_buffer)
+        and hasattr(filepath_or_buffer, "__iter__")
+    ):
         # GH 38125: some fsspec objects implement os.PathLike but have already opened a
         # file. This prevents opening the file a second time. infer_compression calls
         # this function with convert_file_like=True to infer the compression.
+        # Requiring __iter__ keeps py.path.local, whose read/write are convenience
+        # methods, on the path branch (GH#71769).
         return cast("BaseBufferT", filepath_or_buffer)
 
     if isinstance(filepath_or_buffer, os.PathLike):
@@ -284,6 +298,27 @@ def urlopen(*args: Any, **kwargs: Any) -> Any:
     import urllib.request
 
     return urllib.request.urlopen(*args, **kwargs)  # noqa: TID251
+
+
+_NON_ASCII = re.compile(r"[^\x00-\x7f]+")
+
+
+def _quote_non_ascii_url(url: str) -> str:
+    """
+    Percent-encode non-ASCII characters in an HTTP(S) URL's path, query and fragment.
+
+    Other schemes already handle non-ASCII URLs and are returned unchanged.
+    """
+    if url.isascii():
+        return url
+    parts = urlsplit(url)
+    if parts.scheme not in ("http", "https"):
+        # e.g. Python 3.11 urlunsplit turns "file:sub/x" into "file:///sub/x"
+        return url
+    quoted = [
+        _NON_ASCII.sub(lambda match: quote(match.group()), part) for part in parts[2:]
+    ]
+    return urlunsplit((*parts[:2], *quoted))
 
 
 def is_fsspec_url(url: FilePath | BaseBuffer) -> bool:
@@ -354,11 +389,9 @@ def _get_filepath_or_buffer(
     compression_method = infer_compression(filepath_or_buffer, compression_method)
 
     # GH21227 internal compression is not used for non-binary handles.
-    if compression_method and hasattr(filepath_or_buffer, "write") and "b" not in mode:
-        warnings.warn(
-            "compression has no effect when passing a non-binary object as input.",
-            RuntimeWarning,
-            stacklevel=find_stack_level(),
+    if hasattr(filepath_or_buffer, "write") and "b" not in mode:
+        warn_unused_compression(
+            compression_method, "passing a non-binary object as input"
         )
         compression_method = None
 
@@ -419,8 +452,10 @@ def _get_filepath_or_buffer(
         # urlopen function defined elsewhere in this module
         import urllib.request
 
+        # GH#21499 http.client requires an ASCII request line
+        url = _quote_non_ascii_url(filepath_or_buffer)
         # assuming storage_options is to be interpreted as headers
-        req_info = urllib.request.Request(filepath_or_buffer, headers=storage_options)
+        req_info = urllib.request.Request(url, headers=storage_options)
         with urlopen(req_info) as req:
             content_encoding = req.headers.get("Content-Encoding", None)
             if content_encoding == "gzip":
@@ -554,7 +589,7 @@ _supported_compressions = set(extension_to_compression.values())
 
 
 def get_compression_method(
-    compression: CompressionOptions,
+    compression: str | CompressionDict | None,
 ) -> tuple[str | None, CompressionDict]:
     """
     Simplifies a compression argument to a compression method string and
@@ -657,6 +692,27 @@ def infer_compression(
         f"Valid compression types are {valid}"
     )
     raise ValueError(msg)
+
+
+def warn_unused_compression(
+    compression: str | CompressionDict | None,
+    reason: str = "no path or buffer is given; the returned string is not compressed",
+) -> None:
+    """
+    Warn that ``compression`` has no effect because of ``reason``.
+
+    An unrecognized compression method still raises, as it would if it were used.
+    """
+    compression_method, _ = get_compression_method(compression)
+    if compression_method is None or compression_method == "infer":
+        return
+    # the path is only consulted for "infer"; here this only validates the method
+    infer_compression("", compression_method)
+    warnings.warn(
+        f"compression has no effect when {reason}.",
+        RuntimeWarning,
+        stacklevel=find_stack_level(),
+    )
 
 
 def check_parent_directory(path: Path | str) -> None:
@@ -983,6 +1039,8 @@ def get_handle(
                 or not hasattr(handle, "seekable")
             ):
                 handle = _IOWrapper(handle)
+            elif getattr(handle, "auto_close", False):
+                handle = _AutoCloseIOWrapper(handle)
             # error: Value of type variable "_BufferT_co" of "TextIOWrapper" cannot
             # be "_IOWrapper | BaseBuffer" [type-var]
             handle = TextIOWrapper(
@@ -1066,7 +1124,7 @@ class _BytesTarFile(_BufferedWriter):
         name: str | None = None,
         mode: Literal["r", "a", "w", "x"] = "r",
         fileobj: ReadBuffer[bytes] | WriteBuffer[bytes] | None = None,
-        archive_name: str | None = None,
+        archive_name: FilePath | None = None,
         **kwargs: Any,
     ) -> None:
         super().__init__()
@@ -1110,8 +1168,8 @@ class _BytesTarFile(_BufferedWriter):
         return filename.name
 
     def write_to_buffer(self) -> None:
-        # TarFile needs a non-empty string
-        archive_name = self.archive_name or self.infer_filename() or "tar"
+        # TarFile needs a non-empty string, not a PathLike (GH#31934)
+        archive_name = os.fspath(self.archive_name or self.infer_filename() or "tar")
         tarinfo = tarfile.TarInfo(name=archive_name)
         tarinfo.size = len(self.getvalue())
         self.buffer.addfile(tarinfo, self)
@@ -1122,7 +1180,7 @@ class _BytesZipFile(_BufferedWriter):
         self,
         file: FilePath | ReadBuffer[bytes] | WriteBuffer[bytes],
         mode: str,
-        archive_name: str | None = None,
+        archive_name: FilePath | None = None,
         **kwargs: Any,
     ) -> None:
         super().__init__()
@@ -1152,8 +1210,8 @@ class _BytesZipFile(_BufferedWriter):
         return None
 
     def write_to_buffer(self) -> None:
-        # ZipFile needs a non-empty string
-        archive_name = self.archive_name or self.infer_filename() or "zip"
+        # ZipFile needs a non-empty string, not a PathLike (GH#31934)
+        archive_name = os.fspath(self.archive_name or self.infer_filename() or "zip")
         self.buffer.writestr(archive_name, self.getvalue())
 
 
@@ -1186,6 +1244,14 @@ class _IOWrapper:
         return True
 
 
+class _AutoCloseIOWrapper(_IOWrapper):
+    # urllib3 responses (e.g. requests' Response.raw) close themselves at EOF
+    # when auto_close is set, after which TextIOWrapper raises on every read
+    @property
+    def closed(self) -> bool:
+        return False
+
+
 class _BytesIOWrapper:
     # Wrapper that wraps a StringIO buffer and reads bytes from it
     # Created for compat with pyarrow read_csv
@@ -1207,6 +1273,11 @@ class _BytesIOWrapper:
     def __getattr__(self, attr: str) -> Any:
         return getattr(self.buffer, attr)
 
+    def seek(self, *args: Any, **kwargs: Any) -> int:
+        # Bytes read ahead of the buffer's own position are stale once it moves.
+        self.overflow = b""
+        return self.buffer.seek(*args, **kwargs)
+
     def read(self, n: int | None = -1) -> bytes:
         assert self.buffer is not None
         bytestring = self.buffer.read(n).encode(self.encoding, self.errors)
@@ -1219,6 +1290,77 @@ class _BytesIOWrapper:
             to_return = combined_bytestring[:n]
             self.overflow = combined_bytestring[n:]
             return to_return
+
+
+def can_rewind(handle: Any) -> bool:
+    """
+    Whether ``rewound`` can restore ``handle`` exactly.
+
+    Only an io stream's position covers what it has read ahead; e.g. a
+    ``codecs`` reader drops the text it has decoded but not handed out.
+    """
+    inner = handle
+    # a non-UTF-8 encoding puts a TextIOWrapper over any decompressor
+    while isinstance(inner, (_BytesIOWrapper, _IOWrapper, TextIOWrapper)):
+        inner = inner.buffer
+    if not isinstance(inner, (IOBase, mmap.mmap)) or isinstance(
+        inner, tarfile.ExFileObject
+    ):
+        return False
+    # A decompressor rewinds the stream under it to byte 0, which is where the
+    # compressed data starts only if it opened that file itself.
+    if isinstance(inner, gzip.GzipFile):
+        if inner.myfileobj is None:
+            return False
+    elif type(inner).__name__ in ("BZ2File", "LZMAFile"):
+        if not getattr(inner, "_closefp", False):
+            return False
+    try:
+        return bool(handle.seekable())
+    except (AttributeError, OSError, ValueError):
+        return False
+
+
+@contextmanager
+def rewound(handle: Any, start: int) -> Generator[None]:
+    """
+    Read ``handle`` from ``start``, then restore it exactly as it was.
+
+    A ``_BytesIOWrapper`` also holds decoded bytes it has not handed out yet,
+    which ``tell()`` does not count and ``seek()`` drops, so the position alone
+    does not describe where the caller had got to.
+    """
+    overflow = handle.overflow if isinstance(handle, _BytesIOWrapper) else None
+    resume = handle.tell()
+    try:
+        handle.seek(start)
+        yield
+    finally:
+        handle.seek(resume)
+        if overflow is not None:
+            handle.overflow = overflow
+
+
+class ReplayHandle:
+    """
+    Serve ``chunks`` and then the rest of ``handle`` through ``read``, the only
+    method the c engine calls on its source; it accepts reads of any length.
+
+    ``start`` is where ``handle`` stood before ``chunks`` were read from it (None
+    if unknown), so that a reader can still replay the whole source.
+    """
+
+    def __init__(
+        self, chunks: list[bytes | str], handle: IO[Any], start: int | None
+    ) -> None:
+        self._chunks = deque(chunks)
+        self.handle = handle
+        self.start = start
+
+    def read(self, size: int) -> bytes | str:
+        if self._chunks:
+            return self._chunks.popleft()
+        return self.handle.read(size)
 
 
 def _maybe_memory_map(

@@ -61,6 +61,40 @@ def test_pin_min_versions_to_yaml_file(src_toml, src_yaml, expected_yaml) -> Non
     assert result_yaml_file == dummy_yaml_expected_file_1
 
 
+def test_get_toml_map_from_expands_nested_extras() -> None:
+    toml_dic = {
+        "project": {
+            "optional-dependencies": {
+                "pyarrow": ["pyarrow>=16.0.0"],
+                "parquet": ["pandas[pyarrow]", "fastparquet>=2024.11.0"],
+                "sql": ["SQLAlchemy>=2.0.42", "numexpr>=2.11.0,!=2.14.1"],
+                "all": ["pandas[parquet, sql]", "SQLAlchemy>=2.0.42"],
+            }
+        }
+    }
+    result = get_toml_map_from(toml_dic)
+    assert result == {
+        "pyarrow": "16.0.0",
+        "fastparquet": "2024.11.0",
+        "SQLAlchemy": "2.0.42",
+        "numexpr": "2.11.0",
+    }
+
+
+def test_get_toml_map_from_conflicting_versions_raises() -> None:
+    toml_dic = {
+        "project": {
+            "optional-dependencies": {
+                "postgresql": ["SQLAlchemy>=2.0.42"],
+                "mysql": ["SQLAlchemy>=2.0.0"],
+                "all": ["pandas[postgresql,mysql]"],
+            }
+        }
+    }
+    with pytest.raises(ValueError, match="SQLAlchemy has conflicting minimum"):
+        get_toml_map_from(toml_dic)
+
+
 def test_get_operator_from_excluded_version() -> None:
     result = get_operator_from("!=24.*")
     assert result == "!="
@@ -105,6 +139,9 @@ def test_get_versions_from_ci_parses_pixi_toml() -> None:
         blosc = ">=1.21.3"
         pytables = ">=3.10.1"
         zstandard = ">=0.23.0"
+
+        [feature.optional-dependencies-no-py315.dependencies]
+        fastparquet = ">=2024.11.0"
         """
     ).splitlines()
 
@@ -116,6 +153,7 @@ def test_get_versions_from_ci_parses_pixi_toml() -> None:
     }
     assert optional == {
         "beautifulsoup4": "4.12.3",
+        "fastparquet": "2024.11.0",
         "pyarrow": "16.0.0",
         "pytest": "8.3.4",
         "pytables": "3.10.1",

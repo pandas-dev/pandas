@@ -91,14 +91,9 @@ def test_count_end_of_string(any_string_dtype):
 
     ser = pd.Series(["baz", "bar", "bars", "bar\n"], dtype=any_string_dtype)
 
-    # with dollar sign
+    # with dollar sign (matches $ before or after an ending newline)
     result = ser.str.count("bar$")
-    if any_string_dtype == "string" and any_string_dtype.storage == "pyarrow":
-        # pyarrow (RE2) only matches $ at the very end of the line
-        expected = pd.Series([0, 1, 0, 0], dtype=expected_dtype)
-    else:
-        # python matches $ before or after an ending newline
-        expected = pd.Series([0, 1, 0, 1], dtype=expected_dtype)
+    expected = pd.Series([0, 1, 0, 1], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
     # with \Z (ensure this is translated to \z for pyarrow)
@@ -110,6 +105,37 @@ def test_count_end_of_string(any_string_dtype):
     ser = pd.Series([r"bar\Z", "bar", "bars", "bar\n"], dtype=any_string_dtype)
     result = ser.str.count(r"bar\\Z")
     expected = pd.Series([1, 0, 0, 0], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+
+def test_count_end_of_line(any_string_dtype):
+    expected_dtype = (
+        "int64" if is_object_or_nan_string_dtype(any_string_dtype) else "Int64"
+    )
+
+    ser = pd.Series(
+        ["foo1", "foo1\n", "foo1\nbar", "foo1\nfoo2", "foo1\nfoo2\n"],
+        dtype=any_string_dtype,
+    )
+
+    result = ser.str.count(r"foo.$")
+    expected = pd.Series([1, 1, 0, 1, 1], dtype=expected_dtype)
+    tm.assert_series_equal(result, expected)
+
+    result = ser.str.count(r"foo.$", flags=re.MULTILINE)
+    expected = pd.Series([1, 1, 1, 2, 2], dtype=expected_dtype)
+
+
+@pytest.mark.parametrize("pat", [r"\u20AC", r"\U000020AC", r"\N{EURO SIGN}"])
+def test_count_unicode_escape_patterns(any_string_dtype, pat):
+    # https://github.com/pandas-dev/pandas/issues/63901
+    expected_dtype = (
+        "int64" if is_object_or_nan_string_dtype(any_string_dtype) else "Int64"
+    )
+
+    ser = pd.Series(["a", "10€", "10€ and 11€ and 12$"], dtype=any_string_dtype)
+    result = ser.str.count(r"[0-9]*" + pat)
+    expected = pd.Series([0, 1, 2], dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
 
@@ -1023,6 +1049,27 @@ def test_setitem_with_different_string_storage():
         (r"(abc)\1", True),
         (r"\b(\w+)\s+\1\b", True),
         (r"\b(?P<word>\w+)\s+(?P=word)\b", True),
+        # unicode escape sequences
+        (r"\u20AC", True),
+        (r"\U000020AC", True),
+        (r"\N{EURO SIGN}", True),
+        (r"\\u20AC", False),
+        (r"\\U000020AC", False),
+        (r"\\N{EURO SIGN}", False),
+        (r"\NEURO", False),
+        (r"\\\u20AC", True),
+        (r"\\\\u20AC", False),
+        (r"[\u0e00-\u0e7f]", True),
+        (r"\pL\u20AC", True),  # also includes an invalid escape \p for Python
+        (r"\Q\u\E", True),  # \Q..\E pattern supported by pyarrow, but prioritize \u
+        # RE2's \s misses ASCII whitespace such as "\x0b" (GH#70991)
+        (r"\s+", True),
+        (r"\S", True),
+        (r"[^\w\s]", True),
+        (r"(?:x\S)*", True),
+        (r"(a|\s)", True),
+        (r"\\s", False),
+        (r"[sS]", False),
     ],
 )
 def test_needs_python_regex_unsupported_code(pat, expected):
@@ -1039,13 +1086,11 @@ def test_needs_python_regex_unsupported_code(pat, expected):
         (r"\W", True),
         (r"\d{3}", True),
         (r"\D", True),
-        (r"\s+", True),
-        (r"\S", True),
         (r"\bword\b", True),
         (r"\B", True),
-        (r"[^\w\s]", True),
+        (r"[^\w,]", True),
         (r"[\w-]", True),
-        (r"(?:x\S)*", True),
+        (r"(?:x\D)*", True),
         (r"(foo|bar\d)", True),
         (r"(?>\w)", True),
         (r"[a-z0-9_]+", False),
@@ -1062,3 +1107,24 @@ def test_needs_python_regex_unicode_classes(pat, expected):
     # all-ASCII data keeps the pyarrow path
     ascii_arr = pd.array(["e", None], dtype=pd.StringDtype("pyarrow"))
     assert not ascii_arr._needs_python_regex(pat)
+
+
+@pytest.mark.parametrize(
+    "pat, expected",
+    [
+        (r"test$", True),
+        (r"test\$", False),
+        (r"r[$]", False),
+    ],
+)
+def test_needs_python_regex_newline_sensitive(pat, expected):
+    # https://github.com/pandas-dev/pandas/pull/71387
+    pytest.importorskip("pyarrow")
+    arr = pd.array(["test\n"], dtype=pd.StringDtype("pyarrow"))
+    assert arr._needs_python_regex(pat) == expected
+    arr = pd.array(["test\ntest", None], dtype=pd.StringDtype("pyarrow"))
+    assert arr._needs_python_regex(pat) == expected
+
+    # data without newlines keeps the pyarrow path
+    arr_no_newline = pd.array(["e", None], dtype=pd.StringDtype("pyarrow"))
+    assert not arr_no_newline._needs_python_regex(pat)

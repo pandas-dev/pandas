@@ -40,7 +40,7 @@ def create_dataframe_from_blocks(
     Parameters
     ----------
     blocks : list of tuples of (block_array, block_placement)
-        This should be a list of tuples existing of (block_array, block_placement),
+        This should be a list of tuples consisting of (block_array, block_placement),
         where:
 
         - block_array is a 2D numpy array or a 1D ExtensionArray, following the

@@ -5,6 +5,7 @@ from datetime import (
 )
 import io
 import os
+import re
 import sys
 from zipfile import ZipFile
 
@@ -848,6 +849,16 @@ z
             df.to_csv(handle, mode=mode)
         tm.assert_frame_equal(df, pd.read_csv(temp_file, index_col=0))
 
+    @pytest.mark.parametrize("mode", ["b", "wb", "ab", "xb", "w+b"])
+    @pytest.mark.parametrize("compression", ["infer", "gzip"])
+    @pytest.mark.parametrize("box", [pd.DataFrame, pd.Series])
+    def test_to_csv_binary_mode_no_path_raises(self, mode, compression, box):
+        # GH#44409
+        obj = box([1, 2])
+        msg = f"mode='{re.escape(mode)}' is not supported when path_or_buf is None"
+        with pytest.raises(ValueError, match=msg):
+            obj.to_csv(mode=mode, compression=compression)
+
     @pytest.mark.parametrize("mode", ["wb", "w"])
     def test_to_csv_encoding_binary_handle(self, mode, temp_file):
         """
@@ -1164,3 +1175,19 @@ def test_to_csv_mi_columns_empty_frame():
     # GH#21995 no first row to check for the index line
     df = pd.DataFrame(columns=pd.MultiIndex.from_tuples([("a", "x"), ("b", "y")]))
     assert df.to_csv() == tm.convert_rows_list_to_csv_str([",a,b", ",x,y"])
+
+
+@pytest.mark.parametrize("box", [list, np.array, pd.Index, pd.Series])
+def test_to_csv_columns_listlike(box):
+    # GH#72199
+    df = pd.DataFrame([[1, 2, 3]], columns=[0.5, 1.5, np.nan])
+    result = df.to_csv(columns=box([0.5, np.nan]))
+    assert result == tm.convert_rows_list_to_csv_str([",0.5,", "0,1,3"])
+
+
+def test_to_csv_columns_datetimeindex_date_format():
+    # GH#72199 formatted labels are partial-date keys that matched the wrong column
+    dti = pd.date_range("2020", periods=3)
+    df = pd.DataFrame([[1, 2, 3]], columns=dti)
+    result = df.to_csv(columns=dti[:2], date_format="%Y-%m")
+    assert result == tm.convert_rows_list_to_csv_str([",2020-01,2020-01", "0,1,2"])

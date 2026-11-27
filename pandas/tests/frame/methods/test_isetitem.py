@@ -36,6 +36,16 @@ class TestDataFrameSetItem:
         )
         tm.assert_frame_equal(df, expected)
 
+    @pytest.mark.parametrize("loc", [slice(0, 3, 2), np.array([True, False, True])])
+    def test_isetitem_df_slice_or_mask(self, loc):
+        df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]})
+        value = pd.DataFrame({"x": [10, 20, 30], "y": [40, 50, 60]})
+
+        df.isetitem(loc, value)
+
+        expected = pd.DataFrame({"a": [10, 20, 30], "b": [4, 5, 6], "c": [40, 50, 60]})
+        tm.assert_frame_equal(df, expected)
+
     def test_isetitem_dimension_mismatch(self):
         # GH#51701
         df = pd.DataFrame({"a": [1, 2], "b": [3, 4], "c": [5, 6]})
@@ -62,6 +72,72 @@ class TestDataFrameSetItem:
         tm.assert_frame_equal(df, expected)
         # values read back fine even when corrupt; this is what fails on revert
         df.describe()
+
+    @pytest.mark.parametrize(
+        "loc, expected",
+        [
+            ([0, 2], {"a": [5, 5, 5], "b": [4, 5, 6], "c": [5, 5, 5]}),
+            (slice(0, 3, 2), {"a": [5, 5, 5], "b": [4, 5, 6], "c": [5, 5, 5]}),
+            (
+                np.array([True, False, True]),
+                {"a": [5, 5, 5], "b": [4, 5, 6], "c": [5, 5, 5]},
+            ),
+            (slice(None), {"a": [5, 5, 5], "b": [5, 5, 5], "c": [5, 5, 5]}),
+        ],
+    )
+    def test_isetitem_scalar_fills_every_selected_position(self, loc, expected):
+        # GH#71098 a scalar used to be stored as one column for several positions
+        df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]})
+
+        df.isetitem(loc, 5)
+
+        tm.assert_frame_equal(df, pd.DataFrame(expected))
+
+    def test_isetitem_non_list_like_object_fills_every_selected_position(self):
+        # GH#71098 a non-list-like value that is_scalar rejects, as in df[cols] = obj
+        class Thing:
+            pass
+
+        thing = Thing()
+        df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]})
+
+        df.isetitem([0, 2], thing)
+
+        expected = pd.DataFrame(
+            {"a": [thing] * 3, "b": [4, 5, 6], "c": [thing] * 3},
+        )
+        tm.assert_frame_equal(df, expected)
+
+    def test_isetitem_scalar_does_not_share_one_array(self):
+        # GH#71098 a later write to one filled column must not leak into another
+        df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6]})
+        df.isetitem([0, 1], 5)
+
+        df.iloc[0, 0] = 99
+
+        tm.assert_frame_equal(df, pd.DataFrame({"a": [99, 5, 5], "b": [5, 5, 5]}))
+
+    @pytest.mark.parametrize(
+        "value",
+        [
+            [10, 20, 30],
+            np.array([10, 20, 30]),
+            pd.Series([10, 20, 30]),
+            pd.array([10, 20, 30], dtype="Int64"),
+            pd.Series(pd.date_range("2030", periods=3, tz="UTC")),
+        ],
+    )
+    @pytest.mark.parametrize("loc", [[0, 2], slice(0, 3, 2)])
+    def test_isetitem_1d_value_several_positions_raises(self, value, loc):
+        # GH#71098 a 1-D-only extension array (Int64) used to be stored once for
+        #  several positions; the other values already raised and are controls
+        df = pd.DataFrame({"a": [1, 2, 3], "b": [4, 5, 6], "c": [7, 8, 9]})
+        expected = df.copy()
+
+        with pytest.raises(ValueError, match="Got 2 positions but value has 1 columns"):
+            df.isetitem(loc, value)
+
+        tm.assert_frame_equal(df, expected)
 
     @pytest.mark.parametrize(
         "value, ncols",

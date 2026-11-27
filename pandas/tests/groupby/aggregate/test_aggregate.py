@@ -891,13 +891,14 @@ class TestNamedAggregationDataFrame:
     def test_agg_relabel_other_raises(self):
         df = pd.DataFrame({"A": [0, 0, 1], "B": [1, 2, 3]})
         grouped = df.groupby("A")
-        match = "Must provide"
+        match = r"Named aggregation 'foo' must be a tuple of \(column, aggfunc\)"
         with pytest.raises(TypeError, match=match):
             grouped.agg(foo=1)
 
-        with pytest.raises(TypeError, match=match):
+        with pytest.raises(TypeError, match="Must provide"):
             grouped.agg()
 
+        match = r"Named aggregation 'b' must be a tuple of \(column, aggfunc\)"
         with pytest.raises(TypeError, match=match):
             grouped.agg(a=("B", "max"), b=(1, 2, 3))
 
@@ -914,6 +915,15 @@ class TestNamedAggregationDataFrame:
         )
         expected = df.groupby("A").agg(b=("B", "sum"), c=("B", "count"))
         tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("other", [pd.NamedAgg("B", "max"), ("B", "max")])
+    @pytest.mark.parametrize("value", [np.mean, "mean", ("A", "mean", 1)])
+    def test_named_agg_mixed_with_invalid_raises(self, value, other):
+        # GH#43838
+        df = pd.DataFrame({"A": [1, 2, 3], "B": [10, 5, 1], "C": ["x", "x", "y"]})
+        msg = r"Named aggregation 'A' must be a tuple of \(column, aggfunc\)"
+        with pytest.raises(TypeError, match=msg):
+            df.groupby("C").agg(A=value, NewName=other)
 
     def n_between(self, ser, low, high, **kwargs):
         return ser.between(low, high, **kwargs).sum()
@@ -1109,6 +1119,54 @@ def test_groupby_aggregate_empty_func_as_index_false(func):
     expected = pd.DataFrame({"a": [1, 2]})
     if func == []:
         expected.columns = pd.MultiIndex.from_tuples([("a", "")])
+    tm.assert_frame_equal(result, expected)
+
+
+def test_groupby_agg_list_numeric_only(as_index):
+    # GH#53839
+    df = pd.DataFrame(
+        {
+            "g": [1, 1, 2],
+            "a": [1, 2, 3],
+            "s": ["x", "y", "z"],
+            "b": [1.5, 2.5, 3.5],
+            "c": [True, False, True],
+            "d": pd.date_range("2020-01-01", periods=3),
+        }
+    )
+    result = df.groupby("g", as_index=as_index).agg(["min", "mean"], numeric_only=True)
+    expected = pd.DataFrame(
+        {
+            ("a", "min"): [1, 3],
+            ("a", "mean"): [1.5, 3.0],
+            ("b", "min"): [1.5, 3.5],
+            ("b", "mean"): [2.0, 3.5],
+            ("c", "min"): [False, True],
+            ("c", "mean"): [0.5, 1.0],
+        },
+        index=pd.Index([1, 2], name="g"),
+    )
+    if not as_index:
+        expected = expected.reset_index()
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("kwargs", [{"numeric_only": True}, {}])
+def test_groupby_agg_list_no_columns_to_aggregate(as_index, kwargs):
+    # GH#53839
+    df = pd.DataFrame({"g": [1, 1, 2], "s": ["x", "y", "z"]})
+    df.columns.name = "foo"
+    if not kwargs:
+        df = df[["g"]]
+    result = df.groupby("g", as_index=as_index).agg(["min", "mean"], **kwargs)
+    expected = pd.DataFrame(
+        index=pd.Index([1, 2], name="g"),
+        columns=pd.MultiIndex.from_arrays(
+            [df.columns[:0], pd.Index([])], names=["foo", None]
+        ),
+    )
+    if not as_index:
+        expected = expected.reset_index()
     tm.assert_frame_equal(result, expected)
 
 

@@ -10,6 +10,7 @@ import pytest
 import pandas as pd
 
 jinja2 = pytest.importorskip("jinja2")
+from pandas.io.formats import style_render
 from pandas.io.formats.style import Styler
 
 
@@ -1048,9 +1049,11 @@ def test_format_index_names(styler_multi, escape_axis_0, escape_axis_1):
 
 
 @pytest.mark.parametrize("method", ["map", "map_index_0", "map_index_1"])
-def test_cellstyle_rules_split_at_8192_selectors(method):
+def test_cellstyle_rules_split_at_max_selectors(method, monkeypatch):
     # GH#40913 Chromium only applies the first 8192 selectors of a rule
-    df = pd.DataFrame(np.zeros((8193, 1)))
+    assert style_render._MAX_SELECTORS_PER_RULE == 8192
+    monkeypatch.setattr(style_render, "_MAX_SELECTORS_PER_RULE", 2)
+    df = pd.DataFrame(np.zeros((3, 1)))
     if method == "map_index_1":
         df = df.T
     if method == "map":
@@ -1059,4 +1062,4 @@ def test_cellstyle_rules_split_at_8192_selectors(method):
         styler = df.style.map_index(lambda x: "color: red;", axis=int(method[-1]))
     style = styler.to_html(table_uuid="test").split("</style>")[0]
     rules = [rule.count("#T_test_") for rule in style.split("{")[:-1]]
-    assert rules == [8192, 1]
+    assert rules == [2, 1]

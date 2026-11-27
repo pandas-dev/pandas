@@ -41,6 +41,7 @@ from pandas.core.dtypes.dtypes import (
 
 from pandas.core import algorithms
 from pandas.core.arrays import (
+    BooleanArray,
     Categorical,
     ExtensionArray,
 )
@@ -62,6 +63,7 @@ from pandas.io.parsers.base_parser import (
 
 if TYPE_CHECKING:
     from collections.abc import (
+        Callable,
         Hashable,
         Iterator,
         Mapping,
@@ -112,6 +114,7 @@ class PythonParser(ParserBase):
 
         self.skiprows = kwds["skiprows"]
 
+        self.skipfunc: Callable[[int], object]
         if callable(self.skiprows):
             self.skipfunc = self.skiprows
         else:
@@ -540,6 +543,36 @@ class PythonParser(ParserBase):
                         false_values=self.false_values,  # pyright: ignore[reportCallIssue]
                         none_values=self.na_values,  # pyright: ignore[reportCallIssue]
                     )
+                elif cast_type._is_boolean and (self.true_values or self.false_values):
+                    # GH#47534 these dtypes do not take true_values/false_values,
+                    #  so set those positions after parsing the rest
+                    true_set = set(self.true_values or ())
+                    # same precedence as BooleanDtype: any true spelling beats a
+                    #  user false one
+                    false_set = (
+                        set(self.false_values or ())
+                        - true_set
+                        - BooleanArray._TRUE_VALUES
+                    )
+                    is_true = np.array(
+                        [str(val) in true_set for val in values], dtype=bool
+                    )
+                    is_false = np.array(
+                        [str(val) in false_set for val in values], dtype=bool
+                    )
+                    strings = np.array(values, dtype=object)
+                    strings[is_true | is_false] = np.nan
+                    result = array_type._from_sequence_of_strings(
+                        strings, dtype=cast_type
+                    )
+                    if is_true.any() or is_false.any():
+                        # _from_sequence rather than __setitem__, which an EA
+                        #  need not implement
+                        scalars = result.astype(object)
+                        scalars[is_true] = True
+                        scalars[is_false] = False
+                        result = array_type._from_sequence(scalars, dtype=cast_type)
+                    return result
                 else:
                     return array_type._from_sequence_of_strings(values, dtype=cast_type)
             except NotImplementedError as err:
@@ -1452,7 +1485,7 @@ class FixedWidthReader(abc.Iterator[list[str]]):
         colspecs: list[tuple[int, int]] | Literal["infer"],
         delimiter: str | None,
         comment: str | None,
-        skiprows: set[int] | None = None,
+        skipfunc: Callable[[int], object] | None = None,
         infer_nrows: int = 100,
     ) -> None:
         self.f = f
@@ -1461,7 +1494,7 @@ class FixedWidthReader(abc.Iterator[list[str]]):
         self.comment = comment
         if colspecs == "infer":
             self.colspecs = self.detect_colspecs(
-                infer_nrows=infer_nrows, skiprows=skiprows
+                infer_nrows=infer_nrows, skipfunc=skipfunc
             )
         else:
             self.colspecs = colspecs
@@ -1484,7 +1517,9 @@ class FixedWidthReader(abc.Iterator[list[str]]):
                     "2 element tuple or list of integers"
                 )
 
-    def get_rows(self, infer_nrows: int, skiprows: set[int] | None = None) -> list[str]:
+    def get_rows(
+        self, infer_nrows: int, skipfunc: Callable[[int], object] | None = None
+    ) -> list[str]:
         """
         Read rows from self.f, skipping as specified.
 
@@ -1500,8 +1535,8 @@ class FixedWidthReader(abc.Iterator[list[str]]):
         infer_nrows : int
             Number of rows to read from self.f, not counting
             rows that are skipped.
-        skiprows: set, optional
-            Indices of rows to skip.
+        skipfunc : callable, optional
+            Returns True for the indices of rows to skip.
 
         Returns
         -------
@@ -1509,12 +1544,10 @@ class FixedWidthReader(abc.Iterator[list[str]]):
             A list containing the rows to read.
 
         """
-        if skiprows is None:
-            skiprows = set()
         buffer_rows = []
         detect_rows = []
         for i, row in enumerate(self.f):
-            if i not in skiprows:
+            if skipfunc is None or not skipfunc(i):
                 detect_rows.append(row)
             buffer_rows.append(row)
             if len(detect_rows) >= infer_nrows:
@@ -1523,12 +1556,12 @@ class FixedWidthReader(abc.Iterator[list[str]]):
         return detect_rows
 
     def detect_colspecs(
-        self, infer_nrows: int = 100, skiprows: set[int] | None = None
+        self, infer_nrows: int = 100, skipfunc: Callable[[int], object] | None = None
     ) -> list[tuple[int, int]]:
         # Regex escape the delimiters
         delimiters = "".join([rf"\{x}" for x in self.delimiter])
         pattern = re.compile(f"([^{delimiters}]+)")
-        rows = self.get_rows(infer_nrows, skiprows)
+        rows = self.get_rows(infer_nrows, skipfunc)
         if not rows:
             raise EmptyDataError("No rows from which to infer column width")
         max_len = max(map(len, rows))
@@ -1575,7 +1608,7 @@ class FixedWidthFieldParser(PythonParser):
             self.colspecs,
             self.delimiter,
             self.comment,
-            self.skiprows,
+            self.skipfunc,
             self.infer_nrows,
         )
 

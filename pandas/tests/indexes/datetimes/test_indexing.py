@@ -795,6 +795,65 @@ class TestIndexerBetweenTime:
         with pytest.raises(ValueError, match=msg):
             rng.indexer_between_time(datetime(2010, 1, 2, 1), datetime(2010, 1, 2, 5))
 
+    @pytest.mark.parametrize(
+        "inclusive, expected, expected_wrapped",
+        [
+            ("both", [1, 2, 3, 4], [0, 1, 4, 5]),
+            ("left", [1, 2, 3], [0, 4, 5]),
+            ("right", [2, 3, 4], [0, 1, 5]),
+            ("neither", [2, 3], [0, 5]),
+        ],
+    )
+    def test_indexer_between_time_inclusive(
+        self, inclusive, expected, expected_wrapped
+    ):
+        # GH#40245
+        dti = pd.date_range("2000-01-01", periods=6, freq="h")
+
+        result = dti.indexer_between_time("01:00", "04:00", inclusive=inclusive)
+        tm.assert_numpy_array_equal(result, np.array(expected, dtype=np.intp))
+
+        # start_time after end_time wraps around midnight
+        result = dti.indexer_between_time("04:00", "01:00", inclusive=inclusive)
+        tm.assert_numpy_array_equal(result, np.array(expected_wrapped, dtype=np.intp))
+
+    @pytest.mark.parametrize(
+        "args, kwargs, inclusive",
+        [
+            ((), {"include_start": False}, "right"),
+            ((), {"include_end": False}, "left"),
+            ((), {"include_start": True, "include_end": True}, "both"),
+            ((False, False), {}, "neither"),
+        ],
+    )
+    def test_indexer_between_time_include_start_end_deprecated(
+        self, args, kwargs, inclusive
+    ):
+        # GH#40245
+        dti = pd.date_range("2000-01-01", periods=6, freq="h")
+        msg = (
+            "The 'include_start' and 'include_end' keywords in "
+            r"DatetimeIndex.indexer_between_time are deprecated .* "
+            rf"Use inclusive='{inclusive}' instead"
+        )
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = dti.indexer_between_time("01:00", "04:00", *args, **kwargs)
+        expected = dti.indexer_between_time("01:00", "04:00", inclusive=inclusive)
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_indexer_between_time_inclusive_invalid(self):
+        # GH#40245
+        dti = pd.date_range("2000-01-01", periods=6, freq="h")
+        msg = "Cannot pass 'inclusive' together with 'include_start'"
+        with pytest.raises(TypeError, match=msg):
+            dti.indexer_between_time(
+                "01:00", "04:00", include_start=False, inclusive="right"
+            )
+
+        msg = "Inclusive has to be either 'both', 'neither', 'left' or 'right'"
+        with pytest.raises(ValueError, match=msg):
+            dti.indexer_between_time("01:00", "04:00", inclusive="all")
+
     @pytest.mark.parametrize("unit", ["us", "ms", "s"])
     def test_indexer_between_time_non_nano(self, unit):
         # For simple cases like this, the non-nano indexer_between_time

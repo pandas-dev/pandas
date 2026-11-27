@@ -31,6 +31,39 @@ def tests_value_counts_index_names_category_column():
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "bins",
+    [
+        pd.IntervalIndex.from_breaks(
+            [0.0, 20.0, 40.0, 60.0, 80.0, 100.001], closed="left"
+        ),
+        pd.IntervalIndex.from_breaks(
+            [-0.001, 20.0, 40.0, 60.0, 80.0, 100.0], closed="right"
+        ),
+        pd.IntervalIndex.from_breaks(
+            [-0.001, 20.0, 40.0, 60.0, 80.0, 100.001], closed="neither"
+        ),
+    ],
+)
+def test_value_counts_with_bins(bins):
+    # GH32471 Values misaligned with bins
+    df = pd.DataFrame(
+        {
+            "key": [0, 1, 0, 2, 3, 4, 4, 4, 1, 3],
+            "score": [0, 100, 100, 0, 100, 100, 100, 100, 100, 100],
+        }
+    )
+    result = df.groupby("key")["score"].value_counts(bins=bins).sort_index()
+    expected = pd.Series(
+        # 5 bins per key, keys 0-4
+        [1, 0, 0, 0, 1, 0, 0, 0, 0, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 3],
+        dtype=np.int64,
+        name="count",
+        index=pd.MultiIndex.from_product([range(5), bins], names=["key", "score"]),
+    )
+    tm.assert_series_equal(result, expected)
+
+
 def seed_df(seed_nans, n, m):
     days = pd.date_range("2015-08-24", periods=10)
 
@@ -1080,6 +1113,31 @@ def test_value_counts_time_grouper(utc, unit):
     )
     expected = pd.Series(1, index=index, name="count")
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("box", [pd.DatetimeIndex, pd.PeriodIndex])
+def test_value_counts_time_grouper_with_nat(box, frame_or_series):
+    # GH#35251
+    idx = box(
+        ["NaT", "2020-01-02", "2020-01-01", "NaT", "2020-01-02", "2020-01-02"],
+        freq="D" if box is pd.PeriodIndex else None,
+    )
+    obj = pd.DataFrame({"v": ["a", "a", "b", "b", "a", "b"]}, index=idx)
+    if frame_or_series is pd.Series:
+        obj = obj["v"]
+
+    result = obj.groupby(pd.Grouper(freq="D")).value_counts()
+    index = pd.MultiIndex.from_arrays(
+        [idx.take([2, 1, 1]), ["b", "a", "b"]], names=[None, "v"]
+    )
+    expected = pd.Series([1, 2, 1], index=index, name="count")
+    tm.assert_series_equal(result, expected)
+
+    # all-NaT
+    result = obj.iloc[[0, 3]].groupby(pd.Grouper(freq="D")).value_counts()
+    expected = obj.iloc[:0].groupby(pd.Grouper(freq="D")).value_counts()
+    # object-dtype level of an empty result may keep unused values
+    tm.assert_series_equal(result, expected, check_index_type=False)
 
 
 def test_value_counts_integer_columns():

@@ -784,7 +784,7 @@ def test_extract_end_of_string(any_string_dtype):
     # https://github.com/pandas-dev/pandas/pull/63613
     ser = pd.Series(["aa", "abc", "bb\n"], dtype=any_string_dtype)
 
-    # with dollar sign
+    # with dollar sign (matches $ before or after an ending newline)
     result = ser.str.extract("([ab]+)$")
     expected = pd.Series(["aa", np.nan, "bb"], dtype=any_string_dtype).to_frame()
     tm.assert_frame_equal(result, expected)
