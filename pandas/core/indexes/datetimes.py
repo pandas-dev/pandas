@@ -1739,10 +1739,9 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         ):
             # GH#36575 Tick freqs, unlike calendar ones, hold in absolute time
             #  on tz-aware data (the mirror image of tz_convert's rule), so
-            #  tz_localize preserves the freq exactly when it leaves the
-            #  spacing between consecutive elements unchanged: no DST
-            #  transition in between, and no shifted nonexistent or
-            #  ambiguous time.
+            #  tz_localize preserves the freq exactly when the UTC offset is
+            #  constant between consecutive elements: no DST transition in
+            #  between, and no shifted nonexistent time.
             result._freq = freq
         return result
 

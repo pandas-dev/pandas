@@ -296,8 +296,11 @@ class TestTZLocalize:
             localized.tz_localize(tz)
         reset = localized.tz_localize(None)
         assert reset.tzinfo is None
-        # no DST transition in the range, so the freq survives the round trip
-        tm.assert_index_equal(reset, idx)
+        # no DST transition in the range, so the freq survives the round trip;
+        # tzlocal() resolves to the machine's zone, which is not guaranteed to
+        # be transition-free in the range, so the freq is not checked for it
+        check_freq = not isinstance(tz, dateutil.tz.tzlocal)
+        tm.assert_index_equal(reset, idx, check_freq=check_freq)
 
     def test_dti_tz_localize_naive(self):
         rng = pd.date_range("1/1/2011", periods=100, freq="h")
