@@ -278,7 +278,7 @@ class MultiIndex(Index):
     Notes
     -----
     See the `user guide
-    <https://pandas.pydata.org/pandas-docs/stable/user_guide/advanced.html>`__
+    <https://pandas.pydata.org/docs/user_guide/advanced.html>`__
     for more.
 
     Examples
@@ -784,7 +784,15 @@ class MultiIndex(Index):
                 vals = vals.astype(object)
 
             array_vals = np.asarray(vals)
-            array_vals = algos.take_nd(array_vals, codes, fill_value=index._na_value)
+            if array_vals.dtype.kind in "iu" and (mask := codes == -1).any():
+                # filling NaN via take_nd would cast to float64, GH#24375
+                filled = np.full(len(codes), index._na_value, dtype=object)
+                filled[~mask] = array_vals.take(codes[~mask])
+                array_vals = filled
+            else:
+                array_vals = algos.take_nd(
+                    array_vals, codes, fill_value=index._na_value
+                )
             values.append(array_vals)
 
         arr = lib.fast_zip(values)
@@ -2200,6 +2208,32 @@ class MultiIndex(Index):
             level = self._get_level_number(level)
             return self._get_level_values(level=level, unique=True)
 
+    def to_list(self) -> list[Any]:
+        """
+        Return a list of the elements of the MultiIndex.
+
+        The list will be a list of tuples, with the length of each tuple corresponding
+        to the number of levels in the MultiIndex.
+
+        Returns
+        -------
+        list
+            A list of tuples representing the MultiIndex elements.
+
+        See Also
+        --------
+        Index.to_list : Return a list of the values for an Index.
+
+        Examples
+        --------
+        >>> mi = pd.MultiIndex.from_product([["a", "b"], ["apple", "banana"]])
+        >>> mi.to_list()
+        [('a', 'apple'), ('a', 'banana'), ('b', 'apple'), ('b', 'banana')]
+        """
+        return super().to_list()
+
+    tolist = to_list
+
     def to_frame(
         self,
         index: bool = True,
@@ -3319,30 +3353,23 @@ class MultiIndex(Index):
         ]
         sortorder = None
 
-        # Validate that levels being sorted have comparable types (GH#21136).
-        # Since we sort by integer codes rather than actual values, we need
-        # to ensure the level values are sortable; otherwise the code-based
-        # sort silently produces a meaningless ordering.
-        # After _sort_levels_monotonic (called before sortlevel in the
-        # standard path), a level that is still non-monotonic with object
-        # dtype must contain incomparable types.
+        # We sort by codes, so the levels must be sorted first (GH#52683).
+        mi = self._sort_levels_monotonic()
+
+        # raise for incomparable object levels rather than sort by position (GH#21136)
         for lev_num in level:
-            lev_values = self.levels[lev_num]
-            if (
-                lev_values.dtype == object
-                and not lev_values.is_monotonic_increasing
-                and not lev_values.is_monotonic_decreasing
-            ):
+            lev_values = mi.levels[lev_num]
+            if lev_values.dtype == object and not lev_values.is_monotonic_increasing:
                 lev_values.argsort()
 
-        codes = [self.codes[lev] for lev in level]
+        codes = [mi.codes[lev] for lev in level]
         # we have a directed ordering via ascending
         if isinstance(ascending, list):
             if not len(level) == len(ascending):
                 raise ValueError("level must have same length as ascending")
         elif sort_remaining:
             codes.extend(
-                [self.codes[lev] for lev in range(len(self.levels)) if lev not in level]
+                [mi.codes[lev] for lev in range(mi.nlevels) if lev not in level]
             )
         else:
             sortorder = level[0]
@@ -3352,12 +3379,12 @@ class MultiIndex(Index):
         )
 
         indexer = ensure_platform_int(indexer)
-        new_codes = [level_codes.take(indexer) for level_codes in self.codes]
+        new_codes = [level_codes.take(indexer) for level_codes in mi.codes]
 
         new_index = MultiIndex(
             codes=new_codes,
-            levels=self.levels,
-            names=self.names,
+            levels=mi.levels,
+            names=mi.names,
             sortorder=sortorder,
             verify_integrity=False,
         )
@@ -3416,7 +3443,33 @@ class MultiIndex(Index):
             self._raise_if_missing(key, indexer, axis_name)
             return self[indexer], indexer
 
+        if len(keyarr) and 0 < len(keyarr[0]) < self.nlevels:
+            nlev = len(keyarr[0])
+            if isinstance(keyarr, MultiIndex) or all(
+                isinstance(tup, tuple) and len(tup) == nlev for tup in keyarr
+            ):
+                # GH#16083 partial tuples select on the first nlev levels
+                return self._get_indexer_partial_tuples(keyarr, nlev, axis_name)
+
         return super()._get_indexer_strict(key, axis_name)
+
+    def _get_indexer_partial_tuples(
+        self, keyarr, nlev: int, axis_name: str
+    ) -> tuple[Index, npt.NDArray[np.intp]]:
+        """
+        Find all rows whose first `nlev` levels match each key, in key order.
+        """
+        trunc = MultiIndex(
+            levels=self.levels[:nlev], codes=self.codes[:nlev], verify_integrity=False
+        )
+        indexer, missing = trunc.get_indexer_non_unique(keyarr)
+        if len(missing):
+            keys = ensure_index(keyarr)
+            if len(missing) == len(keys):
+                raise KeyError(f"None of [{keys}] are in the [{axis_name}]")
+            not_found = list(keys[missing].unique())
+            raise KeyError(f"{not_found} not in index")
+        return self[indexer], indexer
 
     def _raise_if_missing(self, key, indexer, axis_name: str) -> None:
         keyarr = key

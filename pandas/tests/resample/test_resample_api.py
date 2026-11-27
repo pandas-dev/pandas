@@ -425,6 +425,48 @@ def test_agg_empty_func_groupby(func):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("groupby", [True, False])
+def test_agg_list_numeric_only(groupby):
+    # GH#53839
+    index = date_range("2020-01-01", periods=4, freq="h")
+    df = pd.DataFrame({"a": [1, 2, 3, 4], "s": ["w", "x", "y", "z"]}, index=index)
+    expected_index = date_range("2020-01-01", periods=2, freq="2h")
+    if groupby:
+        df["g"] = [1, 1, 2, 2]
+        df = df.groupby("g")
+        expected_index = pd.MultiIndex.from_arrays(
+            [[1, 2], expected_index], names=["g", None]
+        )
+    result = df.resample("2h").agg(["sum", "mean"], numeric_only=True)
+    expected = pd.DataFrame(
+        [[3, 1.5], [7, 3.5]],
+        index=expected_index,
+        columns=pd.MultiIndex.from_product([["a"], ["sum", "mean"]]),
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("groupby", [True, False])
+@pytest.mark.parametrize("kwargs", [{"numeric_only": True}, {}])
+def test_agg_list_no_columns_to_aggregate(kwargs, groupby):
+    # GH#53839
+    index = date_range("2020-01-01", periods=4, freq="h")
+    df = pd.DataFrame({"s": ["w", "x", "y", "z"]}, index=index)
+    if not kwargs:
+        df = df[[]]
+    expected_columns = pd.MultiIndex.from_arrays([df.columns[:0], pd.Index([])])
+    expected_index = date_range("2020-01-01", periods=2, freq="2h")
+    if groupby:
+        df["g"] = [1, 1, 2, 2]
+        df = df.groupby("g")
+        expected_index = pd.MultiIndex.from_arrays(
+            [[1, 2], expected_index], names=["g", None]
+        )
+    result = df.resample("2h").agg(["sum", "mean"], **kwargs)
+    expected = pd.DataFrame(index=expected_index, columns=expected_columns)
+    tm.assert_frame_equal(result, expected)
+
+
 def test_agg_dict_forwards_kwargs():
     # GH#23889
     df = pd.DataFrame(
@@ -1156,3 +1198,14 @@ def test_asfreq_respects_origin_with_fixed_freq_all_seconds_equal():
 
     exp = pd.DataFrame({"value": [np.nan, np.nan, np.nan]}, index=exp_idx)
     tm.assert_frame_equal(result, exp)
+
+
+@pytest.mark.parametrize("periods", [4, 0])
+def test_resample_ohlc_numeric_only(periods):
+    # GH#56946
+    index = date_range("2020-01-01", periods=4, freq="12h")
+    df = pd.DataFrame({"str": list("abcd"), "num": [1.0, 3.0, 2.0, 5.0]}, index=index)
+    df = df.iloc[:periods]
+    result = df.resample("D").ohlc(numeric_only=True)
+    expected = df[["num"]].resample("D").ohlc()
+    tm.assert_frame_equal(result, expected)

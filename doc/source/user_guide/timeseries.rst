@@ -1406,6 +1406,15 @@ You can use keyword arguments supported by either ``BusinessHour`` and ``CustomB
     # Monday is skipped because it's a holiday, business hour starts from 10:00
     dt + bhour_mon * 2
 
+.. _timeseries.custom_offsets:
+
+Writing your own offset
+~~~~~~~~~~~~~~~~~~~~~~~
+
+To define an offset none of the built-in ones cover, subclass
+:class:`~pandas.tseries.offsets.BaseOffset`. Its docstring lists the methods to
+override and gives an example.
+
 .. _timeseries.offset_aliases:
 
 Offset aliases
@@ -2229,6 +2238,25 @@ frequency such as ``"24h"``; to group timestamps into days starting at 08:00, us
 
    period = pd.Period("2012-1-1 08:00", freq="24h")
    period.start_time, period.end_time
+
+A multiplied frequency sets only the length of the span, not a grid the span
+aligns to: a ``"2Q"`` period can start in any quarter. Converting a timestamp
+with a multiplied frequency starts the span at the base unit containing that
+timestamp, so ``to_period("2h")`` does not group timestamps into
+2-hour bins. For a fixed frequency such as ``"2h"``, floor the timestamps
+first (or use :meth:`~Series.resample`) to get aligned bins. For ``"2Q"``,
+shift each quarter back to the start of its half-year.
+
+.. ipython:: python
+
+   pd.Period("2017-05-01", freq="2Q")
+
+   dti = pd.date_range("2016-01-01", periods=4, freq="h")
+   dti.to_period("2h")
+   dti.floor("2h").to_period("2h")
+
+   q = pd.date_range("2017-02-01", periods=4, freq="3MS").to_period("Q")
+   (q - (q.quarter - 1) % 2).asfreq("2Q")
 
 Adding and subtracting integers from periods shifts the period by its own
 frequency. Arithmetic is not allowed between ``Period`` with different ``freq`` (span).

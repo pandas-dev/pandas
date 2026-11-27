@@ -185,6 +185,12 @@ def _nanquantile(
     """
 
     if values.dtype.kind in "mM":
+        if interpolation in ["linear", "midpoint"]:
+            result = _nanquantile_i8_exact(
+                values.view("i8"), qs, mask=mask, interpolation=interpolation
+            )
+            return result.view(values.dtype)
+
         # need to cast to integer to avoid rounding errors in numpy
         result = _nanquantile(
             values.view("i8"),
@@ -230,3 +236,64 @@ def _nanquantile(
             # "int", "Dict[str, str]"  [call-overload]
             method=interpolation,  # type: ignore[call-overload]
         )
+
+
+def _nanquantile_i8_exact(
+    values: npt.NDArray[np.int64],
+    qs: npt.NDArray[np.float64],
+    *,
+    mask: npt.NDArray[np.bool_],
+    interpolation: str,
+) -> npt.NDArray[np.int64]:
+    """
+    Linear or midpoint quantile of int64 data without float rounding errors.
+
+    np.quantile casts to float64, which loses precision for large int64 values
+    (GH#49110). Instead, interpolate only the gap between the exact neighbors.
+    Results on a data point are exact; between two points the error is of the
+    order of ``gap * 2**-52``.
+
+    Parameters
+    ----------
+    values : np.ndarray[int64, ndim=2]
+    qs : np.ndarray[float64] of quantile indices to find
+    mask : np.ndarray[bool]
+        locations in values that should be considered missing
+    interpolation : {"linear", "midpoint"}
+
+    Returns
+    -------
+    np.ndarray[int64] of shape (len(qs), len(values))
+    """
+    na_value = np.iinfo(np.int64).min
+    lower = _nanquantile(
+        values, qs, na_value=na_value, mask=mask, interpolation="lower"
+    ).astype(np.int64, copy=False)
+    higher = _nanquantile(
+        values, qs, na_value=na_value, mask=mask, interpolation="higher"
+    ).astype(np.int64, copy=False)
+
+    if interpolation == "linear":
+        # same index as np.quantile
+        count = (~mask).sum(axis=1)
+        index = qs[:, np.newaxis] * (count - 1)
+        frac = index - np.floor(index)
+    else:
+        index = np.ones(lower.shape)
+        frac = np.full(lower.shape, 0.5)
+
+    # uint64 so the gap cannot overflow
+    gap = higher.view(np.uint64) - lower.view(np.uint64)
+    offset = gap * frac
+    # float noise (e.g. q=2/3 not exact) can leave offset just below a whole
+    #  number; snap it so truncation does not lose a nanosecond
+    nearest = np.round(offset)
+    noise = (gap * index + offset) * 2**-52
+    offset = np.where(np.abs(offset - nearest) <= noise, nearest, offset)
+    whole = np.floor(offset)
+    # never step past the higher neighbor
+    step = np.minimum(whole.astype(np.uint64), gap)
+    result = (lower.view(np.uint64) + step).view(np.int64)
+    # truncate toward zero, like casting float to int64
+    result[(offset > whole) & (result < 0)] += 1
+    return result

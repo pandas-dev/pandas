@@ -1,5 +1,6 @@
 import importlib
 import locale
+import os
 from textwrap import dedent
 
 import numpy as np
@@ -166,6 +167,15 @@ def test_stringify_text(text):
             _stringifyText(text)
 
 
+def test_to_clipboard_excel_windows_line_terminator(monkeypatch):
+    # GH#11720 Excel pastes an extra empty row from "\n"-terminated text
+    copied = []
+    monkeypatch.setattr("pandas.io.clipboard.clipboard_set", copied.append)
+    monkeypatch.setattr(os, "linesep", "\r\n")
+    pd.DataFrame(["Hello world"]).to_clipboard()
+    assert copied == ["\t0\r\n0\tHello world\r\n"]
+
+
 @pytest.fixture
 def set_pyqt_clipboard(monkeypatch):
     qt_cut, qt_paste = init_qt_clipboard()
@@ -182,7 +192,7 @@ _LOCALE_AT_IMPORT = locale.setlocale(locale.LC_ALL)
 
 
 @pytest.fixture(scope="session")
-def qapp_restore_locale(qapp):
+def qapp_restore_locale(request):
     """
     ``qapp``, with the process-wide locale it leaked put back.
 
@@ -192,6 +202,8 @@ def qapp_restore_locale(qapp):
     tests then fail on any machine whose locale is not English. Request this
     rather than ``qapp`` directly.
     """
+    pytest.importorskip("pytestqt")
+    qapp = request.getfixturevalue("qapp")
     locale.setlocale(locale.LC_ALL, _LOCALE_AT_IMPORT)
     return qapp
 

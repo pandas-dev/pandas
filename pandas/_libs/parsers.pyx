@@ -122,6 +122,7 @@ from pandas._libs.khash cimport (
     kh_strbox_t,
     kh_strview,
     kh_strview_t,
+    khash_set_alloc_fail_countdown,
     khiter_t,
 )
 
@@ -433,6 +434,7 @@ cdef class TextReader:
         parser_t *parser
         object na_fvalues
         list true_values, false_values
+        set user_true_set, user_false_set
         object handle
         object orig_header
         bint na_filter, keep_default_na, has_usecols, has_mi_columns
@@ -452,6 +454,9 @@ cdef class TextReader:
         # depends on which rows the parser saw, so the parallel reader checks
         # this and falls back to a serial read (GH#66259).
         public bint na_left_literal
+        # When not None, only these field positions are converted; the rest
+        # are skipped.  Used to re-read diverged low_memory columns.
+        public object convert_only  # set[int] | None
         uint64_t parser_start  # this is modified after __init__
         const char *encoding_errors
         object _encoding_errors
@@ -539,7 +544,8 @@ cdef class TextReader:
                   float_precision=None,
                   bint skip_blank_lines=True,
                   encoding_errors=b"strict",
-                  dtype_backend="numpy"):
+                  dtype_backend="numpy",
+                  warning_sink=None):
 
         # set encoding for native Python and C library
         if isinstance(encoding_errors, str):
@@ -642,6 +648,11 @@ cdef class TextReader:
         self.na_values = na_values
         self.na_fvalues = na_fvalues
 
+        self.user_true_set = set(true_values or ())
+        # same precedence as BooleanDtype: any true spelling beats a user false one
+        self.user_false_set = (
+            set(false_values or ()) - self.user_true_set - BooleanArray._TRUE_VALUES
+        )
         self.true_values = _maybe_encode(true_values) + _true_values
         self.false_values = _maybe_encode(false_values) + _false_values
 
@@ -657,8 +668,9 @@ cdef class TextReader:
         self.block_workers = 0
         self._largest_str_batch = 0
         self.trim_after_read = True
-        self.warning_sink = None
+        self.warning_sink = warning_sink
         self.na_left_literal = False
+        self.convert_only = None
 
         # None by identity, not in the tuple; see tzconversion.pyx (GH#66939)
         if float_precision is None or float_precision in (
@@ -1314,6 +1326,9 @@ cdef class TextReader:
                     continue
                 nused += 1
 
+            if self.convert_only is not None and i not in self.convert_only:
+                continue
+
             conv = self._get_converter(i, name)
             col_dtype = self._get_col_dtype(i, is_default_dict_dtype, name)
 
@@ -1747,6 +1762,8 @@ cdef class TextReader:
             return cat, na_count, None
 
         elif isinstance(dtype, ExtensionDtype):
+            user_bool = (dtype._is_boolean and not isinstance(dtype, BooleanDtype)
+                         and (self.user_true_set or self.user_false_set))
             if isinstance(dtype, BaseMaskedDtype) and dtype.kind in "iuf":
                 # Fast path for nullable Integer/Floating dtypes: parse straight
                 # from the C buffers via the nogil numeric converters, instead
@@ -1771,6 +1788,7 @@ cdef class TextReader:
                 # path (which raises the canonical error, or applies
                 # user-supplied none_values).
             elif (isinstance(dtype, ArrowDtype)
+                    and not user_bool
                     and HAS_PYARROW
                     and self.encoding_errors == b"strict"):
                 # Fast path for pyarrow-backed dtypes: build a pyarrow
@@ -1786,6 +1804,14 @@ cdef class TextReader:
 
             result, na_count = self._string_convert(i, start, end, na_filter,
                                                     na_hashset)
+            if user_bool:
+                # GH#47534 other boolean dtypes do not take true_values/false_values,
+                #  so set those positions after parsing the rest
+                is_true = np.array([val in self.user_true_set for val in result],
+                                   dtype=bool)
+                is_false = np.array([val in self.user_false_set for val in result],
+                                    dtype=bool)
+                result = np.where(is_true | is_false, np.nan, result)
 
             array_type = dtype.construct_array_type()
             try:
@@ -1806,6 +1832,13 @@ cdef class TextReader:
                     f"_from_sequence_of_strings in order "
                     f"to be used in parser methods")
 
+            if user_bool and (is_true.any() or is_false.any()):
+                # _from_sequence rather than __setitem__, which an EA need not
+                #  implement
+                scalars = result.astype(object)
+                scalars[is_true] = True
+                scalars[is_false] = False
+                result = array_type._from_sequence(scalars, dtype=dtype)
             return result, na_count, None
 
         elif dtype.kind in "iu":
@@ -2250,7 +2283,9 @@ cdef class TextReader:
                 else:
                     return self.header[0][j]
             else:
-                return None
+                # No header and no names: label by position, as CParserWrapper
+                # does, so a callable usecols sees the same labels
+                return i
 
 # Factor out code common to TextReader.__dealloc__ and TextReader.close
 # It cannot be a class method, since calling self.close() in __dealloc__
@@ -2466,6 +2501,8 @@ cdef _string_box_utf8(parser_t *parser, int64_t col,
             # The key carries its length, so two fields that differ only past an
             # embedded NUL no longer intern to the same object.
             k = kh_put_strbox(table, kh_strview(word, <size_t>word_len), &ret)
+            if ret < 0:
+                raise MemoryError()
 
             # in the hash table
             if ret == 0:
@@ -2864,6 +2901,8 @@ cdef _box_arena_utf8(bytes arena, const int64_t[::1] offsets,
                 # `_string_box_utf8`, where the decode is reachable.
                 pyval = PyUnicode_DecodeUTF8(word, word_len, encoding_errors)
                 k = kh_put_strbox(table, kh_strview(word, <size_t>word_len), &ret)
+                if ret < 0:
+                    raise MemoryError()
                 table.vals[k] = <PyObject *>pyval
 
             result[i] = pyval
@@ -3626,6 +3665,8 @@ cdef _categorical_convert(parser_t *parser, int64_t col,
                 # not in the hash table
                 if k == table.n_buckets:
                     k = kh_put_str(table, key, &ret)
+                    if ret < 0:
+                        raise MemoryError()
                     table.vals[k] = current_category
                     current_category += 1
 
@@ -4398,12 +4439,16 @@ cdef kh_str_starts_t* kset_from_list(list values) except NULL:
         # contain an embedded NUL, and its length is what makes it comparable.
         PyBytes_AsStringAndSize(val, &buf, &buflen)
         kh_put_str_starts_item(table, buf, <size_t>buflen, &ret)
+        if ret < 0:
+            kh_destroy_str_starts(table)
+            raise MemoryError()
 
     if table.table.n_buckets <= 128:
         # Resize the hash table to make it almost empty, this
         # reduces amount of hash collisions on lookup thus
         # "key not in table" case is faster.
         # Note that this trades table memory footprint for lookup speed.
+        # If the allocation fails the table is left unchanged, which is fine.
         kh_resize_str_starts(table, table.table.n_buckets * 8)
 
     return table
@@ -4423,6 +4468,9 @@ cdef kh_float64_t* kset_float64_from_set(set values) except NULL:
         val = float(value)
 
         kh_put_float64(table, val, &ret)
+        if ret < 0:
+            kh_destroy_float64(table)
+            raise MemoryError()
 
     if table.n_buckets <= 128:
         # See reasoning in kset_from_list
@@ -4613,3 +4661,8 @@ def sanitize_objects(ndarray[object] values, set na_values) -> int:
             pass
 
     return na_count
+
+
+def _set_khash_alloc_fail_countdown(int countdown) -> int:
+    # for tests: fail the khash allocation in this module that takes this to 0
+    return khash_set_alloc_fail_countdown(countdown)

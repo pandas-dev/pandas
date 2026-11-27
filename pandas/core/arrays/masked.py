@@ -885,6 +885,12 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
     _HANDLED_TYPES: tuple[type, ...]
 
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
+        result = arraylike.dispatch_where_only_ufunc(
+            self, ufunc, method, *inputs, **kwargs
+        )
+        if result is not NotImplemented:
+            return result
+
         # For MaskedArray inputs, we apply the ufunc to ._data
         # and mask the result.
 
@@ -1318,6 +1324,20 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         mask = self._mask.copy()
         return self._simple_new(data, mask)
 
+    def _where(self, mask: npt.NDArray[np.bool_], value) -> Self:
+        if (
+            isinstance(value, BaseMaskedArray)
+            and value.dtype == self.dtype
+            and value.shape == self.shape
+            and mask.shape == self.shape
+        ):
+            # Pick the data and the mask in one pass each, rather than the
+            #  boolean getitem and setitem of the base class
+            data = np.where(mask, self._data, value._data)
+            new_mask = np.where(mask, self._mask, value._mask)
+            return self._simple_new(data, new_mask)
+        return super()._where(mask, value)
+
     @overload
     def view(self, dtype: None = ...) -> Self: ...
 
@@ -1635,14 +1655,14 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         )
         from pandas.arrays import IntegerArray
 
-        keys, value_counts, na_counter = algos.value_counts_arraylike(
+        keys, value_counts, na_pos = algos.value_counts_arraylike(
             self._data, dropna=dropna, mask=self._mask
         )
         mask_index = np.zeros((len(value_counts),), dtype=np.bool_)
         mask = mask_index.copy()
 
-        if na_counter > 0:
-            mask_index[-1] = True
+        if na_pos != -1:
+            mask_index[na_pos] = True
 
         arr = IntegerArray(value_counts, mask)
         index = Index(
@@ -2235,7 +2255,7 @@ class BaseMaskedArray(OpsMixin, ExtensionArray):
         if op.kind != "aggregate":
             result_mask = mask.copy()
         else:
-            result_mask = np.zeros(ngroups, dtype=bool)
+            result_mask = np.zeros((*self.shape[:-1], ngroups), dtype=bool)
 
         if how == "rank" and kwargs.get("na_option") in ["top", "bottom"]:
             result_mask[:] = False

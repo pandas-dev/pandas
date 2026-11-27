@@ -161,6 +161,10 @@ cdef bint is_tick_object(object obj):
     return isinstance(obj, Tick)
 
 
+cdef bint is_day_object(object obj):
+    return isinstance(obj, Day)
+
+
 cdef bint _is_normalized(datetime dt):
     if dt.hour != 0 or dt.minute != 0 or dt.second != 0 or dt.microsecond != 0:
         # Regardless of whether dt is datetime vs Timestamp
@@ -402,7 +406,8 @@ cdef class BaseOffset:
 
     Every offset in ``pandas.tseries.offsets`` is a subclass of ``BaseOffset``,
     so ``isinstance(obj, BaseOffset)`` is the way to check whether an object is
-    a pandas offset. ``BaseOffset`` is not meant to be instantiated directly.
+    a pandas offset. ``BaseOffset`` is not meant to be instantiated directly;
+    to write your own offset, subclass it as described in the Notes.
 
     Attributes
     ----------
@@ -416,6 +421,26 @@ cdef class BaseOffset:
     tseries.offsets.DateOffset : Offset backed by a ``dateutil.relativedelta``.
     tseries.frequencies.to_offset : Convert a string or timedelta to an offset.
 
+    Notes
+    -----
+    A subclass defines:
+
+    * ``_add_datetime(self, other)``, which receives a :class:`Timestamp` and
+      returns the :class:`Timestamp` ``self.n`` steps away. As in the built-in
+      offsets, for ``n < 0`` rolling back onto the offset counts as the first
+      step, and ``n == 0`` rolls forward. This implements ``+`` and ``-`` and
+      is used by :func:`date_range`.
+    * ``is_on_offset(self, dt)``, which ``rollback``, ``rollforward`` and
+      :func:`date_range` use to tell whether ``dt`` already falls on the offset.
+    * ``_prefix``, the name shown in the offset's ``freqstr``. It is not
+      registered as a frequency string, so pass the offset object itself as
+      ``freq``.
+
+    ``+`` and ``-`` honor ``normalize=True`` only if ``_add_datetime`` checks
+    ``self.normalize``. Adding a custom offset to a :class:`Series` or
+    :class:`DatetimeIndex` applies it one element at a time and emits a
+    :class:`~pandas.errors.PerformanceWarning`.
+
     Examples
     --------
     >>> pd.offsets.Hour(5).n
@@ -425,6 +450,33 @@ cdef class BaseOffset:
 
     >>> isinstance(pd.offsets.BDay(), pd.offsets.BaseOffset)
     True
+
+    An offset stepping through dekads, the periods starting on the 1st, 11th
+    and 21st of each month (it ignores ``normalize``):
+
+    >>> class Dekad(pd.offsets.BaseOffset):
+    ...     _prefix = "DEKAD"
+    ...     def _add_datetime(self, other):
+    ...         slot = min((other.day - 1) // 10, 2)
+    ...         n = self.n
+    ...         if n <= 0 and other.day != 1 + 10 * slot:
+    ...             n += 1
+    ...         months, slot = divmod(slot + n, 3)
+    ...         result = other.replace(day=1) + pd.DateOffset(months=months)
+    ...         return result.replace(day=1 + 10 * slot)
+    ...     def is_on_offset(self, dt):
+    ...         return dt.day in (1, 11, 21)
+
+    >>> ts = pd.Timestamp("2024-01-25")
+    >>> ts + Dekad()
+    Timestamp('2024-02-01 00:00:00')
+    >>> ts - Dekad()
+    Timestamp('2024-01-21 00:00:00')
+    >>> Dekad().rollback(ts)
+    Timestamp('2024-01-21 00:00:00')
+    >>> pd.date_range("2024-01-05", periods=4, freq=Dekad())
+    DatetimeIndex(['2024-01-11', '2024-01-21', '2024-02-01', '2024-02-11'],
+                  dtype='datetime64[us]', freq='DEKAD')
     """
     # ensure that reversed-ops with numpy scalars return NotImplemented
     __array_priority__ = 1000
@@ -8095,6 +8147,42 @@ cpdef to_offset(freq, bint is_period=False):
             raise ValueError(f"{freq} is not supported as period frequency")
 
     return result
+
+
+cpdef validate_floor_ceil_offset(BaseOffset offset):
+    """
+    Raise if floor/ceil cannot snap to the midnights that ``offset`` is on.
+
+    That is well-defined only for a single step of a date-anchored offset.
+    """
+    if isinstance(offset, (BusinessDay, _CustomBusinessMonth)):
+        if offset.offset:
+            raise ValueError(
+                f"floor and ceil do not support {offset} with a nonzero 'offset'"
+            )
+        supported = True
+    elif isinstance(offset, Week):
+        # without a weekday every day is on-offset
+        supported = offset.weekday is not None
+    else:
+        supported = isinstance(
+            offset,
+            (
+                YearOffset,
+                HalfYearOffset,
+                QuarterOffset,
+                MonthOffset,
+                SemiMonthOffset,
+                WeekOfMonthMixin,
+                FY5253Mixin,
+                Easter,
+            ),
+        )
+    if offset.n != 1 or not supported:
+        raise ValueError(
+            f"{offset} is a non-fixed frequency; floor and ceil support only "
+            "a single step of a date-anchored frequency, e.g. 'MS' or 'W-SUN'"
+        )
 
 
 def period_dtype_to_offset(PeriodDtypeBase dtype):

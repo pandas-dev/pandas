@@ -88,8 +88,6 @@ from pandas.core.dtypes.missing import (
     notna,
 )
 
-from pandas.io._util import _arrow_dtype_mapping
-
 if TYPE_CHECKING:
     from collections.abc import (
         Collection,
@@ -157,9 +155,13 @@ def maybe_box_datetimelike(value: Scalar, dtype: Dtype | None = None) -> Scalar:
     if dtype == _dtype_obj:
         pass
     elif isinstance(value, (np.datetime64, dt.datetime)):
-        value = Timestamp(value)
+        # error: Incompatible types in assignment (expression has type
+        # "Timestamp | NaTType", variable has type "Scalar")
+        value = Timestamp(value)  # type: ignore[assignment]
     elif isinstance(value, (np.timedelta64, dt.timedelta)):
-        value = Timedelta(value)
+        # error: Incompatible types in assignment (expression has type
+        # "Timedelta | NaTType", variable has type "Scalar")
+        value = Timedelta(value)  # type: ignore[assignment]
 
     return value
 
@@ -732,9 +734,7 @@ def infer_dtype_from_scalar(val: object) -> tuple[DtypeObj, Any]:
         except OutOfBoundsDatetime:
             return _dtype_obj, val
 
-        # error: Non-overlapping identity check (left operand type: "Timestamp",
-        # right operand type: "NaTType")
-        if val is NaT or val.tz is None:  # type: ignore[comparison-overlap]
+        if val is NaT or val.tz is None:
             val = val.to_datetime64()
             dtype = val.dtype
             # TODO: test with datetime(2920, 10, 1) based on test_replace_dtypes
@@ -747,9 +747,7 @@ def infer_dtype_from_scalar(val: object) -> tuple[DtypeObj, Any]:
         except (OutOfBoundsTimedelta, OverflowError):
             dtype = _dtype_obj
         else:
-            # error: Non-overlapping identity check (left operand type: "Timedelta",
-            # right operand type: "NaTType")
-            if val is NaT:  # type: ignore[comparison-overlap]
+            if val is NaT:
                 val = np.timedelta64("NaT", "ns")
             else:
                 val = val.asm8
@@ -1081,8 +1079,21 @@ def convert_dtypes(
             if pa_type is not None:
                 inferred_dtype = ArrowDtype(pa_type)
     elif dtype_backend == "numpy_nullable" and isinstance(inferred_dtype, ArrowDtype):
-        # GH 53648
-        inferred_dtype = _arrow_dtype_mapping()[inferred_dtype.pyarrow_dtype]
+        # GH#53648, GH#57395 reverse of the pyarrow branch; unmapped types are kept
+        import pyarrow as pa
+
+        from pandas.core.arrays.arrow.util import _arrow_dtype_mapping
+
+        pa_type = inferred_dtype.pyarrow_dtype
+        if pa.types.is_timestamp(pa_type):
+            if pa_type.tz is None:
+                inferred_dtype = np.dtype(f"M8[{pa_type.unit}]")
+            else:
+                inferred_dtype = DatetimeTZDtype(unit=pa_type.unit, tz=pa_type.tz)
+        elif pa.types.is_duration(pa_type):
+            inferred_dtype = np.dtype(f"m8[{pa_type.unit}]")
+        else:
+            inferred_dtype = _arrow_dtype_mapping().get(pa_type, inferred_dtype)
 
     assert not isinstance(inferred_dtype, str)
     return inferred_dtype

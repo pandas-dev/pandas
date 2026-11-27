@@ -28,6 +28,7 @@ import pytest
 from pandas._config import using_string_dtype
 
 from pandas._libs import lib
+from pandas.compat import pa_version_under26p0
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import Pandas4Warning
 import pandas.util._test_decorators as td
@@ -230,17 +231,14 @@ def types_table_metadata(dialect: str):
         "types",
         metadata,
         Column("TextCol", TEXT),
-        # error: Cannot infer type argument 1 of "Column"
-        Column("DateCol", date_type),  # type: ignore[misc]
+        Column("DateCol", date_type),
         Column("IntDateCol", Integer),
         Column("IntDateOnlyCol", Integer),
         Column("FloatCol", Float),
         Column("IntCol", Integer),
-        # error: Cannot infer type argument 1 of "Column"
-        Column("BoolCol", bool_type),  # type: ignore[misc]
+        Column("BoolCol", bool_type),
         Column("IntColWithNull", Integer),
-        # error: Cannot infer type argument 1 of "Column"
-        Column("BoolColWithNull", bool_type),  # type: ignore[misc]
+        Column("BoolColWithNull", bool_type),
     )
     return types
 
@@ -2064,13 +2062,17 @@ def test_api_timedelta(conn, request):
         # TODO: Postgres stores an INTERVAL, which ADBC reads as a Month-Day-Nano
         # Interval; the default pandas type mapper maps this to a DateOffset
         # but maybe we should try and restore the timedelta here?
-        expected = pd.Series(
-            [
+        if pa_version_under26p0:
+            offsets = [
                 pd.DateOffset(months=0, days=0, microseconds=1000000, nanoseconds=0),
                 pd.DateOffset(months=0, days=0, microseconds=3000000, nanoseconds=0),
-            ],
-            name="foo",
-        )
+            ]
+        else:
+            offsets = [
+                pd.DateOffset(months=0, days=0, nanoseconds=1000000000),
+                pd.DateOffset(months=0, days=0, nanoseconds=3000000000),
+            ]
+        expected = pd.Series(offsets, name="foo")
     else:
         expected = df["foo"].astype("int64")
     tm.assert_series_equal(result["foo"], expected)

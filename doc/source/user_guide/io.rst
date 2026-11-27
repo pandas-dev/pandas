@@ -207,8 +207,12 @@ nrows : int, default ``None``
   Number of rows of file to read. Useful for reading pieces of large files.
 low_memory : boolean, default ``True``
   Internally process the file in chunks, resulting in lower memory use
-  while parsing, but possibly mixed type inference.  To ensure no mixed
-  types either set ``False``, or specify the type with the ``dtype`` parameter.
+  while parsing. A column whose chunks infer different types is re-read in
+  one pass, so the result matches ``low_memory=False``, using at least as much
+  memory and reading the source again (a second download for a remote file);
+  where it cannot be re-read, its chunks are concatenated instead,
+  which can silently lose precision or mix types with a ``DtypeWarning``.
+  Specify the type with the ``dtype`` parameter to avoid both.
   Note that the entire file is read into a single ``DataFrame`` regardless,
   use the ``chunksize`` or ``iterator`` parameter to return the data in chunks.
   (Only valid with C parser)
@@ -3725,6 +3729,25 @@ engine. For this, it is important to know which function pandas is using interna
 * For the engine xlsxwriter, pandas is using :func:`xlsxwriter.Workbook` to write to (``.xlsx``) files.
 
 * For the engine odf, pandas is using :func:`odf.opendocument.OpenDocumentSpreadsheet` to write to (``.ods``) files.
+
+.. warning::
+
+   The openpyxl and xlsxwriter engines write strings starting with ``=`` as
+   formulas, which Excel evaluates when the file is opened. Writing untrusted
+   data this way can lead to formula injection, and such strings do not
+   round-trip through :func:`read_excel`. xlsxwriter can write them as text
+   instead (openpyxl has no equivalent option), though it still writes
+   ``{=...}`` strings as array formulas; pass the option where the writer is
+   created:
+
+   .. code-block:: python
+
+      with pd.ExcelWriter(
+          "path_to_file.xlsx",
+          engine="xlsxwriter",
+          engine_kwargs={"options": {"strings_to_formulas": False}},
+      ) as writer:
+          df.to_excel(writer)
 
 Writing Excel files to memory
 +++++++++++++++++++++++++++++

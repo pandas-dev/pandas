@@ -784,14 +784,14 @@ class TestPeriodMethods:
     def test_to_timestamp(self):
         p = pd.Period("1982", freq="Y")
         start_ts = p.to_timestamp(how="S")
-        aliases = ["s", "StarT", "BEGIn"]
+        aliases = ["s", "StarT", "START"]
         for a in aliases:
             assert start_ts == p.to_timestamp("D", how=a)
             # freq with mult should not affect to the result
             assert start_ts == p.to_timestamp("3D", how=a)
 
         end_ts = p.to_timestamp(how="E")
-        aliases = ["e", "end", "FINIsH"]
+        aliases = ["e", "end", "EnD"]
         for a in aliases:
             assert end_ts == p.to_timestamp("D", how=a)
             assert end_ts == p.to_timestamp("3D", how=a)
