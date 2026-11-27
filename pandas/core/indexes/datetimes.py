@@ -1728,6 +1728,22 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             #  tz_localize leaves wall times unchanged, so freq survives unless
             #  we shifted nonexistent times or introduced NaTs.
             result._freq = freq
+        elif (
+            freq is not None
+            and isinstance(freq, Tick)
+            and not arr._hasna
+            and np.array_equal(
+                arr.asi8[1:] - arr.asi8[:-1],
+                self._data.asi8[1:] - self._data.asi8[:-1],
+            )
+        ):
+            # GH#36575 Tick freqs, unlike calendar ones, hold in absolute time
+            #  on tz-aware data (the mirror image of tz_convert's rule), so
+            #  tz_localize preserves the freq exactly when it leaves the
+            #  spacing between consecutive elements unchanged: no DST
+            #  transition in between, and no shifted nonexistent or
+            #  ambiguous time.
+            result._freq = freq
         return result
 
     def to_period(self, freq=None) -> PeriodIndex:
