@@ -31,6 +31,7 @@ import pandas._libs.window.aggregations as window_aggregations
 from pandas.compat._optional import import_optional_dependency
 from pandas.errors import DataError
 from pandas.util._decorators import set_module
+from pandas.util._validators import validate_bool_kwarg
 
 from pandas.core.dtypes.common import (
     ensure_float64,
@@ -1802,6 +1803,7 @@ class RollingAndExpandingMixin(BaseWindow):
         )
 
     def skew(self, numeric_only: bool = False, bias: bool = False):
+        validate_bool_kwarg(bias, "bias", none_allowed=False)
         window_func = partial(window_aggregations.roll_skew, bias=bias)
         return self._apply(
             window_func,
@@ -1817,6 +1819,7 @@ class RollingAndExpandingMixin(BaseWindow):
         ).pow(0.5)
 
     def kurt(self, numeric_only: bool = False, bias: bool = False):
+        validate_bool_kwarg(bias, "bias", none_allowed=False)
         window_func = partial(window_aggregations.roll_kurt, bias=bias)
         return self._apply(
             window_func,

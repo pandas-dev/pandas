@@ -374,3 +374,23 @@ def test_small_window_bias(sp_func, roll_func, window, min_periods, bias):
     else:
         expected = pd.Series([np.nan] * len(obj))
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("roll_func", ["skew", "kurt"])
+@pytest.mark.parametrize("bias", [None, "yes", 1])
+@pytest.mark.parametrize(
+    "windower",
+    [
+        lambda obj: obj.rolling(3),
+        lambda obj: obj.expanding(),
+        lambda obj: obj.groupby(level=0).rolling(3),
+        lambda obj: obj.groupby(level=0).expanding(),
+    ],
+)
+def test_bias_not_bool_raises(windower, bias, roll_func):
+    # GH#54556: a non-bool bias used to be taken for its truthiness, silently
+    #  returning the biased result for "yes" and the corrected one for None
+    ser = pd.Series([1.0, 2.0, 4.0, 7.0], index=[0, 0, 0, 0])
+    msg = 'For argument "bias" expected type bool'
+    with pytest.raises(ValueError, match=msg):
+        getattr(windower(ser), roll_func)(bias=bias)
