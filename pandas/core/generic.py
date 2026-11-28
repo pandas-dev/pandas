@@ -6727,6 +6727,12 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
             timezone-aware dtype will raise an exception.
             Use :meth:`Series.dt.tz_localize` instead.
 
+        Casting datetime64 data to ``str`` uses a format chosen from the values
+        rather than the unit. The time is omitted if all values are at midnight
+        (timezone-naive data only), and fractional seconds are shown with the
+        fewest digits (0, 3, 6 or 9) that represent every value exactly. Use
+        :meth:`Series.dt.strftime` for a fixed format.
+
         Examples
         --------
         Create a DataFrame:
@@ -6790,6 +6796,22 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
         1   2020-01-02
         2   2020-01-03
         dtype: datetime64[us]
+
+        Cast to ``str``. The time is omitted because all values are at midnight:
+
+        >>> ser_date.astype(str)
+        0    2020-01-01
+        1    2020-01-02
+        2    2020-01-03
+        dtype: str
+
+        Use :meth:`Series.dt.strftime` for a fixed format:
+
+        >>> ser_date.dt.strftime("%Y-%m-%d %H:%M:%S")
+        0    2020-01-01 00:00:00
+        1    2020-01-02 00:00:00
+        2    2020-01-03 00:00:00
+        dtype: str
         """
         self._check_copy_deprecation(copy)
         if is_dict_like(dtype):
