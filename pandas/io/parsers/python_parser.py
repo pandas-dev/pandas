@@ -1190,6 +1190,8 @@ class PythonParser(ParserBase):
                 next_line is not None
                 and self.header is not None
                 and index_col is not False
+                # a blank row carries no index names, so it stays data (GH#72413)
+                and not self._is_line_empty(line)
             ):
                 if len(next_line) == len(line) + self.num_original_columns:
                     # column and index names on diff rows
