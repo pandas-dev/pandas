@@ -2340,11 +2340,8 @@ class MultiIndex(Index):
         See Also
         --------
         MultiIndex.from_tuples : Convert flat index back to MultiIndex.
-
-        Notes
-        -----
-        This method will simply return the caller if called by anything other
-        than a MultiIndex.
+        Index.to_flat_index : Same method on a regular Index, which returns
+            the Index unchanged.
 
         Examples
         --------

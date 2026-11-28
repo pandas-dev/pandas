@@ -1744,19 +1744,34 @@ class Index(IndexOpsMixin, PandasObject):
 
     def to_flat_index(self) -> Self:
         """
-        Identity method.
+        Return the Index unchanged, since it is already flat.
 
-        This is implemented for compatibility with subclass implementations
-        when chaining.
+        An ``Index`` has a single level, so there is nothing to flatten. This
+        method exists so that code can call ``to_flat_index`` on any index,
+        for example on ``df.columns``, without checking whether it is a
+        ``MultiIndex`` first.
 
         Returns
         -------
-        pd.Index
-            Caller.
+        Index
+            The caller itself, not a copy.
 
         See Also
         --------
-        MultiIndex.to_flat_index : Subclass implementation.
+        MultiIndex.to_flat_index : Convert a MultiIndex to an Index of tuples.
+
+        Examples
+        --------
+        >>> idx = pd.Index(["a", "b", "c"])
+        >>> idx.to_flat_index()
+        Index(['a', 'b', 'c'], dtype='str')
+
+        The same call works on a ``MultiIndex``, where it flattens the levels
+        into tuples:
+
+        >>> mi = pd.MultiIndex.from_arrays([["a", "b"], [1, 2]])
+        >>> mi.to_flat_index()
+        Index([('a', 1), ('b', 2)], dtype='object')
         """
         return self
 
