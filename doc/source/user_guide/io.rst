@@ -97,6 +97,17 @@ header : int or list of ints, default ``'infer'``
 names : array-like, default ``None``
   List of column names to use. If file contains no header row, then you should
   explicitly pass ``header=None``. Duplicates in this list are not allowed.
+
+  .. deprecated:: 3.2.0
+     Set the labels on the result instead, e.g. ``df.columns = names``,
+     passing ``header=None`` if the data has no header row and keying
+     options such as ``dtype`` or ``usecols`` by column position.
+
+ncols : int, default ``None``
+  Number of fields in each row; shorter rows are padded with ``NaN``.
+  Requires ``header=None``. See :ref:`io.bad_lines`.
+
+  .. versionadded:: 3.2.0
 index_col : int, str, sequence of int / str, or False, optional, default ``None``
   Column(s) to use as the row labels of the ``DataFrame``, either given as
   string name or column index. If a sequence of int / str is given, a
@@ -552,15 +563,18 @@ used as the column names:
     print(data)
     pd.read_csv(StringIO(data))
 
-By specifying the ``names`` argument in conjunction with ``header`` you can
-indicate other names to use and whether or not to throw away the header row (if
-any):
+To use other column labels, set them on the result. ``header=None`` reads the
+header row as data instead:
 
 .. ipython:: python
 
     print(data)
-    pd.read_csv(StringIO(data), names=["foo", "bar", "baz"], header=0)
-    pd.read_csv(StringIO(data), names=["foo", "bar", "baz"], header=None)
+    df = pd.read_csv(StringIO(data))
+    df.columns = ["foo", "bar", "baz"]
+    df
+    df = pd.read_csv(StringIO(data), header=None)
+    df.columns = ["foo", "bar", "baz"]
+    df
 
 If the header is in a row other than the first, pass the row number to
 ``header``. This will skip the preceding rows:
@@ -1156,12 +1170,13 @@ data that appear in some lines but not others:
    pd.read_csv(StringIO(data), usecols=[0, 1, 2])
 
 In case you want to keep all data including the lines with too many fields, you can
-specify a sufficient number of ``names``. This ensures that lines with not enough
-fields are filled with ``NaN``.
+pass ``header=None`` and a sufficient ``ncols``. Lines with fewer fields are filled
+with ``NaN``.
 
 .. ipython:: python
 
-   pd.read_csv(StringIO(data), names=['a', 'b', 'c', 'd'])
+   data = "1,2,3\n4,5,6,7\n8,9,10"
+   pd.read_csv(StringIO(data), header=None, ncols=4)
 
 .. _io.dialect:
 

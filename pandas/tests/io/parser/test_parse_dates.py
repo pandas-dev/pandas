@@ -29,6 +29,11 @@ from pandas.core.tools.datetimes import start_caching_at
 
 from pandas.io.parsers import read_csv
 
+# GH#72210 these tests still exercise the deprecated 'names' argument
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:The 'names' argument is deprecated:pandas.errors.Pandas4Warning"
+)
+
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
 
@@ -595,18 +600,13 @@ def test_missing_parse_dates_column_raises(
         )
 
 
-@xfail_pyarrow  # names shorter than columns produces wrong shape (not parse_dates)
 def test_date_parser_and_names(all_parsers):
     # GH#33699
     parser = all_parsers
     data = StringIO("""x,y\n1,2""")
-    warn = UserWarning
-    if parser.engine == "pyarrow":
-        # Pandas4Warning for passing a Manager object
-        warn = (UserWarning, Pandas4Warning)
     result = parser.read_csv_check_warnings(
-        warn,
-        "Could not infer format",
+        (UserWarning, Pandas4Warning),
+        ("Could not infer format", "'names' argument is deprecated"),
         data,
         parse_dates=["B"],
         names=["B"],

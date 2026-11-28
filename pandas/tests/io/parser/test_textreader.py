@@ -25,6 +25,11 @@ from pandas.io.parsers import (
 )
 from pandas.io.parsers.c_parser_wrapper import ensure_dtype_objs
 
+# GH#72210 these tests still exercise the deprecated 'names' argument
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:The 'names' argument is deprecated:pandas.errors.Pandas4Warning"
+)
+
 # The only non-test way that TextReader gets called has na_valuess and na_fvalues
 #  either both-sets or both dicts, and the code assumes this is the case.
 #  But the default argument in its __init__ is None, so we have to pass these

@@ -261,8 +261,7 @@ class ReadCSVDInferDatetimeFormat(StringIORewind):
         read_csv(
             self.data(self.StringIO_input),
             header=None,
-            names=["foo"],
-            parse_dates=["foo"],
+            parse_dates=[0],
         )
 
 
@@ -277,8 +276,7 @@ class ReadCSVConcatDatetime(StringIORewind):
         read_csv(
             self.data(self.StringIO_input),
             header=None,
-            names=["foo"],
-            parse_dates=["foo"],
+            parse_dates=[0],
         )
 
 
@@ -293,8 +291,7 @@ class ReadCSVConcatDatetimeBadDateValue(StringIORewind):
         read_csv(
             self.data(self.StringIO_input),
             header=None,
-            names=["foo", "bar"],
-            parse_dates=["foo"],
+            parse_dates=[0],
         )
 
 
@@ -332,15 +329,13 @@ class ReadUint64Integers(StringIORewind):
         self.data2 = StringIO("\n".join(arr.astype(str).tolist()))
 
     def time_read_uint64(self):
-        read_csv(self.data(self.data1), header=None, names=["foo"])
+        read_csv(self.data(self.data1), header=None)
 
     def time_read_uint64_neg_values(self):
-        read_csv(self.data(self.data2), header=None, names=["foo"])
+        read_csv(self.data(self.data2), header=None)
 
     def time_read_uint64_na_values(self):
-        read_csv(
-            self.data(self.data1), header=None, names=["foo"], na_values=self.na_values
-        )
+        read_csv(self.data(self.data1), header=None, na_values=self.na_values)
 
 
 class ReadCSVThousands(BaseIO):
@@ -372,9 +367,7 @@ class ReadCSVComment(StringIORewind):
         self.StringIO_input = StringIO("\n".join(data))
 
     def time_comment(self, engine):
-        read_csv(
-            self.data(self.StringIO_input), comment="#", header=None, names=list("abc")
-        )
+        read_csv(self.data(self.StringIO_input), comment="#", header=None)
 
 
 class ReadCSVFloatPrecision(StringIORewind):
@@ -396,7 +389,6 @@ class ReadCSVFloatPrecision(StringIORewind):
             self.data(self.StringIO_input),
             sep=sep,
             header=None,
-            names=list("abc"),
             float_precision=float_precision,
         )
 
@@ -407,7 +399,6 @@ class ReadCSVFloatPrecision(StringIORewind):
             header=None,
             engine="python",
             float_precision=None,
-            names=list("abc"),
         )
 
 
@@ -432,7 +423,7 @@ class ReadCSVInts(StringIORewind):
         self.StringIO_input = StringIO(data)
 
     def time_read_csv(self, num_digits, negative):
-        read_csv(self.data(self.StringIO_input), header=None, names=list("abc"))
+        read_csv(self.data(self.StringIO_input), header=None)
 
 
 class ReadCSVEngine(StringIORewind):
@@ -495,7 +486,6 @@ class ReadCSVParseDates(StringIORewind):
             sep=",",
             header=None,
             parse_dates=[1],
-            names=list(string.digits[:9]),
         )
 
 
@@ -561,8 +551,7 @@ class ReadCSVParseSpecialDate(StringIORewind):
             engine=engine,
             sep=",",
             header=None,
-            names=["Date"],
-            parse_dates=["Date"],
+            parse_dates=[0],
         )
 
 
@@ -608,8 +597,7 @@ class ParseDateComparison(StringIORewind):
                 self.data(self.StringIO_input),
                 sep=",",
                 header=None,
-                names=["Date"],
-                parse_dates=["Date"],
+                parse_dates=[0],
                 cache_dates=cache_dates,
                 dayfirst=True,
             )
@@ -618,16 +606,12 @@ class ParseDateComparison(StringIORewind):
             pass
 
     def time_to_datetime_dayfirst(self, cache_dates):
-        df = read_csv(
-            self.data(self.StringIO_input), dtype={"date": str}, names=["date"]
-        )
-        to_datetime(df["date"], cache=cache_dates, dayfirst=True)
+        df = read_csv(self.data(self.StringIO_input), header=None, dtype={0: str})
+        to_datetime(df[0], cache=cache_dates, dayfirst=True)
 
     def time_to_datetime_format_DD_MM_YYYY(self, cache_dates):
-        df = read_csv(
-            self.data(self.StringIO_input), dtype={"date": str}, names=["date"]
-        )
-        to_datetime(df["date"], cache=cache_dates, format="%d-%m-%Y")
+        df = read_csv(self.data(self.StringIO_input), header=None, dtype={0: str})
+        to_datetime(df[0], cache=cache_dates, format="%d-%m-%Y")
 
 
 class ReadCSVIndexCol(StringIORewind):

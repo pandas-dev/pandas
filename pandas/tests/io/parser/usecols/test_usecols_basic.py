@@ -13,6 +13,11 @@ from pandas.errors import ParserError
 import pandas as pd
 import pandas._testing as tm
 
+# GH#72210 these tests still exercise the deprecated 'names' argument
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:The 'names' argument is deprecated:pandas.errors.Pandas4Warning"
+)
+
 _msg_validate_usecols_arg = (
     "'usecols' must either be list-like "
     "of all strings, all unicode, all "

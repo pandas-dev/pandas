@@ -32,9 +32,15 @@ from pandas.io.excel._util import _writers
 
 # Roundtrip tests read xlsx/xlsm back with the default engine; the pending
 # calamine-default change (GH#56542) is not what these tests exercise.
-pytestmark = pytest.mark.filterwarnings(
-    "ignore:The default engine for reading:pandas.errors.Pandas4Warning"
-)
+pytestmark = [
+    pytest.mark.filterwarnings(
+        "ignore:The default engine for reading:pandas.errors.Pandas4Warning"
+    ),
+    # GH#72210 these tests still exercise the deprecated 'names' argument
+    pytest.mark.filterwarnings(
+        "ignore:The 'names' argument is deprecated:pandas.errors.Pandas4Warning"
+    ),
+]
 
 
 def get_exp_unit(path: str) -> str:

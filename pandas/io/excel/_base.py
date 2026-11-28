@@ -255,6 +255,11 @@ def read_excel(
     names : array-like, default None
         List of column names to use. If file contains no header row,
         then you should explicitly pass header=None.
+
+        .. deprecated:: 3.2.0
+            Set the labels on the result instead, e.g. ``df.columns = names``,
+            keying options such as ``dtype`` or ``usecols`` by column position.
+
     index_col : int, str, list of int, default None
         Column (0-indexed) to use as the row labels of the DataFrame.
         Pass None if there is no such column.  If a list is passed,
@@ -513,6 +518,16 @@ def read_excel(
     2     None    NaN
     """
     check_dtype_backend(dtype_backend)
+    if names is not None:
+        # GH#72210
+        warnings.warn(
+            "The 'names' argument is deprecated and will be removed in a future "
+            "version. Set the labels on the result instead, e.g. "
+            "`df.columns = names`, keying options such as dtype or usecols by "
+            "column position.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
     should_close = False
     if engine_kwargs is None:
         engine_kwargs = {}

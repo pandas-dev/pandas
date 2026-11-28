@@ -23,6 +23,11 @@ from pandas.io.parsers import (
     read_fwf,
 )
 
+# GH#72210 these tests still exercise the deprecated 'names' argument
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:The 'names' argument is deprecated:pandas.errors.Pandas4Warning"
+)
+
 
 def test_basic():
     data = """\

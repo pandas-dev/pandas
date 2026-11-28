@@ -27,6 +27,7 @@ from pandas.compat import (
 )
 from pandas.errors import (
     EmptyDataError,
+    Pandas4Warning,
     ParserError,
     ParserWarning,
 )
@@ -35,6 +36,11 @@ import pandas as pd
 import pandas._testing as tm
 
 from pandas.io.parsers.readers import _bool_kwargs as parser_bool_kwargs
+
+# GH#72210 these tests still exercise the deprecated 'names' argument
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:The 'names' argument is deprecated:pandas.errors.Pandas4Warning"
+)
 
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
@@ -862,9 +868,12 @@ def test_no_header_two_extra_columns(all_parsers):
     stream = StringIO("foo,bar,baz,bam,blah")
     parser = all_parsers
     df = parser.read_csv_check_warnings(
-        ParserWarning,
-        "Length of header or names does not match length of data. "
-        "This leads to a loss of data with index_col=False.",
+        (ParserWarning, Pandas4Warning),
+        (
+            "Length of header or names does not match length of data. "
+            "This leads to a loss of data with index_col=False.",
+            "'names' argument is deprecated",
+        ),
         stream,
         header=None,
         names=column_names,

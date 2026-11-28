@@ -14,6 +14,11 @@ from pandas.errors import ParserError
 import pandas as pd
 import pandas._testing as tm
 
+# GH#72210 these tests still exercise the deprecated 'names' argument
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:The 'names' argument is deprecated:pandas.errors.Pandas4Warning"
+)
+
 if PY314:
     # TODO: write a regex that works with all new possitibilities here
     MSG1 = ""

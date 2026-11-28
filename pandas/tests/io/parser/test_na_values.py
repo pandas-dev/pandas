@@ -13,6 +13,11 @@ from pandas._libs.parsers import STR_NA_VALUES
 import pandas as pd
 import pandas._testing as tm
 
+# GH#72210 these tests still exercise the deprecated 'names' argument
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:The 'names' argument is deprecated:pandas.errors.Pandas4Warning"
+)
+
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
 

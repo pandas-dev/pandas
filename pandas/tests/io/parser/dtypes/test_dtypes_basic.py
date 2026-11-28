@@ -23,6 +23,11 @@ from pandas.core.arrays import IntegerArray
 
 from pandas.io.parsers.base_parser import wrap_object_columns
 
+# GH#72210 these tests still exercise the deprecated 'names' argument
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:The 'names' argument is deprecated:pandas.errors.Pandas4Warning"
+)
+
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 
 

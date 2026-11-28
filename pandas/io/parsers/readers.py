@@ -181,8 +181,13 @@ if TYPE_CHECKING:
         storage_options: StorageOptions | None
         dtype_backend: DtypeBackend | lib.NoDefault
 
+    class _read_csv_shared(_read_shared[HashableT, HashableT2], total=False):
+        # read_fwf rejects ncols
+        ncols: int | None
+
 else:
     _read_shared = dict
+    _read_csv_shared = dict
 
 
 class _C_Parser_Defaults(TypedDict):
@@ -422,6 +427,43 @@ def _read(
             stacklevel=find_stack_level(),
         )
 
+    names = kwds.get("names")
+    if names is not None and names is not lib.no_default:
+        # GH#72210
+        header = kwds.get("header", "infer")
+        header_inferred = isinstance(header, str) and header == "infer"
+        if header_inferred:
+            # without names, header="infer" reads the first row as the header
+            recipe = "Pass header=None and set the labels on the result instead"
+        else:
+            recipe = "Set the labels on the result instead"
+        msg = (
+            "The 'names' argument is deprecated and will be removed in a future "
+            f"version. {recipe}, e.g. `df.columns = names`, keying options such "
+            "as dtype or usecols by column position."
+        )
+        # ncols needs header=None and is not supported by these engines
+        if (header_inferred or header is None) and kwds.get("engine") not in (
+            "pyarrow",
+            "python-fwf",
+        ):
+            msg += " To read rows with differing numbers of fields, use 'ncols'."
+        warnings.warn(msg, Pandas4Warning, stacklevel=find_stack_level())
+
+    ncols = kwds.pop("ncols", None)
+    if ncols is not None:
+        if names is not None and names is not lib.no_default:
+            raise ValueError("Cannot specify both 'names' and 'ncols'.")
+        if kwds.get("header", "infer") is not None:
+            raise ValueError("'ncols' requires header=None.")
+        if kwds.get("engine") == "pyarrow":
+            raise ValueError(
+                "The 'ncols' option is not supported with the 'pyarrow' engine"
+            )
+        ncols = validate_integer("ncols", ncols, 1)
+        # range(ncols) pads short rows, as names would
+        kwds["names"] = range(ncols)
+
     # For large local uncompressed files with the C engine, attempt parallel reading.
     # Each worker gets its own view of the mmapped file and its own TextReader so
     # the GIL-free tokenisation and type-conversion code in parsers.pyx runs truly
@@ -446,6 +488,14 @@ def _read(
 
     # Create the parser.
     parser = TextFileReader(filepath_or_buffer, **kwds)
+
+    if ncols is not None and parser._engine._implicit_index:
+        # names=range(ncols) would make the extra leading fields an index
+        parser.close()
+        raise ParserError(
+            f"Expected {ncols} fields in the first row, saw more. "
+            "Pass a larger 'ncols'."
+        )
 
     if chunksize or iterator:
         return parser
@@ -1362,7 +1412,7 @@ def read_csv(
     *,
     iterator: Literal[True],
     chunksize: int | None = ...,
-    **kwds: Unpack[_read_shared[HashableT, HashableT2]],
+    **kwds: Unpack[_read_csv_shared[HashableT, HashableT2]],
 ) -> TextFileReader: ...
 
 
@@ -1372,7 +1422,7 @@ def read_csv(
     *,
     iterator: bool = ...,
     chunksize: int,
-    **kwds: Unpack[_read_shared[HashableT, HashableT2]],
+    **kwds: Unpack[_read_csv_shared[HashableT, HashableT2]],
 ) -> TextFileReader: ...
 
 
@@ -1382,7 +1432,7 @@ def read_csv(
     *,
     iterator: Literal[False] = ...,
     chunksize: None = ...,
-    **kwds: Unpack[_read_shared[HashableT, HashableT2]],
+    **kwds: Unpack[_read_csv_shared[HashableT, HashableT2]],
 ) -> DataFrame: ...
 
 
@@ -1392,7 +1442,7 @@ def read_csv(
     *,
     iterator: bool = ...,
     chunksize: int | None = ...,
-    **kwds: Unpack[_read_shared[HashableT, HashableT2]],
+    **kwds: Unpack[_read_csv_shared[HashableT, HashableT2]],
 ) -> DataFrame | TextFileReader: ...
 
 
@@ -1405,6 +1455,7 @@ def read_csv(
     # Column and Index Locations and Names
     header: int | Sequence[int] | Literal["infer"] | None = "infer",
     names: Sequence[Hashable] | lib.NoDefault | None = lib.no_default,
+    ncols: int | None = None,
     index_col: IndexLabel | Literal[False] | None = None,
     usecols: UsecolsArgType[HashableT2] = None,
     # General Parsing Configuration
@@ -1523,6 +1574,19 @@ def read_csv(
         Sequence of column labels to apply. If the file contains a header row,
         then you should explicitly pass ``header=0`` to override the column names.
         Duplicates in this list are not allowed.
+
+        .. deprecated:: 3.2.0
+            Set the labels on the result instead, e.g. ``df.columns = names``,
+            passing ``header=None`` if the data has no header row and keying
+            options such as ``dtype`` or ``usecols`` by column position. To read
+            rows with differing numbers of fields, use ``ncols``.
+
+    ncols : int, optional
+        Number of fields in each row; shorter rows are padded with missing
+        values. Requires ``header=None``; the columns are labelled ``0`` to
+        ``ncols - 1``.
+
+        .. versionadded:: 3.2.0
     index_col : Hashable, Sequence of Hashable or False, optional
         Column(s) to use as row label(s), denoted either by column labels or column
         indices.  If a sequence of labels or indices is given,
@@ -1864,8 +1928,7 @@ def read_csv(
     Notes
     -----
     Column labels read from a header row are always strings. To use column
-    labels of another type, pass them explicitly with ``names`` and set
-    ``header=0`` when the file contains a header row.
+    labels of another type, set them on the result, e.g. ``df.columns = [1, 2]``.
 
     Sufficiently large local uncompressed files read with the C engine may be
     parsed by multiple threads in parallel.  Use the ``mode.max_threads``
@@ -1977,7 +2040,7 @@ def read_table(
     *,
     iterator: Literal[True],
     chunksize: int | None = ...,
-    **kwds: Unpack[_read_shared[HashableT, HashableT2]],
+    **kwds: Unpack[_read_csv_shared[HashableT, HashableT2]],
 ) -> TextFileReader: ...
 
 
@@ -1987,7 +2050,7 @@ def read_table(
     *,
     iterator: bool = ...,
     chunksize: int,
-    **kwds: Unpack[_read_shared[HashableT, HashableT2]],
+    **kwds: Unpack[_read_csv_shared[HashableT, HashableT2]],
 ) -> TextFileReader: ...
 
 
@@ -1997,7 +2060,7 @@ def read_table(
     *,
     iterator: Literal[False] = ...,
     chunksize: None = ...,
-    **kwds: Unpack[_read_shared[HashableT, HashableT2]],
+    **kwds: Unpack[_read_csv_shared[HashableT, HashableT2]],
 ) -> DataFrame: ...
 
 
@@ -2007,7 +2070,7 @@ def read_table(
     *,
     iterator: bool = ...,
     chunksize: int | None = ...,
-    **kwds: Unpack[_read_shared[HashableT, HashableT2]],
+    **kwds: Unpack[_read_csv_shared[HashableT, HashableT2]],
 ) -> DataFrame | TextFileReader: ...
 
 
@@ -2020,6 +2083,7 @@ def read_table(
     # Column and Index Locations and Names
     header: int | Sequence[int] | Literal["infer"] | None = "infer",
     names: Sequence[Hashable] | lib.NoDefault | None = lib.no_default,
+    ncols: int | None = None,
     index_col: IndexLabel | Literal[False] | None = None,
     usecols: UsecolsArgType[HashableT2] = None,
     # General Parsing Configuration
@@ -2138,6 +2202,19 @@ def read_table(
         Sequence of column labels to apply. If the file contains a header row,
         then you should explicitly pass ``header=0`` to override the column names.
         Duplicates in this list are not allowed.
+
+        .. deprecated:: 3.2.0
+            Set the labels on the result instead, e.g. ``df.columns = names``,
+            passing ``header=None`` if the data has no header row and keying
+            options such as ``dtype`` or ``usecols`` by column position. To read
+            rows with differing numbers of fields, use ``ncols``.
+
+    ncols : int, optional
+        Number of fields in each row; shorter rows are padded with missing
+        values. Requires ``header=None``; the columns are labelled ``0`` to
+        ``ncols - 1``.
+
+        .. versionadded:: 3.2.0
     index_col : Hashable, Sequence of Hashable or False, optional
         Column(s) to use as row label(s), denoted either by column labels or column
         indices.  If a sequence of labels or indices is given,
@@ -2475,8 +2552,7 @@ def read_table(
     Notes
     -----
     Column labels read from a header row are always strings. To use column
-    labels of another type, pass them explicitly with ``names`` and set
-    ``header=0`` when the file contains a header row.
+    labels of another type, set them on the result, e.g. ``df.columns = [1, 2]``.
 
     Examples
     --------
@@ -2696,7 +2772,8 @@ def read_fwf(
     >>> pd.read_fwf("data.csv")  # doctest: +SKIP
     """
     for key in kwds:
-        if key not in _READ_CSV_KWARGS:
+        # read_fwf pads short rows without ncols
+        if key not in _READ_CSV_KWARGS or key == "ncols":
             raise TypeError(f"read_fwf() got an unexpected keyword argument '{key}'")
 
     # Check input arguments.

@@ -9,10 +9,18 @@ from io import StringIO
 import numpy as np
 import pytest
 
-from pandas.errors import ParserError
+from pandas.errors import (
+    Pandas4Warning,
+    ParserError,
+)
 
 import pandas as pd
 import pandas._testing as tm
+
+# GH#72210 these tests still exercise the deprecated 'names' argument
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:The 'names' argument is deprecated:pandas.errors.Pandas4Warning"
+)
 
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
@@ -836,3 +844,77 @@ b,j,y
     )
     expected = pd.DataFrame([["a", "i"], ["b", "j"]], dtype="string[pyarrow]")
     tm.assert_frame_equal(result, expected)
+
+
+def test_names_deprecated(all_parsers):
+    # GH#72210
+    parser = all_parsers
+    msg = "The 'names' argument is deprecated"
+    if parser.engine == "pyarrow":
+        msg += r".*by column position\.$"
+    else:
+        msg += ".*use 'ncols'"
+    expected = pd.DataFrame({"a": [1], "b": [2]})
+
+    result = parser.read_csv_check_warnings(
+        Pandas4Warning, msg, StringIO("1,2"), names=["a", "b"]
+    )
+    tm.assert_frame_equal(result, expected)
+
+    result = parser.read_table_check_warnings(
+        Pandas4Warning, msg, StringIO("1\t2"), names=["a", "b"]
+    )
+    tm.assert_frame_equal(result, expected)
+
+    result = parser.read_csv_check_warnings(
+        Pandas4Warning, msg, StringIO("1,2"), names=["a", "b"], header=None
+    )
+    tm.assert_frame_equal(result, expected)
+
+    with tm.assert_produces_warning(None):
+        result = parser.read_csv(StringIO("a,b\n1,2"), names=None)
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "data, kwargs, advised, msg",
+    [
+        (
+            "1,2\n3,4",
+            {"dtype": {"a": str}},
+            {"header": None, "dtype": {0: str}},
+            "Pass header=None and set the labels",
+        ),
+        # an explicit header gets no ncols suggestion, as ncols needs header=None
+        (
+            "x,y\n1,2\n3,4",
+            {"header": 0, "dtype": {"a": str}},
+            {"header": 0, "dtype": {0: str}},
+            r"version\. Set the labels.*by column position\.$",
+        ),
+    ],
+)
+def test_names_deprecated_recipe(all_parsers, data, kwargs, advised, msg, request):
+    # GH#72210 following the warning's advice gives the same result
+    parser = all_parsers
+    if parser.engine == "pyarrow" and advised["header"] == 0:
+        request.applymarker(
+            pytest.mark.xfail(
+                reason="pyarrow ignores positional dtype keys", strict=True
+            )
+        )
+    expected = parser.read_csv_check_warnings(
+        Pandas4Warning, msg, StringIO(data), names=["a", "b"], **kwargs
+    )
+    result = parser.read_csv(StringIO(data), **advised)
+    result.columns = ["a", "b"]
+    tm.assert_frame_equal(result, expected)
+
+
+def test_read_fwf_names_deprecated():
+    # GH#72210
+    # read_fwf rejects ncols, so the message does not suggest it
+    msg = r"The 'names' argument is deprecated.*by column position\.$"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = pd.read_fwf(StringIO("1 2"), names=["a", "b"])
+    tm.assert_frame_equal(result, pd.DataFrame({"a": [1], "b": [2]}))

@@ -930,7 +930,9 @@ class TestDataFrameToString:
         lines = result.split("\n")
         header = lines[0].strip().split()
         joined = "\n".join([re.sub(r"\s+", " ", x).strip() for x in lines[1:]])
-        recons = pd.read_csv(StringIO(joined), names=header, header=None, sep=" ")
+        recons = pd.read_csv(StringIO(joined), header=None, sep=" ", index_col=0)
+        recons.index.name = None
+        recons.columns = header
         tm.assert_series_equal(recons["B"], biggie["B"])
         assert recons["A"].count() == biggie["A"].count()
         assert (np.abs(recons["A"].dropna() - biggie["A"].dropna()) < 0.1).all()

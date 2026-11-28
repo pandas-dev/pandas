@@ -19,6 +19,11 @@ from pandas.errors import ParserWarning
 import pandas as pd
 import pandas._testing as tm
 
+# GH#72210 these tests still exercise the deprecated 'names' argument
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:The 'names' argument is deprecated:pandas.errors.Pandas4Warning"
+)
+
 skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
 
 

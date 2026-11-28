@@ -25,6 +25,11 @@ import pandas._testing as tm
 
 import pandas.io.excel._base as _excel_base
 
+# GH#72210 these tests still exercise the deprecated 'names' argument
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:The 'names' argument is deprecated:pandas.errors.Pandas4Warning"
+)
+
 read_ext_params = [".xls", ".xlsx", ".xlsm", ".xlsb", ".ods"]
 engine_params = [
     # Add any engines to test here
@@ -188,6 +193,17 @@ def test_read_excel_default_engine_deprecated(datapath, ext):
     with pd.option_context("io.excel.xlsx.reader", "openpyxl"):
         with tm.assert_produces_warning(None):
             pd.read_excel(path)
+
+
+@td.skip_if_no("openpyxl")
+def test_read_excel_names_deprecated(tmp_path):
+    # GH#72210
+    path = tmp_path / "names.xlsx"
+    pd.DataFrame([[1, 2]]).to_excel(path, header=False, index=False)
+    msg = "The 'names' argument is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = pd.read_excel(path, header=None, names=["x", "y"], engine="openpyxl")
+    tm.assert_frame_equal(result, pd.DataFrame({"x": [1], "y": [2]}))
 
 
 class TestReaders:

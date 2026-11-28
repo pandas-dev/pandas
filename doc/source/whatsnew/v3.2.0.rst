@@ -30,6 +30,7 @@ Other enhancements
 ^^^^^^^^^^^^^^^^^^
 - :class:`Series`, :class:`DataFrame`, :class:`Index`, and :class:`ExtensionArray` now support the ``minimummaximum`` ufunc reduction backing ``np.minmax`` (NumPy 2.6+), returning the same results as ``np.minimum.reduce`` and ``np.maximum.reduce`` (:issue:`71380`)
 - :func:`numpy.delete` on an :class:`ExtensionArray`, and :func:`numpy.concatenate` on :class:`ExtensionArray` objects of the same dtype, now return an :class:`ExtensionArray` of that dtype instead of a NumPy array (:issue:`26380`)
+- :func:`read_csv` and :func:`read_table` accept a new ``ncols`` argument that pads rows with fewer fields to that many columns (:issue:`72210`)
 - :func:`read_csv` and :func:`read_table` with ``sep=None`` now sniff the separator with the C engine instead of falling back to the slower python engine (:issue:`9645`)
 - :func:`read_csv` with the ``"c"`` and ``"python"`` engines now accepts a :class:`DatetimeTZDtype` in ``dtype`` (:issue:`24542`)
 - :meth:`.DataFrameGroupBy.cumsum`, :meth:`.DataFrameGroupBy.cumprod`, :meth:`.DataFrameGroupBy.cummin`, and :meth:`.DataFrameGroupBy.cummax` (and the :class:`.SeriesGroupBy` methods) now work on string, object, and pyarrow date and time data where the corresponding :class:`Series` method does, instead of raising ``TypeError`` (:issue:`49758`)
@@ -182,6 +183,7 @@ Other deprecations
 - Deprecated the ``closed`` keyword in :func:`timedelta_range`; use ``inclusive`` instead, which also accepts ``"neither"``, as in :func:`date_range` (:issue:`40245`)
 - Deprecated the ``columns`` keyword in :meth:`Series.drop`, which was silently ignored; use ``index`` or ``labels`` instead (:issue:`39509`)
 - Deprecated the ``include_start`` and ``include_end`` keywords in :meth:`DatetimeIndex.indexer_between_time`; use ``inclusive`` instead, as in :meth:`DataFrame.between_time` (:issue:`40245`)
+- Deprecated the ``names`` argument in :func:`read_csv`, :func:`read_table`, :func:`read_fwf`, and :func:`read_excel`; set the labels on the result instead, e.g. ``df.columns = names``, passing ``header=None`` if the data has no header row. To read rows with differing numbers of fields, use the new ``ncols`` argument of :func:`read_csv` and :func:`read_table` (:issue:`72210`)
 - Deprecated constructing a :class:`DataFrame` column, :class:`Index` or :func:`array` from a NumPy structured (compound) array, and casting to a compound dtype with :meth:`DataFrame.astype`, :meth:`Series.astype` or :func:`array`; these will raise in a future version, as the :class:`Series` constructor already does. Use ``pd.DataFrame(arr)`` for one column per field or ``arr.astype(object)`` for tuples (:issue:`4464`, :issue:`49388`, :issue:`60108`)
 - Deprecated the undocumented ``how="begin"`` and ``how="finish"`` aliases in :meth:`Period.asfreq`, :meth:`Period.to_timestamp`, and the ``asfreq`` and ``to_timestamp`` methods of other period-holding objects; use ``"start"`` and ``"end"`` instead (:issue:`49132`)
 

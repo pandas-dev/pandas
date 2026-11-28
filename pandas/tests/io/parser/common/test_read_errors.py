@@ -12,12 +12,18 @@ import pytest
 
 from pandas.errors import (
     EmptyDataError,
+    Pandas4Warning,
     ParserError,
     ParserWarning,
 )
 
 import pandas as pd
 import pandas._testing as tm
+
+# GH#72210 these tests still exercise the deprecated 'names' argument
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:The 'names' argument is deprecated:pandas.errors.Pandas4Warning"
+)
 
 xfail_pyarrow = pytest.mark.usefixtures("pyarrow_xfail")
 skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
@@ -286,8 +292,11 @@ def test_index_col_false_bad_line_with_names(all_parsers):
     expected = pd.DataFrame({"x": [1, 4, 6], "y": [2, 5, 7]})
 
     result = parser.read_csv_check_warnings(
-        ParserWarning,
-        "Length of header or names does not match length of data",
+        (ParserWarning, Pandas4Warning),
+        (
+            "Length of header or names does not match length of data",
+            "'names' argument is deprecated",
+        ),
         StringIO("hdr\na,b\n1,2,3\n4,5\n6,7,8"),
         **kwargs,
     )
@@ -306,8 +315,11 @@ def test_index_col_false_single_data_row_with_names(all_parsers):
     expected = pd.DataFrame({"x": [1], "y": [2]})
 
     result = parser.read_csv_check_warnings(
-        ParserWarning,
-        "Length of header or names does not match length of data",
+        (ParserWarning, Pandas4Warning),
+        (
+            "Length of header or names does not match length of data",
+            "'names' argument is deprecated",
+        ),
         StringIO("a,b\n1,2,3\n"),
         **kwargs,
     )
@@ -326,8 +338,11 @@ def test_index_col_false_short_names_keep_header_width(all_parsers):
     expected = pd.DataFrame({"x": [1, 3], "y": [2, 4]})
 
     result = parser.read_csv_check_warnings(
-        ParserWarning,
-        "Length of header or names does not match length of data",
+        (ParserWarning, Pandas4Warning),
+        (
+            "Length of header or names does not match length of data",
+            "'names' argument is deprecated",
+        ),
         StringIO("a,b,c\n1,2\n3,4,5\n"),
         names=["x", "y"],
         header=0,

@@ -33,6 +33,11 @@ from pandas.errors import (
     ParserWarning,
 )
 
+# GH#72210 these tests still exercise the deprecated 'names' argument
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:The 'names' argument is deprecated:pandas.errors.Pandas4Warning"
+)
+
 if TYPE_CHECKING:
     from pathlib import Path
 
@@ -830,6 +835,29 @@ def test_read_csv_parallel_vs_serial_large_file(tmp_path, monkeypatch):
         parallel = pd.read_csv(path, engine="c")
     tm.assert_frame_equal(parallel, serial)
     assert outcomes == ["used"]
+
+
+@pytest.mark.skipif(WASM, reason="WASM stays serial, so the spy sees no call")
+def test_read_csv_parallel_ncols(tmp_path, monkeypatch):
+    # GH#72210
+    path = tmp_path / "ragged.csv"
+    path.write_text("1,2\n3,4,5\n" * 5000)
+    monkeypatch.setattr(_readers, "_PARALLEL_READ_MIN_BYTES", 1)
+
+    serial = pd.read_csv(path, header=None, ncols=3, engine="python")
+    outcomes = _track_parallel(monkeypatch)
+    with pd.option_context("mode.max_threads", 4):
+        parallel = pd.read_csv(path, header=None, ncols=3)
+    tm.assert_frame_equal(parallel, serial)
+    assert outcomes == ["used"]
+
+    # a wide first row falls back to the serial read, which raises
+    path.write_text("1,2,3,4\n" + "3,4,5\n" * 5000)
+    outcomes.clear()
+    with pd.option_context("mode.max_threads", 4):
+        with pytest.raises(ParserError, match="Expected 3 fields in the first row"):
+            pd.read_csv(path, header=None, ncols=3)
+    assert outcomes == ["declined"]
 
 
 @pytest.mark.parametrize("platform_name", ["linux", "darwin", "win32"])

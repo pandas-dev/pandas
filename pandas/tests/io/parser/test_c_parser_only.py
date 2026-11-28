@@ -34,6 +34,11 @@ import pandas.util._test_decorators as td
 import pandas as pd
 import pandas._testing as tm
 
+# GH#72210 these tests still exercise the deprecated 'names' argument
+pytestmark = pytest.mark.filterwarnings(
+    "ignore:The 'names' argument is deprecated:pandas.errors.Pandas4Warning"
+)
+
 
 @pytest.mark.parametrize(
     "malformed,expected_data",
@@ -111,7 +116,9 @@ nan 2
         warn_msg = "invalid value encountered in cast"
         with pytest.raises(ValueError, match="cannot safely convert"):
             with tm.assert_produces_warning(
-                RuntimeWarning, check_stacklevel=False, match=warn_msg
+                (RuntimeWarning, Pandas4Warning),
+                check_stacklevel=False,
+                match=(warn_msg, "'names' argument is deprecated"),
             ):
                 parser.read_csv(
                     StringIO(data),
