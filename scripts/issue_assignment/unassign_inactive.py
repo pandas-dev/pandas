@@ -14,7 +14,8 @@ Two commands:
   while a maintainer's changes-request is outstanding; whether it is stale is
   decided purely by the **author's own** activity, the warning-to-close
   countdown by the engine's own ``Stale`` label event. PRs from
-  owners/members/collaborators are never touched.
+  owners/members/collaborators, and from authors with triage-or-higher
+  access, are never touched.
 * ``pr-closed`` (the ``pull_request_target`` ``closed`` trigger) — when a
   *human* closes a ``Stale``-labeled PR, free its linked issues. (Auto-closes
   from the engine free issues inline, since a ``GITHUB_TOKEN`` close doesn't
@@ -139,6 +140,18 @@ def _stale_clock_anchor(
     return anchor
 
 
+def _has_triage_access(client: GitHubClient, author: str | None) -> bool:
+    """Whether ``author`` has triage-or-higher access to the repository.
+
+    ``GITHUB_TOKEN`` cannot see private org memberships, so a pandas-dev member
+    whose membership is private gets ``author_association`` ``CONTRIBUTOR``
+    and ``core.is_exempt`` does not exempt them. This costs one API request,
+    so callers check it only for a PR they are about to flag, mark stale, or
+    free issues for.
+    """
+    return author is not None and client.is_exempt_collaborator(author)
+
+
 def run_pr_stale_sweep(client: GitHubClient) -> None:
     """Mark/clear ``Stale`` and auto-close open PRs based on author inactivity."""
     now = datetime.now(UTC)  # noqa: TID251
@@ -164,7 +177,9 @@ def run_pr_stale_sweep(client: GitHubClient) -> None:
                 pr["linked_issues"],
             )
             gate_action = core.gate_action(decision, gated, close_assigned_other=False)
-            if gate_action == "clear_label":
+            if gate_action == "flag" and _has_triage_access(client, author):
+                exempt = True
+            elif gate_action == "clear_label":
                 client.remove_label(number, core.GATE_LABEL)
                 gated = False
             elif gate_action == "flag":
@@ -183,6 +198,8 @@ def run_pr_stale_sweep(client: GitHubClient) -> None:
             changes_requested_at,
             core.latest_rereview_request_at(pr["review_requests"], contributors),
         )
+        if subject and _has_triage_access(client, author):
+            subject = False
         anchor = (
             _stale_clock_anchor(
                 client,
@@ -227,6 +244,8 @@ def run_pr_closed(client: GitHubClient, event: dict[str, Any]) -> None:
         return
     labels = [label["name"] for label in pr.get("labels", [])]
     if core.STALE_LABEL not in labels:
+        return
+    if _has_triage_access(client, pr["user"]["login"]):
         return
     free_linked_issues(client, pr["number"], pr["user"]["login"])
 

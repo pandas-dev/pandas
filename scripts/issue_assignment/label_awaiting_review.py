@@ -7,7 +7,8 @@ approved PR (every standing maintainer verdict an approval, no review request
 pending) is awaiting merge instead and drops the label. (The
 awaiting-contributor state — not the label — is what exempts a PR from the
 stale engine in ``unassign_inactive``.) Exempt authors and gated PRs are
-skipped. Lagging reality by up to a day is harmless
+skipped, and the label is never added to a PR whose author has
+triage-or-higher access. Lagging reality by up to a day is harmless
 against the 14-day stale window; current labels are read alongside the review
 state so PRs already in the right state cost no write request.
 """
@@ -38,6 +39,8 @@ class SupportsLabelReconcile(Protocol):
 
     def remove_label(self, number: int, label: str) -> None: ...
 
+    def is_exempt_collaborator(self, username: str) -> bool: ...
+
 
 def reconcile_all(client: SupportsLabelReconcile) -> None:
     label = core.AWAITING_REVIEW_LABEL
@@ -63,6 +66,11 @@ def reconcile_all(client: SupportsLabelReconcile) -> None:
         )
         has = label in pr["labels"]
         if want and not has:
+            # Checked only before adding, to keep the number of API requests
+            # low: GITHUB_TOKEN reports a private org member as CONTRIBUTOR.
+            author = pr["author"]
+            if author is not None and client.is_exempt_collaborator(author):
+                continue
             client.add_labels(pr["number"], [label])
         elif has and not want:
             client.remove_label(pr["number"], label)
