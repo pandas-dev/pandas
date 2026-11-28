@@ -9,7 +9,6 @@ from datetime import (
     time,
 )
 import locale
-import unicodedata
 
 import numpy as np
 import pytest
@@ -190,23 +189,39 @@ class TestDatetimeIndexOps:
         dti = pd.date_range(freq="ME", start="2012", end="2013")
         result = dti.month_name(locale=time_locale)
         expected = pd.Index([month.capitalize() for month in expected_months])
-
-        # work around different normalization schemes GH#22342
-        result = result.str.normalize("NFD")
-        expected = expected.str.normalize("NFD")
-
         tm.assert_index_equal(result, expected)
 
         for item, expected in zip(dti, expected_months, strict=True):
             result = item.month_name(locale=time_locale)
-            expected = expected.capitalize()
-
-            result = unicodedata.normalize("NFD", result)
-            expected = unicodedata.normalize("NFD", result)
-
-            assert result == expected
+            assert result == expected.capitalize()
         dti = dti.append(pd.DatetimeIndex([pd.NaT]))
         assert np.isnan(dti.month_name(locale=time_locale)[-1])
+
+    def test_day_name_month_name_dotted_capital_i(self, monkeypatch):
+        # GH#22342 "İ".lower() is two code points; the names must match calendar's
+        #  spelling, not a decomposed "I" + U+0307
+        days = ["İsnin", *calendar.day_name[1:]]
+        months = [*calendar.month_name[:6], "İyun", "İyul", *calendar.month_name[8:]]
+        monkeypatch.setattr(calendar, "day_name", days)
+        monkeypatch.setattr(calendar, "month_name", months)
+        dti = pd.DatetimeIndex(["2017-06-05", "2017-07-05"])  # a Monday
+
+        result = dti.day_name(locale="C")
+        tm.assert_index_equal(result, pd.Index(["İsnin", days[2].capitalize()]))
+        assert dti[0].day_name(locale="C") == "İsnin"
+
+        result = dti.month_name(locale="C")
+        tm.assert_index_equal(result, pd.Index(["İyun", "İyul"]))
+        assert dti[0].month_name(locale="C") == "İyun"
+
+    @pytest.mark.skipif(
+        not tm.can_set_locale("se_FI", locale.LC_TIME), reason="se_FI not installed"
+    )
+    def test_month_name_locale_unknown_to_python(self):
+        # GH#22342 a locale name that locale.getlocale cannot parse
+        with tm.set_locale("se_FI", locale.LC_TIME):
+            expected = calendar.month_name[6].capitalize()
+        assert pd.Timestamp("2017-06-05").month_name(locale="se_FI") == expected
 
     def test_dti_week(self):
         # GH#6538: Check that DatetimeIndex and its TimeStamp elements

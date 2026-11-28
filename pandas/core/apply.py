@@ -559,7 +559,10 @@ class Apply(metaclass=abc.ABCMeta):
     def wrap_results_list_like(
         self, keys: Iterable[Hashable], results: list[Series | DataFrame]
     ):
-        from pandas import Index
+        from pandas import (
+            Index,
+            MultiIndex,
+        )
         from pandas.core.groupby.groupby import BaseGroupBy
 
         obj = self.obj
@@ -568,10 +571,20 @@ class Apply(metaclass=abc.ABCMeta):
             # GH#39609
             if isinstance(obj, ABCSeries):
                 return obj._constructor(index=Index([]), name=obj.name)
-            elif isinstance(obj, BaseGroupBy) and obj._selected_obj.ndim == 1:
-                return obj._selected_obj._constructor_expanddim(
-                    index=_groupby_result_index(obj), columns=Index([])
+            elif isinstance(obj, BaseGroupBy):
+                index = _groupby_result_index(obj)
+                selected = obj._selected_obj
+                if selected.ndim == 1:
+                    return selected._constructor_expanddim(
+                        index=index, columns=Index([])
+                    )
+                # (column, func) levels, as in a non-empty result
+                cols = selected.columns[:0]
+                arrays = [cols.get_level_values(i) for i in range(cols.nlevels)]
+                columns = MultiIndex.from_arrays(
+                    [*arrays, Index([])], names=[*cols.names, None]
                 )
+                return selected._constructor(index=index, columns=columns)
 
         try:
             return concat(results, keys=keys, axis=1, sort=False)
@@ -1922,6 +1935,8 @@ class GroupByApply(Apply):
     def agg_or_apply_list_like(
         self, op_name: Literal["agg", "apply"]
     ) -> DataFrame | Series:
+        from pandas.core.groupby.groupby import BaseGroupBy
+
         obj = self.obj
         kwargs = self.kwargs
         if op_name == "apply":
@@ -1935,6 +1950,9 @@ class GroupByApply(Apply):
             selected_obj = obj._selected_obj
         else:
             selected_obj = obj._obj_with_exclusions
+            if kwargs.get("numeric_only") and isinstance(obj, BaseGroupBy):
+                # match DataFrameGroupBy reductions, GH#53839
+                selected_obj = selected_obj._get_numeric_data()
 
         # Only set as_index=True on groupby objects, not Window or Resample
         # that inherit from this class.

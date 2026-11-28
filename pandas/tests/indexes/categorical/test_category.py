@@ -400,3 +400,22 @@ def test_contains_rangeindex_categories_no_engine():
     assert 2 in ci
     assert 5 not in ci
     assert "_engine" not in ci._cache
+
+
+def test_contains_rangeindex_categories_offset():
+    # GH#72247: membership is checked against the used codes, not the
+    #  range of the category values, so a range starting above zero works.
+    ci = CategoricalIndex(range(1, 11))
+    assert 1 in ci
+    assert 10 in ci
+    assert 0 not in ci
+    assert 11 not in ci
+    assert "_engine" not in ci._cache
+
+
+def test_contains_rangeindex_categories_unused():
+    # GH#72247: unused categories are not members
+    ci = CategoricalIndex([2], categories=range(5))
+    assert 2 in ci
+    assert 0 not in ci
+    assert 4 not in ci

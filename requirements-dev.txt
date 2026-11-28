@@ -63,7 +63,7 @@ numpydoc
 pydata-sphinx-theme==0.20.0
 pytest-cython>=0.4.0
 sphinx
-sphinx-design
+sphinx-design>=0.8.0
 sphinx-copybutton
 scipy-stubs
 types-python-dateutil

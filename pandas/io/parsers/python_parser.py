@@ -63,6 +63,7 @@ from pandas.io.parsers.base_parser import (
 
 if TYPE_CHECKING:
     from collections.abc import (
+        Callable,
         Hashable,
         Iterator,
         Mapping,
@@ -113,6 +114,7 @@ class PythonParser(ParserBase):
 
         self.skiprows = kwds["skiprows"]
 
+        self.skipfunc: Callable[[int], object]
         if callable(self.skiprows):
             self.skipfunc = self.skiprows
         else:
@@ -1457,7 +1459,7 @@ class FixedWidthReader(abc.Iterator[list[str]]):
         colspecs: list[tuple[int, int]] | Literal["infer"],
         delimiter: str | None,
         comment: str | None,
-        skiprows: set[int] | None = None,
+        skipfunc: Callable[[int], object] | None = None,
         infer_nrows: int = 100,
     ) -> None:
         self.f = f
@@ -1466,7 +1468,7 @@ class FixedWidthReader(abc.Iterator[list[str]]):
         self.comment = comment
         if colspecs == "infer":
             self.colspecs = self.detect_colspecs(
-                infer_nrows=infer_nrows, skiprows=skiprows
+                infer_nrows=infer_nrows, skipfunc=skipfunc
             )
         else:
             self.colspecs = colspecs
@@ -1489,7 +1491,9 @@ class FixedWidthReader(abc.Iterator[list[str]]):
                     "2 element tuple or list of integers"
                 )
 
-    def get_rows(self, infer_nrows: int, skiprows: set[int] | None = None) -> list[str]:
+    def get_rows(
+        self, infer_nrows: int, skipfunc: Callable[[int], object] | None = None
+    ) -> list[str]:
         """
         Read rows from self.f, skipping as specified.
 
@@ -1505,8 +1509,8 @@ class FixedWidthReader(abc.Iterator[list[str]]):
         infer_nrows : int
             Number of rows to read from self.f, not counting
             rows that are skipped.
-        skiprows: set, optional
-            Indices of rows to skip.
+        skipfunc : callable, optional
+            Returns True for the indices of rows to skip.
 
         Returns
         -------
@@ -1514,12 +1518,10 @@ class FixedWidthReader(abc.Iterator[list[str]]):
             A list containing the rows to read.
 
         """
-        if skiprows is None:
-            skiprows = set()
         buffer_rows = []
         detect_rows = []
         for i, row in enumerate(self.f):
-            if i not in skiprows:
+            if skipfunc is None or not skipfunc(i):
                 detect_rows.append(row)
             buffer_rows.append(row)
             if len(detect_rows) >= infer_nrows:
@@ -1528,12 +1530,12 @@ class FixedWidthReader(abc.Iterator[list[str]]):
         return detect_rows
 
     def detect_colspecs(
-        self, infer_nrows: int = 100, skiprows: set[int] | None = None
+        self, infer_nrows: int = 100, skipfunc: Callable[[int], object] | None = None
     ) -> list[tuple[int, int]]:
         # Regex escape the delimiters
         delimiters = "".join([rf"\{x}" for x in self.delimiter])
         pattern = re.compile(f"([^{delimiters}]+)")
-        rows = self.get_rows(infer_nrows, skiprows)
+        rows = self.get_rows(infer_nrows, skipfunc)
         if not rows:
             raise EmptyDataError("No rows from which to infer column width")
         max_len = max(map(len, rows))
@@ -1580,7 +1582,7 @@ class FixedWidthFieldParser(PythonParser):
             self.colspecs,
             self.delimiter,
             self.comment,
-            self.skiprows,
+            self.skipfunc,
             self.infer_nrows,
         )
 

@@ -397,7 +397,17 @@ def handle_shared_axes(
     ncols: int,
     sharex: bool,
     sharey: bool,
+    targets: Iterable[Axes] | None = None,
 ) -> None:
+    """
+    Hide tick labels on the interior axes of a grid of shared axes.
+
+    ``axarr`` determines the grid layout; labels are hidden only on ``targets``
+    (default: all of ``axarr``).
+    """
+    if targets is None:
+        targets = axarr
+    targets = list(targets)
     if nplots > 1:
         row_num = lambda x: x.get_subplotspec().rowspan.start
         col_num = lambda x: x.get_subplotspec().colspan.start
@@ -405,6 +415,8 @@ def handle_shared_axes(
         is_first_col = lambda x: x.get_subplotspec().is_first_col()
 
         if nrows > 1:
+            # decide from all of axarr which axes are interior, so the result
+            # for a target does not depend on which other axes are targets
             try:
                 # first find out the ax layout,
                 # so that we can correctly handle 'gaps"
@@ -412,27 +424,23 @@ def handle_shared_axes(
                 for ax in axarr:
                     layout[row_num(ax), col_num(ax)] = ax.get_visible()
 
-                for ax in axarr:
-                    # only the last row of subplots should get x labels -> all
-                    # other off layout handles the case that the subplot is
-                    # the last in the column, because below is no subplot/gap.
-                    if not layout[row_num(ax) + 1, col_num(ax)]:
-                        continue
-                    if sharex or _has_externally_shared_axis(ax, "x"):
-                        _remove_labels_from_axis(ax.xaxis)
+                # only the last row of subplots should get x labels -> all
+                # other off layout handles the case that the subplot is
+                # the last in the column, because below is no subplot/gap.
+                interior = [ax for ax in axarr if layout[row_num(ax) + 1, col_num(ax)]]
 
             except IndexError:
                 # if gridspec is used, ax.rowNum and ax.colNum may different
                 # from layout shape. in this case, use last_row logic
                 is_last_row = lambda x: x.get_subplotspec().is_last_row()
-                for ax in axarr:
-                    if is_last_row(ax):
-                        continue
-                    if sharex or _has_externally_shared_axis(ax, "x"):
-                        _remove_labels_from_axis(ax.xaxis)
+                interior = [ax for ax in axarr if not is_last_row(ax)]
+
+            for ax in targets:
+                if ax in interior and (sharex or _has_externally_shared_axis(ax, "x")):
+                    _remove_labels_from_axis(ax.xaxis)
 
         if ncols > 1:
-            for ax in axarr:
+            for ax in targets:
                 # only the first column should get y labels -> set all other to
                 # off as we only have labels in the first column and we always
                 # have a subplot there, we can skip the layout test

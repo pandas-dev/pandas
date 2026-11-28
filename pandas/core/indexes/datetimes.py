@@ -36,6 +36,7 @@ from pandas.util._decorators import (
     set_module,
 )
 from pandas.util._exceptions import find_stack_level
+from pandas.util._validators import validate_inclusive
 
 from pandas.core.dtypes.common import is_scalar
 from pandas.core.dtypes.dtypes import (
@@ -2453,7 +2454,13 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         return (time_micros == micros).nonzero()[0]
 
     def indexer_between_time(
-        self, start_time, end_time, include_start: bool = True, include_end: bool = True
+        self,
+        start_time,
+        end_time,
+        include_start: bool | lib.NoDefault = lib.no_default,
+        include_end: bool | lib.NoDefault = lib.no_default,
+        *,
+        inclusive: IntervalClosedType | lib.NoDefault = lib.no_default,
     ) -> npt.NDArray[np.intp]:
         """
         Return index locations of values between particular times of day.
@@ -2469,8 +2476,18 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
             "%H:%M:%S", "%H%M%S", "%I:%M:%S%p","%I%M%S%p").
         include_start : bool, default True
             Include boundaries; whether to set start bound as closed or open.
+
+            .. deprecated:: 3.2.0
+               Use ``inclusive`` instead.
         include_end : bool, default True
             Include boundaries; whether to set end bound as closed or open.
+
+            .. deprecated:: 3.2.0
+               Use ``inclusive`` instead.
+        inclusive : {"both", "neither", "left", "right"}, default "both"
+            Include boundaries; whether to set each bound as closed or open.
+
+            .. versionadded:: 3.2.0
 
         Returns
         -------
@@ -2489,25 +2506,43 @@ class DatetimeIndex(DatetimeTimedeltaMixin):
         DatetimeIndex(['2023-01-01 00:00:00', '2023-01-01 01:00:00',
                            '2023-01-01 02:00:00', '2023-01-01 03:00:00'],
                           dtype='datetime64[us]', freq='h')
-        >>> idx.indexer_between_time("00:00", "2:00", include_end=False)
+        >>> idx.indexer_between_time("00:00", "2:00", inclusive="left")
         array([0, 1])
         """
+        if include_start is not lib.no_default or include_end is not lib.no_default:
+            if inclusive is not lib.no_default:
+                raise TypeError(
+                    "Cannot pass 'inclusive' together with 'include_start' or "
+                    "'include_end'."
+                )
+            left_inclusive = include_start is lib.no_default or bool(include_start)
+            right_inclusive = include_end is lib.no_default or bool(include_end)
+            replacement = {
+                (True, True): "both",
+                (True, False): "left",
+                (False, True): "right",
+                (False, False): "neither",
+            }[(left_inclusive, right_inclusive)]
+            warnings.warn(
+                "The 'include_start' and 'include_end' keywords in "
+                "DatetimeIndex.indexer_between_time are deprecated and will be "
+                f"removed in a future version. Use inclusive='{replacement}' instead.",
+                Pandas4Warning,
+                stacklevel=find_stack_level(),
+            )
+        else:
+            if inclusive is lib.no_default:
+                inclusive = "both"
+            left_inclusive, right_inclusive = validate_inclusive(inclusive)
+
         start_time = to_time(start_time)
         end_time = to_time(end_time)
         time_micros = self._get_time_micros()
         start_micros = _time_to_micros(start_time)
         end_micros = _time_to_micros(end_time)
 
-        if include_start and include_end:
-            lop = rop = operator.le
-        elif include_start:
-            lop = operator.le
-            rop = operator.lt
-        elif include_end:
-            lop = operator.lt
-            rop = operator.le
-        else:
-            lop = rop = operator.lt
+        lop = operator.le if left_inclusive else operator.lt
+        rop = operator.le if right_inclusive else operator.lt
 
         if start_time <= end_time:
             join_op = operator.and_

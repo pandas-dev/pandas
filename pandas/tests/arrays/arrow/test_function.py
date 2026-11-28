@@ -7,6 +7,7 @@ from datetime import (
 )
 from decimal import Decimal
 import re
+from types import SimpleNamespace
 
 import numpy as np
 import pytest
@@ -92,6 +93,63 @@ def test_where_mask_temporal_reinterpretation_raises(meth):
     other = pd.Series(pd.date_range("2016-01-01", periods=3))
     with pytest.raises(TypeError, match="Invalid value"):
         getattr(ser, meth)(np.array([True, False, True]), other)
+
+
+NESTED_TYPES = [
+    pa.list_(pa.int64()),
+    pa.large_list(pa.string()),
+    pa.list_(pa.int64(), 2),
+    pa.struct([("a", pa.int64())]),
+    pa.map_(pa.string(), pa.int64()),
+    pa.fixed_shape_tensor(pa.int64(), [2]),
+]
+
+
+@pytest.mark.parametrize("pa_type", NESTED_TYPES)
+@pytest.mark.parametrize("value", ["", "zz", b"", b"zz"])
+@pytest.mark.parametrize("key", [1, [1, 2], np.array([False, True, True])])
+def test_nested_str_bytes_setitem_raises(pa_type, value, key, indexer_sli):
+    # pyarrow reads a str or bytes as a sequence, e.g. b"zz" -> [122, 122]
+    ser = pd.Series([None, None, None], dtype=ArrowDtype(pa_type))
+    msg = re.escape(f"Invalid value '{value!s}' for dtype '{ser.dtype}'")
+    with pytest.raises(TypeError, match=msg):
+        indexer_sli(ser)[key] = value
+
+
+@pytest.mark.parametrize("pa_type", NESTED_TYPES)
+@pytest.mark.parametrize("value", ["", "zz", b"", b"zz"])
+@pytest.mark.parametrize(
+    "func",
+    [
+        pytest.param(lambda ser, v: ser.where([True, False, False], v), id="where"),
+        pytest.param(lambda ser, v: ser.mask([False, True, True], v), id="mask"),
+        pytest.param(lambda ser, v: ser.fillna(v), id="fillna"),
+        pytest.param(lambda ser, v: ser.array.insert(1, v), id="insert"),
+    ],
+)
+def test_nested_str_bytes_value_raises(pa_type, value, func):
+    ser = pd.Series([None, None, None], dtype=ArrowDtype(pa_type))
+    msg = re.escape(f"Invalid value '{value!s}' for dtype '{ser.dtype}'")
+    with pytest.raises(TypeError, match=msg):
+        func(ser, value)
+
+
+@pytest.mark.parametrize("value", ["zz", b"zz"])
+@pytest.mark.parametrize(
+    "func, pos",
+    [
+        pytest.param(lambda idx, v: idx.insert(0, v), 0, id="insert"),
+        pytest.param(lambda idx, v: idx.where([True, False], v), 1, id="where"),
+        pytest.param(lambda idx, v: idx.putmask([False, True], v), 1, id="putmask"),
+    ],
+)
+def test_index_nested_str_bytes_value_casts_to_object(value, func, pos):
+    # the TypeError above makes Index upcast, as for other values it can't hold
+    idx = pd.Index([[1], None], dtype=ArrowDtype(pa.list_(pa.int64())))
+    result = func(idx, value)
+    assert result.dtype == object
+    assert result[pos] == value
+    assert list(result[1 - pos]) == [1]
 
 
 @pytest.mark.parametrize("limit", [None, 1])
@@ -726,3 +784,122 @@ def test_interpolate_linear_int_fractional():
     result = ser.interpolate(method="linear")
     expected = pd.Series([1.0, 1.5, 2.0], dtype="float64[pyarrow]")
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "dtype",
+    ["int64[pyarrow]", "uint32[pyarrow]", "float64[pyarrow]", "float32[pyarrow]"],
+)
+@pytest.mark.parametrize(
+    "values",
+    [
+        [],
+        [1],
+        [1, 2, 3],
+        [1, 1],
+        [1, 1, 1, 1],
+        [1, 1, 2, 3],
+        [1, 2, 2, 3],
+        [1, 2, 3, 3],
+        [0, 0, 1, 1, 2, 2],
+        [0, 1, 1, 1, 1, 1, 2],
+    ],
+    ids=[
+        "empty",
+        "single",
+        "all_unique",
+        "one_dup",
+        "all_same",
+        "dup_first",
+        "dup_middle",
+        "dup_last",
+        "paired_runs",
+        "long_run",
+    ],
+)
+def test_unique_by_run_ends_matches_unique(values, dtype):
+    # GH#66498
+    arr = pd.array(values, dtype=dtype)
+
+    result = arr._unique_by_run_ends()
+
+    assert result is not None
+    tm.assert_extension_array_equal(result, arr.unique())
+
+
+def test_unique_by_run_ends_run_across_chunk_seam():
+    # GH#66498
+    chunked = pa.chunked_array([[1.0, 2.0, 2.0], [2.0, 3.0]])
+    arr = ArrowExtensionArray(chunked)
+    assert arr._pa_array.num_chunks == 2
+
+    result = arr._unique_by_run_ends()
+
+    assert result is not None
+    assert result.tolist() == [1.0, 2.0, 3.0]
+
+
+@pytest.mark.parametrize("dtype", ["float64[pyarrow]", "float32[pyarrow]"])
+def test_unique_by_run_ends_signed_zero_declines(dtype):
+    # GH#66498 -0.0 and 0.0 compare equal but encode as separate runs
+    arr = pd.array([-0.0, 0.0, 1.0], dtype=dtype)
+
+    assert arr._unique_by_run_ends() is None
+
+
+@pytest.mark.parametrize(
+    "values",
+    [[3, 1, 2], [1, 2, 1], [3, 2, 1], [2, 2, 1, 1, 2, 2]],
+    ids=["unsorted", "dup_not_adjacent", "descending", "repeating_runs"],
+)
+def test_unique_by_run_ends_declines_unsorted(values):
+    # GH#66498
+    arr = pd.array(values, dtype="int64[pyarrow]")
+
+    assert arr._unique_by_run_ends() is None
+
+
+@pytest.mark.parametrize(
+    "values",
+    [[1, 1, 2, None, 2], [1, 2, 3, None, 3], [1, None, 2]],
+    ids=["dup_across_null", "dup_after_null", "no_dup"],
+)
+def test_unique_by_run_ends_declines_with_na(values):
+    # GH#66498 without rejecting NA the first case keeps a duplicate 2
+    arr = pd.array(values, dtype="int64[pyarrow]")
+
+    assert arr._unique_by_run_ends() is None
+
+
+@pytest.mark.parametrize(
+    "func, error",
+    [
+        ("less", pa.ArrowNotImplementedError),
+        ("run_end_encode", pa.ArrowNotImplementedError),
+        ("run_end_encode", pa.ArrowInvalid),
+    ],
+    ids=["no_comparison_kernel", "no_run_end_kernel", "run_end_overflow"],
+)
+def test_unique_by_run_ends_declines_when_kernel_raises(monkeypatch, func, error):
+    # GH#66498 simulated, as kernel coverage varies across pyarrow versions
+    def raises(*args, **kwargs):
+        raise error(func)
+
+    monkeypatch.setattr(pa.compute, func, raises)
+    arr = pd.array([1, 1, 2], dtype="int64[pyarrow]")
+
+    assert arr._unique_by_run_ends() is None
+
+
+def test_unique_by_run_ends_declines_when_chunks_cannot_combine(monkeypatch):
+    # GH#66498 simulate a 32-bit offset overflow when combining chunks
+    arr = pd.array(["a", "a", "b"], dtype="string[pyarrow]")
+
+    def combine_chunks():
+        raise pa.ArrowInvalid("offset overflow while concatenating arrays")
+
+    monkeypatch.setattr(
+        arr, "_pa_array", SimpleNamespace(num_chunks=2, combine_chunks=combine_chunks)
+    )
+
+    assert arr._unique_by_run_ends() is None

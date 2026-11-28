@@ -1420,9 +1420,9 @@ class BinGrouper(BaseGrouper):
 
     @property
     def groupings(self) -> list[grouper.Grouping]:
-        lev = self.binlabels
-        codes = self.ids
-        labels = lev.take(codes)
+        # ids index into result_index, which excludes a leading NaT bin; -1 is NA
+        lev = self.result_index
+        labels = lev.take(self.ids, allow_fill=True, fill_value=lev._na_value)
         ping = grouper.Grouping(
             labels, labels, in_axis=False, level=None, uniques=lev._values
         )

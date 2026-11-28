@@ -190,6 +190,29 @@ class TestConvertDtypes:
         expected = pd.DataFrame(range(2), dtype="Int32")
         tm.assert_frame_equal(result, expected)
 
+    def test_convert_dtypes_pyarrow_dictionary_to_np_nullable(self):
+        # GH#57395 the dictionary column is kept, the others still convert
+        pa = pytest.importorskip("pyarrow")
+        dict_ser = pd.Series(
+            pd.arrays.ArrowExtensionArray(pa.array(["a", "b"]).dictionary_encode())
+        )
+        df = pd.DataFrame(
+            {
+                "a": pd.Series([1, 2], dtype="int64[pyarrow]"),
+                "b": pd.Series([1, 2], dtype="timestamp[us][pyarrow]"),
+                "c": dict_ser,
+            }
+        )
+        result = df.convert_dtypes(dtype_backend="numpy_nullable")
+        expected = pd.DataFrame(
+            {
+                "a": pd.Series([1, 2], dtype="Int64"),
+                "b": pd.Series([1, 2], dtype="datetime64[us]"),
+                "c": dict_ser,
+            }
+        )
+        tm.assert_frame_equal(result, expected)
+
     def test_convert_dtypes_pyarrow_timestamp(self):
         # GH 54191
         pytest.importorskip("pyarrow")
