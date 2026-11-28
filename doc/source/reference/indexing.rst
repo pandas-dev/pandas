@@ -85,6 +85,7 @@ Compatibility with MultiIndex
 
    Index.set_names
    Index.droplevel
+   Index.to_flat_index
 
 Missing values
 ~~~~~~~~~~~~~~
