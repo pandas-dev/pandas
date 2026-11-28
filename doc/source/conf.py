@@ -387,7 +387,6 @@ numpydoc_validation_exclude = {
     r"pandas\.Index\.groupby$",
     r"pandas\.Index\.round$",
     r"pandas\.Index\.sortlevel$",
-    r"pandas\.Index\.to_flat_index$",
     r"pandas\.Index\.transpose$",
     # Series attributes processed by autodoc but not in api.rst
     r"pandas\.Series\.axes$",
