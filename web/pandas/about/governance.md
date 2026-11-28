@@ -1,11 +1,5 @@
 # Project governance
 
-The official version of this document, along with a list of
-individuals and institutions in the roles defined in the governance
-section below, is contained in the
-[Project governance]({{ base_url }}about/governance.html)
-page of the pandas website.
-
 ## The Project
 
 The pandas Project (The Project) is an open source software project affiliated
@@ -301,8 +295,7 @@ the Core Team either through public or private channels as deemed appropriate.
 
 ## Changing the Governance
 
-Changes to the governance are submitted via a GitHub pull request to The Project's
-[governance page](https://github.com/pandas-dev/pandas/blob/main/web/pandas/about/governance.md).
+Changes to the governance are submitted via a GitHub pull request to [the source of this page](https://github.com/pandas-dev/pandas/blob/main/web/pandas/about/governance.md).
 The pull request is then refined in response to public comment and review, with
 the goal being consensus in the community.  After this open period, a Core Team
 Member proposes to the Core Team that the changes be ratified and the pull

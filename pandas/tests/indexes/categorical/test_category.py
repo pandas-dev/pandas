@@ -375,8 +375,8 @@ class TestCategoricalIndex2:
         )
 
         # invalid
-        msg = "cannot use inplace with CategoricalIndex"
-        with pytest.raises(ValueError, match=msg):
+        msg = "unexpected keyword argument 'inplace'"
+        with pytest.raises(TypeError, match=msg):
             ci.set_categories(list("cab"), inplace=True)
 
     def test_remove_maintains_order(self):
@@ -400,3 +400,22 @@ def test_contains_rangeindex_categories_no_engine():
     assert 2 in ci
     assert 5 not in ci
     assert "_engine" not in ci._cache
+
+
+def test_contains_rangeindex_categories_offset():
+    # GH#72247: membership is checked against the used codes, not the
+    #  range of the category values, so a range starting above zero works.
+    ci = CategoricalIndex(range(1, 11))
+    assert 1 in ci
+    assert 10 in ci
+    assert 0 not in ci
+    assert 11 not in ci
+    assert "_engine" not in ci._cache
+
+
+def test_contains_rangeindex_categories_unused():
+    # GH#72247: unused categories are not members
+    ci = CategoricalIndex([2], categories=range(5))
+    assert 2 in ci
+    assert 0 not in ci
+    assert 4 not in ci

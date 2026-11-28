@@ -6,7 +6,10 @@ from unittest.mock import (  # noqa: TID251
 import pytest
 import requests
 
-from web.pandas_web import Preprocessors
+from web.pandas_web import (
+    Preprocessors,
+    main,
+)
 
 
 class MockResponse:
@@ -86,3 +89,44 @@ def test_web_preprocessor_creates_releases(mock_response, context) -> None:
         context = Preprocessors.home_add_releases(context)
         release_versions = [release["name"] for release in context["releases"]]
         assert release_versions == ["10.0.1", "2.1.3", "2.0.0", "1.5.6"]
+
+
+def _create_minimal_source(path) -> None:
+    """Create the smallest source directory ``main`` can build offline."""
+    path.mkdir(parents=True)
+    (path / "config.yml").write_text(
+        "main:\n"
+        "  templates_path: templates\n"
+        "  ignore: []\n"
+        "  context_preprocessors: []\n",
+        encoding="utf-8",
+    )
+    (path / "versions.json").write_text("{}", encoding="utf-8")
+
+
+@pytest.mark.parametrize("target", ["site", "site/build", "."])
+def test_web_main_overlapping_source_and_target(tmp_path, target) -> None:
+    # GH#70082: an overlapping target is removed before rendering, which
+    # would delete the source files.
+    source = tmp_path / "site"
+    source.mkdir()
+    (source / "config.yml").touch()
+    with pytest.raises(
+        ValueError, match="Target path must not equal, contain, or be inside"
+    ):
+        main(source, tmp_path / target)
+    assert (source / "config.yml").exists()
+
+
+def test_web_main_disjoint_source_and_target(tmp_path) -> None:
+    # Non-overlapping source and target must still build normally.
+    source = tmp_path / "site"
+    _create_minimal_source(source)
+    target = tmp_path / "build"
+
+    main(source, target)
+
+    assert (source / "config.yml").exists()
+    assert (source / "versions.json").exists()
+    assert (target / "config.yml").exists()
+    assert (target / "versions.json").exists()

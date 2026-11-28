@@ -274,6 +274,57 @@ class TestGetIndexer:
         tm.assert_numpy_array_equal(result, expected)
 
 
+class TestPairwiseIndexer:
+    def test_pairwise_indexer(self):
+        # GH#67446
+        idx = pd.Index(["a", "a", "b"])
+        target = pd.Index(["a", "a", "b", "c"])
+        result = idx._pairwise_indexer(target)
+        expected = np.array([0, 1, 2, -1], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_pairwise_indexer_unsorted(self):
+        # GH#67446
+        idx = pd.Index(["b", "a", "a"])
+        target = pd.Index(["a", "a", "b"])
+        result = idx._pairwise_indexer(target)
+        expected = np.array([1, 2, 0], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_pairwise_indexer_more_occurrences_in_target(self):
+        # GH#67446
+        idx = pd.Index(["a", "b"])
+        target = pd.Index(["a", "a", "b", "b"])
+        result = idx._pairwise_indexer(target)
+        expected = np.array([0, -1, 1, -1], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_pairwise_indexer_unique_matches_get_indexer(self, index):
+        # GH#67446
+        if not index._index_as_unique or isinstance(index, pd.MultiIndex):
+            pytest.skip("covered by duplicate-specific tests")
+        result = index._pairwise_indexer(index)
+        expected = index.get_indexer(index)
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_pairwise_indexer_overlapping_intervals(self):
+        # GH#67446
+        # get_indexer raises for overlapping intervals; exact matching is used
+        idx = pd.IntervalIndex.from_tuples([(0, 2), (1, 3), (0, 2)])
+        target = pd.IntervalIndex.from_tuples([(0, 2), (0, 2), (1, 3), (4, 5)])
+        result = idx._pairwise_indexer(target)
+        expected = np.array([0, 2, 1, -1], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_pairwise_indexer_empty(self):
+        # GH#67446
+        idx = pd.Index([], dtype=object)
+        target = pd.Index(["a", "a"], dtype=object)
+        result = idx._pairwise_indexer(target)
+        expected = np.array([-1, -1], dtype=np.intp)
+        tm.assert_numpy_array_equal(result, expected)
+
+
 class TestConvertSliceIndexer:
     def test_convert_almost_null_slice(self, index):
         # slice with None at both ends, but not step
@@ -307,6 +358,36 @@ class TestPutmask:
 
         with pytest.raises(ValueError, match=msg):
             index.putmask("foo", fill)
+
+
+@pytest.mark.parametrize(
+    "dtype, expected",
+    [
+        ("int64", 2),
+        ("float64", 2.0),
+        ("Int64", 2),
+        ("category", 2),
+        ("datetime64[ns]", pd.Timestamp(2)),
+    ],
+)
+def test_getitem_scalar_result_type(dtype, expected, using_python_scalars):
+    # GH#64266
+    idx = pd.Index([1, 2, 3], dtype=dtype)
+    result = idx[1]
+    assert result == expected
+    if using_python_scalars or isinstance(expected, pd.Timestamp):
+        assert type(result) is type(expected)
+    else:
+        assert isinstance(result, np.generic)
+
+
+def test_getitem_object_dtype_preserves_numpy_scalars():
+    # GH#64266
+    value = np.int8(1)
+    idx = pd.Index([value, np.int8(2)], dtype=object)
+    with pd.option_context("future.python_scalars", True):
+        result = idx[0]
+    assert result is value
 
 
 @pytest.mark.parametrize("idx", [[1, 2, 3], [0.1, 0.2, 0.3], ["a", "b", "c"]])

@@ -4,6 +4,10 @@
 
 #include <Python.h>
 
+// numpy scalar types below need import_array() in the including module
+#include <numpy/arrayobject.h>
+#include <numpy/arrayscalars.h>
+#include <numpy/npy_math.h>
 #include <pymem.h>
 #include <string.h>
 
@@ -17,7 +21,27 @@ typedef struct {
 } khcomplex128_t;
 
 static const int KHASH_TRACE_DOMAIN = 424242;
+
+// For tests only: while positive, each malloc/realloc decrements this and the
+// one that takes it to 0 fails. Each extension module gets its own copy. calloc
+// is exempt because callers of kh_init_* do not check for NULL yet.
+static int khash_alloc_fail_countdown = 0;
+
+// Returns the previous countdown, which is still positive if no failure fired.
+static inline int khash_set_alloc_fail_countdown(int countdown) {
+  int prev = khash_alloc_fail_countdown;
+  khash_alloc_fail_countdown = countdown;
+  return prev;
+}
+
+static inline int khash_alloc_should_fail(void) {
+  return khash_alloc_fail_countdown > 0 && --khash_alloc_fail_countdown == 0;
+}
+
 static void *traced_malloc(size_t size) {
+  if (khash_alloc_should_fail()) {
+    return NULL;
+  }
   void *ptr = malloc(size);
   if (ptr != NULL) {
     PyTraceMalloc_Track(KHASH_TRACE_DOMAIN, (uintptr_t)ptr, size);
@@ -34,9 +58,15 @@ static void *traced_calloc(size_t num, size_t size) {
 }
 
 static void *traced_realloc(void *old_ptr, size_t size) {
-  PyTraceMalloc_Untrack(KHASH_TRACE_DOMAIN, (uintptr_t)old_ptr);
+  if (khash_alloc_should_fail()) {
+    return NULL;
+  }
+  // taken before the call: gcc warns on any use of old_ptr after realloc
+  uintptr_t old_addr = (uintptr_t)old_ptr;
   void *ptr = realloc(old_ptr, size);
   if (ptr != NULL) {
+    // a failed realloc leaves old_ptr allocated, so it stays tracked
+    PyTraceMalloc_Untrack(KHASH_TRACE_DOMAIN, old_addr);
     PyTraceMalloc_Track(KHASH_TRACE_DOMAIN, (uintptr_t)ptr, size);
   }
   return ptr;
@@ -190,17 +220,81 @@ static inline int floatobject_cmp(PyFloatObject *a, PyFloatObject *b) {
 // NaNs should be in the same equivalency class, see GH 41836
 // PyObject_RichCompareBool for complexobjects has a different behavior
 // needs to be replaced
+static inline int complex_values_cmp(double a_re, double a_im, double b_re,
+                                     double b_im) {
+  return (isnan(a_re) && isnan(b_re) && isnan(a_im) && isnan(b_im)) ||
+         (isnan(a_re) && isnan(b_re) && a_im == b_im) ||
+         (a_re == b_re && isnan(a_im) && isnan(b_im)) ||
+         (a_re == b_re && a_im == b_im);
+}
+
 static inline int complexobject_cmp(PyComplexObject *a, PyComplexObject *b) {
-  return (isnan(a->cval.real) && isnan(b->cval.real) && isnan(a->cval.imag) &&
-          isnan(b->cval.imag)) ||
-         (isnan(a->cval.real) && isnan(b->cval.real) &&
-          a->cval.imag == b->cval.imag) ||
-         (a->cval.real == b->cval.real && isnan(a->cval.imag) &&
-          isnan(b->cval.imag)) ||
-         (a->cval.real == b->cval.real && a->cval.imag == b->cval.imag);
+  return complex_values_cmp(a->cval.real, a->cval.imag, b->cval.real,
+                            b->cval.imag);
+}
+
+// Reads builtin and numpy (except float16) float/complex scalars into re/im;
+// returns 1 for float, 2 for complex, 0 otherwise. numpy scalars hash a NaN by
+// identity and compare it unequal to itself, see GH#16632.
+static inline int inexact_value(PyObject *a, double *re, double *im) {
+  PyTypeObject *tp = Py_TYPE(a);
+  if (tp == &PyComplex_Type) {
+    *re = ((PyComplexObject *)a)->cval.real;
+    *im = ((PyComplexObject *)a)->cval.imag;
+    return 2;
+  }
+  // cheap early exits for str/int and for types without __float__ (e.g.
+  // date, None), which every type below has
+  if (PyType_HasFeature(tp, Py_TPFLAGS_UNICODE_SUBCLASS |
+                                Py_TPFLAGS_LONG_SUBCLASS |
+                                Py_TPFLAGS_BYTES_SUBCLASS) ||
+      tp->tp_as_number == NULL || tp->tp_as_number->nb_float == NULL) {
+    return 0;
+  }
+  *im = 0.0;
+  if (tp == &PyFloat_Type || tp == &PyDoubleArrType_Type) {
+    *re = PyFloat_AS_DOUBLE(a);
+    return 1;
+  }
+  if (tp == &PyFloatArrType_Type) {
+    *re = PyArrayScalar_VAL(a, Float);
+    return 1;
+  }
+  if (tp == &PyLongDoubleArrType_Type) {
+    *re = (double)PyArrayScalar_VAL(a, LongDouble);
+    return 1;
+  }
+  if (tp == &PyCDoubleArrType_Type) {
+    *re = npy_creal(PyArrayScalar_VAL(a, CDouble));
+    *im = npy_cimag(PyArrayScalar_VAL(a, CDouble));
+    return 2;
+  }
+  if (tp == &PyCFloatArrType_Type) {
+    *re = npy_crealf(PyArrayScalar_VAL(a, CFloat));
+    *im = npy_cimagf(PyArrayScalar_VAL(a, CFloat));
+    return 2;
+  }
+  if (tp == &PyCLongDoubleArrType_Type) {
+    *re = (double)npy_creall(PyArrayScalar_VAL(a, CLongDouble));
+    *im = (double)npy_cimagl(PyArrayScalar_VAL(a, CLongDouble));
+    return 2;
+  }
+  return 0;
+}
+
+// Clear exceptions only if the exception is Exception and let other
+// BaseExceptions (KeyboardInterrupt, SystemExit, ...) propagate to the caller,
+// see GH 57052. Some existing APIs such as DataFrame.describe, Series.isin, and
+// Series.duplicated rely on TypeErrors and ValueErrors to be swallowed when
+// calling __hash__ on unhashable elements or __eq__ on arrays and pd.NAs.
+static inline void kh_python_clear_nonsystem_exception(void) {
+  if (PyErr_ExceptionMatches(PyExc_Exception)) {
+    PyErr_Clear();
+  }
 }
 
 static inline int pyobject_cmp(PyObject *a, PyObject *b);
+static inline khuint32_t kh_python_hash_func(PyObject *key);
 
 // replacing PyObject_RichCompareBool (NaN!=NaN) with pyobject_cmp (NaN==NaN),
 // which treats NaNs as equivalent
@@ -221,9 +315,13 @@ static inline int tupleobject_cmp(PyTupleObject *a, PyTupleObject *b) {
 }
 
 static inline int pyobject_cmp(PyObject *a, PyObject *b) {
+  if (PyErr_Occurred() != NULL) {
+    return 0;
+  }
   if (a == b) {
     return 1;
   }
+
   if (Py_TYPE(a) == Py_TYPE(b)) {
     // special handling for some built-in types which could have NaNs
     // as we would like to have them equivalent, but the usual
@@ -240,11 +338,23 @@ static inline int pyobject_cmp(PyObject *a, PyObject *b) {
     }
     // frozenset isn't yet supported
   }
+  // NaNs in numpy scalars, and across numpy and builtin scalars
+  double a_re, a_im, b_re, b_im;
+  int kind = inexact_value(a, &a_re, &a_im);
+  if (kind && (isnan(a_re) || isnan(a_im)) &&
+      inexact_value(b, &b_re, &b_im) == kind) {
+    return complex_values_cmp(a_re, a_im, b_re, b_im);
+  }
 
   int result = PyObject_RichCompareBool(a, b, Py_EQ);
   if (result < 0) {
-    PyErr_Clear();
+    kh_python_clear_nonsystem_exception();
     return 0;
+  }
+  if (result && Py_TYPE(a) != Py_TYPE(b)) {
+    // equal objects with different hashes, e.g. np.dtype("int64") == "int64",
+    // would otherwise match only when probing happens to reach them, GH#43581
+    return kh_python_hash_func(a) == kh_python_hash_func(b);
   }
   return result;
 }
@@ -264,9 +374,9 @@ static inline Py_hash_t floatobject_hash(PyFloatObject *key) {
 #define _PandasHASH_IMAG 1000003UL
 
 // replaces _Py_HashDouble with _Pandas_HashDouble
-static inline Py_hash_t complexobject_hash(PyComplexObject *key) {
-  Py_uhash_t realhash = (Py_uhash_t)_Pandas_HashDouble(key->cval.real);
-  Py_uhash_t imaghash = (Py_uhash_t)_Pandas_HashDouble(key->cval.imag);
+static inline Py_hash_t complex_values_hash(double re, double im) {
+  Py_uhash_t realhash = (Py_uhash_t)_Pandas_HashDouble(re);
+  Py_uhash_t imaghash = (Py_uhash_t)_Pandas_HashDouble(im);
   if (realhash == (Py_uhash_t)-1 || imaghash == (Py_uhash_t)-1) {
     return -1;
   }
@@ -277,7 +387,9 @@ static inline Py_hash_t complexobject_hash(PyComplexObject *key) {
   return (Py_hash_t)combined;
 }
 
-static inline khuint32_t kh_python_hash_func(PyObject *key);
+static inline Py_hash_t complexobject_hash(PyComplexObject *key) {
+  return complex_values_hash(key->cval.real, key->cval.imag);
+}
 
 // we could use any hashing algorithm, this is the original CPython's for tuples
 
@@ -320,6 +432,9 @@ static inline Py_hash_t tupleobject_hash(PyTupleObject *key) {
 }
 
 static inline khuint32_t kh_python_hash_func(PyObject *key) {
+  if (PyErr_Occurred() != NULL) {
+    return 0;
+  }
   Py_hash_t hash;
   // For PyObject_Hash holds:
   //    hash(0.0) == 0 == hash(-0.0)
@@ -339,11 +454,20 @@ static inline khuint32_t kh_python_hash_func(PyObject *key) {
     // hash tuple subclasses as builtin tuples
     hash = tupleobject_hash((PyTupleObject *)key);
   } else {
-    hash = PyObject_Hash(key);
+    // must match pyobject_cmp for numpy NaNs; complex_values_hash(nan, 0.0)
+    // equals floatobject_hash(nan)
+    double re, im;
+    if (inexact_value(key, &re, &im) && (isnan(re) || isnan(im))) {
+      hash = complex_values_hash(re, im);
+    } else {
+      hash = PyObject_Hash(key);
+    }
   }
 
   if (hash == -1) {
-    PyErr_Clear();
+    if (PyErr_Occurred() != NULL) {
+      kh_python_clear_nonsystem_exception();
+    }
     return 0;
   }
 #if SIZEOF_PY_HASH_T == 4
@@ -437,11 +561,62 @@ static inline int kh_strview_hash_equal(kh_strview_t a, kh_strview_t b) {
 KHASH_MAP_INIT_STRVIEW(str, size_t)
 KHASH_MAP_INIT_STRVIEW(strbox, kh_pyobject_t)
 
+// A small set of strings (na_values, true_values, false_values) probed once
+// per token on the read_csv hot path, so lookups are built to reject fast:
+// per first byte, a bitmask of the key lengths present (bit 63 stands for
+// every length >= 63) settles nearly every token with one load, and the keys
+// themselves are kept inline, grouped by first byte, and compared directly.
+// Only a set with more than KH_STR_STARTS_NCAND keys falls through to the
+// hashset, whose hash walks the whole token: with a first-byte check alone,
+// every negative number was hashed against "-nan" / "-1.#IND", and every
+// token starting with "1" against "1.#QNAN".
+#define KH_STR_STARTS_NCAND 64
+
 typedef struct {
   kh_str_t *table;
-  int starts[256];
+  uint64_t start_lens[256];
+  // cand[cand_start[c] .. cand_start[c] + ncand[c]) are the keys whose first
+  // byte is c; cand_start[c] is the count of keys with a smaller first byte.
+  kh_strview_t cand[KH_STR_STARTS_NCAND];
+  uint64_t cand_prefix[KH_STR_STARTS_NCAND]; // kh_str_starts_prefix of each
+  uint8_t cand_start[256];
+  uint8_t ncand[256];
+  uint8_t ncand_total;
+  uint8_t overflow; // more keys than cand holds: probe the hashset instead
   int has_empty;
 } kh_str_starts_t;
+
+static inline uint64_t kh_str_starts_lenbit(size_t len) {
+  return (uint64_t)1 << (len < 63 ? len : 63);
+}
+
+// The first min(len, 8) bytes packed into one word, so a candidate is
+// settled by one compare instead of a byte loop.  Fixed-size loads only: a
+// runtime-length memcpy is a libc call, and reading 8 bytes past a short key
+// would overrun it.  The packing is not a byte order, but it is the same
+// bijection on both sides of the compare, which is all that is needed.
+static inline uint64_t kh_str_starts_prefix(const char *key, size_t len) {
+  uint64_t word = 0;
+  if (len >= 8) {
+    memcpy(&word, key, 8);
+    return word;
+  }
+  if (len & 4) {
+    uint32_t part;
+    memcpy(&part, key, 4);
+    word = part;
+    key += 4;
+  }
+  if (len & 2) {
+    uint16_t part;
+    memcpy(&part, key, 2);
+    word |= (uint64_t)part << 32;
+    key += 2;
+  }
+  if (len & 1)
+    word |= (uint64_t)(unsigned char)*key << 48;
+  return word;
+}
 
 typedef kh_str_starts_t *p_kh_str_starts_t;
 
@@ -461,26 +636,70 @@ static inline khuint_t kh_put_str_starts_item(kh_str_starts_t *table,
                                               const char *key, size_t len,
                                               int *ret) {
   khuint_t result = kh_put_str(table->table, kh_strview(key, len), ret);
-  if (*ret != 0) {
+  if (*ret > 0) {
     // The empty key gets its own flag rather than a slot in starts[]. Sharing
     // starts['\0'] with it would make every token that merely *begins* with an
     // embedded NUL look like a candidate.
-    if (len == 0)
+    if (len == 0) {
       table->has_empty = 1;
-    else
-      table->starts[(unsigned char)key[0]] = 1;
+    } else {
+      const unsigned char c0 = (unsigned char)key[0];
+      table->start_lens[c0] |= kh_str_starts_lenbit(len);
+      if (table->ncand_total == KH_STR_STARTS_NCAND) {
+        table->overflow = 1;
+      } else if (!table->overflow) {
+        const unsigned pos = table->cand_start[c0] + table->ncand[c0];
+        memmove(&table->cand[pos + 1], &table->cand[pos],
+                (table->ncand_total - pos) * sizeof(kh_strview_t));
+        memmove(&table->cand_prefix[pos + 1], &table->cand_prefix[pos],
+                (table->ncand_total - pos) * sizeof(uint64_t));
+        table->cand[pos] = kh_strview(key, len);
+        table->cand_prefix[pos] = kh_str_starts_prefix(key, len);
+        table->ncand[c0]++;
+        table->ncand_total++;
+        for (unsigned c = c0 + 1; c < 256; ++c)
+          table->cand_start[c]++;
+      }
+    }
   }
   return result;
+}
+
+// Out-of-line so that the per-token call sites inline only the first-byte
+// reject above it, keeping the converter loops short enough for the CPU to
+// overlap the cache misses of several tokens.
+#if defined(__GNUC__) || defined(__clang__)
+__attribute__((noinline))
+#endif
+static khuint_t kh_get_str_starts_item_slow(const kh_str_starts_t *table,
+                                            const char *key, size_t len,
+                                            unsigned char c0) {
+  if (table->overflow)
+    return kh_get_str(table->table, kh_strview(key, len)) !=
+           table->table->n_buckets;
+  const uint64_t prefix = kh_str_starts_prefix(key, len);
+  const unsigned start = table->cand_start[c0];
+  const unsigned stop = start + table->ncand[c0];
+  for (unsigned i = start; i < stop; ++i) {
+    if (table->cand_prefix[i] != prefix || table->cand[i].len != len)
+      continue;
+    size_t j = 8;
+    while (j < len && table->cand[i].ptr[j] == key[j])
+      ++j;
+    if (j >= len)
+      return 1;
+  }
+  return 0;
 }
 
 static inline khuint_t kh_get_str_starts_item(const kh_str_starts_t *table,
                                               const char *key, size_t len) {
   if (len == 0)
     return (khuint_t)table->has_empty;
-  if (table->starts[(unsigned char)key[0]] &&
-      kh_get_str(table->table, kh_strview(key, len)) != table->table->n_buckets)
-    return 1;
-  return 0;
+  const unsigned char c0 = (unsigned char)key[0];
+  if (!(table->start_lens[c0] & kh_str_starts_lenbit(len)))
+    return 0;
+  return kh_get_str_starts_item_slow(table, key, len, c0);
 }
 
 static inline void kh_destroy_str_starts(kh_str_starts_t *table) {
@@ -488,8 +707,8 @@ static inline void kh_destroy_str_starts(kh_str_starts_t *table) {
   KHASH_FREE(table);
 }
 
-static inline void kh_resize_str_starts(kh_str_starts_t *table, khuint_t val) {
-  kh_resize_str(table->table, val);
+static inline int kh_resize_str_starts(kh_str_starts_t *table, khuint_t val) {
+  return kh_resize_str(table->table, val);
 }
 
 // utility function: given the number of elements

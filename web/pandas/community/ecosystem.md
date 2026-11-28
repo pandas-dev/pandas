@@ -6,6 +6,10 @@ This is a community-maintained list of projects that build on pandas in order to
 in the PyData space. The pandas core development team does not necessarily endorse any particular
 project on this list or have any knowledge of the maintenance status of any particular library.
 
+To add a project, open a pull request editing
+[this page](https://github.com/pandas-dev/pandas/blob/main/web/pandas/community/ecosystem.md).
+Projects that are archived, deprecated, or inactive for about two years may be removed.
+
 ## Extensions
 
 pandas has different ways to allow third-party packages to enhance its
@@ -27,14 +31,11 @@ authors to coordinate on the namespace.
   | -------------------------------------------------------------------- | ---------- | --------------------- |
   | [akimbo](https://akimbo.readthedocs.io/en/latest/)                   | `ak`       | `Series`              |
   | [bigframes](https://dataframes.bigquery.dev/)                        | `bigquery` | `DataFrame`           |
-  | [pdvega](https://altair-viz.github.io/pdvega/)                       | `vgplot`   | `Series`, `DataFrame` |
   | [pandas-genomics](https://pandas-genomics.readthedocs.io/en/latest/) | `genomics` | `Series`, `DataFrame` |
   | [pint-pandas](https://github.com/hgrecco/pint-pandas)                | `pint`     | `Series`, `DataFrame` |
-  | [physipandas](https://github.com/mocquin/physipandas)                | `physipy`  | `Series`, `DataFrame` |
-  | [composeml](https://github.com/alteryx/compose)                      | `slice`    | `DataFrame`           |
   | [gurobipy-pandas](https://github.com/Gurobi/gurobipy-pandas)         | `gppd`     | `Series`, `DataFrame` |
   | [staircase](https://www.staircase.dev/)                              | `sc`       | `Series`, `DataFrame` |
-  | [woodwork](https://github.com/alteryx/woodwork)                      | `slice`    | `Series`, `DataFrame` |
+  | [woodwork](https://github.com/alteryx/woodwork)                      | `ww`       | `Series`, `DataFrame` |
   | [pd-money](https://github.com/aalhajmee/pd-money)                     | `money`    | `Series`              |
 
 ### Data types
@@ -51,7 +52,7 @@ Arrays](https://awkward-array.org/) inside pandas' Series and
 DataFrame. It also provides an accessor for using awkward functions
 on Series that are of awkward type.
 
-#### [db-dtypes](https://github.com/googleapis/python-db-dtypes-pandas)
+#### [db-dtypes](https://github.com/googleapis/google-cloud-python/tree/main/packages/db-dtypes)
 
 db-dtypes provides an extension types for working with types like
 DATE, TIME, and JSON from database systems. This package is used
@@ -63,13 +64,6 @@ a natural numpy type.
 Pandas-Genomics provides an extension type and extension array for working
  with genomics data.  It also includes `genomics` accessors for many useful properties
  and methods related to QC and analysis of genomics data.
-
-#### [Physipandas](https://github.com/mocquin/physipandas)
-
-Physipandas provides an extension for manipulating physical quantities
- (like scalar and numpy.ndarray) in association with a physical unit
- (like meter or joule) and additional features for integration of
- `physipy` accessors with pandas Series and Dataframe.
 
 #### [Pint-Pandas](https://github.com/hgrecco/pint-pandas)
 
@@ -87,48 +81,13 @@ that convert the outputs of popular natural language processing libraries into p
 ### Plotting backends
 
 pandas uses [Matplotlib](https://matplotlib.org/) by default for plotting. This can be
-changed with the with `plotting.backend` option:
+changed with the `plotting.backend` option:
 
 ```python
 pd.set_option("plotting.backend", "<plotting-backend-name>")
 ```
 
 This is the list of known plotting backends:
-
-#### [Altair](https://altair-viz.github.io/)
-
-Altair is a declarative statistical visualization library for Python.
-With Altair, you can spend more time understanding your data and its
-meaning. Altair's API is simple, friendly and consistent and built on
-top of the powerful Vega-Lite JSON specification. This elegant
-simplicity produces beautiful and effective visualizations with a
-minimal amount of code. Altair works with Pandas DataFrames.
-
-[altair-pandas](https://github.com/altair-viz/altair_pandas) provides
-the pandas Altair backend via:
-
-```python
-pd.set_option("plotting.backend", "altair")
-```
-
-#### [Bokeh](https://docs.bokeh.org)
-
-Bokeh is a Python interactive visualization library for large datasets
-that natively uses the latest web technologies. Its goal is to provide
-elegant, concise construction of novel graphics in the style of
-Protovis/D3, while delivering high-performance interactivity over large
-data to thin clients.
-
-[Pandas-Bokeh](https://github.com/PatrikHlobil/Pandas-Bokeh) provides a
-high level API for Bokeh that can be loaded as a native Pandas plotting
-backend via:
-
-```python
-pd.set_option("plotting.backend", "pandas_bokeh")
-```
-
-It is very similar to the matplotlib plotting backend, but provides
-interactive web-based charts and maps.
 
 #### [hvplot](https://hvplot.holoviz.org/index.html)
 
@@ -263,7 +222,9 @@ For example, here is how to load the
 import pandas as pd
 
 # Load the IMDB dataset
-df = pd.read_parquet("hf://datasets/stanfordnlp/imdb/plain_text/train-00000-of-00001.parquet")
+df = pd.read_parquet(
+    "hf://datasets/stanfordnlp/imdb/plain_text/train-00000-of-00001.parquet"
+)
 ```
 
 Tip: on a dataset page, click on "Use this dataset" to get the code to load it in pandas.
@@ -297,10 +258,14 @@ Example:
 ```python
 import ntv_pandas as npd
 
-jsn = df.npd.to_json(table=False)  # save df as a JSON-value (format Table Schema if table is True else format NTV )
-df  = npd.read_json(jsn)  # load a JSON-value as a `DataFrame`
+jsn = df.npd.to_json(
+    table=False
+)  # save df as a JSON-value (format Table Schema if table is True else format NTV )
+df = npd.read_json(jsn)  # load a JSON-value as a `DataFrame`
 
-df.equals(npd.read_json(df.npd.to_json(df)))  # `True` in any case, whether `table=True` or not
+df.equals(
+    npd.read_json(df.npd.to_json(df))
+)  # `True` in any case, whether `table=True` or not
 ```
 
 #### [pandas-datareader](https://github.com/pydata/pandas-datareader)
@@ -330,19 +295,19 @@ The following data feeds are available:
 - Stooq Index Data
 - MOEX Data
 
-#### [pandas-gbq](https://github.com/googleapis/python-bigquery-pandas)
+#### [pandas-gbq](https://github.com/googleapis/google-cloud-python/tree/main/packages/pandas-gbq)
 
 pandas-gbq provides high performance reads and writes to and from
 [Google BigQuery](https://cloud.google.com/bigquery/). Previously (before version 2.2.0),
 these methods were exposed as `pandas.read_gbq` and `DataFrame.to_gbq`.
 Use `pandas_gbq.read_gbq` and `pandas_gbq.to_gbq`, instead.
 
-#### [pandaSDMX](https://pandasdmx.readthedocs.io)
+#### [sdmx1](https://sdmx1.readthedocs.io)
 
-pandaSDMX is a library to retrieve and acquire statistical data and
-metadata disseminated in [SDMX](https://sdmx.org) 2.1, an
+sdmx1 is a library to retrieve and acquire statistical data and
+metadata disseminated in [SDMX](https://sdmx.org) 2.1 and 3.0, an
 ISO-standard widely used by institutions such as statistics offices,
-central banks, and international organisations. pandaSDMX can expose
+central banks, and international organisations. sdmx1 can expose
 datasets and related structural metadata including data flows,
 code-lists, and data structure definitions as pandas Series or
 MultiIndexed DataFrames.
@@ -363,11 +328,15 @@ Bodo also provides a SQL engine that can query distributed pandas dataframes eff
 import pandas as pd
 import bodo
 
+
 @bodo.jit
 def process_data():
     df = pd.read_parquet("my_data.pq")
-    df2 = pd.DataFrame({"A": df.apply(lambda r: 0 if r.A == 0 else (r.B // r.A), axis=1)})
+    df2 = pd.DataFrame(
+        {"A": df.apply(lambda r: 0 if r.A == 0 else (r.B // r.A), axis=1)}
+    )
     df2.to_parquet("out.pq")
+
 
 process_data()
 ```
@@ -410,11 +379,12 @@ multiple engines. It helps in bridging the gap between local Python environments
 (like pandas) and remote storage and execution systems like Hadoop components
 (like HDFS, Impala, Hive, Spark) and SQL databases (Postgres, etc.).
 
-#### [Koalas](https://koalas.readthedocs.io/en/latest/)
+#### [pandas API on Spark](https://spark.apache.org/pandas-on-spark/)
 
-Koalas provides a familiar pandas DataFrame interface on top of Apache
-Spark. It enables users to leverage multi-cores on one machine or a
-cluster of machines to speed up or scale their DataFrame code.
+The pandas API on Spark (`pyspark.pandas`, formerly Koalas) provides a familiar
+pandas DataFrame interface on top of Apache Spark. It enables users to leverage
+multi-cores on one machine or a cluster of machines to speed up or scale their
+DataFrame code.
 
 #### [Modin](https://github.com/modin-project/modin)
 
@@ -453,7 +423,7 @@ Pyjanitor provides a clean API for cleaning data, using method chaining.
 
 ## Development tools for pandas
 
-#### [Hamilton](https://github.com/dagworks-inc/hamilton)
+#### [Hamilton](https://github.com/apache/hamilton)
 
 Hamilton is a declarative dataflow framework that came out of Stitch Fix. It was
 designed to help one manage a Pandas code base, specifically with respect to
@@ -471,7 +441,7 @@ This helps one to scale your pandas code base, at the same time, keeping mainten
 
 For more information, see [documentation](https://hamilton.readthedocs.io/).
 
-#### [IPython](https://ipython.org/documentation.html)
+#### [IPython](https://ipython.readthedocs.io/)
 
 IPython is an interactive command shell and distributed computing
 environment. IPython tab completion works with Pandas methods and also
@@ -514,15 +484,11 @@ manipulation and visualization more interactive and fun:
 6. SQL integration: marimo allows users to write SQL queries against any
    pandas dataframes existing in memory.
 
-#### [pandas-stubs](https://github.com/VirtusLab/pandas-stubs)
+#### [pandas-stubs](https://github.com/pandas-dev/pandas-stubs)
 
-While pandas repository is partially typed, the package itself doesn't expose this information for external use.
-Install pandas-stubs to enable basic type coverage of pandas API.
-
-Learn more by reading through these issues [14468](https://github.com/pandas-dev/pandas/issues/14468),
-[26766](https://github.com/pandas-dev/pandas/issues/26766), [28142](https://github.com/pandas-dev/pandas/issues/28142).
-
-See installation and usage instructions on the [GitHub page](https://github.com/VirtusLab/pandas-stubs).
+pandas does not expose its own type annotations for external use. pandas-stubs,
+maintained by the pandas development team, provides type stubs for the public
+pandas API for use with type checkers such as mypy and pyright.
 
 #### [Spyder](https://www.spyder-ide.org/)
 
@@ -552,13 +518,6 @@ both automatically and on-demand.
 
 
 ## Other related libraries
-
-#### [Compose](https://github.com/alteryx/compose)
-
-Compose is a machine learning tool for labeling data and prediction engineering.
-It allows you to structure the labeling process by parameterizing
-prediction problems and transforming time-driven relational data into
-target values with cutoff times that can be used for supervised learning.
 
 #### [D-Tale](https://github.com/man-group/dtale)
 
@@ -649,7 +608,7 @@ modeling functionality that is out of pandas' scope. Statsmodels
 leverages pandas objects as the underlying data container for
 computation.
 
-#### [STUMPY](https://github.com/TDAmeritrade/stumpy)
+#### [STUMPY](https://github.com/stumpy-dev/stumpy)
 
 STUMPY is a powerful and scalable Python library for modern time series analysis.
 At its core, STUMPY efficiently computes something called a

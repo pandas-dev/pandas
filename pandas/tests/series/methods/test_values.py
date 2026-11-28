@@ -21,6 +21,16 @@ class TestValues:
         expected = np.array(data.astype(object))
         tm.assert_numpy_array_equal(result, expected)
 
+    def test_values_datetimetz(self):
+        ser = pd.Series(pd.date_range("2000-01-01", periods=3, tz="Europe/Brussels"))
+        msg = "Series.values returning an ndarray that drops timezone information"
+        with tm.assert_produces_warning(
+            pd.errors.Pandas4Warning, match=msg, check_stacklevel=False
+        ):
+            result = ser.values
+        expected = ser.dt.tz_convert(None).to_numpy()
+        tm.assert_numpy_array_equal(result, expected)
+
     def test_values(self, datetime_series):
         tm.assert_almost_equal(
             datetime_series.values, list(datetime_series), check_dtype=False

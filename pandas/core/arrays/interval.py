@@ -7,9 +7,11 @@ from operator import (
 )
 from typing import (
     TYPE_CHECKING,
+    Any,
     Literal,
     Self,
     TypeAlias,
+    cast,
     overload,
 )
 import warnings
@@ -56,7 +58,9 @@ from pandas.core.dtypes.common import (
     needs_i8_conversion,
     pandas_dtype,
 )
+from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.dtypes import (
+    ArrowDtype,
     CategoricalDtype,
     IntervalDtype,
 )
@@ -65,6 +69,7 @@ from pandas.core.dtypes.generic import (
     ABCDatetimeIndex,
     ABCIntervalIndex,
     ABCPeriodIndex,
+    ABCSeries,
 )
 from pandas.core.dtypes.missing import (
     is_valid_na_for_dtype,
@@ -73,17 +78,26 @@ from pandas.core.dtypes.missing import (
 )
 
 from pandas.core import ops
+from pandas.core.accessor import (
+    PandasDelegate,
+    delegate_names,
+)
 from pandas.core.algorithms import (
     isin,
     take,
     unique,
 )
+from pandas.core.array_algos.putmask import extract_bool_array
 from pandas.core.arrays import ArrowExtensionArray
 from pandas.core.arrays.base import (
     ExtensionArray,
 )
 from pandas.core.arrays.datetimes import DatetimeArray
 from pandas.core.arrays.timedeltas import TimedeltaArray
+from pandas.core.base import (
+    NoNewAttributesMixin,
+    PandasObject,
+)
 import pandas.core.common as com
 from pandas.core.construction import (
     array as pd_array,
@@ -108,11 +122,12 @@ if TYPE_CHECKING:
 
     from pandas import (
         Index,
+        Series,
     )
 
 
 IntervalSide: TypeAlias = TimeArrayLike | np.ndarray
-IntervalOrNA: TypeAlias = Interval | float
+IntervalOrNA: TypeAlias = "Interval[Any] | float"
 
 # Fixed salts for the four VALID_CLOSED values, used in _hash_pandas_object so
 # the result is deterministic across processes (unlike the builtin str hash).
@@ -174,7 +189,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     Notes
     -----
     See the `user guide
-    <https://pandas.pydata.org/pandas-docs/stable/user_guide/advanced.html#intervalindex>`__
+    <https://pandas.pydata.org/docs/user_guide/advanced.html#intervalindex>`__
     for more.
 
     Examples
@@ -214,7 +229,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         copy: bool = False,
         verify_integrity: bool = True,
     ) -> Self:
-        data = extract_array(data, extract_numpy=True)
+        data = extract_array(data, extract_numpy=True, extract_range=True)
 
         if isinstance(data, cls):
             left: IntervalSide = data._left
@@ -232,6 +247,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
             # might need to convert empty or purely na data
             data = _maybe_convert_platform_interval(data)
+            if isinstance(data, ExtensionArray):
+                # GH#68343 non-interval EA, e.g. from astype
+                data = np.asarray(data)
             left, right, infer_closed = intervals_to_interval_bounds(
                 data, validate_closed=closed is None
             )
@@ -669,11 +687,18 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     # ---------------------------------------------------------------------
     # EA Interface
 
-    def __iter__(self) -> Iterator:
+    def __iter__(self) -> Iterator[Any]:
         return iter(np.asarray(self))
 
     def __len__(self) -> int:
         return len(self._left)
+
+    def __reduce__(self) -> tuple[Any, ...]:
+        # Don't pickle the cache, whose contents depend on access history,
+        #  GH#49170. Keep the cython reconstructor so these load in older pandas.
+        reduced = super().__reduce__()
+        attrs = {key: val for key, val in self.__dict__.items() if key != "_cache"}
+        return reduced[0], reduced[1], (attrs,)
 
     @overload
     def __getitem__(self, key: ScalarIndexer) -> IntervalOrNA: ...
@@ -993,25 +1018,33 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         )
 
     @classmethod
-    def _concat_same_type(cls, to_concat: Sequence[IntervalArray]) -> Self:
+    def _concat_same_type(
+        cls, to_concat: Sequence[IntervalArray], axis: AxisInt = 0
+    ) -> Self:
         """
         Concatenate multiple IntervalArray
 
         Parameters
         ----------
         to_concat : sequence of IntervalArray
+        axis : int, default 0
+            Must be 0 or -1; IntervalArray is 1D-only.
 
         Returns
         -------
         IntervalArray
         """
+        if axis not in (0, -1):
+            raise ValueError(f"axis {axis} is out of bounds for array of dimension 1")
         closed_set = {interval.closed for interval in to_concat}
         if len(closed_set) != 1:
             raise ValueError("Intervals must all be closed on the same side.")
         closed = closed_set.pop()
 
-        left: IntervalSide = np.concatenate([interval.left for interval in to_concat])
-        right: IntervalSide = np.concatenate([interval.right for interval in to_concat])
+        # concat_compat instead of np.concatenate to retain an ExtensionDtype
+        #  subtype GH#64297
+        left = concat_compat([interval._left for interval in to_concat])
+        right = concat_compat([interval._right for interval in to_concat])
 
         left, right, dtype = cls._ensure_simple_new_inputs(left, right, closed=closed)
 
@@ -1067,29 +1100,15 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         self._validate_scalar(fill_value)
 
-        # ExtensionArray.shift doesn't work for two reasons
-        # 1. IntervalArray.dtype.na_value may not be correct for the dtype.
-        # 2. IntervalArray._from_sequence only accepts NaN for missing values,
-        #    not other values like NaT
-
-        empty_len = min(abs(periods), len(self))
         if isna(fill_value):
-            from pandas import Index
+            # ExtensionArray.shift would build the NA fill with _from_sequence,
+            #  which raises on a numpy integer subtype instead of upcasting.
+            #  take keeps the subtype unless it must upcast to hold NA.
+            indexer = np.arange(len(self)) - periods
+            indexer[(indexer < 0) | (indexer >= len(self))] = -1
+            return self.take(indexer, allow_fill=True)
 
-            fill_value = Index(self._left, copy=False)._na_value
-            empty = IntervalArray.from_breaks(
-                [fill_value] * (empty_len + 1), closed=self.closed
-            )
-        else:
-            empty = self._from_sequence([fill_value] * empty_len, dtype=self.dtype)
-
-        if periods > 0:
-            a = empty
-            b = self[:-periods]
-        else:
-            a = self[abs(periods) :]
-            b = empty
-        return self._concat_same_type([a, b])
+        return cast("IntervalArray", super().shift(periods, fill_value))
 
     def take(
         self,
@@ -1161,6 +1180,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return self._shallow_copy(left_take, right_take)
 
     def _validate_listlike(self, value):
+        value_left: Index | ExtensionArray
+        value_right: Index | ExtensionArray
         # list-like of intervals
         try:
             array = IntervalArray(value)
@@ -1170,6 +1191,15 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             # wrong type: not interval or NA
             msg = f"'value' should be an interval type, got {type(value)} instead."
             raise TypeError(msg) from err
+
+        mask = array.isna()
+        if mask.any() and not is_valid_na_for_dtype(np.nan, self.left.dtype):
+            # missing entries have NaN endpoints, which e.g. a Float64 subtype
+            #  would store as values under future.distinguish_nan_and_na
+            value_left = pd_array(np.asarray(value_left))
+            value_right = pd_array(np.asarray(value_right))
+            value_left[mask] = NA
+            value_right[mask] = NA
 
         try:
             self.left._validate_fill_value(value_left)
@@ -1188,7 +1218,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             left, right = value.left, value.right
             self.left._validate_fill_value(left)
             self.left._validate_fill_value(right)
-        elif is_valid_na_for_dtype(value, self.left.dtype):
+        elif is_valid_na_for_dtype(value, self.dtype) or is_valid_na_for_dtype(
+            value, self.left.dtype
+        ):
             # GH#18295
             left = right = self.left._na_value
         else:
@@ -1203,7 +1235,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         left, right = self._validate_scalar(value)
 
-        if is_valid_na_for_dtype(value, self.left.dtype):
+        if isna(value):
             if is_integer_dtype(self.dtype.subtype):
                 # can't set NaN on a numpy integer array
                 # GH#45484 TypeError, not ValueError, matches what we get with
@@ -1353,10 +1385,24 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         Index([0.5, 3.0], dtype='float64')
         """
         try:
-            return 0.5 * (self.left + self.right)
+            mid = 0.5 * (self.left + self.right)
         except TypeError:
             # datetime safe version
             return self.left + 0.5 * self.length
+        subtype = self.dtype.subtype
+        # pyarrow ints already raise on overflow, and comparing them with a
+        #  float mid raises past 2**53
+        if subtype.kind == "f" or (
+            subtype.kind in "iu" and not isinstance(subtype, ArrowDtype)
+        ):
+            # an overflowing sum lands outside the interval; there, halve before
+            #  adding, which cannot overflow but rounds more, see GH#25499
+            outside = extract_bool_array(
+                (mid._values < self._left) | (mid._values > self._right)
+            )
+            if outside.any():
+                mid = mid.putmask(outside, 0.5 * self.left + 0.5 * self.right)
+        return mid
 
     def overlaps(self, other):
         """
@@ -1611,21 +1657,31 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         """
         import pyarrow
 
+        from pandas.core.arrays.arrow.array import to_pyarrow_type
         from pandas.core.arrays.arrow.extension_types import ArrowIntervalType
 
         try:
-            subtype = pyarrow.from_numpy_dtype(self.dtype.subtype)
-        except TypeError as err:
+            subtype = to_pyarrow_type(self.dtype.subtype)
+        except (TypeError, pyarrow.ArrowNotImplementedError) as err:
             raise TypeError(
                 f"Conversion to arrow with subtype '{self.dtype.subtype}' "
                 "is not supported"
             ) from err
+        if subtype is None:
+            raise TypeError(
+                f"Conversion to arrow with subtype '{self.dtype.subtype}' "
+                "is not supported"
+            )
         interval_type = ArrowIntervalType(subtype, self.closed)
+
+        def _to_arrow(values) -> pyarrow.Array:
+            if isinstance(self.dtype.subtype, np.dtype):
+                return pyarrow.array(values, type=subtype, from_pandas=True)
+            # pyarrow would fall back on `.values`, dropping the tz; _ndarray is UTC
+            return pyarrow.array(values._ndarray, from_pandas=True).cast(subtype)
+
         storage_array = pyarrow.StructArray.from_arrays(
-            [
-                pyarrow.array(self._left, type=subtype, from_pandas=True),
-                pyarrow.array(self._right, type=subtype, from_pandas=True),
-            ],
+            [_to_arrow(self._left), _to_arrow(self._right)],
             names=["left", "right"],
         )
         mask = self.isna()
@@ -1728,7 +1784,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             assert not isinstance(self._right, np.ndarray)
             self._right._putmask(mask, value_right)
 
-    def insert(self, loc: int, item: Interval) -> Self:
+    def insert(self, loc: int, item: Interval[Any]) -> Self:
         """
         Return a new IntervalArray inserting new item at location. Follows
         Python numpy.insert semantics for negative values.  Only Interval
@@ -1957,3 +2013,102 @@ def _maybe_convert_platform_interval(values) -> ArrayLike:
         if values.dtype.kind in "iu" and values.dtype != np.int64:
             values = values.astype(np.int64)
     return values
+
+
+# ---------------------------------------------------------------------
+# The Series.interval accessor
+
+
+@delegate_names(
+    delegate=IntervalArray,
+    accessors=["left", "right", "mid", "length", "is_empty", "closed"],
+    typ="property",
+)
+@delegate_names(
+    delegate=IntervalArray,
+    accessors=["overlaps", "contains", "set_closed"],
+    typ="method",
+)
+class IntervalAccessor(PandasDelegate, PandasObject, NoNewAttributesMixin):
+    """
+    Accessor object for interval properties of the Series values.
+
+    Provides the endpoints, midpoints and lengths of the intervals, and
+    elementwise checks for containment and overlap, each returned as a
+    Series aligned with the original. A categorical Series with interval
+    categories, such as the result of :func:`cut`, is also supported.
+
+    Parameters
+    ----------
+    data : Series
+        The Series with interval or interval-categorical dtype to which the
+        accessor is attached.
+
+    See Also
+    --------
+    arrays.IntervalArray : Pandas array for interval data.
+    Series.cat : Accessor object for categorical properties of the Series values.
+    Series.dt : Accessor object for datetimelike properties of the Series values.
+
+    Examples
+    --------
+    >>> ser = pd.Series(pd.arrays.IntervalArray.from_breaks([0, 1, 3, 6]))
+    >>> ser.interval.mid
+    0    0.5
+    1    2.0
+    2    4.5
+    dtype: float64
+
+    >>> ser.interval.contains(2)
+    0    False
+    1     True
+    2    False
+    dtype: bool
+    """
+
+    def __init__(self, data) -> None:
+        values = data.array
+        if isinstance(values.dtype, CategoricalDtype) and isinstance(
+            values.categories.dtype, IntervalDtype
+        ):
+            # take, not astype, so missing values upcast an integer subtype
+            values = values.categories._values.take(values.codes, allow_fill=True)
+        if not isinstance(values.dtype, IntervalDtype):
+            raise AttributeError(
+                "Can only use .interval accessor with an 'interval' dtype"
+            )
+        self._parent = data
+        self._values = values
+        self._freeze()
+
+    def _wrap_result(self, result, copy: bool) -> Series:
+        from pandas import Series
+
+        return Series(
+            extract_array(result),
+            index=self._parent.index,
+            name=self._parent.name,
+            copy=copy,
+        ).__finalize__(self._parent)
+
+    def _delegate_property_get(self, name: str):
+        result = getattr(self._values, name)
+        if name == "closed":
+            return result
+        # left and right are views on the parent's data
+        return self._wrap_result(result, copy=name in ("left", "right"))
+
+    def _unbox(self, obj):
+        # match Series comparison ops instead of silently matching by position
+        if isinstance(obj, ABCSeries):
+            if not obj.index.equals(self._parent.index):
+                raise ValueError("Can only compare identically-labeled Series objects")
+            return obj._values
+        return obj
+
+    def _delegate_method(self, name: str, *args, **kwargs) -> Series:
+        args = tuple(self._unbox(arg) for arg in args)
+        kwargs = {key: self._unbox(val) for key, val in kwargs.items()}
+        method = getattr(self._values, name)
+        # set_closed shares the parent's endpoint arrays
+        return self._wrap_result(method(*args, **kwargs), copy=name == "set_closed")

@@ -28,32 +28,22 @@ Any other keyword argument is currently assumed to be backend specific,
 but some parameters may be unified and added to the signature in the
 future (e.g. `title` which should be useful for any backend).
 
-Currently, all the Matplotlib functions in pandas are accessed through
-the selected backend. For example, `pandas.plotting.boxplot` (equivalent
-to `DataFrame.boxplot`) is also accessed in the selected backend. This
-is expected to change, and the exact API is under discussion. But with
-the current version, backends are expected to implement the next functions:
+Besides ``plot``, the selected backend is used for these functions:
 
-- plot (describe above, used for `Series.plot` and `DataFrame.plot`)
-- hist_series and hist_frame (for `Series.hist` and `DataFrame.hist`)
-- boxplot (`pandas.plotting.boxplot(df)` equivalent to `DataFrame.boxplot`)
-- boxplot_frame and boxplot_frame_groupby
-- register and deregister (register converters for the tick formats)
-- Plots not called as `Series` and `DataFrame` methods:
-  - table
-  - andrews_curves
-  - autocorrelation_plot
-  - bootstrap_plot
-  - lag_plot
-  - parallel_coordinates
-  - radviz
-  - scatter_matrix
+- hist_series (for `Series.hist`)
+- hist_frame (for `DataFrame.hist`)
+- boxplot_frame (for `DataFrame.boxplot`)
+- boxplot_frame_groupby (for `DataFrameGroupBy.boxplot`)
 
-Use the code in pandas/plotting/_matplotlib.py and
-https://github.com/pyviz/hvplot as a reference on how to write a backend.
+The other functions in `pandas.plotting` (e.g. `pandas.plotting.boxplot`,
+`scatter_matrix`, `register_matplotlib_converters`) always use Matplotlib,
+regardless of the selected backend.
 
-For the discussion about the API see
-https://github.com/pandas-dev/pandas/issues/26747.
+Backends are found through the ``pandas_plotting_backends`` entry point,
+falling back to importing the backend name as a module.
+
+Use the code in pandas/plotting/_matplotlib/ and
+https://github.com/holoviz/hvplot as a reference on how to write a backend.
 """
 
 from pandas.plotting._core import (

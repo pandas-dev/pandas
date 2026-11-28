@@ -155,6 +155,15 @@ A   B     C            D            E
         read_fwf(StringIO(data), colspecs=None, widths=None)
 
 
+@pytest.mark.parametrize("kwarg", ["width", "delim_whitespace"])
+def test_unexpected_keyword(kwarg):
+    # GH#34953 a typo or a read_csv argument removed in 3.0 was silently ignored
+    data = "AA1234\nBB5678\n"
+    msg = f"read_fwf\\(\\) got an unexpected keyword argument '{kwarg}'"
+    with pytest.raises(TypeError, match=msg):
+        read_fwf(StringIO(data), **{kwarg: [2, 4]})
+
+
 def test_read_csv_compat():
     csv_data = """\
 A,B,C,D,E
@@ -332,6 +341,25 @@ def test_fwf_for_uint8():
     tm.assert_frame_equal(df, expected)
 
 
+@pytest.mark.parametrize(
+    "keep_default_na,values",
+    [(True, [np.nan, "1", np.nan]), (False, ["", "1", ""])],
+)
+def test_fwf_converters_blank_fields(keep_default_na, values):
+    # GH#10616 blank fields in a converter column follow the NA rules, and
+    # leading blanks do not stop the column from getting the converter's dtype
+    data = "A \nB1\nC \n"
+    result = read_fwf(
+        StringIO(data),
+        widths=[1, 1],
+        names=["a", "b"],
+        converters={"b": str},
+        keep_default_na=keep_default_na,
+    )
+    expected = pd.DataFrame({"a": ["A", "B", "C"], "b": values})
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize("comment", ["#", "~", "!"])
 def test_fwf_comment(comment):
     data = """\
@@ -422,6 +450,17 @@ MyColumn
     msg = "Passing a bool to header is invalid"
     with pytest.raises(TypeError, match=msg):
         read_fwf(StringIO(data), header=header)
+
+
+def test_multi_index_header_not_increasing():
+    # GH#47011
+    data = "a  b\nc  d\ne  f\n1  2\n3  4\n"
+    result = read_fwf(StringIO(data), header=[2, 0])
+    expected = pd.DataFrame(
+        [[1, 2], [3, 4]],
+        columns=pd.MultiIndex.from_arrays([["e", "f"], ["a", "b"]]),
+    )
+    tm.assert_frame_equal(result, expected)
 
 
 def test_full_file():
@@ -577,7 +616,13 @@ DataCol1   DataCol2
     tm.assert_frame_equal(result, expected)
 
 
-def test_skiprows_by_index_inference():
+@pytest.mark.parametrize(
+    "skiprows",
+    # GH#20603 callable skiprows must be applied when inferring colspecs
+    [[0, 2], lambda x: x in [0, 2]],
+    ids=["list", "callable"],
+)
+def test_skiprows_by_index_inference(skiprows):
     data = """
 To be skipped
 Not  To  Be  Skipped
@@ -585,7 +630,6 @@ Once more to be skipped
 123  34   8      123
 456  78   9      456
 """.strip()
-    skiprows = [0, 2]
 
     expected = read_csv(StringIO(data), skiprows=skiprows, sep=r"\s+")
     result = read_fwf(StringIO(data), skiprows=skiprows)
@@ -982,6 +1026,21 @@ def test_invalid_dtype_backend():
         read_fwf("test", dtype_backend="numpy")
 
 
+def test_dtype_category_infers_numeric_and_bool():
+    # GH#56044 read_fwf shares read_csv's category inference
+    data = """\
+  a      b
+  1   True
+  2  False
+  1   True
+"""
+    expected = pd.DataFrame(
+        {"a": pd.Categorical([1, 2, 1]), "b": pd.Categorical([True, False, True])}
+    )
+    result = read_fwf(StringIO(data), dtype="category")
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.network
 @pytest.mark.single_cpu
 def test_url_urlopen(httpserver):
@@ -999,3 +1058,13 @@ A         B            C            D
         result = read_fwf(f).columns
 
     tm.assert_index_equal(result, expected)
+
+
+def test_skipfooter_counts_skiprows_lines():
+    # GH#36827 a skiprows line inside the footer still counts towards skipfooter
+    data = "A  B\n1  2\n3  4\n5  6\n7  8\nfooter"
+    colspecs = [(0, 1), (3, 4)]
+    result = read_fwf(StringIO(data), colspecs=colspecs, skiprows=[4], skipfooter=2)
+
+    expected = pd.DataFrame({"A": [1, 3, 5], "B": [2, 4, 6]})
+    tm.assert_frame_equal(result, expected)

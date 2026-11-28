@@ -95,46 +95,37 @@ def data_for_compare(request):
     return SparseArray([0, 0, np.nan, -2, -1, 4, 2, 3, 0, 0], fill_value=request.param)
 
 
+@pytest.mark.filterwarnings(
+    "ignore:SparseArray uses the default:pandas.errors.PerformanceWarning"
+)
 class TestSparseArray(base.ExtensionTests):
     def _honors_copy_keyword(self, data) -> bool:
         return False
 
+    def _get_expected_reduction_dtype(self, arr, op_name: str, skipna: bool):
+        if op_name in ["mean", "median", "var", "std", "sem", "skew", "kurt"]:
+            # not closed over the subtype, so the result widens to float64
+            return pd.SparseDtype("float64", arr.fill_value)
+        return arr.dtype
+
+    def _supports_accumulation(self, ser: pd.Series, op_name: str) -> bool:
+        return True
+
     def _supports_reduction(self, obj, op_name: str) -> bool:
-        if op_name in [
-            "prod",
-            "median",
-            "var",
-            "std",
-            "sem",
-            "skew",
-            "kurt",
-        ]:
-            # These should be viable but are not implemented
-            return False
-        else:
-            return True
-
-    @pytest.mark.parametrize("skipna", [True, False])
-    def test_reduce_frame(self, data, all_numeric_reductions, skipna, request):
-        if all_numeric_reductions in [
-            "prod",
-            "median",
-            "var",
-            "std",
-            "sem",
-            "skew",
-            "kurt",
-        ]:
-            mark = pytest.mark.xfail(
-                reason="This should be viable but is not implemented"
-            )
-            request.node.add_marker(mark)
-
-        super().test_reduce_frame(data, all_numeric_reductions, skipna)
+        return True
 
     def _check_unsupported(self, data):
         if data.dtype == pd.SparseDtype(int, 0):
             pytest.skip("Can't store nan in int array.")
+
+    @pytest.mark.xfail(
+        reason="SparseArray.value_counts returns a dense index and puts the "
+        "fill_value first"
+    )
+    @pytest.mark.parametrize("dropna", [True, False])
+    @pytest.mark.parametrize("sort", [True, False])
+    def test_value_counts_sort(self, data_for_grouping, sort, dropna):
+        super().test_value_counts_sort(data_for_grouping, sort, dropna)
 
     def test_concat_mixed_dtypes(self, data):
         # https://github.com/pandas-dev/pandas/issues/20762
@@ -216,8 +207,23 @@ class TestSparseArray(base.ExtensionTests):
         expected = SparseArray([False, False], fill_value=False, dtype=expected_dtype)
         tm.assert_equal(sarr.isna(), expected)
 
-    def test_fillna_no_op_returns_copy(self, data, request):
-        super().test_fillna_no_op_returns_copy(data)
+    def test_fillna_no_op_returns_copy(self, data):
+        data = data[~data.isna()]
+
+        valid = data[0]
+        result = data.fillna(valid)
+        assert result is not data
+        if pd.isna(data.dtype.fill_value):
+            # GH#68582 filling an NA-filled array moves the fill value to the
+            #  fill scalar, see the fillna docstring
+            assert result.dtype == pd.SparseDtype(data.dtype.subtype, valid)
+            tm.assert_numpy_array_equal(result.to_dense(), data.to_dense())
+        else:
+            tm.assert_extension_array_equal(result, data)
+
+        result = data._pad_or_backfill(method="backfill")
+        assert result is not data
+        tm.assert_extension_array_equal(result, data)
 
     @pytest.mark.xfail(reason="Unsupported")
     def test_fillna_series(self, data_missing):
@@ -283,6 +289,10 @@ class TestSparseArray(base.ExtensionTests):
     def test_fillna_length_mismatch(self, data_missing):
         super().test_fillna_length_mismatch(data_missing)
 
+    @pytest.mark.xfail(reason="SparseArray does not support item assignment")
+    def test_mask_listlike_other_inplace(self, data):
+        super().test_mask_listlike_other_inplace(data)
+
     def test_where_series(self, data, na_value):
         assert data[0] != data[1]
         cls = type(data)
@@ -293,7 +303,9 @@ class TestSparseArray(base.ExtensionTests):
         cond = np.array([True, True, False, False])
         result = ser.where(cond)
 
-        new_dtype = pd.SparseDtype("float", 0.0)
+        # GH#68582 where() promotes the subtype to float but keeps the
+        #  fill_value
+        new_dtype = pd.SparseDtype("float64", data.dtype.fill_value)
         expected = pd.Series(
             cls._from_sequence([a, a, na_value, na_value], dtype=new_dtype)
         )
@@ -402,8 +414,6 @@ class TestSparseArray(base.ExtensionTests):
             "rmul",
             "floordiv",
             "rfloordiv",
-            "truediv",
-            "rtruediv",
             "pow",
             "mod",
             "rmod",

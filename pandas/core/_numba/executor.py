@@ -20,8 +20,8 @@ from pandas.core.util.numba_ import jit_user_function
 
 @functools.cache
 def generate_apply_looper(
-    func: Callable, nogil: bool = True, parallel: bool = False
-) -> Callable:
+    func: Callable[..., Any], nogil: bool = True, parallel: bool = False
+) -> Callable[..., np.ndarray]:
     if TYPE_CHECKING:
         import numba
     else:
@@ -49,11 +49,11 @@ def generate_apply_looper(
 
         if axis == 1:
             buff[0] = res0
-            for i in numba.prange(1, values.shape[0]):  # type: ignore[no-untyped-call,attr-defined]
+            for i in numba.prange(1, values.shape[0]):
                 buff[i] = nb_compat_func(values[i], *args)
         else:
             buff[:, 0] = res0
-            for j in numba.prange(1, values.shape[1]):  # type: ignore[no-untyped-call,attr-defined]
+            for j in numba.prange(1, values.shape[1]):
                 buff[:, j] = nb_compat_func(values[:, j], *args)
         return buff
 
@@ -62,12 +62,12 @@ def generate_apply_looper(
 
 @functools.cache
 def make_looper(
-    func: Callable,
+    func: Callable[..., Any],
     result_dtype: np.dtype,
     is_grouped_kernel: bool,
     nogil: bool,
     parallel: bool,
-) -> Callable:
+) -> Callable[..., tuple[np.ndarray, dict[int, np.ndarray]]]:
     if TYPE_CHECKING:
         import numba
     else:
@@ -85,7 +85,7 @@ def make_looper(
         ) -> tuple[np.ndarray, dict[int, np.ndarray]]:
             result = np.empty((values.shape[0], ngroups), dtype=result_dtype)
             na_positions = {}
-            for i in numba.prange(values.shape[0]):  # type: ignore[no-untyped-call,attr-defined]
+            for i in numba.prange(values.shape[0]):
                 output, na_pos = func(
                     values[i], result_dtype, labels, ngroups, min_periods, *args
                 )
@@ -106,7 +106,7 @@ def make_looper(
         ) -> tuple[np.ndarray, dict[int, np.ndarray]]:
             result = np.empty((values.shape[0], len(start)), dtype=result_dtype)
             na_positions = {}
-            for i in numba.prange(values.shape[0]):  # type: ignore[no-untyped-call,attr-defined]
+            for i in numba.prange(values.shape[0]):
                 output, na_pos = func(
                     values[i], result_dtype, start, end, min_periods, *args
                 )
@@ -173,7 +173,7 @@ def generate_shared_aggregator(
     is_grouped_kernel: bool,
     nogil: bool,
     parallel: bool,
-) -> Callable:
+) -> Callable[..., np.ndarray]:
     """
     Generate a Numba function that loops over the columns 2D object and applies
     a 1D numba kernel over each column.

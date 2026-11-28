@@ -10,6 +10,7 @@ cdef tzinfo utc_stdlib
 cpdef bint is_utc(tzinfo tz)
 cdef bint is_tzlocal(tzinfo tz)
 cdef bint is_zoneinfo(tzinfo tz)
+cdef bint treat_tz_as_zoneinfo(tzinfo tz)
 
 cdef bint treat_tz_as_pytz(tzinfo tz)
 
@@ -21,3 +22,4 @@ cdef timedelta get_utcoffset(tzinfo tz, datetime obj)
 cpdef bint is_fixed_offset(tzinfo tz)
 
 cdef object get_dst_info(tzinfo tz)
+cdef tzinfo get_zoneinfo_twin(tzinfo tz)

@@ -15,11 +15,14 @@ from typing import (
     TypeVar,
     overload,
 )
+import warnings
 
 import numpy as np
 
 from pandas._libs import lib
 from pandas._libs.missing import NA
+from pandas.errors import Pandas4Warning
+from pandas.util._exceptions import find_stack_level
 
 from pandas.core.dtypes.common import (
     is_bool,
@@ -326,6 +329,31 @@ def validate_na_arg(value: object, name: str) -> None:
     raise ValueError(f"{name} must be None, pd.NA, np.nan, True, or False; got {value}")
 
 
+def validate_min_count(min_count: int) -> int:
+    """
+    Warn on a negative ``min_count``, which is deprecated (GH#50022).
+
+    Parameters
+    ----------
+    min_count : int
+        The ``min_count`` passed to a reduction.
+
+    Returns
+    -------
+    int
+        ``min_count``, with negative values replaced by 0.
+    """
+    if (lib.is_integer(min_count) or lib.is_float(min_count)) and min_count < 0:
+        warnings.warn(
+            "Passing a negative value for 'min_count' is deprecated and will "
+            "raise in a future version of pandas. Pass min_count=0 instead.",
+            Pandas4Warning,
+            stacklevel=find_stack_level(),
+        )
+        return 0
+    return min_count  # pyright: ignore[reportReturnType]
+
+
 def validate_percentile(q: float | Iterable[float]) -> np.ndarray:
     """
     Validate percentiles (used by describe and quantile).
@@ -376,39 +404,6 @@ def validate_ascending(
         return validate_bool_kwarg(ascending, "ascending", **kwargs)
 
     return [validate_bool_kwarg(item, "ascending", **kwargs) for item in ascending]
-
-
-def validate_endpoints(closed: str | None) -> tuple[bool, bool]:
-    """
-    Check that the `closed` argument is among [None, "left", "right"]
-
-    Parameters
-    ----------
-    closed : {None, "left", "right"}
-
-    Returns
-    -------
-    left_closed : bool
-    right_closed : bool
-
-    Raises
-    ------
-    ValueError : if argument is not among valid values
-    """
-    left_closed = False
-    right_closed = False
-
-    if closed is None:
-        left_closed = True
-        right_closed = True
-    elif closed == "left":
-        left_closed = True
-    elif closed == "right":
-        right_closed = True
-    else:
-        raise ValueError("Closed has to be either 'left', 'right' or None")
-
-    return left_closed, right_closed
 
 
 def validate_inclusive(inclusive: str | None) -> tuple[bool, bool]:

@@ -21,11 +21,15 @@ from pandas._libs import lib
 from pandas.errors import Pandas4Warning
 from pandas.util._exceptions import find_stack_level
 
-from pandas.core.dtypes.astype import astype_is_view
+from pandas.core.dtypes.astype import (
+    astype_array,
+    astype_is_view,
+)
 from pandas.core.dtypes.cast import (
     construct_1d_arraylike_from_scalar,
     construct_1d_object_array_from_listlike,
     dict_compat,
+    find_common_type,
     maybe_cast_to_datetime,
 )
 from pandas.core.dtypes.common import (
@@ -36,6 +40,7 @@ from pandas.core.dtypes.common import (
     is_object_dtype,
     is_scalar,
 )
+from pandas.core.dtypes.concat import concat_compat
 from pandas.core.dtypes.dtypes import (
     BaseMaskedDtype,
     ExtensionDtype,
@@ -57,6 +62,7 @@ from pandas.core.construction import (
     extract_array,
     range_to_ndarray,
     sanitize_array,
+    warn_compound_dtype,
 )
 from pandas.core.indexes.api import (
     DatetimeIndex,
@@ -82,12 +88,15 @@ from pandas.core.internals.managers import (
 
 if TYPE_CHECKING:
     from collections.abc import (
+        Callable,
         Hashable,
+        Mapping,
         Sequence,
     )
 
     from pandas._typing import (
         ArrayLike,
+        DtypeBackend,
         DtypeObj,
         Manager,
         npt,
@@ -193,6 +202,17 @@ def rec_array_to_mgr(
 # DataFrame Constructor Interface
 
 
+def _views_as_ea(arr, dtype: DtypeObj | None) -> bool:
+    """
+    Would casting ``arr`` to the extension ``dtype`` view its data?
+    """
+    return (
+        isinstance(dtype, ExtensionDtype)
+        and isinstance(arr, (np.ndarray, ABCSeries, ExtensionArray))
+        and astype_is_view(arr.dtype, dtype)
+    )
+
+
 def ndarray_to_mgr(
     values, index, columns, dtype: DtypeObj | None, copy: bool
 ) -> Manager:
@@ -230,13 +250,15 @@ def ndarray_to_mgr(
         else:
             values = [values]
 
-        # Handle copy semantics: already copy 1d-only EA. Other arrays will
-        # be copied when consolidating the blocks
+        # Copy 1d-only EAs and arrays the cast would view
         if copy:
             values = [
                 (x.copy(deep=True) if isinstance(x, Index) else x.copy())
-                if isinstance(x, (ExtensionArray, Index, ABCSeries))
-                and is_1d_only_ea_dtype(x.dtype)
+                if (
+                    isinstance(x, (ExtensionArray, Index, ABCSeries))
+                    and is_1d_only_ea_dtype(x.dtype)
+                )
+                or _views_as_ea(x, dtype)
                 else x
                 for x in values
             ]
@@ -293,6 +315,9 @@ def ndarray_to_mgr(
             copy=copy,
             allow_2d=True,
         )
+    elif isinstance(values, np.ndarray) and values.dtype.names is not None:
+        # GH#49388 e.g. a list of 0-dim structured arrays
+        warn_compound_dtype()
 
     # _prep_ndarraylike ensures that values.ndim == 2 at this point
     index, columns = _get_axes(
@@ -376,7 +401,7 @@ def _check_values_indices_shape_match(
 
 
 def dict_to_mgr(
-    data: dict,
+    data: dict[Hashable, Any],
     index,
     columns,
     *,
@@ -443,11 +468,11 @@ def dict_to_mgr(
 
     if copy:
         # We only need to copy arrays that will not get consolidated, i.e.
-        #  only EA arrays
+        #  only EA arrays and arrays an EA would view
         arrays = [
             (
                 x.copy()
-                if isinstance(x, ExtensionArray)
+                if isinstance(x, ExtensionArray) or _views_as_ea(x, dtype)
                 else (
                     x.copy(deep=True)
                     if (
@@ -464,7 +489,7 @@ def dict_to_mgr(
 
 
 def nested_data_to_arrays(
-    data: Sequence,
+    data: Sequence[Any],
     columns: Index | None,
     index: Index | None,
     dtype: DtypeObj | None,
@@ -823,8 +848,15 @@ def to_arrays(
     elif isinstance(data[0], abc.Mapping):
         arr, columns = _list_of_dict_to_arrays(data, columns)
     elif isinstance(data[0], ABCSeries):
-        arr, columns = _list_of_series_to_arrays(data, columns)
+        return _list_of_series_to_arrays(data, columns, dtype)
     else:
+        # a str first row is split without warning, e.g. from_records(["ab", "cd"])
+        has_str_rows = not is_scalar(data[0]) and _warn_if_str_rows(
+            set(map(type, data))
+        )
+        if is_list_like(data[0]):
+            _validate_scalar_rows(data)
+
         # last ditch effort
         # GH#23985, GH#49593: if all rows are arrays with a uniform
         # dtype, construct columns directly to preserve that dtype
@@ -839,29 +871,48 @@ def to_arrays(
         ):
             common_dtype = row_dtypes.pop()
             ncols = len(data[0])
+            constructor: Callable[..., ArrayLike]
+            if isinstance(common_dtype, np.dtype) and common_dtype.kind == "V":
+                # GH#49388 avoid pd.array's void-dtype warning; for structured
+                #  rows sanitize_array warns instead
+                constructor = np.array
+            else:
+                constructor = pd_array
             arrays = [
-                pd_array([row[col_idx] for row in data], dtype=common_dtype)
+                constructor([row[col_idx] for row in data], dtype=common_dtype)
                 for col_idx in range(ncols)
             ]
             columns = _validate_or_indexify_columns(arrays, columns)
             return arrays, columns
 
         data = [tuple(x) for x in data]
-        arr = _list_to_arrays(data)
+        arr = _list_to_arrays(data, check_ragged=not has_str_rows)
 
     content, columns = _finalize_columns_and_data(arr, columns, dtype)
     return content, columns
 
 
-def _list_to_arrays(data: list[tuple | list]) -> np.ndarray:
+def _list_to_arrays(
+    data: list[tuple[Any, ...] | list[Any]], check_ragged: bool = True
+) -> np.ndarray:
     # Returned np.ndarray has ndim = 2
     # Note: we already check len(data) > 0 before getting hre
 
     # GH#65751 shorter sequences get padded with NaN out to the longest one,
     #  which is deprecated.  A null scalar counts as length 1, mirroring the
     #  handling in lib.to_object_array_tuples.
-    lengths = {1 if is_scalar(row) and isna(row) else len(row) for row in data}
-    if len(lengths) > 1:
+    row_types = set(map(type, data))
+    if all(issubclass(typ, (list, tuple)) for typ in row_types):
+        lengths = set(map(len, data))
+    else:
+        if _warn_if_str_rows(row_types):
+            check_ragged = False
+        null_rows = _validate_scalar_rows(data)
+        lengths = {
+            1 if is_null else len(row)
+            for row, is_null in zip(data, null_rows, strict=True)
+        }
+    if check_ragged and len(lengths) > 1:
         warnings.warn(
             "Constructing a DataFrame from a list of sequences with mismatched "
             "lengths is deprecated and will raise in a future version. The "
@@ -879,12 +930,50 @@ def _list_to_arrays(data: list[tuple | list]) -> np.ndarray:
     return content
 
 
-def _list_of_series_to_arrays(
-    data: list,
-    columns: Index | None,
-) -> tuple[np.ndarray, Index]:
-    # returned np.ndarray has ndim == 2
+def _validate_scalar_rows(data: list[Any]) -> list[bool]:
+    # GH#29213 a non-iterable row would otherwise fail later with an opaque error;
+    #  a null row after a tuple row is padded by lib.to_object_array_tuples.
+    #  Returns whether each row is such a null row.
+    allow_null = isinstance(data[0], tuple)
+    null_rows = []
+    for i, row in enumerate(data):
+        is_null = allow_null and is_scalar(row) and isna(row)
+        null_rows.append(is_null)
+        if is_null:
+            continue
+        try:
+            iter(row)
+        except TypeError as err:
+            raise TypeError(
+                "When the first row is list-like, every row must be list-like, "
+                f"but the row at position {i} has type {type(row).__name__}. To "
+                "store list-likes as values of a single column, construct a "
+                "Series and call to_frame() instead."
+            ) from err
+    return null_rows
 
+
+def _warn_if_str_rows(row_types: set[type]) -> bool:
+    # GH#50461 called when the first row is list-like. Returns whether a str or
+    #  bytes row was found, in which case the caller skips the mismatched-lengths
+    #  warning since this deprecation already covers the call.
+    if not any(issubclass(typ, (str, bytes)) for typ in row_types):
+        return False
+    warnings.warn(
+        "Constructing a DataFrame with a str or bytes row after a list-like row "
+        "is deprecated and will raise in a future version. Such rows are "
+        "currently split into their elements; pass list(row) to split explicitly.",
+        Pandas4Warning,
+        stacklevel=find_stack_level(),
+    )
+    return True
+
+
+def _list_of_series_to_arrays(
+    data: list[Any],
+    columns: Index | None,
+    dtype: DtypeObj | None,
+) -> tuple[list[ArrayLike], Index]:
     if columns is None:
         # We know pass_data is non-empty because data[0] is a Series
         pass_data = [x for x in data if isinstance(x, (ABCSeries, ABCDataFrame))]
@@ -892,7 +981,8 @@ def _list_of_series_to_arrays(
 
     indexer_cache: dict[int, np.ndarray] = {}
 
-    aligned_values = []
+    values_list = []
+    indexers = []
     for s in data:
         index = getattr(s, "index", None)
         if index is None:
@@ -903,15 +993,39 @@ def _list_of_series_to_arrays(
         else:
             indexer = indexer_cache[id(index)] = index.get_indexer(columns)
 
-        values = extract_array(s, extract_numpy=True)
-        aligned_values.append(algorithms.take_nd(values, indexer))
+        values_list.append(extract_array(s, extract_numpy=True))
+        indexers.append(indexer)
 
-    content = np.vstack(aligned_values)
-    return content, columns
+    common_dtype = find_common_type([values.dtype for values in values_list])
+    if dtype is None and isinstance(common_dtype, ExtensionDtype):
+        # GH#56231 keep an EA common dtype, which np.vstack would lose.
+        #  Cast before the take so missing keys don't upcast int rows to float.
+        #  With a dtype, keep the constructor's casting (EA.astype can be lossy)
+        aligned_values = [
+            algorithms.take_nd(astype_array(values, common_dtype), indexer)
+            for values, indexer in zip(values_list, indexers, strict=True)
+        ]
+        flat = concat_compat(aligned_values)
+        nrows, ncols = len(aligned_values), len(columns)
+        # one take rather than one per column, which is slow for wide input
+        indexer = np.arange(nrows * ncols).reshape(nrows, ncols).T.ravel()
+        taken = flat.take(indexer)
+        arrays: list[ArrayLike] = [
+            taken[i * nrows : (i + 1) * nrows] for i in range(ncols)
+        ]
+        return arrays, columns
+
+    content = np.vstack(
+        [
+            algorithms.take_nd(values, indexer)
+            for values, indexer in zip(values_list, indexers, strict=True)
+        ]
+    )
+    return _finalize_columns_and_data(content, columns, dtype)
 
 
 def _list_of_dict_to_arrays(
-    data: list[dict],
+    data: list[Mapping[Hashable, Any]],
     columns: Index | None,
 ) -> tuple[np.ndarray, Index]:
     """
@@ -1010,7 +1124,7 @@ def _validate_or_indexify_columns(
 def convert_object_array(
     content: list[npt.NDArray[np.object_]],
     dtype: DtypeObj | None,
-    dtype_backend: str = "numpy",
+    dtype_backend: DtypeBackend | lib.NoDefault = lib.no_default,
     coerce_float: bool = False,
 ) -> list[ArrayLike]:
     """
@@ -1033,7 +1147,9 @@ def convert_object_array(
         if dtype != np.dtype("O"):
             # e.g. if dtype is UInt32 then we want to cast Nones to NA instead of
             #  NaN in maybe_convert_objects.
-            to_nullable = dtype_backend != "numpy" or isinstance(dtype, BaseMaskedDtype)
+            to_nullable = dtype_backend is not lib.no_default or isinstance(
+                dtype, BaseMaskedDtype
+            )
             arr = lib.maybe_convert_objects(
                 arr,
                 try_float=coerce_float,
@@ -1049,7 +1165,7 @@ def convert_object_array(
             if dtype is None:
                 if arr.dtype == np.dtype("O"):
                     # i.e. maybe_convert_objects didn't convert
-                    convert_to_nullable_dtype = dtype_backend != "numpy"
+                    convert_to_nullable_dtype = dtype_backend is not lib.no_default
                     arr = lib.maybe_convert_objects(
                         arr,
                         # Here we do not convert numeric dtypes, as if we wanted that,
@@ -1063,7 +1179,9 @@ def convert_object_array(
                         new_dtype = StringDtype()
                         arr_cls = new_dtype.construct_array_type()
                         arr = arr_cls._from_sequence(arr, dtype=new_dtype)
-                elif dtype_backend != "numpy" and isinstance(arr, np.ndarray):
+                elif dtype_backend is not lib.no_default and isinstance(
+                    arr, np.ndarray
+                ):
                     if arr.dtype.kind in "iufb":
                         arr = pd_array(arr, copy=False)
 

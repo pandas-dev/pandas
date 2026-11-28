@@ -880,3 +880,29 @@ def test_categoricals(a_dtype, b_dtype):
         expected = expected.loc[[0, 2, "All"]]
         expected["All"] = expected["All"].astype("int64")
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "aggfunc, expected_values",
+    [("sum", [2, 8]), (sum, [2, 8]), ("min", [1, 2]), (min, [1, 2])],
+)
+def test_crosstab_categorical_level_aggfunc(aggfunc, expected_values):
+    # GH#47147 - builtin and string aggfuncs give the same observed-only index
+    keys = ["a", "b", "b", "a", "b", "b"]
+    key_ser = pd.Series(keys, name="key")
+    cat_ser = pd.Series(keys, dtype="category", name="cat")
+    values = pd.Series([1, 2, 2, 1, 2, 2])
+    result = pd.crosstab(
+        [key_ser, cat_ser],
+        columns=pd.Series([0] * 6, name="col"),
+        values=values,
+        aggfunc=aggfunc,
+    )
+    index = pd.MultiIndex.from_arrays(
+        [pd.Index(["a", "b"]), pd.CategoricalIndex(["a", "b"])],
+        names=["key", "cat"],
+    )
+    expected = pd.DataFrame(
+        {0: expected_values}, index=index, columns=pd.Index([0], name="col")
+    )
+    tm.assert_frame_equal(result, expected)

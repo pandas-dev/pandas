@@ -2,7 +2,7 @@
 Functions for accessing attributes of Timestamp/datetime64/datetime-like
 objects and arrays
 """
-from _strptime import LocaleTime
+import calendar
 from locale import LC_TIME
 
 cimport cython
@@ -181,7 +181,7 @@ def get_date_name_field(
         if locale is None:
             names = np.array(DAYS_FULL, dtype=np.object_)
         else:
-            names = np.array(_get_locale_names("f_weekday", locale),
+            names = np.array(_get_locale_names("day_name", locale),
                              dtype=np.object_)
             for i in range(len(names)):
                 names[i] = names[i].capitalize()
@@ -198,7 +198,7 @@ def get_date_name_field(
         if locale is None:
             names = np.array(MONTHS_FULL, dtype=np.object_)
         else:
-            names = np.array(_get_locale_names("f_month", locale),
+            names = np.array(_get_locale_names("month_name", locale),
                              dtype=np.object_)
             for i in range(len(names)):
                 names[i] = names[i].capitalize()
@@ -695,18 +695,6 @@ def get_timedelta_days(
     return out
 
 
-cpdef isleapyear_arr(ndarray years):
-    """vectorized version of isleapyear; NaT evaluates as False"""
-    cdef:
-        ndarray[int8_t] out
-
-    out = np.zeros(len(years), dtype="int8")
-    out[np.logical_or(years % 400 == 0,
-                      np.logical_and(years % 4 == 0,
-                                     years % 100 > 0))] = 1
-    return out.view(bool)
-
-
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def build_isocalendar_sarray(const int64_t[:] dtindex, NPY_DATETIMEUNIT reso):
@@ -760,20 +748,22 @@ def build_isocalendar_sarray(const int64_t[:] dtindex, NPY_DATETIMEUNIT reso):
 
 def _get_locale_names(name_type: str, locale: object = None):
     """
-    Returns an array of localized day or month names.
+    Returns a list of localized day or month names.
 
     Parameters
     ----------
-    name_type : str
-        Attribute of LocaleTime() in which to return localized names.
+    name_type : {"day_name", "month_name"}
+        Attribute of the calendar module from which to return localized names.
     locale : str
 
     Returns
     -------
     list of locale names
     """
+    # GH#22342
     with set_locale(locale, LC_TIME):
-        return getattr(LocaleTime(), name_type)
+        # calendar names are looked up lazily, so materialize under the locale
+        return list(getattr(calendar, name_type))
 
 
 # ---------------------------------------------------------------------
@@ -807,11 +797,11 @@ class RoundTo:
     .. [3] "Rounding up"
            https://en.wikipedia.org/wiki/Rounding#Rounding_up
     .. [4] "Round half up"
-           https://en.wikipedia.org/wiki/Rounding#Round_half_up
+           https://en.wikipedia.org/wiki/Rounding#Rounding_half_up
     .. [5] "Round half down"
-           https://en.wikipedia.org/wiki/Rounding#Round_half_down
+           https://en.wikipedia.org/wiki/Rounding#Rounding_half_down
     .. [6] "Round half to even"
-           https://en.wikipedia.org/wiki/Rounding#Round_half_to_even
+           https://en.wikipedia.org/wiki/Rounding#Rounding_half_to_even
     """
     @property
     def MINUS_INFTY(self) -> int:

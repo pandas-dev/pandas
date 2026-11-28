@@ -70,8 +70,8 @@ SQL table or the ``data.frame`` in `R <https://www.r-project.org/>`__.
 -  The table has 3 columns, each of them with a column label. The column
    labels are respectively ``Name``, ``Age`` and ``Sex``.
 -  The column ``Name`` consists of textual data with each value a
-   string, the column ``Age`` are numbers and the column ``Sex`` is
-   textual data.
+   string, the column ``Age`` consists of numbers and the column
+   ``Sex`` consists of textual data.
 -  The index labels each row. By default, this is a sequence of integers
    starting at 0.
 

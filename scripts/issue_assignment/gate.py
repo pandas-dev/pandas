@@ -1,4 +1,7 @@
-"""Assignment gate: warn (and optionally close) PRs from non-assignees.
+"""Assignment gate: flag PRs whose author doesn't hold the linked issue.
+
+A PR against an unclaimed issue is labeled and left open; one against an
+issue someone else already holds is labeled, commented on, and closed.
 
 Triggered by ``pull_request_target`` on ``opened`` / ``reopened``.
 """
@@ -21,11 +24,6 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--repo", required=True, help="owner/name to operate on")
     parser.add_argument(
         "--event-path", required=True, help="path to the pull_request event payload"
-    )
-    parser.add_argument(
-        "--close-enabled",
-        action="store_true",
-        help="close flagged pull requests instead of only warning",
     )
     args = parser.parse_args(argv)
 
@@ -52,7 +50,7 @@ def main(argv: list[str] | None = None) -> None:
     decision = core.gate_decision(
         author, pr.get("author_association"), author_is_bot, linked_issues
     )
-    action = core.gate_action(decision, label_present, args.close_enabled)
+    action = core.gate_action(decision, label_present, close_assigned_other=True)
 
     if action == "none":
         return
@@ -60,17 +58,10 @@ def main(argv: list[str] | None = None) -> None:
         client.remove_label(number, core.GATE_LABEL)
         return
 
-    issue = decision["issue"]
-    if decision["variant"] == "unassigned":
-        body = messages.gate_unassigned(author, issue)
-    else:
-        body = messages.gate_assigned_other(author, issue, decision["assignee"])
-    if action == "flag_and_close":
-        body = f"{body}\n\n{messages.gate_close_addendum(issue)}"
-
+    closing = action == "flag_and_close"
     client.add_labels(number, [core.GATE_LABEL])
-    client.comment(number, body)
-    if action == "flag_and_close":
+    client.comment(number, messages.gate_flagged(author, decision, closing))
+    if closing:
         client.close_pull_request(number)
 
 

@@ -21,6 +21,8 @@ Suppose our raw dataset on disk has many columns.
 .. ipython:: python
    :okwarning:
 
+   import tempfile
+
    import pandas as pd
    import numpy as np
 
@@ -45,7 +47,8 @@ Suppose our raw dataset on disk has many columns.
    ]
    ts_wide = pd.concat(timeseries, axis=1)
    ts_wide.head()
-   ts_wide.to_parquet("timeseries_wide.parquet")
+   tmpdir = tempfile.TemporaryDirectory(ignore_cleanup_errors=True)
+   ts_wide.to_parquet(f"{tmpdir.name}/timeseries_wide.parquet")
 
 To load the columns we want, we have two options.
 Option 1 loads in all the data and then filters to what we need.
@@ -54,20 +57,18 @@ Option 1 loads in all the data and then filters to what we need.
 
    columns = ["id_0", "name_0", "x_0", "y_0"]
 
-   pd.read_parquet("timeseries_wide.parquet")[columns]
+   pd.read_parquet(f"{tmpdir.name}/timeseries_wide.parquet")[columns]
 
 Option 2 only loads the columns we request.
 
 .. ipython:: python
 
-   pd.read_parquet("timeseries_wide.parquet", columns=columns)
+   pd.read_parquet(f"{tmpdir.name}/timeseries_wide.parquet", columns=columns)
 
 .. ipython:: python
    :suppress:
 
-   import os
-
-   os.remove("timeseries_wide.parquet")
+   tmpdir.cleanup()
 
 If we were to measure the memory usage of the two calls, we'd see that specifying
 ``columns`` uses about 1/10th the memory in this case.
@@ -88,14 +89,15 @@ can store larger datasets in memory.
    :okwarning:
 
    ts = make_timeseries(freq="30s", seed=0)
-   ts.to_parquet("timeseries.parquet")
-   ts = pd.read_parquet("timeseries.parquet")
+   tmpdir = tempfile.TemporaryDirectory(ignore_cleanup_errors=True)
+   ts.to_parquet(f"{tmpdir.name}/timeseries.parquet")
+   ts = pd.read_parquet(f"{tmpdir.name}/timeseries.parquet")
    ts
 
 .. ipython:: python
    :suppress:
 
-   os.remove("timeseries.parquet")
+   tmpdir.cleanup()
 
 Now, let's inspect the data types and memory usage to see where we should focus our
 attention.
@@ -165,7 +167,6 @@ files. Each file in the directory represents a different year of the entire data
    :okwarning:
 
    import glob
-   import tempfile
 
    N = 12
    starts = [f"20{i:>02d}-01-01" for i in range(N)]
@@ -230,4 +231,4 @@ Use Other Libraries
 There are other libraries which provide similar APIs to pandas and work nicely with pandas DataFrame,
 and can give you the ability to scale your large dataset processing and analytics
 by parallel runtime, distributed memory, clustering, etc. You can find more information
-in `the ecosystem page <https://pandas.pydata.org/community/ecosystem.html#out-of-core>`_.
+in `the ecosystem page <https://pandas.pydata.org/community/ecosystem.html#scaling-pandas>`_.

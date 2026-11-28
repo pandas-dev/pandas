@@ -262,9 +262,9 @@ int parser_init(parser_t *self) {
                 "STREAM_INIT_SIZE must be defined and >= 10");
   const int64_t sz = STREAM_INIT_SIZE / 10;
   self->word_ends = (int64_t *)malloc(sz * sizeof(int64_t));
-  self->max_words_cap = sz;
   self->words_cap = sz;
   self->words_len = 0;
+  self->max_words_needed = 0;
 
   // line pointers and metadata
   self->line_start = (int64_t *)malloc(sz * sizeof(int64_t));
@@ -273,7 +273,11 @@ int parser_init(parser_t *self) {
 
   self->lines_cap = sz;
   self->lines = 0;
+  // GH#12228 a 32-bit counter wraps after 2**31 lines and breaks skiprows
+  static_assert(sizeof(self->file_lines) >= 8,
+                "file_lines must be at least 64 bits");
   self->file_lines = 0;
+  self->in_leading_skip = 1;
 
   if (self->stream == NULL || self->word_ends == NULL ||
       self->line_start == NULL || self->line_fields == NULL) {
@@ -330,21 +334,16 @@ static int make_stream_space(parser_t *self, size_t nbytes) {
     WORD VECTORS
   */
 
-  /**
-   * If we are reading in chunks, we need to be aware of the maximum number
-   * of words we have seen in previous chunks (self->max_words_cap), so
-   * that way, we can properly allocate when reading subsequent ones.
-   *
-   * Otherwise, we risk a buffer overflow if we mistakenly under-allocate
-   * just because a recent chunk did not have as many words.
-   */
-  const uint64_t length = self->words_len + nbytes < self->max_words_cap
-                              ? self->max_words_cap - nbytes - 1
-                              : self->words_len;
-
+  // Reserve the most words any call has needed, so after parser_trim_buffers
+  // a chunked read regrows word_ends to its peak, not once per input buffer.
+  // Record requests, not the rounded-up capacity: that compounds across
+  // reads, see test_read_chunksize_skipped_lines_many_reads.
+  if (self->words_len + nbytes > self->max_words_needed) {
+    self->max_words_needed = self->words_len + nbytes;
+  }
   self->word_ends =
-      (int64_t *)grow_buffer((void *)self->word_ends, length, &self->words_cap,
-                             nbytes, sizeof(int64_t), &status);
+      (int64_t *)grow_buffer((void *)self->word_ends, self->max_words_needed,
+                             &self->words_cap, 0, sizeof(int64_t), &status);
 
   if (status != 0) {
     return PARSER_OUT_OF_MEMORY;
@@ -581,6 +580,9 @@ int parser_add_skiprow(parser_t *self, int64_t row) {
   set = (kh_int64_t *)self->skipset;
 
   k = kh_put_int64(set, row, &ret);
+  if (ret < 0) {
+    return -1;
+  }
   set->keys[k] = row;
 
   return 0;
@@ -703,7 +705,8 @@ static int parser_buffer_bytes(parser_t *self, size_t nbytes,
 static int skip_this_line(parser_t *self, int64_t rownum) {
   if (self->skipfunc != NULL) {
     PyGILState_STATE state = PyGILState_Ensure();
-    PyObject *result = PyObject_CallFunction(self->skipfunc, "i", rownum);
+    PyObject *result =
+        PyObject_CallFunction(self->skipfunc, "L", (long long)rownum);
 
     // Error occurred. It will be processed
     // and caught at the Cython level.
@@ -936,9 +939,8 @@ typedef enum {
 static block_lane_status block_lane_finish(parser_t *self, int64_t lane_start_i,
                                            int64_t i, int64_t *ip) {
   if (i != lane_start_i) {
-    // Only reset the state when the lane consumed input; a no-progress
-    // exit must preserve states like the post-WHITESPACE_LINE
-    // START_FIELD, or the machine and the lane ping-pong forever.
+    // Only reset the state when the lane consumed input; after a
+    // no-progress exit the machine resumes in its own state.
     if (self->stream_len != (uint64_t)self->word_start) {
       self->state = IN_FIELD;
     } else if (self->line_fields[self->lines] > 0) {
@@ -1350,7 +1352,7 @@ static int tokenize_bytes(parser_t *self, uint64_t line_limit,
       } else if (IS_CARRIAGE(c)) {
         self->file_lines++;
         self->state = EAT_CRNL_NOP;
-      } else if (IS_QUOTE(c)) {
+      } else if (IS_QUOTE(c) && !self->in_leading_skip) {
         self->state = IN_QUOTED_FIELD_IN_SKIP_LINE;
       } else if (IS_DELIMITER(c)) {
         // Do nothing, we're starting a new field again.
@@ -1396,6 +1398,13 @@ static int tokenize_bytes(parser_t *self, uint64_t line_limit,
       break;
 
     case WHITESPACE_LINE:
+      // Hold the line's leading blanks in the stream; backtracking over buf
+      // loses those read before a buffer refill (GH#34085).
+      if (IS_TERMINATOR(c) || IS_CARRIAGE(c) || IS_COMMENT_CHAR(c)) {
+        // the line is skipped: discard the held blanks
+        slen = self->word_start;
+        stream = self->stream + slen;
+      }
       if (IS_TERMINATOR(c)) {
         self->file_lines++;
         self->state = START_RECORD;
@@ -1404,22 +1413,22 @@ static int tokenize_bytes(parser_t *self, uint64_t line_limit,
         self->file_lines++;
         self->state = EAT_CRNL_NOP;
         break;
+      } else if (IS_COMMENT_CHAR(c)) {
+        self->state = EAT_LINE_COMMENT;
+        break;
       } else if (!self->delim_whitespace) {
-        if (isblank(c) && c != self->delimiter) {
-        } else { // backtrack
-          // use i + 1 because buf has been incremented but not i
-          do {
-            --buf;
-            --i;
-          } while (i + 1 > self->datapos && !IS_TERMINATOR(*buf) &&
-                   !IS_CARRIAGE(*buf));
-
-          // reached a newline/carriage return rather than the beginning
-          if (IS_TERMINATOR(*buf) || IS_CARRIAGE(*buf)) {
-            ++buf; // move pointer to first char after newline
-            ++i;
+        const bool at_field_start = slen == (uint64_t)self->word_start;
+        // a blank escapechar, or quotechar opening a field, ends the blanks
+        if (isblank(c) && c != self->delimiter && !IS_ESCAPE_CHAR(c) &&
+            !(IS_QUOTE(c) && at_field_start)) {
+          // as START_FIELD would: skipinitialspace drops spaces at field start
+          if (!(IS_SKIPPABLE_SPACE(c) && at_field_start)) {
+            PUSH_CHAR(c);
           }
-          self->state = START_FIELD;
+        } else {
+          self->state = at_field_start ? START_FIELD : IN_FIELD;
+          --i;
+          --buf; // parse this character again in the field state
         }
         break;
       }
@@ -1452,7 +1461,7 @@ static int tokenize_bytes(parser_t *self, uint64_t line_limit,
       if (should_skip == -1) {
         goto parsingerror;
       } else if (should_skip) {
-        if (IS_QUOTE(c)) {
+        if (IS_QUOTE(c) && !self->in_leading_skip) {
           self->state = IN_QUOTED_FIELD_IN_SKIP_LINE;
         } else {
           self->state = IN_FIELD_IN_SKIP_LINE;
@@ -1462,7 +1471,9 @@ static int tokenize_bytes(parser_t *self, uint64_t line_limit,
           }
         }
         break;
-      } else if (IS_TERMINATOR(c)) {
+      }
+      self->in_leading_skip = 0;
+      if (IS_TERMINATOR(c)) {
         // \n\r possible?
         if (self->skip_empty_lines) {
           self->file_lines++;
@@ -1489,7 +1500,11 @@ static int tokenize_bytes(parser_t *self, uint64_t line_limit,
             self->state = EAT_WHITESPACE;
           }
           break;
-        } else if (c != self->delimiter && self->skip_empty_lines) {
+        } else if (c != self->delimiter && !IS_QUOTE(c) && !IS_ESCAPE_CHAR(c) &&
+                   self->skip_empty_lines) {
+          if (!IS_SKIPPABLE_SPACE(c)) {
+            PUSH_CHAR(c);
+          }
           self->state = WHITESPACE_LINE;
           break;
         }
@@ -1744,7 +1759,7 @@ static int tokenize_bytes(parser_t *self, uint64_t line_limit,
     case EAT_CRNL_NOP: // inside an ignored comment line
       self->state = START_RECORD;
       // \r line terminator -- parse this character again
-      if (c != '\n' && !IS_DELIMITER(c)) {
+      if (c != '\n') {
         --i;
         --buf;
       }
@@ -1886,19 +1901,6 @@ int parser_trim_buffers(parser_t *self) {
   /*
     Free memory
    */
-
-  /**
-   * Before we free up space and trim, we should
-   * save how many words we saw when parsing, if
-   * it exceeds the maximum number we saw before.
-   *
-   * This is important for when we read in chunks,
-   * so that we can inform subsequent chunk parsing
-   * as to how many words we could possibly see.
-   */
-  if (self->words_cap > self->max_words_cap) {
-    self->max_words_cap = self->words_cap;
-  }
 
   /* trim word_ends */
   size_t new_cap = _next_pow2(self->words_len) + 1;
@@ -2238,6 +2240,16 @@ fallback:
     if (maybe_int != NULL)
       *maybe_int = 0;
     p++;
+
+    // With no significant integer digits the fractional leading zeros are not
+    // significant either, see test_precise_xstrtod_fractional_leading_zeros.
+    if (num_digits == 0) {
+      while (*p == '0') {
+        saw_digit = true;
+        p++;
+        num_decimals++;
+      }
+    }
 
     while (num_digits < max_digits && isdigit_ascii(*p)) {
       mantissa = mantissa * 10 + (*p - '0');

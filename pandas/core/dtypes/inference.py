@@ -8,6 +8,7 @@ import re
 from re import Pattern
 from typing import (
     TYPE_CHECKING,
+    Any,
     TypeGuard,
 )
 
@@ -145,7 +146,7 @@ def is_file_like(obj: object) -> bool:
 
 
 @set_module("pandas.api.types")
-def is_re(obj: object) -> TypeGuard[Pattern]:
+def is_re(obj: object) -> TypeGuard[Pattern[Any]]:
     """
     Check if the object is a regex pattern instance.
 

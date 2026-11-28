@@ -38,7 +38,8 @@ dependencies:
   - lxml>=6.0.0
   - matplotlib>=3.10.5
   - numba>=0.61.2
-  - numexpr>=2.11.0
+  # 2.14.1 can silently return incorrect results, GH#65408
+  - numexpr>=2.11.0,!=2.14.1
   - openpyxl>=3.1.5
   - odfpy>=1.4.1
   - psycopg2>=2.9.10
@@ -54,7 +55,7 @@ dependencies:
   - s3fs>=2025.7.0
   - scipy>=1.16.1
   - sqlalchemy>=2.0.42
-  - tabulate>=0.9.0
+  - tabulate>=0.10.0
   - xarray>=2025.7.1
   - xlrd>=2.0.2
   - xlsxwriter>=3.2.5
@@ -77,7 +78,7 @@ dependencies:
   - cxx-compiler
 
   # code checks
-  - mypy=2.1.0  # pre-commit uses locally installed mypy
+  - mypy=2.4.0  # pre-commit uses locally installed mypy
   - tokenize-rt  # scripts/check_for_inconsistent_pandas_namespace.py
   - pre-commit>=4.2.0
 
@@ -89,7 +90,7 @@ dependencies:
   - pydata-sphinx-theme=0.20.0
   - pytest-cython>=0.4.0  # doctest
   - sphinx
-  - sphinx-design
+  - sphinx-design>=0.8.0
   - sphinx-copybutton
 
   # static typing

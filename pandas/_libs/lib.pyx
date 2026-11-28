@@ -39,7 +39,10 @@ from cython cimport (
 )
 from libc.string cimport memcmp
 
-from pandas._config import using_string_dtype
+from pandas._config import (
+    is_nan_na,
+    using_string_dtype,
+)
 
 from pandas._libs.missing import check_na_tuples_nonequal
 from pandas.compat import PYARROW_INSTALLED
@@ -705,10 +708,13 @@ def maybe_booleans_to_slice(ndarray[uint8_t, ndim=1] mask):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def array_equivalent_object(ndarray left, ndarray right) -> bool:
+def array_equivalent_object(ndarray left, ndarray right, bint strict_nan=False) -> bool:
     """
     Perform an element by element comparison on N-d object arrays
     taking into account nan positions.
+
+    If strict_nan, NaN and None are considered different, also inside
+    nested arrays.
     """
     # left and right both have object dtype, but we cannot annotate that
     #  without limiting ndim.
@@ -731,14 +737,14 @@ def array_equivalent_object(ndarray left, ndarray right) -> bool:
                 if x.shape != y.shape:
                     return False
                 if x.dtype == y.dtype == object:
-                    if not array_equivalent_object(x, y):
+                    if not array_equivalent_object(x, y, strict_nan):
                         return False
                 else:
                     # Circular import isn't great, but so it goes.
                     # TODO: could use np.array_equal?
                     from pandas.core.dtypes.missing import array_equivalent
 
-                    if not array_equivalent(x, y):
+                    if not array_equivalent(x, y, strict_nan=strict_nan):
                         return False
 
             elif PyArray_Check(x) or PyArray_Check(y):
@@ -747,7 +753,7 @@ def array_equivalent_object(ndarray left, ndarray right) -> bool:
                 return False
             elif not (
                 PyObject_RichCompareBool(x, y, Py_EQ)
-                or is_matching_na(x, y, nan_matches_none=True)
+                or is_matching_na(x, y, nan_matches_none=not strict_nan)
             ):
                 return False
         except (ValueError, TypeError):
@@ -1247,65 +1253,6 @@ def generate_slices(const intp_t[:] labels, Py_ssize_t ngroups):
                     group_size = 0
 
     return np.asarray(starts), np.asarray(ends)
-
-
-def indices_fast(ndarray[intp_t, ndim=1] index, const int64_t[:] labels, list keys,
-                 list sorted_labels) -> dict:
-    """
-    Parameters
-    ----------
-    index : ndarray[intp]
-    labels : ndarray[int64]
-    keys : list
-    sorted_labels : list[ndarray[int64]]
-    """
-    cdef:
-        Py_ssize_t i, j, k, lab, cur, start, n = len(labels)
-        dict result = {}
-        object tup
-
-    k = len(keys)
-
-    # Start at the first non-null entry
-    j = 0
-    for j in range(0, n):
-        if labels[j] != -1:
-            break
-    else:
-        return result
-    cur = labels[j]
-    start = j
-
-    for i in range(j+1, n):
-        lab = labels[i]
-
-        if lab != cur:
-            if lab != -1:
-                if k == 1:
-                    # When k = 1 we do not want to return a tuple as key
-                    tup = keys[0][sorted_labels[0][i - 1]]
-                else:
-                    tup = PyTuple_New(k)
-                    for j in range(k):
-                        val = keys[j][sorted_labels[j][i - 1]]
-                        PyTuple_SET_ITEM(tup, j, val)
-                        Py_INCREF(val)
-                result[tup] = index[start:i]
-            start = i
-        cur = lab
-
-    if k == 1:
-        # When k = 1 we do not want to return a tuple as key
-        tup = keys[0][sorted_labels[0][n - 1]]
-    else:
-        tup = PyTuple_New(k)
-        for j in range(k):
-            val = keys[j][sorted_labels[j][n - 1]]
-            PyTuple_SET_ITEM(tup, j, val)
-            Py_INCREF(val)
-    result[tup] = index[start:]
-
-    return result
 
 
 # core.common import for fast inference checks
@@ -2333,7 +2280,7 @@ cdef class BytesValidator(Validator):
         return self.dtype.type_num == cnp.NPY_STRING
 
 
-cdef bint is_bytes_array(ndarray values, bint skipna=False):
+cpdef bint is_bytes_array(ndarray values, bint skipna=False):
     cdef:
         BytesValidator validator = BytesValidator(values.size, values.dtype,
                                                   skipna=skipna)
@@ -2709,16 +2656,18 @@ def maybe_convert_numeric(
         bint have_bools = False
         float64_t fval
         bint allow_null_in_int = convert_to_masked_nullable
+        bint use_na_values = len(na_values) > 0
 
     for i in range(n):
         val = values[i]
+        val = item_from_zerodim(val)
         # We only want to disable NaNs showing as float if
         # a) convert_to_masked_nullable = True
         # b) no floats have been seen ( assuming an int shows up later )
         # However, if no ints present (all null array), we need to return floats
         allow_null_in_int = convert_to_masked_nullable and not seen.float_
 
-        if val.__hash__ is not None and val in na_values:
+        if use_na_values and val.__hash__ is not None and val in na_values:
             if allow_null_in_int:
                 seen.null_ = True
                 mask[i] = 1
@@ -2970,6 +2919,8 @@ def maybe_convert_objects(ndarray[object] objects,
         Seen seen = Seen()
         object val
         float64_t fnan = NaN
+        # under future.distinguish_nan_and_na a NaN is a value, not NA
+        bint nan_is_value = convert_to_nullable_dtype and not is_nan_na()
 
     if dtype_if_all_nat is not None:
         # in practice we don't expect to ever pass dtype_if_all_nat
@@ -3005,7 +2956,7 @@ def maybe_convert_objects(ndarray[object] objects,
             if not convert_non_numeric:
                 seen.object_ = True
                 break
-        elif util.is_nan(val):
+        elif util.is_nan(val) and not nan_is_value:
             seen.nan_ = True
             mask[i] = True
             if util.is_complex_object(val):
@@ -3516,6 +3467,9 @@ def tuples_to_object_array(ndarray[object] tuples):
     result = np.empty((n, k), dtype=object)
     for i in range(n):
         tup = tuples[i]
+        if len(tup) != k:
+            # GH#50293
+            raise ValueError("All tuples must have the same length")
         for j in range(k):
             result[i, j] = tup[j]
 

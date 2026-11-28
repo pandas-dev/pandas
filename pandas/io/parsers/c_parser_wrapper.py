@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    Any,
+)
 import warnings
 
 import numpy as np
@@ -27,8 +30,11 @@ from pandas.core.arrays.string_arrow import ArrowStringArray
 from pandas.core.indexes.api import ensure_index_from_sequences
 
 from pandas.io.common import (
+    ReplayHandle,
+    can_rewind,
     dedup_names,
     is_potential_multi_index,
+    rewound,
 )
 from pandas.io.parsers.base_parser import (
     ParserBase,
@@ -45,6 +51,7 @@ if TYPE_CHECKING:
         Mapping,
         Sequence,
     )
+    from typing import IO
 
     from pandas._typing import (
         AnyArrayLike,
@@ -65,7 +72,7 @@ class CParserWrapper(ParserBase):
     low_memory: bool
     _reader: parsers.TextReader
     _exhausted: bool
-    # When False, read() leaves deferred string columns as raw pending
+    # When False, _read_arrays() leaves deferred string columns as raw pending
     # handles for the caller to materialize (one chunked ExtensionArray per
     # column, e.g. post-gather in a parallel read).
     wrap_deferred: bool = True
@@ -101,9 +108,24 @@ class CParserWrapper(ParserBase):
         if kwds["dtype_backend"] == "pyarrow":
             # Fail here loudly instead of in cython after reading
             import_optional_dependency("pyarrow")
+        # Kept so a low_memory read can re-read diverged columns; see
+        # _reread_diverged.  A caller can hand over a handle it has already
+        # advanced, so the re-read starts where this read began, not at byte 0.
+        self._reader_kwds = kwds
+        self._src: ReadCsvBuffer[str] | IO[Any]
+        self._src_start: int | None
+        if isinstance(src, ReplayHandle):
+            # sep=None sniffed the first lines; replay the handle underneath
+            self._src, self._src_start = src.handle, src.start
+        else:
+            self._src = src
+            try:
+                self._src_start = src.tell()
+            except (AttributeError, OSError, ValueError):
+                self._src_start = None
         self._reader = parsers.TextReader(src, **kwds)
         # Let the pyarrow string fast path return raw pending-column handles;
-        # read() wraps them into one ExtensionArray per column at the end.
+        # _read_arrays() wraps them into one ExtensionArray per column at the end.
         self._reader.defer_pa_wrap = True
 
         self.unnamed_cols = self._reader.unnamed_cols
@@ -275,7 +297,57 @@ class CParserWrapper(ParserBase):
         )
         return {position: named.get(position) for position in positions}
 
-    def read(
+    def _reread_diverged(
+        self, chunks: list[dict[int, ArrayLike]], nrows: int | None
+    ) -> dict[int, ArrayLike]:
+        """
+        Re-read the columns whose low_memory chunks inferred different dtypes.
+
+        Each chunk infers its dtype on its own, and concatenating chunks that
+        disagree can lose precision (int64 and uint64 give float64) or mix
+        ``1`` and ``"1"`` in one object column (GH#68706).  Converting those
+        columns over the whole read gives what ``low_memory=False`` gives.
+
+        Returns the re-read columns keyed by field position.  Columns left out,
+        e.g. because the source cannot be replayed, are concatenated as before,
+        with the mixed-types warning where that gives ``object``.
+        """
+        # A later chunk of an iterating read does not start where the source
+        # did, so replaying the source would splice in the wrong rows.
+        if len(chunks) < 2 or not self._first_chunk or self._src_start is None:
+            return {}
+        if callable(self._reader_kwds.get("skiprows")):
+            # it may not pick the same rows twice, e.g. random sampling
+            return {}
+        diverged = [
+            key
+            for key in chunks[0]
+            if _chunk_dtypes_diverge([chunk[key] for chunk in chunks])
+        ]
+        if not diverged:
+            return {}
+        src = self._src
+        if not can_rewind(src):
+            return {}
+        try:
+            with rewound(src, self._src_start):
+                # The first pass already reported anything this one would warn
+                # about, e.g. a bad line, including in a multi-row header.
+                reader = parsers.TextReader(src, **self._reader_kwds, warning_sink=[])
+                reader.convert_only = set(diverged)
+                try:
+                    result = reader.read(nrows)
+                finally:
+                    reader.close()
+        except OSError:
+            return {}
+        nrows_read = sum(len(next(iter(chunk.values()))) for chunk in chunks)
+        if any(len(values) != nrows_read for values in result.values()):
+            # the source changed between the passes, e.g. a log being appended to
+            return {}
+        return result
+
+    def _read_arrays(
         self,
         nrows: int | None = None,
     ) -> tuple[
@@ -292,10 +364,17 @@ class CParserWrapper(ParserBase):
         try:
             if self.low_memory:
                 chunks = self._reader.read_low_memory(nrows)
+                labels = self._low_memory_column_labels(chunks)
+                rereads = self._reread_diverged(chunks, nrows)
+                for chunk in chunks:
+                    for key in rereads:
+                        del chunk[key]
                 # destructive to chunks
-                data = _concatenate_chunks(
-                    chunks, self._low_memory_column_labels(chunks)
-                )
+                data = _concatenate_chunks(chunks, labels)
+                data.update(rereads)
+                # GH#56044 category-dtype inference is deferred until after
+                #  concatenation so all chunks agree
+                self._reader._maybe_infer_categoricals(data)
             else:
                 data = self._reader.read(nrows)
                 if self.wrap_deferred:
@@ -444,11 +523,66 @@ def _wrap_deferred_pa(values):
     return values
 
 
+def _harmonize_empty_categories(arrs: list[ArrayLike]) -> list[ArrayLike]:
+    """
+    Give chunks that inferred no categories the others' categories dtype.
+
+    GH#56044 a chunk that is entirely NA yields empty object-dtype categories
+    where a populated chunk yields string ones, which union_categoricals
+    rejects.  When every chunk is empty there is nothing to match, so an
+    all-NA column keeps its object categories.
+    """
+    populated = {arr.categories.dtype for arr in arrs if len(arr.categories)}  # type: ignore[union-attr]
+    if len(populated) != 1:
+        return arrs
+    cat_dtype = populated.pop()
+    return [
+        arr
+        if len(arr.categories)  # type: ignore[union-attr]
+        else arr.set_categories(arr.categories.astype(cat_dtype))  # type: ignore[union-attr]
+        for arr in arrs
+    ]
+
+
+def _chunk_dtypes_diverge(arrs: list[ArrayLike]) -> bool:
+    """
+    Whether concatenating these chunks of one column can differ from
+    converting the column in one pass; see CParserWrapper._reread_diverged.
+    """
+    dtypes = {arr.dtype for arr in arrs}
+    if len(dtypes) == 1:
+        return False
+    if any(isinstance(dtype, CategoricalDtype) for dtype in dtypes):
+        # union_categoricals reconciles these; see _concatenate_chunks
+        return False
+    # An all-NA chunk infers float64, which concatenates with text chunks to
+    # what one pass gives; re-reading for it would double peak memory.
+    rest = [
+        arr for arr in arrs if not (arr.dtype == np.float64 and np.isnan(arr).all())
+    ]
+    if (
+        rest
+        and len({arr.dtype for arr in rest}) == 1
+        and all(
+            isinstance(arr.dtype, StringDtype)
+            or (
+                isinstance(arr, np.ndarray)
+                and arr.dtype == object
+                and lib.is_string_array(arr, skipna=True)
+            )
+            for arr in rest
+        )
+    ):
+        return False
+    # Signed ints next to floats concatenate to the float a one-pass read gives.
+    return not all(dtype.kind in "if" for dtype in dtypes)
+
+
 def _concatenate_chunks(
     chunks: list[dict[int, ArrayLike]],
     column_names: Sequence[Hashable] | Mapping[int, Hashable],
     warn_mixed: bool = True,
-) -> dict:
+) -> dict[Any, ArrayLike]:
     """
     Concatenate chunks of data read with low_memory=True.
 
@@ -467,7 +601,7 @@ def _concatenate_chunks(
     names = list(chunks[0].keys())
     warning_columns = []
 
-    result: dict = {}
+    result: dict[Any, ArrayLike] = {}
     for name in names:
         arrs = [chunk.pop(name) for chunk in chunks]
 
@@ -490,6 +624,7 @@ def _concatenate_chunks(
 
         dtype = dtypes.pop()
         if isinstance(dtype, CategoricalDtype):
+            arrs = _harmonize_empty_categories(arrs)
             result[name] = union_categoricals(arrs, sort_categories=False)  # type: ignore[arg-type]
         else:
             result[name] = concat_compat(arrs)
@@ -523,7 +658,9 @@ def ensure_dtype_objs(
     if isinstance(dtype, defaultdict):
         # "None" not callable  [misc]
         default_dtype = pandas_dtype(dtype.default_factory())  # type: ignore[misc]
-        dtype_converted: defaultdict = defaultdict(lambda: default_dtype)
+        dtype_converted: defaultdict[Hashable, DtypeObj] = defaultdict(
+            lambda: default_dtype
+        )
         for key in dtype.keys():
             dtype_converted[key] = pandas_dtype(dtype[key])
         return dtype_converted

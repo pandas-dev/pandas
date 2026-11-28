@@ -20,6 +20,11 @@ import pandas._testing as tm
 skip_pyarrow = pytest.mark.usefixtures("pyarrow_skip")
 
 
+class _UnseekableStringIO(StringIO):
+    def seekable(self) -> bool:
+        return False
+
+
 @pytest.mark.parametrize("index_col", [0, "index"])
 def test_read_chunksize_with_index(all_parsers, index_col):
     parser = all_parsers
@@ -200,6 +205,19 @@ def test_read_chunksize_jagged_names(all_parsers):
     tm.assert_frame_equal(result, expected)
 
 
+@skip_pyarrow  # chunksize not supported
+def test_read_chunksize_skipped_lines_many_reads(all_parsers):
+    # GH#70406 alternating counts of buffered skipped lines used to grow the
+    # C parser's word buffer at every read until it ran out of memory
+    parser = all_parsers
+    data = "a,b\n" + "1,2\n1,2,3\n1,2\n1,2,3\n1,2,3\n1,2,3\n" * 40
+
+    with parser.read_csv(StringIO(data), chunksize=1, on_bad_lines="skip") as reader:
+        result = pd.concat(reader)
+    expected = pd.DataFrame({"a": [1] * 80, "b": [2] * 80})
+    tm.assert_frame_equal(result, expected)
+
+
 def test_chunk_begins_with_newline_whitespace(all_parsers):
     # see gh-10022
     parser = all_parsers
@@ -211,7 +229,9 @@ def test_chunk_begins_with_newline_whitespace(all_parsers):
 
 
 @pytest.mark.slow
-def test_chunks_have_consistent_numerical_type(all_parsers, monkeypatch):
+def test_chunks_have_consistent_numerical_type(
+    all_parsers, monkeypatch, using_python_scalars
+):
     # mainly an issue with the C parser
     heuristic = 2**3
     parser = all_parsers
@@ -223,7 +243,8 @@ def test_chunks_have_consistent_numerical_type(all_parsers, monkeypatch):
         m.setattr(libparsers, "DEFAULT_BUFFER_HEURISTIC", heuristic)
         result = parser.read_csv(StringIO(data))
 
-    assert type(result.a[0]) is np.float64
+    expected_type = float if using_python_scalars else np.float64
+    assert type(result.a[0]) is expected_type
     assert result.a.dtype == float
 
 
@@ -237,6 +258,7 @@ def test_warn_if_chunks_have_mismatched_type(
 
     # see gh-3866: if chunks are different types and can't
     # be coerced using numerical types, then issue warning.
+    # GH#68706: only a source that cannot be re-read still warns.
     if parser.engine == "c" and parser.low_memory:
         warning_type = DtypeWarning
         # Use a size to hit warning path dictated by DEFAULT_BUFFER_HEURISTIC
@@ -246,7 +268,7 @@ def test_warn_if_chunks_have_mismatched_type(
     integers = [str(i) for i in range(size)]
     data = "a\n" + "\n".join([*integers, "a", "b", *integers])
 
-    buf = StringIO(data)
+    buf = _UnseekableStringIO(data)
 
     if parser.engine == "pyarrow":
         df = parser.read_csv(

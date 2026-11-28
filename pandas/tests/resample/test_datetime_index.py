@@ -974,6 +974,73 @@ def test_resample_dst_midnight_last_nonexistent():
     tm.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "dates, days",
+    [
+        # the bin edge for the first value falls in the DST gap
+        (["2024-04-26 01:00", "2024-04-27 00:00"], ["2024-04-26", "2024-04-27"]),
+        # all values are before the gap, the end edge falls in it
+        (["2024-04-24 00:00", "2024-04-25 00:00"], ["2024-04-24", "2024-04-25"]),
+    ],
+)
+def test_resample_day_tzaware_dst_midnight_nonexistent(dates, days, unit):
+    # GH#62601: Africa/Cairo skips 2024-04-26 00:00 (clocks go 23:59 -> 01:00),
+    # so a daily bin edge lands on a wall-clock time that does not exist
+    tz = "Africa/Cairo"
+    index = DatetimeIndex(dates).tz_localize(tz).as_unit(unit)
+    ser = pd.Series([1.0, 2.0], index=index)
+
+    result = ser.resample("D").mean()
+
+    expected_index = date_range(
+        days[0], days[1], freq="D", tz=tz, nonexistent="shift_forward", unit=unit
+    )
+    expected = pd.Series([1.0, 2.0], index=expected_index)
+    tm.assert_series_equal(result, expected)
+
+
+def test_resample_anchored_tzaware_dst_midnight_nonexistent(unit):
+    # GH#62601: 2024-04-26 is a Friday and its midnight does not exist in
+    # Africa/Cairo, so the W-FRI end edge falls in the DST gap; the Friday bin
+    # still ends at the end of Friday, so Saturday 00:30 is in the next bin
+    tz = "Africa/Cairo"
+    index = DatetimeIndex(
+        ["2024-04-22", "2024-04-25", "2024-04-27 00:30", "2024-04-27 02:00"]
+    )
+    index = index.tz_localize(tz).as_unit(unit)
+    ser = pd.Series([1, 2, 10, 100], index=index)
+
+    result = ser.resample("W-FRI").sum()
+
+    expected_index = date_range(
+        "2024-04-26",
+        "2024-05-03",
+        freq="W-FRI",
+        tz=tz,
+        nonexistent="shift_forward",
+        unit=unit,
+    )
+    expected = pd.Series([3, 110], index=expected_index)
+    tm.assert_series_equal(result, expected)
+
+
+def test_resample_day_tzaware_dst_midnight_ambiguous(unit):
+    # GH#62601: America/Havana repeats 2018-11-04 00:00-01:00; the first value
+    # is in the second occurrence, so normalizing it hits an ambiguous midnight
+    index = DatetimeIndex(["2018-11-04 05:30", "2018-11-05 06:00"], tz="UTC")
+    index = index.tz_convert("America/Havana").as_unit(unit)
+    ser = pd.Series([1, 2], index=index)
+
+    result = ser.resample("D").sum()
+
+    expected_index = DatetimeIndex(["2018-11-04", "2018-11-05"]).tz_localize(
+        "America/Havana", ambiguous=True
+    )
+    expected_index = DatetimeIndex(expected_index, freq="D").as_unit(unit)
+    expected = pd.Series([1, 2], index=expected_index)
+    tm.assert_series_equal(result, expected)
+
+
 def test_resample_daily_anchored(unit):
     rng = date_range("1/1/2000 0:00:00", periods=10000, freq="min").as_unit(unit)
     ts = pd.Series(np.random.default_rng(2).standard_normal(len(rng)), index=rng)
@@ -1710,6 +1777,23 @@ def test_downsample_across_dst_weekly_2(unit):
     tm.assert_series_equal(result, expected)
 
 
+def test_downsample_weekly_ambiguous_midnight(unit):
+    # GH#51211 Azores falls back at midnight, so the 2022-10-30 bin label is ambiguous
+    tz = "Atlantic/Azores"
+    idx = date_range("2022-10-28", "2022-11-10", tz=tz, freq="15min").as_unit(unit)
+    result = pd.Series(1, index=idx).resample("W").sum()
+    # local midnights; the first is the earlier (DST) occurrence
+    dti = DatetimeIndex(
+        ["2022-10-30 00:00", "2022-11-06 01:00", "2022-11-13 01:00"], tz="UTC"
+    ).tz_convert(tz)
+    expected = pd.Series(
+        # 2022-10-30 is 25 hours long
+        [2 * 96 + 100, 7 * 96, 3 * 96 + 1],
+        index=DatetimeIndex(dti, freq="W").as_unit(unit),
+    )
+    tm.assert_series_equal(result, expected)
+
+
 def test_downsample_dst_at_midnight(unit):
     # GH 25758
     start = datetime(2018, 11, 3, 12)
@@ -2111,11 +2195,12 @@ def test_resample_c_b_closed_right(freq: str, unit):
     tm.assert_frame_equal(result, expected)
 
 
-def test_resample_b_55282(unit):
+@pytest.mark.parametrize("closed", ["left", "right"])
+def test_resample_b_55282(unit, closed):
     # https://github.com/pandas-dev/pandas/issues/55282
     dti = date_range("2023-09-26", periods=6, freq="12h", unit=unit)
     ser = pd.Series([1, 2, 3, 4, 5, 6], index=dti)
-    result = ser.resample("B", closed="right", label="right").mean()
+    result = ser.resample("B", closed=closed, label=closed).mean()
 
     exp_dti = DatetimeIndex(
         [
@@ -2129,6 +2214,42 @@ def test_resample_b_55282(unit):
         [1.5, 3.5, 5.5],
         index=exp_dti,
     )
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("hour", [0, 16, 24])
+def test_resample_custom_business_day(unit, hour):
+    # GH#65740
+    freq = offsets.CustomBusinessDay(holidays=["2022-11-24"])
+    index = date_range("2022-11-22", periods=5, freq=freq, unit=unit)
+    offset = pd.Timedelta(hours=hour).as_unit(unit)
+    if hour == 24:
+        offset -= pd.Timedelta(1, unit=unit)
+    expected = pd.DataFrame({"x": [1, 2, 3, 4, 5]}, index=index)
+    df = expected.set_axis((index + offset).as_unit(unit))
+    result = df.resample(freq, closed="right", label="right").last()
+    tm.assert_frame_equal(result, expected)
+
+
+def test_resample_business_day_dst_end(unit):
+    # Both UTC values on October 31 occur at 23:30 in Cairo.
+    tz = "Africa/Cairo"
+    index = DatetimeIndex(
+        ["2024-10-31 20:30", "2024-10-31 21:30", "2024-11-01 10:00"], tz="UTC"
+    )
+    ser = pd.Series([1, 2, 4], index=index.tz_convert(tz).as_unit(unit))
+    result = ser.resample("B", closed="right", label="right").sum()
+    expected_index = date_range("2024-10-31", periods=2, freq="B", tz=tz, unit=unit)
+    expected = pd.Series([3, 4], index=expected_index)
+    tm.assert_series_equal(result, expected)
+
+
+def test_resample_business_day_near_timestamp_max():
+    index = DatetimeIndex(["2262-04-09 08:00", "2262-04-10 08:00"]).as_unit("ns")
+    ser = pd.Series([1, 2], index=index)
+    result = ser.resample("B", closed="right", label="right").sum()
+    expected_index = date_range("2262-04-09", periods=2, freq="B", unit="ns")
+    expected = pd.Series([1, 2], index=expected_index)
     tm.assert_series_equal(result, expected)
 
 
@@ -2205,6 +2326,23 @@ def test_resample_unit_second_large_years():
     ser = pd.Series(1, index=index)
     result = ser.resample("2000YS").sum()
     expected = pd.Series(2, index=index[::2])
+    tm.assert_series_equal(result, expected)
+
+
+def test_resample_unit_second_large_dates():
+    # https://github.com/pandas-dev/pandas/pull/65845
+    index = date_range(start="1970-01-01", periods=10, freq="D").as_unit("s")
+    # create values that would be out of bounds for micro (year > 294_241)
+    index = index + np.timedelta64(10**13, "s")
+
+    ser = pd.Series(1, index=index)
+    result = ser.resample("D").sum()
+    expected = pd.Series(
+        1,
+        index=date_range(
+            pd.Timestamp(np.datetime64(10**13, "s")).normalize(), periods=10
+        ),
+    )
     tm.assert_series_equal(result, expected)
 
 
@@ -2377,22 +2515,59 @@ def test_groupby_multiday_grouper_closed_right_intraday():
     tm.assert_frame_equal(result, expected)
 
 
-def test_resample_custom_business_day(unit):
-    # GH 55281/55282: CustomBusinessDay closed="right" binning edge alignment
-    from pandas.tseries.offsets import CustomBusinessDay
-
-    cbd = CustomBusinessDay(holidays=["2022-11-24"])
+@pytest.mark.parametrize("func", ["resample", "groupby"])
+def test_resample_dateoffset(func):
+    # GH#31697
     df = pd.DataFrame(
-        {"x": [1, 2, 3, 4, 5]},
-        index=DatetimeIndex(
-            ["2022-11-22", "2022-11-23", "2022-11-25", "2022-11-28", "2022-11-29"]
-        ).as_unit(unit),
+        {
+            "Timestamp": date_range("2020-01-01", "2020-03-01", periods=5),
+            "Amount": [5, 10, 15, 20, 25],
+        }
     )
-    result = df.resample(cbd, closed="right", label="right").last()
+    freq = pd.DateOffset(months=1)
+    if func == "resample":
+        result = df.resample(freq, on="Timestamp").sum()
+    else:
+        result = df.groupby(Grouper(key="Timestamp", freq=freq)).sum()
 
-    exp_idx = DatetimeIndex(
-        ["2022-11-22", "2022-11-23", "2022-11-25", "2022-11-28", "2022-11-29"],
-        freq=cbd,
-    ).as_unit(unit)
-    expected = pd.DataFrame({"x": [1, 2, 3, 4, 5]}, index=exp_idx)
+    expected = pd.DataFrame(
+        {"Amount": [30, 20, 25]},
+        index=date_range("2020-01-01", periods=3, freq=freq, name="Timestamp"),
+    )
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "closed, expected_dates, expected_values",
+    [
+        ("left", ["2024-01-15", "2024-02-15"], [31, 29]),
+        ("right", ["2023-12-15", "2024-01-15", "2024-02-15"], [1, 31, 28]),
+    ],
+)
+def test_resample_dateoffset_bins_start_at_first_day(
+    closed, expected_dates, expected_values
+):
+    # GH#31697
+    ser = pd.Series(1, index=date_range("2024-01-15", periods=60, freq="D"))
+    freq = pd.DateOffset(months=1)
+    result = ser.resample(freq, closed=closed).sum()
+
+    expected = pd.Series(
+        expected_values,
+        index=DatetimeIndex(expected_dates, freq=freq),
+    )
+    tm.assert_series_equal(result, expected)
+
+
+def test_resample_easter():
+    # GH#31697
+    ser = pd.Series(1, index=date_range("2020-01-01", "2021-12-31", freq="D"))
+    result = ser.resample(offsets.Easter()).sum()
+
+    expected = pd.Series(
+        [102, 357, 272],
+        index=DatetimeIndex(
+            ["2019-04-21", "2020-04-12", "2021-04-04"], freq=offsets.Easter()
+        ),
+    )
+    tm.assert_series_equal(result, expected)

@@ -112,6 +112,33 @@ def test_binary_ufunc_out_pandas_object():
     tm.assert_frame_equal(out, expected)
 
 
+# np.asarray would make "boolean" columns object dtype, which numpy rejects
+@pytest.mark.filterwarnings("ignore:'where' used without 'out':UserWarning")
+@pytest.mark.parametrize("dtype", ["bool", "boolean"])
+def test_ufunc_where_pandas_object(dtype):
+    # GH#60611 a DataFrame as `where` used to recurse infinitely
+    df = pd.DataFrame({"a": [1.0, 2.0, 3.0], "b": [4.0, 5.0, 6.0]})
+    result = np.maximum(df, 0, where=(df > 0).astype(dtype))
+    tm.assert_frame_equal(result, df)
+
+    out = np.full((3, 2), -1.0)
+    result = np.maximum(df, 2.5, where=(df > 2).astype(dtype), out=out)
+    expected = pd.DataFrame({"a": [-1.0, -1.0, 3.0], "b": [4.0, 5.0, 6.0]})
+    tm.assert_frame_equal(result, expected)
+
+    msg = "The ufunc 'where' argument must have the same axes as the aligned inputs"
+    with pytest.raises(ValueError, match=msg):
+        np.maximum(df, 0, where=df[["b", "a"]] > 0)
+    with pytest.raises(ValueError, match=msg):
+        np.maximum(df, 0, where=tm.SubclassedDataFrame(df.iloc[::-1] > 0), out=out)
+
+    where = (df > 2).astype("boolean")
+    where.iloc[0, 1] = pd.NA
+    msg = "The ufunc 'where' argument cannot contain missing values"
+    with pytest.raises(ValueError, match=msg):
+        np.maximum(df, 2.5, where=where, out=out)
+
+
 @pytest.mark.parametrize("dtype_a", dtypes)
 @pytest.mark.parametrize("dtype_b", dtypes)
 def test_binary_input_aligns_columns(request, dtype_a, dtype_b):
@@ -169,6 +196,19 @@ def test_binary_input_aligns_index(request, dtype):
     result = np.heaviside(df1, df2.values)
     expected = pd.DataFrame(
         [[1.0, 1.0], [1.0, 1.0]], columns=["A", "B"], index=["a", "b"]
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_binary_input_aligns_duplicate_labels():
+    # GH#54416
+    df1 = pd.DataFrame([[1.0, 2.0], [3.0, 4.0]], columns=["A", "B"], index=[0, 0])
+    df2 = pd.DataFrame([[5.0, 6.0], [7.0, 8.0]], columns=["C", "C"], index=[0, 1])
+    result = np.heaviside(df1, df2)
+    expected = pd.DataFrame(
+        [[1.0, 1.0, np.nan, np.nan]] * 2 + [[np.nan] * 4],
+        index=[0, 0, 1],
+        columns=["A", "B", "C", "C"],
     )
     tm.assert_frame_equal(result, expected)
 
@@ -325,3 +365,40 @@ def test_array_ufuncs_for_many_arguments():
     )
     with pytest.raises(NotImplementedError, match=re.escape(msg)):
         ufunc(df, df, ser)
+
+
+@pytest.mark.parametrize("func", [np.logical_and, np.logical_or, np.logical_xor])
+@pytest.mark.parametrize("dtype", ["datetime64[ns]", "period[D]"])
+def test_binary_logical_ufunc_datetimelike_raises(func, dtype):
+    # GH#68524 with two inputs a DataFrame np.asarray()s its columns before the
+    #  ufunc runs, so the column's own guard never sees them
+    df = pd.DataFrame({"A": pd.array(["2016-01-01", "2016-01-02"], dtype=dtype)})
+    other = pd.DataFrame({"A": [True, False]})
+
+    msg = f"cannot perform the numpy op {func.__name__}"
+    with pytest.raises(TypeError, match=msg):
+        func(other, df)
+    with pytest.raises(TypeError, match=msg):
+        func(df, other)
+
+
+@pytest.mark.parametrize("func", [np.logical_and, np.logical_or, np.logical_xor])
+def test_binary_logical_ufunc_categorical_column_raises(func):
+    # GH#68524 the frame scan reads each block's dtype, and a Categorical hides
+    #  its datetimes behind kind "O"
+    values = pd.Categorical(pd.to_datetime(["2016-01-01", "2016-01-02"]))
+    df = pd.DataFrame({"A": values})
+
+    msg = f"cannot perform the numpy op {func.__name__}"
+    with pytest.raises(TypeError, match=msg):
+        func(df, True)
+
+
+@pytest.mark.parametrize("dtype", ["datetime64[ns, US/Pacific]", "period[D]"])
+def test_logical_not_ufunc_datetimelike_raises(dtype):
+    # GH#68524 one input takes the BlockManager.apply path instead, and these two
+    #  dtypes returned a frame of False
+    df = pd.DataFrame({"A": pd.array(["2016-01-01", "2016-01-02"], dtype=dtype)})
+
+    with pytest.raises(TypeError, match="cannot perform the numpy op logical_not"):
+        np.logical_not(df)

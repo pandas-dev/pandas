@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import operator
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -15,6 +16,7 @@ from pandas._libs.tslibs import is_supported_dtype
 from pandas.compat.numpy import function as nv
 from pandas.errors import LossySetitemError
 from pandas.util._decorators import set_module
+from pandas.util._validators import validate_min_count
 
 from pandas.core.dtypes.astype import (
     astype_array,
@@ -253,10 +255,20 @@ class NumpyExtensionArray(
         return result
 
     def __array_ufunc__(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
+        result = arraylike.dispatch_where_only_ufunc(
+            self, ufunc, method, *inputs, **kwargs
+        )
+        if result is not NotImplemented:
+            return result
+
         # Lightly modified version of
         # https://numpy.org/doc/stable/reference/generated/numpy.lib.mixins.NDArrayOperatorsMixin.html
         # The primary modification is not boxing scalar return values
         # in NumpyExtensionArray, since pandas' ExtensionArrays are 1-d.
+
+        # this path never reaches ExtensionArray.__array_ufunc__
+        ops.disallow_datetimelike_logical_ufunc(ufunc, inputs)
+
         out = kwargs.get("out", ())
 
         result = arraylike.maybe_dispatch_ufunc_to_dunder_op(
@@ -492,6 +504,7 @@ class NumpyExtensionArray(
         **kwargs,
     ) -> Scalar:
         nv.validate_sum((), kwargs)
+        min_count = validate_min_count(min_count)
         result = nanops.nansum(
             self._ndarray, axis=axis, skipna=skipna, min_count=min_count
         )
@@ -506,6 +519,7 @@ class NumpyExtensionArray(
         **kwargs,
     ) -> Scalar:
         nv.validate_prod((), kwargs)
+        min_count = validate_min_count(min_count)
         result = nanops.nanprod(
             self._ndarray, axis=axis, skipna=skipna, min_count=min_count
         )
@@ -649,13 +663,13 @@ class NumpyExtensionArray(
         return type(self)(~self._ndarray)
 
     def __neg__(self) -> NumpyExtensionArray:
-        return type(self)(-self._ndarray)
+        return type(self)(ops.unary_op(self._ndarray, operator.neg))
 
     def __pos__(self) -> NumpyExtensionArray:
-        return type(self)(+self._ndarray)
+        return type(self)(ops.unary_op(self._ndarray, operator.pos))
 
     def __abs__(self) -> NumpyExtensionArray:
-        return type(self)(abs(self._ndarray))
+        return type(self)(ops.unary_op(self._ndarray, operator.abs))
 
     def _cmp_method(self, other, op):
         if isinstance(other, NumpyExtensionArray):
@@ -693,7 +707,8 @@ class NumpyExtensionArray(
 
     def _formatter(self, boxed: bool = False) -> Callable[[Any], str | None]:
         # NEP 51: https://github.com/numpy/numpy/pull/22449
-        if self.dtype.kind in "SU":
+        if self.dtype.kind == "U":
+            # not "S": str(np.bytes_(b"foo")) is already "b'foo'"
             return "'{}'".format
         elif self.dtype == "object":
             return repr

@@ -31,6 +31,9 @@ def test_str_cat_name(index_or_series, other):
 @pytest.mark.parametrize(
     "infer_string", [False, pytest.param(True, marks=td.skip_if_no("pyarrow"))]
 )
+@pytest.mark.filterwarnings(
+    "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+)
 def test_str_cat(index_or_series, infer_string):
     with pd.option_context("future.infer_string", infer_string):
         box = index_or_series
@@ -90,6 +93,9 @@ def test_str_cat_raises_intuitive_error(index_or_series):
 @pytest.mark.parametrize("sep", ["", None])
 @pytest.mark.parametrize("dtype_target", ["object", "category"])
 @pytest.mark.parametrize("dtype_caller", ["object", "category"])
+@pytest.mark.filterwarnings(
+    "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+)
 def test_str_cat_categorical(
     index_or_series, dtype_caller, dtype_target, sep, infer_string
 ):
@@ -130,13 +136,12 @@ def test_str_cat_categorical(
             ["aa", "aa", "bb", "bb", "aa"],
             dtype=object if dtype_caller == "object" else None,
         )
-        dtype = object if dtype_caller == "object" else s.dtype.categories.dtype
         expected = (
             expected
             if box == pd.Index
             else pd.Series(
                 expected,
-                index=pd.Index(expected.str[:1], dtype=dtype),
+                index=pd.Index(expected.str[:1], dtype=dtype_caller),
                 dtype=expected.dtype,
             )
         )
@@ -441,3 +446,11 @@ def test_cat_on_series_dot_str():
     )
     with pytest.raises(TypeError, match=message):
         ps.str.cat(others=ps.str)
+
+
+def test_str_cat_unaligned_series_keeps_index_dtype():
+    # GH#63371
+    ser = pd.Series(["a", "b", "c"], index=["1", "2", "3"])
+    result = ser.str.cat(pd.Series(["A", "B", "C"]), sep=",", na_rep="-")
+    expected = pd.Series(["a,-", "b,-", "c,-"], index=ser.index)
+    tm.assert_series_equal(result, expected)

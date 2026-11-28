@@ -254,11 +254,11 @@ def test_timedelta_assignment():
     tm.assert_series_equal(s, expected)
 
 
+@pytest.mark.filterwarnings("ignore:The inplace keyword in DataFrame.set_index is")
 def test_underlying_data_conversion():
     # GH 4080
     df = pd.DataFrame({c: [1, 2, 3] for c in ["a", "b", "c"]})
-    return_value = df.set_index(["a", "b", "c"], inplace=True)
-    assert return_value is None
+    df = df.set_index(["a", "b", "c"])
     s = pd.Series([1], index=[(2, 2, 2)])
     df["val"] = 0
     df_original = df.copy()
@@ -396,6 +396,21 @@ def test_loc_non_monotonic_index_with_a_missing_label():
     ser = pd.Series([3, 6, 7, 6], index=[3, 8, 7, 6])
     with pytest.raises(KeyError, match=msg):
         ser.loc[4:7]
+
+
+def test_setitem_sparse_int_into_int(indexer_sli):
+    # SparseDtype has no itemsize, so this raised AttributeError
+    ser = pd.Series([1, 2, 3])
+    indexer_sli(ser)[:] = pd.arrays.SparseArray([4, 0, 6])
+    tm.assert_series_equal(ser, pd.Series([4, 0, 6]))
+
+
+def test_setitem_sparse_int_into_same_width_int(indexer_sli):
+    # np.asarray widens a SparseArray to the fill_value's dtype, which made an
+    # int8 -> int8 set look lossy even though it holds
+    ser = pd.Series(np.array([1, 2, 3], dtype=np.int8))
+    indexer_sli(ser)[:] = pd.arrays.SparseArray(np.array([4, 0, 6], dtype=np.int8))
+    tm.assert_series_equal(ser, pd.Series(np.array([4, 0, 6], dtype=np.int8)))
 
 
 class TestDeprecatedIndexers:

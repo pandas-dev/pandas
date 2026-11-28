@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
 
+from pandas.errors import Pandas4Warning
+
 import pandas as pd
 import pandas._testing as tm
 
@@ -91,6 +93,20 @@ class TestDataFrameSubclassing:
         tm.assert_frame_equal(df, unpickled)
         assert df._metadata == unpickled._metadata
         assert df.testattr == unpickled.testattr
+
+    def test_dataframe_metadata_arithmetic(self, all_arithmetic_operators):
+        # GH#34177
+        df = tm.SubclassedDataFrame({"X": [1, 2, 3], "Y": [4, 5, 6]})
+        df.testattr = "XXX"
+        op = getattr(tm.SubclassedDataFrame, all_arithmetic_operators)
+
+        result = op(df, 2)
+        assert isinstance(result, tm.SubclassedDataFrame)
+        assert result.testattr == "XXX"
+
+        result = op(df, df)
+        assert isinstance(result, tm.SubclassedDataFrame)
+        assert result.testattr == "XXX"
 
     def test_indexing_sliced(self):
         # GH 11559
@@ -197,9 +213,10 @@ class TestDataFrameSubclassing:
     def test_subclass_iterrows(self):
         # GH 13977
         df = tm.SubclassedDataFrame({"a": [1]})
-        for i, row in df.iterrows():
-            assert isinstance(row, tm.SubclassedSeries)
-            tm.assert_series_equal(row, df.loc[i])
+        with tm.assert_produces_warning(Pandas4Warning, match="iterrows"):
+            for i, row in df.iterrows():
+                assert isinstance(row, tm.SubclassedSeries)
+                tm.assert_series_equal(row, df.loc[i])
 
     def test_subclass_stack(self):
         # GH 15564
@@ -662,6 +679,36 @@ class TestDataFrameSubclassing:
         df = tm.SubclassedDataFrame()
         result = df.count()
         assert isinstance(result, tm.SubclassedSeries)
+
+    @pytest.mark.parametrize(
+        "dropna_kwargs", [{}, {"how": "all"}, {"thresh": 2}, {"subset": ["A", "B"]}]
+    )
+    @pytest.mark.parametrize("multi_block", [False, True])
+    def test_dropna_does_not_transpose(self, dropna_kwargs, multi_block):
+        # GH#50708 a transpose runs the subclass constructor on a frame with
+        # one column per row, which is very slow for tall frames
+        widths = []
+
+        class WidthRecordingFrame(pd.DataFrame):
+            def __init__(self, *args, **kwargs) -> None:
+                super().__init__(*args, **kwargs)
+                widths.append(self.shape[1])
+
+            @property
+            def _constructor(self):
+                return WidthRecordingFrame
+
+        values = np.arange(30, dtype=np.float64).reshape(10, 3)
+        values[::3, 0] = np.nan
+        df = WidthRecordingFrame(values, columns=["A", "B", "C"])
+        if multi_block:
+            df["C"] = df["C"].astype(np.int64)
+            assert len(df._mgr.blocks) == 2
+
+        widths.clear()
+        result = df.dropna(**dropna_kwargs)
+        assert isinstance(result, WidthRecordingFrame)
+        assert max(widths) <= 3
 
     def test_isin(self):
         df = tm.SubclassedDataFrame(

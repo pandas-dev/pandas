@@ -1,5 +1,6 @@
 import importlib
 import locale
+import os
 from textwrap import dedent
 
 import numpy as np
@@ -166,6 +167,15 @@ def test_stringify_text(text):
             _stringifyText(text)
 
 
+def test_to_clipboard_excel_windows_line_terminator(monkeypatch):
+    # GH#11720 Excel pastes an extra empty row from "\n"-terminated text
+    copied = []
+    monkeypatch.setattr("pandas.io.clipboard.clipboard_set", copied.append)
+    monkeypatch.setattr(os, "linesep", "\r\n")
+    pd.DataFrame(["Hello world"]).to_clipboard()
+    assert copied == ["\t0\r\n0\tHello world\r\n"]
+
+
 @pytest.fixture
 def set_pyqt_clipboard(monkeypatch):
     qt_cut, qt_paste = init_qt_clipboard()
@@ -182,7 +192,7 @@ _LOCALE_AT_IMPORT = locale.setlocale(locale.LC_ALL)
 
 
 @pytest.fixture(scope="session")
-def qapp_restore_locale(qapp):
+def qapp_restore_locale(request):
     """
     ``qapp``, with the process-wide locale it leaked put back.
 
@@ -192,6 +202,8 @@ def qapp_restore_locale(qapp):
     tests then fail on any machine whose locale is not English. Request this
     rather than ``qapp`` directly.
     """
+    pytest.importorskip("pytestqt")
+    qapp = request.getfixturevalue("qapp")
     locale.setlocale(locale.LC_ALL, _LOCALE_AT_IMPORT)
     return qapp
 
@@ -262,15 +274,39 @@ class TestClipboard:
         assert df.to_string() == result.to_string()
         assert df.shape == result.shape
 
-    # Two character separator is not supported in to_clipboard
-    # Test that multi-character separators are not silently passed
-    def test_excel_sep_warning(self, df):
+    # Not a single-character separator: warn and fall back to to_string.
+    # b"," has len 1, so only the isinstance check rejects it.
+    @pytest.mark.parametrize("sep", [r"\t", 1, b","])
+    def test_excel_sep_warning(self, df, clipboard, sep):
         with tm.assert_produces_warning(
             UserWarning,
             match="to_clipboard in excel mode requires a single character separator.",
             check_stacklevel=False,
         ):
-            df.to_clipboard(excel=True, sep=r"\t")
+            df.to_clipboard(excel=True, sep=sep)
+        assert clipboard.text() == df.to_string()
+
+    @pytest.mark.parametrize(
+        "kwargs, msg",
+        [
+            ({"index_names": False}, "unexpected keyword argument"),
+            ({"quoting": "x"}, '"quoting" must be an integer'),
+        ],
+    )
+    def test_excel_bad_to_csv_kwarg_raises(self, df, clipboard, kwargs, msg):
+        # GH#44120 a keyword or value to_csv rejects used to be misreported
+        # as a separator problem
+        clipboard.setText("unchanged")
+        with tm.assert_produces_warning(None):
+            with pytest.raises(TypeError, match=msg):
+                df.to_clipboard(**kwargs)
+        assert clipboard.text() == "unchanged"
+
+    @pytest.mark.parametrize("float_format", ["%.3f", "{:.3f}".format])
+    def test_excel_float_format(self, df, clipboard, float_format):
+        # GH#9449 a callable float_format used to fall back to to_string
+        df.to_clipboard(float_format=float_format)
+        assert clipboard.text() == df.to_csv(sep="\t", float_format="%.3f")
 
     # Separator is ignored when excel=False and should produce a warning
     def test_copy_delim_warning(self, df):

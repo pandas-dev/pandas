@@ -34,6 +34,19 @@ def test_dataframe_arrow_interface(using_infer_string):
     assert table.equals(expected)
 
 
+def test_dataframe_arrow_interface_tz_aware():
+    # GH#68426 pyarrow reading .values should not surface a deprecation warning
+    dti = pd.date_range("2025-01-01", periods=3, tz="US/Eastern", name="idx")
+    df = pd.DataFrame({"a": dti}, index=dti)
+
+    # pa.table(df) bypasses __arrow_c_stream__ for pandas objects
+    with tm.assert_produces_warning(None):
+        table = pa.RecordBatchReader.from_stream(df).read_all()
+    expected_type = pa.timestamp("us", tz="US/Eastern")
+    assert table.schema.field("a").type == expected_type
+    assert table.schema.field("idx").type == expected_type
+
+
 @td.skip_if_no("pyarrow")
 def test_dataframe_to_arrow(using_infer_string):
     df = pd.DataFrame({"a": [1, 2, 3], "b": ["a", "b", "c"]})
@@ -93,6 +106,9 @@ def test_dataframe_from_arrow():
 
 
 @td.skip_if_no("pyarrow")
+@pytest.mark.filterwarnings(
+    "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+)
 def test_dataframe_from_arrow_custom_conversion():
     # ensuring that we use our custom conversion and not the default pyarrow to_pandas
     table = pa.table(

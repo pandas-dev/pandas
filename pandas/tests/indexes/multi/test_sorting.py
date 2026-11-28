@@ -72,6 +72,34 @@ def test_sortlevel_na_position():
     tm.assert_index_equal(result, expected)
 
 
+@pytest.mark.parametrize("sort_remaining", [True, False])
+def test_sortlevel_unsorted_levels(sort_remaining):
+    # GH#52683, GH#49016
+    mi = pd.MultiIndex(
+        levels=[["usd", "eur"], ["z", "y", "x"]],
+        codes=[[0, 1, 0, 1], [0, 1, 2, 2]],
+        names=["a", "b"],
+    )
+    result, indexer = mi.sortlevel(0, sort_remaining=sort_remaining)
+    expected_indexer = [3, 1, 2, 0] if sort_remaining else [1, 3, 0, 2]
+    tm.assert_numpy_array_equal(indexer, np.array(expected_indexer, dtype=np.intp))
+    tm.assert_index_equal(result, mi.take(expected_indexer))
+
+    result, indexer = mi.sortlevel(1, ascending=False)
+    expected_indexer = [0, 1, 2, 3]
+    tm.assert_numpy_array_equal(indexer, np.array(expected_indexer, dtype=np.intp))
+    tm.assert_index_equal(result, mi.take(expected_indexer))
+
+
+def test_sortlevel_categorical_level_uses_category_order():
+    # GH#52683 match sort_values for a level whose categories are not lexical
+    cat = pd.CategoricalIndex(["a", "b", "c"], categories=["c", "b", "a"])
+    mi = pd.MultiIndex.from_arrays([list("abc"), [1, 2, 3]]).set_levels(cat, level=0)
+    result, indexer = mi.sortlevel(0)
+    tm.assert_numpy_array_equal(indexer, np.array([2, 1, 0], dtype=np.intp))
+    tm.assert_index_equal(result, mi.sort_values())
+
+
 def test_numpy_argsort(idx):
     result = np.argsort(idx)
     expected = idx.argsort()
@@ -125,7 +153,7 @@ def test_unsortedindex():
 
 
 def test_unsortedindex_doc_examples():
-    # https://pandas.pydata.org/pandas-docs/stable/advanced.html#sorting-a-multiindex
+    # https://pandas.pydata.org/docs/user_guide/advanced.html#sorting-a-multiindex
     dfm = pd.DataFrame(
         {
             "jim": [0, 0, 1, 1],
@@ -294,6 +322,23 @@ def test_sort_values_nan():
         levels=[["A", "B", "C"], ["D"]], codes=[[0, 1, 2], [-1, -1, 0]]
     )
     tm.assert_index_equal(result, expected)
+
+
+@pytest.mark.parametrize("na_position", ["first", "last"])
+def test_sort_index_missing_code_in_unsorted_level(na_position):
+    # GH#26210 the -1 code must survive reordering of an unsorted level
+    mi = pd.MultiIndex(levels=[["B", "A"], ["x"]], codes=[[-1, 0, 1], [0, 0, 0]])
+    ser = pd.Series([1, 2, 3], index=mi)
+    result = ser.sort_index(na_position=na_position)
+    expected_values = [1, 3, 2] if na_position == "first" else [3, 2, 1]
+    expected_labels = (
+        [np.nan, "A", "B"] if na_position == "first" else ["A", "B", np.nan]
+    )
+    expected = pd.Series(
+        expected_values,
+        index=pd.MultiIndex.from_arrays([expected_labels, ["x", "x", "x"]]),
+    )
+    tm.assert_series_equal(result, expected)
 
 
 def test_sort_values_incomparable():

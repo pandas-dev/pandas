@@ -80,6 +80,13 @@ def test_to_numpy():
     tm.assert_numpy_array_equal(result, expected)
 
 
+def test_allclose_no_missing(any_numeric_ea_dtype):
+    # GH#37915
+    arr = pd.array([1, 2, 3], dtype=any_numeric_ea_dtype)
+    assert np.allclose(arr, arr)
+    assert not np.allclose(arr, arr + 1)
+
+
 class TestAnyAll2D:
     """Tests for any/all on 2D masked arrays with axis parameter."""
 

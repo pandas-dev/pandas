@@ -677,3 +677,24 @@ def test_groupby_agg_err_catching(err_cls):
 
     result = df["decimals"].groupby(df["id1"]).agg(weird_func)
     tm.assert_series_equal(result, expected, check_names=False)
+
+
+@pytest.mark.parametrize(
+    "dtype, result_dtype",
+    [("boolean", "Float64"), ("bool[pyarrow]", "double[pyarrow]")],
+)
+@pytest.mark.parametrize(
+    "values, expected_values",
+    [([True, False, None], [1.0, 0.0]), ([True, True, None], [1.0, 0.5])],
+)
+def test_agg_udf_bool_ea_float_result(dtype, result_dtype, values, expected_values):
+    # GH#58031 float results that are all 0/1 should not be cast back to bool
+    if "pyarrow" in dtype:
+        pytest.importorskip("pyarrow")
+    df = pd.DataFrame({"a": [1, 2, 2], "b": pd.array(values, dtype=dtype)})
+    result = df.groupby("a").agg(lambda ser: ser.fillna(False).mean())
+    expected = pd.DataFrame(
+        {"b": pd.array(expected_values, dtype=result_dtype)},
+        index=pd.Index([1, 2], name="a"),
+    )
+    tm.assert_frame_equal(result, expected)

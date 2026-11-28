@@ -143,6 +143,27 @@ def test_join_lsuffix_rsuffix_deprecated():
         df1.join(df2, lsuffix="_left", suffixes=("_left", "_right"))
 
 
+@pytest.mark.parametrize(
+    "columns, suffixes, expected_columns",
+    [
+        (["a", "b"], ("_x", "_x"), ["a_x", "b_x", "a_x", "b_x"]),
+        (["a", "a_x"], ("", "_x"), ["a", "a_x", "a_x", "a_x_x"]),
+    ],
+)
+def test_join_suffixes_cause_duplicate_columns_deprecated(
+    columns, suffixes, expected_columns
+):
+    # GH#13659
+    df1 = pd.DataFrame([[1, 2]], columns=columns)
+    df2 = pd.DataFrame([[3, 4]], columns=columns)
+
+    msg = "Passing 'suffixes' which cause duplicate columns"
+    with tm.assert_produces_warning(pd.errors.Pandas4Warning, match=msg):
+        result = df1.join(df2, suffixes=suffixes)
+    expected = pd.DataFrame([[1, 2, 3, 4]], columns=expected_columns)
+    tm.assert_frame_equal(result, expected)
+
+
 def test_join_invalid_validate(left_no_dup, right_no_dup):
     # GH 46622
     # Check invalid arguments
@@ -412,6 +433,85 @@ def test_join_list_series(float_frame):
     right = [float_frame.B, float_frame[["C", "D"]]]
     result = left.join(right)
     tm.assert_frame_equal(result, float_frame)
+
+
+@pytest.mark.parametrize("as_list", [True, False])
+@pytest.mark.parametrize("categorical_left", [True, False])
+def test_join_interval_index_with_categorical_of_intervals(as_list, categorical_left):
+    # GH#25019
+    ii = pd.interval_range(0, 1, 2)
+    df_ii = pd.DataFrame({"a": [1, 2]}, index=ii)
+    df_cat = pd.DataFrame({"b": [3, 4]}, index=pd.CategoricalIndex(ii))
+    left, right = (df_cat, df_ii) if categorical_left else (df_ii, df_cat)
+
+    result = left.join([right] if as_list else right)
+    expected = pd.DataFrame({"a": [1, 2], "b": [3, 4]}, index=left.index)
+    tm.assert_frame_equal(result, expected[[*left.columns, *right.columns]])
+
+
+@pytest.mark.parametrize("how", ["left", "right"])
+@pytest.mark.parametrize("sort", [True, False])
+def test_join_list_keeps_dtypes(how, sort):
+    # GH#28269 keys absent from the result should not upcast the kept columns
+    kept = pd.DataFrame({"a": [1, 2], "b": [True, False]}, index=[2, 0])
+    middle = pd.Series([3, 4], index=[0, 5], name="c")
+    other = pd.DataFrame({"d": [5, 6, 7]}, index=[0, 1, 2])
+    expected = pd.DataFrame(
+        {"a": [1, 2], "b": [True, False], "c": [np.nan, 3.0], "d": [7, 5]},
+        index=[2, 0],
+    )
+    if how == "left":
+        result = kept.join([middle, other], how=how, sort=sort)
+    else:
+        result = other.join([middle, kept], how=how, sort=sort)
+        expected = expected[["d", "c", "a", "b"]]
+    if sort:
+        expected = expected.sort_index()
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "left_index, right_index",
+    [
+        (["2020-01-01", "2020-01-02"], pd.date_range("2020-01-01", periods=3)),
+        ([1, 0], [True, False]),
+    ],
+)
+def test_join_list_label_matching(left_index, right_index):
+    # GH#28269 labels match as in a single join
+    left = pd.DataFrame({"a": [0, 1]}, index=left_index)
+    right = pd.DataFrame({"b": range(10, 10 + len(right_index))}, index=right_index)
+    result = left.join([right])
+    expected = left.join(right)
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("how", ["left", "right"])
+def test_join_list_tz_mismatch_raises(how):
+    # GH#28269 still raises, as in a single join
+    left = pd.DataFrame({"a": [1, 2]}, index=pd.date_range("2020", periods=2))
+    right = pd.DataFrame(
+        {"b": [1, 2]}, index=pd.date_range("2020", periods=2, tz="UTC")
+    )
+    msg = "Cannot join tz-naive with tz-aware DatetimeIndex"
+    with pytest.raises(TypeError, match=msg):
+        left.join([right], how=how)
+
+
+@pytest.mark.parametrize("how", ["left", "right"])
+def test_join_list_shared_index_raises(how):
+    # GH#28269 others sharing one index object still raise, as with concat
+    dti = pd.date_range("2020", periods=3)
+    left = pd.DataFrame(
+        {"a": [1, 2]}, index=pd.MultiIndex.from_tuples([(0, 1), (2, 3)])
+    )
+    others = [
+        pd.DataFrame({"b": [1, 2, 3]}, index=dti),
+        pd.Series(4, index=dti, name="c"),
+    ]
+    msg = "Can only union MultiIndex with MultiIndex or Index of tuples"
+    with pytest.raises(NotImplementedError, match=msg):
+        left.join(others, how=how)
 
 
 class TestDataFrameJoin:

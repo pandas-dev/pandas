@@ -31,7 +31,6 @@ from pandas.core.dtypes.common import (
     is_extension_array_dtype,
     is_integer,
     is_numeric_dtype,
-    is_object_dtype,
     is_string_dtype,
     pandas_dtype,
 )
@@ -42,6 +41,7 @@ from pandas.core.dtypes.dtypes import (
 
 from pandas.core import algorithms
 from pandas.core.arrays import (
+    BooleanArray,
     Categorical,
     ExtensionArray,
 )
@@ -63,6 +63,7 @@ from pandas.io.parsers.base_parser import (
 
 if TYPE_CHECKING:
     from collections.abc import (
+        Callable,
         Hashable,
         Iterator,
         Mapping,
@@ -91,20 +92,29 @@ _BOM = "\ufeff"
 
 class PythonParser(ParserBase):
     _no_thousands_columns: set[int]
+    # field counts the file itself implies; set only when index_col is False
+    _first_row_len: int
+    _header_row_len: int
 
-    def __init__(self, f: ReadCsvBuffer[str] | list, **kwds) -> None:
+    def __init__(self, f: ReadCsvBuffer[str] | list[list[Scalar]], **kwds) -> None:
         """
         Workhorse function for processing nested list into DataFrame
         """
         super().__init__(kwds)
 
         self.data: Iterator[list[str]] | list[list[Scalar]] = []
-        self.buf: list = []
+        self.buf: list[list[Any]] = []
+        # Line number of each line pushed onto self.buf. Every site that shrinks
+        # self.buf drops entries from the front, so it stays a suffix of this list.
+        self.buf_pos: list[int] = []
         self.pos = 0
         self.line_pos = 0
+        self._first_row_len = 0
+        self._header_row_len = 0
 
         self.skiprows = kwds["skiprows"]
 
+        self.skipfunc: Callable[[int], object]
         if callable(self.skiprows):
             self.skipfunc = self.skiprows
         else:
@@ -180,7 +190,7 @@ class PythonParser(ParserBase):
             raise ValueError("Only length-1 decimal markers supported")
 
     @cache_readonly
-    def num(self) -> re.Pattern:
+    def num(self) -> re.Pattern[str]:
         decimal = re.escape(self.decimal)
         if self.thousands is None:
             regex = rf"^[\-\+]?[0-9]*({decimal}[0-9]*)?([0-9]?(E|e)\-?[0-9]+)?$"
@@ -249,6 +259,7 @@ class PythonParser(ParserBase):
                 # Note: encoding is irrelevant here
                 line_rdr = csv.reader(StringIO(line), dialect=dia)
                 self.buf.extend(list(line_rdr))
+                self.buf_pos.append(self.pos - 1)
 
             # Note: encoding is irrelevant here
             reader = csv.reader(f, dialect=dia, strict=True)
@@ -268,15 +279,15 @@ class PythonParser(ParserBase):
 
         return reader
 
-    def read(
-        self, rows: int | None = None
+    def _read_arrays(
+        self, nrows: int | None = None
     ) -> tuple[
         Index | None,
         Sequence[Hashable] | MultiIndex,
         Mapping[Hashable, ArrayLike | Series],
     ]:
         try:
-            content = self._get_lines(rows)
+            content = self._get_lines(nrows)
         except StopIteration:
             if self._first_chunk:
                 content = []
@@ -348,19 +359,6 @@ class PythonParser(ParserBase):
             name: alldata[i + offset] for i, name in enumerate(names) if i < len_alldata
         }, names
 
-    # legacy
-    def get_chunk(
-        self, size: int | None = None
-    ) -> tuple[
-        Index | None,
-        Sequence[Hashable] | MultiIndex,
-        Mapping[Hashable, ArrayLike | Series],
-    ]:
-        if size is None:
-            # error: "PythonParser" has no attribute "chunksize"
-            size = self.chunksize  # type: ignore[attr-defined]
-        return self.read(rows=size)
-
     def _convert_data(
         self,
         data: Mapping[Hashable, np.ndarray],
@@ -399,7 +397,7 @@ class PythonParser(ParserBase):
     @final
     def _convert_to_ndarrays(
         self,
-        dct: Mapping,
+        dct: Mapping[Hashable, Any],
         na_values,
         na_fvalues,
         converters=None,
@@ -502,20 +500,33 @@ class PythonParser(ParserBase):
         converted : ndarray or ExtensionArray
         """
         if isinstance(cast_type, CategoricalDtype):
-            known_cats = cast_type.categories is not None
-
-            if not is_object_dtype(values.dtype) and not known_cats:
-                # TODO: this is for consistency with
-                # c-parser which parses all categories
-                # as strings
-                values = lib.ensure_string_array(
-                    values, skipna=False, convert_na_value=False
-                )
-
             cats = Index(values, copy=False).unique().dropna()
-            values = Categorical._from_inferred_categories(
-                cats, cats.get_indexer(values), cast_type, true_values=self.true_values
-            )
+            codes = cats.get_indexer(values)
+            if cast_type.categories is None:
+                # GH#56044 mirror the type inference performed on ordinary
+                #  (non-categorical) columns so that all engines agree.
+                #  to_numeric is unaware of the thousands/decimal options, so
+                #  keep string categories when those are set.
+                convert_numeric = (
+                    self.thousands is None
+                    and self.decimal == parser_defaults["decimal"]
+                )
+                converted = Categorical._maybe_convert_categories(
+                    cats,
+                    true_values=self.true_values,
+                    false_values=self.false_values,
+                    convert_numeric=convert_numeric,
+                    convert_bool=True,
+                )
+                values = Categorical._from_converted_categories(
+                    cats if converted is None else converted,
+                    codes,
+                    ordered=cast_type.ordered,
+                )
+            else:
+                values = Categorical._from_inferred_categories(
+                    cats, codes, cast_type, true_values=self.true_values
+                )
 
         # use the EA's implementation of casting
         elif isinstance(cast_type, ExtensionDtype):
@@ -532,6 +543,36 @@ class PythonParser(ParserBase):
                         false_values=self.false_values,  # pyright: ignore[reportCallIssue]
                         none_values=self.na_values,  # pyright: ignore[reportCallIssue]
                     )
+                elif cast_type._is_boolean and (self.true_values or self.false_values):
+                    # GH#47534 these dtypes do not take true_values/false_values,
+                    #  so set those positions after parsing the rest
+                    true_set = set(self.true_values or ())
+                    # same precedence as BooleanDtype: any true spelling beats a
+                    #  user false one
+                    false_set = (
+                        set(self.false_values or ())
+                        - true_set
+                        - BooleanArray._TRUE_VALUES
+                    )
+                    is_true = np.array(
+                        [str(val) in true_set for val in values], dtype=bool
+                    )
+                    is_false = np.array(
+                        [str(val) in false_set for val in values], dtype=bool
+                    )
+                    strings = np.array(values, dtype=object)
+                    strings[is_true | is_false] = np.nan
+                    result = array_type._from_sequence_of_strings(
+                        strings, dtype=cast_type
+                    )
+                    if is_true.any() or is_false.any():
+                        # _from_sequence rather than __setitem__, which an EA
+                        #  need not implement
+                        scalars = result.astype(object)
+                        scalars[is_true] = True
+                        scalars[is_false] = False
+                        result = array_type._from_sequence(scalars, dtype=cast_type)
+                    return result
                 else:
                     return array_type._from_sequence_of_strings(values, dtype=cast_type)
             except NotImplementedError as err:
@@ -541,7 +582,12 @@ class PythonParser(ParserBase):
                 ) from err
 
         elif isinstance(values, ExtensionArray):
-            values = values.astype(cast_type, copy=False)
+            casted: ArrayLike = values.astype(cast_type, copy=False)
+            # with dtype_backend="pyarrow", _infer_types has already boxed the
+            #  column, so an explicit numpy integer dtype reaches this branch,
+            #  not the one below
+            _validate_integer_cast(values, casted, cast_type, column)
+            values = casted
         elif issubclass(cast_type.type, str):
             # TODO: why skipna=True here and False above? some tests depend
             #  on it here, but nothing fails if we change it above
@@ -551,11 +597,13 @@ class PythonParser(ParserBase):
             )
         else:
             try:
-                values = astype_array(values, cast_type, copy=True)
+                casted = astype_array(values, cast_type, copy=True)
             except ValueError as err:
                 raise ValueError(
                     f"Unable to convert column {column} to type {cast_type}"
                 ) from err
+            _validate_integer_cast(values, casted, cast_type, column)
+            values = casted
         return values
 
     @cache_readonly
@@ -584,17 +632,18 @@ class PythonParser(ParserBase):
             if isinstance(header, (list, tuple, np.ndarray)):
                 # we have a mi columns, so read an extra line
                 if have_mi_columns:
-                    header = [*list(header), header[-1] + 1]
+                    header = [*list(header), max(header) + 1]
             else:
                 header = [header]
 
             columns: list[list[Scalar | None]] = []
             for level, hr in enumerate(header):
                 try:
-                    line = self._buffered_line()
-
                     while self.line_pos <= hr:
-                        line = self._next_line()
+                        self._next_line()
+                    # header rows may be out of order (GH#47011); self.buf
+                    # holds every line read so far
+                    line = self.buf[hr]
 
                 except StopIteration as err:
                     if 0 < self.line_pos <= hr and (
@@ -684,6 +733,12 @@ class PythonParser(ParserBase):
                     )
                 if len(columns) > 1:
                     raise TypeError("Cannot pass names with multi-index columns")
+
+                if self.index_col is False:
+                    # num_original_columns becomes len(names) below, but with
+                    # index_col=False the expected row width still comes from the
+                    # file. see GH#49279
+                    self._header_row_len = len(columns[0])
 
                 if self.usecols is not None:
                     # Set _use_cols. We don't store columns because they are
@@ -888,8 +943,11 @@ class PythonParser(ParserBase):
                     raise StopIteration from err
         else:
             while self.skipfunc(self.pos):
-                self.pos += 1
+                # consume first: on an exhausted file this raises and self.pos must
+                # not advance past the last line, or skipfooter trims from the wrong
+                # end (GH#36827)
                 next(self.data)
+                self.pos += 1
 
             while True:
                 orig_line = self._next_iter_line(row_num=self.pos + 1)
@@ -915,6 +973,7 @@ class PythonParser(ParserBase):
 
         self.line_pos += 1
         self.buf.append(line)
+        self.buf_pos.append(self.pos - 1)
         return line
 
     def _alert_malformed(self, msg: str, row_num: int) -> None:
@@ -1108,6 +1167,15 @@ class PythonParser(ParserBase):
         except StopIteration:
             next_line = None
 
+        if self.index_col is False:
+            # index_col=False suppresses implicit-index inference, so the first data
+            # row can widen the expected width past the header, as in the c engine.
+            # Take it from buf, not `line` -- `line` is a later row, or None, once
+            # _infer_columns has buffered the first. see GH#49279
+            first_row = self.buf[0] if self.buf else line
+            if first_row is not None:
+                self._first_row_len = len(first_row)
+
         # implicitly index_col=0 b/c 1 fewer column names
         implicit_first_cols = 0
         if line is not None:
@@ -1163,7 +1231,8 @@ class PythonParser(ParserBase):
         # Check that there are no rows with too many
         # elements in their row (rows with too few
         # elements are padded with NaN).
-        if max_len > col_len and self.index_col is not False and self.usecols is None:
+        expected_len = max(col_len, self._first_row_len, self._header_row_len)
+        if max_len > expected_len and self.usecols is None:
             footers = self.skipfooter if self.skipfooter else 0
             bad_lines = []
 
@@ -1173,15 +1242,15 @@ class PythonParser(ParserBase):
 
             for i, _content in iter_content:
                 actual_len = len(_content)
-                if actual_len > col_len:
+                if actual_len > expected_len:
                     if callable(self.on_bad_lines):
                         new_l = self.on_bad_lines(_content)
                         if new_l is not None:
                             new_l = cast("list[Scalar]", new_l)
-                            if len(new_l) > col_len:
+                            if len(new_l) > expected_len:
                                 row_num = self.pos - (content_len - i + footers)
                                 bad_lines.append((row_num, len(new_l), "callable"))
-                                new_l = new_l[:col_len]
+                                new_l = new_l[:expected_len]
                             content.append(new_l)
 
                     elif self.on_bad_lines in (
@@ -1197,7 +1266,8 @@ class PythonParser(ParserBase):
 
             for row_num, actual_len, source in bad_lines:
                 msg = (
-                    f"Expected {col_len} fields in line {row_num + 1}, saw {actual_len}"
+                    f"Expected {expected_len} fields in line {row_num + 1}, "
+                    f"saw {actual_len}"
                 )
                 if source == "callable":
                     msg += " from bad_lines callable"
@@ -1240,6 +1310,10 @@ class PythonParser(ParserBase):
     def _get_lines(self, rows: int | None = None) -> list[list[Scalar]]:
         lines = self.buf
         new_rows = None
+        num_buffered = len(self.buf)
+        first_new_pos = self.pos
+        # `rows` gets reused as a counter below, so latch whether we read to EOF
+        read_to_eof = rows is None
 
         # already fetched some number
         if rows is not None:
@@ -1306,13 +1380,40 @@ class PythonParser(ParserBase):
             lines = new_rows
 
         if self.skipfooter:
-            lines = lines[: -self.skipfooter]
+            if read_to_eof:
+                lines = self._remove_footer_lines(lines, num_buffered, first_new_pos)
+            else:
+                # With an explicit row count self.pos need not be the file's line
+                # count, so there is no footer to measure from; keep the
+                # pre-GH#36827 behavior.
+                lines = lines[: -self.skipfooter]
 
         lines = self._check_comments(lines)
         if self.skip_blank_lines:
             lines = self._remove_empty_lines(lines)
         lines = self._check_thousands(lines)
         return self._check_decimal(lines)
+
+    def _remove_footer_lines(
+        self, lines: list[list[Scalar]], num_buffered: int, first_new_pos: int
+    ) -> list[list[Scalar]]:
+        """
+        Drop the lines that fall within the last ``skipfooter`` lines of the file.
+
+        Lines consumed while inferring the header, and ``skiprows`` lines, are
+        missing from ``lines`` but still count towards ``skipfooter``, so the
+        cutoff is applied by line number. Only called once the whole file has been
+        read, so ``self.pos`` is its line count. See GH#36827.
+        """
+        positions = self.buf_pos[len(self.buf_pos) - num_buffered :]
+        positions += [
+            pos
+            for pos in range(first_new_pos, self.pos)
+            if not (self.skiprows and self.skipfunc(pos))
+        ]
+
+        cutoff = self.pos - self.skipfooter
+        return lines[: sum(pos < cutoff for pos in positions)]
 
     def _remove_skipped_rows(self, new_rows: list[list[Scalar]]) -> list[list[Scalar]]:
         if self.skiprows:
@@ -1347,7 +1448,7 @@ class PythonParser(ParserBase):
         return no_thousands_columns
 
 
-class FixedWidthReader(abc.Iterator):
+class FixedWidthReader(abc.Iterator[list[str]]):
     """
     A reader of fixed-width lines.
     """
@@ -1358,16 +1459,16 @@ class FixedWidthReader(abc.Iterator):
         colspecs: list[tuple[int, int]] | Literal["infer"],
         delimiter: str | None,
         comment: str | None,
-        skiprows: set[int] | None = None,
+        skipfunc: Callable[[int], object] | None = None,
         infer_nrows: int = 100,
     ) -> None:
         self.f = f
-        self.buffer: Iterator | None = None
+        self.buffer: Iterator[str] | None = None
         self.delimiter = "\r\n" + delimiter if delimiter else "\n\r\t "
         self.comment = comment
         if colspecs == "infer":
             self.colspecs = self.detect_colspecs(
-                infer_nrows=infer_nrows, skiprows=skiprows
+                infer_nrows=infer_nrows, skipfunc=skipfunc
             )
         else:
             self.colspecs = colspecs
@@ -1390,7 +1491,9 @@ class FixedWidthReader(abc.Iterator):
                     "2 element tuple or list of integers"
                 )
 
-    def get_rows(self, infer_nrows: int, skiprows: set[int] | None = None) -> list[str]:
+    def get_rows(
+        self, infer_nrows: int, skipfunc: Callable[[int], object] | None = None
+    ) -> list[str]:
         """
         Read rows from self.f, skipping as specified.
 
@@ -1406,8 +1509,8 @@ class FixedWidthReader(abc.Iterator):
         infer_nrows : int
             Number of rows to read from self.f, not counting
             rows that are skipped.
-        skiprows: set, optional
-            Indices of rows to skip.
+        skipfunc : callable, optional
+            Returns True for the indices of rows to skip.
 
         Returns
         -------
@@ -1415,12 +1518,10 @@ class FixedWidthReader(abc.Iterator):
             A list containing the rows to read.
 
         """
-        if skiprows is None:
-            skiprows = set()
         buffer_rows = []
         detect_rows = []
         for i, row in enumerate(self.f):
-            if i not in skiprows:
+            if skipfunc is None or not skipfunc(i):
                 detect_rows.append(row)
             buffer_rows.append(row)
             if len(detect_rows) >= infer_nrows:
@@ -1429,12 +1530,12 @@ class FixedWidthReader(abc.Iterator):
         return detect_rows
 
     def detect_colspecs(
-        self, infer_nrows: int = 100, skiprows: set[int] | None = None
+        self, infer_nrows: int = 100, skipfunc: Callable[[int], object] | None = None
     ) -> list[tuple[int, int]]:
         # Regex escape the delimiters
         delimiters = "".join([rf"\{x}" for x in self.delimiter])
         pattern = re.compile(f"([^{delimiters}]+)")
-        rows = self.get_rows(infer_nrows, skiprows)
+        rows = self.get_rows(infer_nrows, skipfunc)
         if not rows:
             raise EmptyDataError("No rows from which to infer column width")
         max_len = max(map(len, rows))
@@ -1481,7 +1582,7 @@ class FixedWidthFieldParser(PythonParser):
             self.colspecs,
             self.delimiter,
             self.comment,
-            self.skiprows,
+            self.skipfunc,
             self.infer_nrows,
         )
 
@@ -1527,3 +1628,26 @@ def _validate_skipfooter_arg(skipfooter: int) -> int:
         raise ValueError("skipfooter cannot be negative")
 
     return skipfooter  # pyright: ignore[reportReturnType]
+
+
+def _validate_integer_cast(
+    original: ArrayLike, casted: ArrayLike, cast_type: np.dtype, column
+) -> None:
+    """
+    Raise if casting to an integer dtype wrapped around (GH#55232).
+    """
+    if cast_type.kind not in "iu" or original.dtype.kind not in "iuf":
+        return
+    values = np.asarray(original)
+    if np.can_cast(values.dtype, cast_type):
+        return
+    if values.dtype.kind == "f":
+        # discarding a float's fractional part is not wraparound and stays
+        #  allowed (see test_read_fwf.py::test_dtype)
+        values = np.trunc(values)
+    if (np.asarray(casted) != values).any():
+        raise ValueError(
+            f"cannot safely convert passed user dtype of "
+            f"{cast_type} for {values.dtype.name} dtyped data in "
+            f"column {column}"
+        )

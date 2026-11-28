@@ -203,3 +203,32 @@ def test_value_counts_with_missing_category():
         name="count",
     )
     tm.assert_series_equal(result, expected)
+
+
+def test_value_counts_categorical_unobserved_combination():
+    # GH#44001
+    df = pd.DataFrame(
+        {
+            "gender": ["male", "female", "male", "female", "male"],
+            "country": ["BR", "BR", "US", "BR", "US"],
+        },
+        dtype="category",
+    )
+    result = df.value_counts()
+    expected = pd.Series(
+        [2, 2, 1, 0],
+        index=pd.MultiIndex.from_arrays(
+            [
+                pd.CategoricalIndex(
+                    ["male", "female", "male", "female"],
+                    categories=["female", "male"],
+                    name="gender",
+                ),
+                pd.CategoricalIndex(
+                    ["US", "BR", "BR", "US"], categories=["BR", "US"], name="country"
+                ),
+            ]
+        ),
+        name="count",
+    )
+    tm.assert_series_equal(result, expected)

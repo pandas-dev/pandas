@@ -15,7 +15,10 @@ from pandas.util._validators import check_dtype_backend
 
 from pandas.core.api import DataFrame
 
-from pandas.io._util import arrow_table_to_pandas
+from pandas.io._util import (
+    arrow_table_to_pandas,
+    suppress_pyarrow_values_warning,
+)
 from pandas.io.common import get_handle
 
 if TYPE_CHECKING:
@@ -70,7 +73,7 @@ def to_feather(
     ) as handles:
         # pyarrow>=24 deprecates feather.write_feather in favor of pyarrow.ipc;
         # suppress until we migrate the implementation (GH#66177)
-        with warnings.catch_warnings():
+        with warnings.catch_warnings(), suppress_pyarrow_values_warning():
             warnings.filterwarnings(
                 "ignore",
                 "pyarrow.feather.write_feather is deprecated",

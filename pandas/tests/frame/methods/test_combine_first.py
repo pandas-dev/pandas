@@ -389,8 +389,8 @@ class TestDataFrameCombineFirst:
             {"a": ["962", "85"], "b": [pd.NA] * 2}, dtype=nullable_string_dtype
         )
         df2 = pd.DataFrame({"a": ["85"], "b": [pd.NA]}, dtype=nullable_string_dtype)
-        df.set_index(["a", "b"], inplace=True)
-        df2.set_index(["a", "b"], inplace=True)
+        df = df.set_index(["a", "b"])
+        df2 = df2.set_index(["a", "b"])
         result = df.combine_first(df2)
         expected = pd.DataFrame(
             {"a": ["962", "85"], "b": [pd.NA] * 2}, dtype=nullable_string_dtype

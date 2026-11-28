@@ -17,7 +17,10 @@ from cpython.object cimport (
     PyObject,
     PyObject_RichCompare,
 )
-from libc.math cimport nextafter
+from libc.math cimport (
+    isinf,
+    nextafter,
+)
 
 from pandas._libs.tslibs.offsets cimport to_offset
 
@@ -48,7 +51,6 @@ from pandas._libs.tslibs.conversion cimport (
     cast_from_unit,
 )
 from pandas._libs.tslibs.dtypes cimport (
-    abbrev_to_npy_unit,
     c_DEPR_UNITS,
     c_Resolution,
     get_supported_reso,
@@ -68,12 +70,15 @@ from pandas._libs.tslibs.np_datetime cimport (
     NPY_FR_GENERIC,
     NPY_FR_W,
     NPY_FR_ns,
+    NPY_FR_us,
     add_overflowsafe,
     astype_overflowsafe,
     cmp_dtstructs,
     cmp_scalar,
     convert_reso,
     get_datetime64_unit,
+    get_datetime64_unit_count,
+    get_unit_count_from_dtype,
     get_unit_from_dtype,
     import_pandas_datetime,
     npy_datetimestruct,
@@ -345,6 +350,39 @@ cdef class ResoState:
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
+def contains_str(ndarray values) -> bool:
+    """
+    Check whether an object-dtype array holds at least one str.
+
+    A str timedelta carries its own unit, so callers must not pass a ``unit``
+    alongside one.
+
+    Parameters
+    ----------
+    values : ndarray[object]
+        May be 2D.
+
+    Returns
+    -------
+    bool
+    """
+    cdef:
+        Py_ssize_t _
+        cnp.flatiter it = cnp.PyArray_IterNew(values)
+        object item
+
+    for _ in range(values.size):
+        # Analogous to: item = values[i]
+        item = cnp.PyArray_GETITEM(values, cnp.PyArray_ITER_DATA(it))
+        if isinstance(item, str):
+            return True
+        cnp.PyArray_ITER_NEXT(it)
+
+    return False
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
 def array_to_timedelta64(
     ndarray values,
     str unit=None,
@@ -369,17 +407,13 @@ def array_to_timedelta64(
         object item
         int64_t ival
         cnp.broadcast mi = cnp.PyArray_MultiIterNew2(result, values)
-        cnp.flatiter it
         str parsed_unit = parse_timedelta_unit(unit or "ns")
         NPY_DATETIMEUNIT item_reso, int_reso
         ResoState state = ResoState(creso)
         bint infer_reso = creso == NPY_DATETIMEUNIT.NPY_FR_GENERIC
         ndarray iresult = result.view("i8")
 
-    if unit is None:
-        int_reso = NPY_FR_ns
-    else:
-        int_reso = get_supported_reso(abbrev_to_npy_unit(parsed_unit))
+    int_reso = NPY_FR_ns if parsed_unit == "ns" else NPY_FR_us
 
     if values.descr.type_num != cnp.NPY_OBJECT:
         # raise here otherwise we segfault below
@@ -388,16 +422,8 @@ def array_to_timedelta64(
     if errors not in {"ignore", "raise", "coerce"}:
         raise ValueError("errors must be one of {'ignore', 'raise', or 'coerce'}")
 
-    if unit is not None and errors != "coerce":
-        it = cnp.PyArray_IterNew(values)
-        for _ in range(n):
-            # Analogous to: item = values[i]
-            item = cnp.PyArray_GETITEM(values, cnp.PyArray_ITER_DATA(it))
-            if isinstance(item, str):
-                raise ValueError(
-                    "unit must not be specified if the input contains a str"
-                )
-            cnp.PyArray_ITER_NEXT(it)
+    if unit is not None and errors != "coerce" and contains_str(values):
+        raise ValueError("unit must not be specified if the input contains a str")
 
     for _ in range(n):
         item = <object>(<PyObject**>cnp.PyArray_MultiIter_DATA(mi, 1))[0]
@@ -408,6 +434,12 @@ def array_to_timedelta64(
 
             elif cnp.is_timedelta64_object(item):
                 # TODO: de-duplicate this with Timedelta.__new__
+                if get_datetime64_unit_count(item) != 1:
+                    raise ValueError(
+                        # GH#25611
+                        "np.timedelta64 objects with units containing a "
+                        "multiplier are not supported"
+                    )
                 ival = cnp.get_timedelta64_value(item)
                 dt64_reso = get_datetime64_unit(item)
                 if not (
@@ -597,6 +629,22 @@ def array_to_timedelta64(
     return result
 
 
+cdef int64_t _check_td_ns(object total, str ts) except? -1:
+    """
+    Range-check a timedelta string's parsed nanosecond total (GH#68560).
+
+    In parse_timedelta_string, unit-suffixed terms are already bounded by
+    cast_from_unit, so this catches totals that leave the range while every
+    term is in it, or that overshoot and are brought back by a later term.
+    parse_iso_format_string sums exact integers, so this is its only bound.
+    The lower bound is exclusive because a parse landing on INT64_MIN would
+    be indistinguishable from NPY_NAT.
+    """
+    if not (-(2**63) < total < 2**63):
+        raise OutOfBoundsTimedelta(f"Out of bounds nanosecond timedelta: '{ts}'")
+    return total
+
+
 @cython.cpow(True)
 cdef int64_t parse_timedelta_string(
     str ts, c_Resolution* out_reso=NULL
@@ -614,8 +662,10 @@ cdef int64_t parse_timedelta_string(
     cdef:
         str c
         bint neg = 0, have_dot = 0, have_value = 0, have_hhmmss = 0
+        Py_ssize_t i
         str current_unit = None
-        int64_t result = 0, m = 0, r
+        int64_t m = 0
+        object result = 0, r
         list number = [], frac = [], unit = []
         # finest reso seen; RESO_DAY is the coarsest a timedelta string reaches.
         #  spec_ptr is NULL (skipping all reso work) unless a caller wants it.
@@ -632,9 +682,22 @@ cdef int64_t parse_timedelta_string(
     if len(ts) == 0 or ts in nat_strings:
         return NPY_NAT
 
-    for c in ts:
+    for i, c in enumerate(ts):
 
-        # skip whitespace / commas
+        if c == "," and 0 < i < len(ts) - 1 and (
+            "0" <= ts[i - 1] <= "9" and "0" <= ts[i + 1] <= "9"
+        ):
+            # a comma between digits is the decimal point of the seconds
+            #  field (ISO 8601, as Timestamp reads it); elsewhere, e.g.
+            #  "1,234 days", decimal vs thousands separator is ambiguous
+            if current_unit != "m":
+                raise ValueError(
+                    "a comma between digits is only allowed as the decimal "
+                    f"point of hh:mm:ss, received: {ts}"
+                )
+            c = "."
+
+        # skip whitespace / commas, e.g. str(timedelta) "1 day, 0:00:00"
         if c == " " or c == ",":
             pass
 
@@ -691,7 +754,7 @@ cdef int64_t parse_timedelta_string(
                 elif current_unit == "m":
                     current_unit = "s"
                     m = 1000000000
-                r = <int64_t>int("".join(number)) * m
+                r = int("".join(number)) * m
                 result += timedelta_as_neg(r, neg)
                 have_hhmmss = 1
             else:
@@ -710,7 +773,7 @@ cdef int64_t parse_timedelta_string(
                 if current_unit != "m":
                     raise ValueError("expected hh:mm:ss format before .")
                 m = 1000000000
-                r = <int64_t>int("".join(number)) * m
+                r = int("".join(number)) * m
                 result += timedelta_as_neg(r, neg)
                 have_value = 1
                 unit, number, frac = [], [], []
@@ -753,7 +816,7 @@ cdef int64_t parse_timedelta_string(
         else:
             m = 1
             frac = frac[:9]
-        r = <int64_t>int("".join(frac)) * m
+        r = int("".join(frac)) * m
         result += timedelta_as_neg(r, neg)
 
     # we have a regular format
@@ -771,7 +834,7 @@ cdef int64_t parse_timedelta_string(
                 f"received: {ts}"
             )
         m = 1000000000
-        r = <int64_t>int("".join(number)) * m
+        r = int("".join(number)) * m
         result += timedelta_as_neg(r, neg)
         if c_Resolution.RESO_SEC < reso:
             reso = c_Resolution.RESO_SEC
@@ -803,15 +866,15 @@ cdef int64_t parse_timedelta_string(
 
     if out_reso is not NULL:
         out_reso[0] = reso
-    return result
+    return _check_td_ns(result, ts)
 
 
-cdef int64_t timedelta_as_neg(int64_t value, bint neg):
+cdef object timedelta_as_neg(object value, bint neg):
     """
 
     Parameters
     ----------
-    value : int64_t of the timedelta value
+    value : the timedelta value in nanoseconds
     neg : bool if the a negative value
     """
     if neg:
@@ -847,7 +910,12 @@ cdef timedelta_from_spec(object number, object frac, object unit,
         out_reso[0] = _timedelta_unit_to_reso(unit)
 
     n = "".join(number) + "." + "".join(frac)
-    return cast_from_unit(float(n), unit)
+    try:
+        return cast_from_unit(float(n), unit)
+    except OutOfBoundsDatetime as err:
+        # GH#68560 cast_from_unit is shared with the Timestamp path and raises
+        #  the datetime-named class; there is no datetime in this one.
+        raise OutOfBoundsTimedelta(*err.args) from err
 
 
 cdef c_Resolution _timedelta_unit_to_reso(str abbrev):
@@ -888,7 +956,11 @@ cdef bint needs_nano_unit(int64_t ival, str item):
     # TODO: more performant way of doing this check?
     if ival % 1000 != 0:
         return True
-    return re.search(r"\.\d{7}", item) or "ns" in item or "nano" in item.lower()
+    return (
+        re.search(r"\.\d{7}|\d,\d{7}", item)
+        or "ns" in item
+        or "nano" in item.lower()
+    )
 
 
 cpdef inline str parse_timedelta_unit(str unit):
@@ -969,9 +1041,14 @@ cdef _addsub_timedelta64_array(
     if other_reso == NPY_FR_GENERIC:
         # numpy reads a generic timedelta64 in the other operand's unit
         other_reso = reso
-    elif other_reso < NPY_FR_W or other_reso > NPY_FR_ns:
+    elif (
+        other_reso < NPY_FR_W
+        or other_reso > NPY_FR_ns
+        or get_unit_count_from_dtype(other.dtype) != 1
+    ):
         # year/month, which numpy itself refuses to add to a time unit, and
-        #  sub-nanosecond units, which we have no reso for; leave both to numpy
+        #  sub-nanosecond or multiplier units such as m8[10s], which we have no
+        #  reso for; leave all to numpy (GH#25611)
         m8 = td.to_timedelta64()
         if not subtract:
             return m8 + other
@@ -1033,8 +1110,9 @@ cdef _addsub_datetime64_array(
     if other_reso == NPY_FR_GENERIC:
         # numpy reads a generic datetime64 in the other operand's unit
         other_reso = reso
-    elif other_reso > NPY_FR_ns:
-        # sub-nanosecond units, which we have no reso for; leave both to numpy
+    elif other_reso > NPY_FR_ns or get_unit_count_from_dtype(other.dtype) != 1:
+        # sub-nanosecond or multiplier units such as M8[10s], which we have no
+        #  reso for; leave both to numpy (GH#25611)
         m8 = td.to_timedelta64()
         return (other - m8) if subtract else (m8 + other)
 
@@ -1220,16 +1298,37 @@ cpdef disallow_ambiguous_unit(unit):
         )
 
 
+# One component of an ISO 8601 duration: an optional sign (a pandas extension,
+#  GH#37172), the integer part, and an optional fraction after "." or ",".
+_iso_number = r"([+-]?)([0-9]+)(?:[.,]([0-9]+))?"
+# -PnWnDTnHnMnS, every component optional; a "T" must be followed by a time
+#  component. Years and months are not supported.
+cdef object _iso_duration_re = re.compile(
+    rf"(-)?P(?:{_iso_number}W)?(?:{_iso_number}D)?"
+    rf"(?:T(?=.)(?:{_iso_number}H)?(?:{_iso_number}M)?(?:{_iso_number}S)?)?"
+)
+# nanoseconds per W, D, H, M, S, in the order the regex captures them
+cdef tuple _iso_unit_ns = (
+    7 * 86400 * 10**9, 86400 * 10**9, 3600 * 10**9, 60 * 10**9, 10**9
+)
+cdef tuple _iso_unit_reso = (
+    c_Resolution.RESO_DAY,
+    c_Resolution.RESO_DAY,
+    c_Resolution.RESO_HR,
+    c_Resolution.RESO_MIN,
+    c_Resolution.RESO_SEC,
+)
+
+
 cdef int64_t parse_iso_format_string(
     str ts, c_Resolution* out_reso=NULL
 ) except? -1:
     """
-    Extracts and cleanses the appropriate values from a match object with
-    groups for each component of an ISO 8601 duration
+    Parse an ISO 8601 duration string into nanoseconds.
 
     Parameters
     ----------
-    ts: str
+    ts : str
         ISO 8601 Duration formatted string
     out_reso : optional pointer that, if non-NULL, receives the finest
         Resolution unit explicitly written in ``ts``.
@@ -1244,109 +1343,52 @@ cdef int64_t parse_iso_format_string(
     ValueError
         If ``ts`` cannot be parsed
     """
-
     cdef:
-        unicode c
-        int64_t result = 0, r
-        int p = 0, sign = 1
-        object dec_unit = "ms", err_msg
-        bint have_dot = 0, have_value = 0, neg = 0
-        list number = [], unit = []
-        c_Resolution reso = c_Resolution.RESO_DAY
-        c_Resolution spec_reso = c_Resolution.RESO_DAY
-        c_Resolution* spec_ptr = &spec_reso if out_reso is not NULL else NULL
+        object match, result = 0, value, unit_ns, den
+        tuple groups
+        str whole, frac
+        Py_ssize_t i, last = -1
+        bint have_frac = False
 
     err_msg = f"Invalid ISO 8601 Duration format - {ts}"
 
-    if ts[0] == "-":
-        sign = -1
-        ts = ts[1:]
+    match = _iso_duration_re.fullmatch(ts)
+    if match is None:
+        raise ValueError(err_msg)
+    groups = match.groups()
 
-    for c in ts:
-        # number (ascii codes)
-        if 48 <= ord(c) <= 57:
+    for i in range(5):
+        whole = groups[3 * i + 2]
+        if whole is None:
+            continue
+        if have_frac:
+            # ISO 8601 allows a fraction only on the smallest component
+            raise ValueError(err_msg)
+        if last != -1 and groups[3 * i + 1] == "-":
+            # "-" only on the first component, the one isoformat negates
+            raise ValueError(err_msg)
+        last = i
+        unit_ns = _iso_unit_ns[i]
+        value = int(whole) * unit_ns
+        frac = groups[3 * i + 3]
+        if frac is not None:
+            have_frac = True
+            # exact integer arithmetic, rounded to the nearest nanosecond
+            den = (<object>10) ** len(frac)
+            value += (2 * int(frac) * unit_ns + den) // (2 * den)
+        if groups[3 * i + 1] == "-":
+            value = -value
+        result += value
 
-            have_value = 1
-            if have_dot:
-                if p == 3 and dec_unit != "ns":
-                    unit.append(dec_unit)
-                    if dec_unit == "ms":
-                        dec_unit = "us"
-                    elif dec_unit == "us":
-                        dec_unit = "ns"
-                    p = 0
-                p += 1
-
-            if not len(unit):
-                number.append(c)
-            else:
-                r = timedelta_from_spec(number, "0", unit, spec_ptr)
-                if spec_reso < reso:
-                    reso = spec_reso
-                result += timedelta_as_neg(r, neg)
-
-                neg = 0
-                unit, number = [], [c]
-        else:
-            if c == "P" or c == "T":
-                pass  # ignore marking characters P and T
-            elif c == "-":
-                if neg or have_value:
-                    raise ValueError(err_msg)
-                else:
-                    neg = 1
-            elif c == "+":
-                pass
-            elif c in ["W", "D", "H", "M"]:
-                if c in ["H", "M"] and len(number) > 2:
-                    raise ValueError(err_msg)
-                if c in ["M", "H"]:
-                    c = c.replace("M", "min").replace("H", "h")
-                unit.append(c)
-                r = timedelta_from_spec(number, "0", unit, spec_ptr)
-                if spec_reso < reso:
-                    reso = spec_reso
-                result += timedelta_as_neg(r, neg)
-
-                neg = 0
-                unit, number = [], []
-            elif c == ".":
-                # append any seconds
-                if len(number):
-                    r = timedelta_from_spec(number, "0", "s")
-                    result += timedelta_as_neg(r, neg)
-                    unit, number = [], []
-                have_dot = 1
-            elif c == "S":
-                # seconds field present (whole and/or fractional); any
-                #  sub-second precision from the fraction is folded in later
-                #  via the parsed value's own resolution.
-                if c_Resolution.RESO_SEC < reso:
-                    reso = c_Resolution.RESO_SEC
-                if have_dot:  # ms, us, or ns
-                    if not len(number) or p > 3:
-                        raise ValueError(err_msg)
-                    # pad to 3 digits as required
-                    pad = 3 - p
-                    while pad > 0:
-                        number.append("0")
-                        pad -= 1
-
-                    r = timedelta_from_spec(number, "0", dec_unit)
-                    result += timedelta_as_neg(r, neg)
-                else:  # seconds
-                    r = timedelta_from_spec(number, "0", "s")
-                    result += timedelta_as_neg(r, neg)
-            else:
-                raise ValueError(err_msg)
-
-    if not have_value:
-        # Received string only - never parsed any values
+    if last == -1:
+        # no components, i.e. "P" or "-P"
         raise ValueError(err_msg)
 
+    if groups[0] is not None:
+        result = -result
     if out_reso is not NULL:
-        out_reso[0] = reso
-    return sign*result
+        out_reso[0] = <c_Resolution><int>_iso_unit_reso[last]
+    return _check_td_ns(result, ts)
 
 
 def parse_timedelta_string_reso(str ts):
@@ -1503,10 +1545,10 @@ class MinMaxReso:
 # heavy lifting.
 cdef class _Timedelta(timedelta):
     # cdef readonly:
-    #    int64_t value      # nanoseconds
+    #    int64_t _value      # in units of _creso
     #    bint _is_populated  # are my components populated
     #    int64_t _d, _h, _m, _s, _ms, _us, _ns
-    #    NPY_DATETIMEUNIT _reso
+    #    NPY_DATETIMEUNIT _creso
 
     # higher than np.ndarray and np.matrix
     __array_priority__ = 100
@@ -1796,7 +1838,8 @@ cdef class _Timedelta(timedelta):
         """
         Return the unit of Timedelta object.
 
-        The unit of Timedelta object is nanosecond, i.e., 'ns' by default.
+        This is the resolution of the underlying int64 representation: one of
+        ``'s'``, ``'ms'``, ``'us'`` or ``'ns'``.
 
         Returns
         -------
@@ -1958,8 +2001,8 @@ cdef class _Timedelta(timedelta):
         """
         Convert a pandas Timedelta object into a python ``datetime.timedelta`` object.
 
-        Timedelta objects are internally saved as numpy datetime64[ns] dtype.
-        Use to_pytimedelta() to convert to object dtype.
+        ``datetime.timedelta`` has microsecond resolution, so any sub-microsecond
+        component is rounded to the nearest microsecond.
 
         Returns
         -------
@@ -1968,10 +2011,6 @@ cdef class _Timedelta(timedelta):
         See Also
         --------
         to_timedelta : Convert argument to Timedelta type.
-
-        Notes
-        -----
-        Any nanosecond resolution will be lost.
 
         Examples
         --------
@@ -1995,7 +2034,7 @@ cdef class _Timedelta(timedelta):
 
     def to_timedelta64(self) -> np.timedelta64:
         """
-        Return a numpy.timedelta64 object with 'ns' precision.
+        Return a numpy.timedelta64 object with same precision.
 
         Since NumPy uses ``timedelta64`` objects for its time operations, converting
         a pandas ``Timedelta`` into a NumPy ``timedelta64`` provides seamless
@@ -2069,8 +2108,8 @@ cdef class _Timedelta(timedelta):
         the internal representation of the `Timedelta` object without modifying its
         data. This is particularly useful when you need to work with the underlying
         data directly, such as for performance optimizations or interfacing with
-        low-level APIs. The returned value is typically the number of nanoseconds
-        since the epoch, represented as an integer or another specified dtype.
+        low-level APIs. The returned value is typically the duration as an integer
+        count of the Timedelta's ``unit``.
 
         Parameters
         ----------
@@ -2126,17 +2165,17 @@ cdef class _Timedelta(timedelta):
     @property
     def asm8(self) -> np.timedelta64:
         """
-        Return a numpy timedelta64 array scalar view.
+        Return a numpy timedelta64 array scalar view with same precision.
 
         Provides access to the array scalar view (i.e. a combination of the
         value and the units) associated with the numpy.timedelta64().view(),
-        including a 64-bit integer representation of the timedelta in
-        nanoseconds (Python int compatible).
+        including a 64-bit integer representation of the timedelta in the
+        Timedelta's ``unit``.
 
         Returns
         -------
         numpy timedelta64 array scalar view
-            Array scalar view of the timedelta in nanoseconds.
+            Array scalar view of the timedelta in the Timedelta's ``unit``.
 
         See Also
         --------
@@ -2679,6 +2718,12 @@ class Timedelta(_Timedelta):
                 new_value, reso=NPY_DATETIMEUNIT.NPY_FR_us
             )
         elif cnp.is_timedelta64_object(value):
+            if get_datetime64_unit_count(value) != 1:
+                raise ValueError(
+                    # GH#25611
+                    "np.timedelta64 objects with units containing a multiplier "
+                    "are not supported"
+                )
             # Retain the resolution if possible, otherwise cast to the nearest
             #  supported resolution.
             new_value = cnp.get_timedelta64_value(value)
@@ -2729,32 +2774,26 @@ class Timedelta(_Timedelta):
             # unit=None is de-facto 'ns'
             if value != NPY_NAT:
                 unit = parse_timedelta_unit(unit)
-                if unit != "ns":
-                    # Return with the closest-to-supported unit by going through
-                    #  the timedelta64 path
-                    try:
-                        td = np.timedelta64(value, unit)
-                    except OverflowError as err:
-                        # GH#66247 e.g. Timedelta(10**19, unit="s"); numpy
-                        #  raises a bare OverflowError, so re-raise as
-                        #  OutOfBoundsTimedelta for consistency.
-                        raise OutOfBoundsTimedelta(
-                            f"Cannot cast {value} from '{unit}' without overflow."
-                        ) from err
-                    return cls(td)
-                value = _numeric_to_td64ns(value, unit)
+                out_reso = NPY_FR_ns if unit == "ns" else NPY_FR_us
+                value = _numeric_to_td64ns(value, unit, out_reso=out_reso)
+                return cls._from_value_and_reso(value, reso=out_reso)
 
         elif is_float_object(value):
+            # unit=None is de-facto 'ns'
+            unit = parse_timedelta_unit(unit)
+
             # GH#66247 use is_integer() (not int(value)) so that non-finite
             #  floats fall through to _numeric_to_td64ns, which raises a clear
             #  OutOfBoundsTimedelta rather than a bare OverflowError.
             if value.is_integer():
-                # round float -> treat like an int, try to preserve unit
-                return cls(int(value), unit=unit)
-
-            # unit=None is de-facto 'ns'
-            unit = parse_timedelta_unit(unit)
-            value = _numeric_to_td64ns(value, unit)
+                if value != NPY_NAT:
+                    # round float -> treat like an int
+                    out_reso = NPY_FR_ns if unit == "ns" else NPY_FR_us
+                    value = _numeric_to_td64ns(int(value), unit, out_reso=out_reso)
+                    return cls._from_value_and_reso(value, reso=out_reso)
+            else:
+                # with fractional parts -> still default to nanoseconds
+                value = _numeric_to_td64ns(value, unit)
 
         else:
             raise ValueError(
@@ -2945,6 +2984,9 @@ class Timedelta(_Timedelta):
     __rsub__ = _binary_op_method_timedeltalike(lambda x, y: y - x, "__rsub__")
 
     def __mul__(self, other):
+        cdef:
+            int64_t new_value
+
         if is_integer_object(other) or is_float_object(other):
             if util.is_nan(other):
                 # np.nan * timedelta -> np.timedelta64("NaT"), in this case NaT
@@ -2956,11 +2998,26 @@ class Timedelta(_Timedelta):
                 other = int(other)
             if isinstance(other, cnp.floating):
                 other = float(other)
+            if isinstance(other, float) and isinf(other) and self._value == 0:
+                # i.e. 0 * inf; _mul_numeric_array substitutes NaT for a NaN product
+                # see test_td_mul_zero_by_inf_is_nat
+                return NaT
             other = _exact_if_integral(other)
+
+            try:
+                new_value = <int64_t>(other * self._value)
+            except OverflowError as err:
+                # GH#68393 the int64 cast raises a bare OverflowError; raise what
+                #  _mul_numeric_array raises instead.
+                if is_integer_object(other):
+                    msg = "Overflow in int64 multiplication"
+                else:
+                    msg = "Overflow in timedelta multiplication"
+                raise OutOfBoundsTimedelta(msg) from err
 
             return _timedelta_from_value_and_reso(
                 Timedelta,
-                <int64_t>(other * self._value),
+                new_value,
                 reso=self._creso,
             )
 
@@ -2969,6 +3026,12 @@ class Timedelta(_Timedelta):
                 # see also: item_from_zerodim
                 item = cnp.PyArray_ToScalar(cnp.PyArray_DATA(other), other)
                 return self.__mul__(item)
+            elif other.dtype.kind == "b":
+                # GH#62316 without this numpy silently treats True as 1
+                raise TypeError(
+                    "Cannot multiply Timedelta by bool. "
+                    "Explicitly cast to integer instead."
+                )
             elif other.dtype.kind in "iuf":
                 return _mul_numeric_array(self, other)
             return other * self.to_timedelta64()
@@ -3015,7 +3078,13 @@ class Timedelta(_Timedelta):
                 if value < 0 and self._value % other:
                     value += 1
             else:
-                value = <int64_t>(self._value/ other)
+                try:
+                    value = <int64_t>(self._value/ other)
+                except OverflowError as err:
+                    # GH#68393 see the note in __mul__
+                    raise OutOfBoundsTimedelta(
+                        "Overflow in timedelta division"
+                    ) from err
             return Timedelta._from_value_and_reso(value, self._creso)
 
         elif is_array(other):
@@ -3077,7 +3146,12 @@ class Timedelta(_Timedelta):
             if isinstance(other, cnp.floating):
                 other = float(other)
             other = _exact_if_integral(other)
-            return type(self)._from_value_and_reso(self._value// other, self._creso)
+            try:
+                value = <int64_t>(self._value// other)
+            except OverflowError as err:
+                # GH#68393 see the note in __mul__
+                raise OutOfBoundsTimedelta("Overflow in timedelta division") from err
+            return type(self)._from_value_and_reso(value, self._creso)
 
         elif is_array(other):
             if other.ndim == 0:
@@ -3298,10 +3372,31 @@ cdef object _exact_if_integral(object other):
 cpdef int64_t get_unit_for_round(freq, NPY_DATETIMEUNIT creso) except? -1:
     from pandas._libs.tslibs.offsets import to_offset
 
+    cdef:
+        _Timedelta td
+        int64_t factor
+
     freq = to_offset(freq)
     if isinstance(freq, Day):
         # In the "round" context, Day unambiguously means 24h, not calendar-day
-        freq = Timedelta(days=freq.n)
+        td = Timedelta(days=freq.n)
     else:
         freq.nanos  # raises on non-fixed freq
-    return delta_to_nanoseconds(freq, creso)
+        td = Timedelta(freq)
+
+    if td._creso > creso:
+        # GH#67978 freq is expressed in a finer resolution than creso, so it
+        #  need not be a whole number of creso units.
+        factor = convert_reso(1, creso, td._creso, round_ok=False)
+        if td._value % factor != 0:
+            if factor % td._value == 0:
+                # freq divides one creso unit evenly, so every value we can
+                #  represent is already a multiple of freq; callers treat a
+                #  return of 0 as "no-op".
+                return 0
+            raise ValueError(
+                f"freq={freq} is incompatible with "
+                f"unit={npy_unit_to_abbrev(creso)}. "
+                "Use a lower freq or a higher unit instead."
+            )
+    return delta_to_nanoseconds(td, creso)

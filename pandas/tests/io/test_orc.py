@@ -273,6 +273,19 @@ def test_orc_roundtrip_bytesio():
     tm.assert_equal(expected, got)
 
 
+def test_orc_roundtrip_tz_aware():
+    # GH#68426 pyarrow reading .values should not surface a deprecation warning
+    pytest.importorskip("pyarrow")
+    df = pd.DataFrame({"a": pd.date_range("2025-01-01", periods=3, tz="US/Eastern")})
+
+    with tm.assert_produces_warning(None):
+        result = pd.read_orc(BytesIO(df.to_orc()))
+    # ORC stores timestamps as UTC
+    expected = df.copy()
+    expected["a"] = expected["a"].dt.tz_convert("UTC").dt.as_unit("ns")
+    tm.assert_frame_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     "orc_writer_dtypes_not_supported",
     [
@@ -381,6 +394,23 @@ def test_orc_uri_path(temp_file):
     expected.to_orc(temp_file)
     uri = temp_file.as_uri()
     result = pd.read_orc(uri)
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("fs_kind", ["pyarrow", "fsspec"])
+def test_read_orc_filesystem(temp_file, fs_kind):
+    # GH#58746 a relative path must be resolved by the filesystem, not the cwd
+    expected = pd.DataFrame({"int": list(range(1, 4))})
+    expected.to_orc(temp_file)
+    if fs_kind == "pyarrow":
+        pa_fs = pytest.importorskip("pyarrow.fs")
+        filesystem = pa_fs.SubTreeFileSystem(
+            str(temp_file.parent), pa_fs.LocalFileSystem()
+        )
+    else:
+        dirfs = pytest.importorskip("fsspec.implementations.dirfs")
+        filesystem = dirfs.DirFileSystem(temp_file.parent)
+    result = pd.read_orc(temp_file.name, filesystem=filesystem)
     tm.assert_frame_equal(result, expected)
 
 

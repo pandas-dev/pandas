@@ -50,53 +50,58 @@ static void pandas_datetime_destructor(PyObject *op) {
  */
 static int apply_tzinfo_offset(PyObject *obj, npy_datetimestruct *out) {
   PyObject *offset = extract_utc_offset(obj);
+  if (offset == NULL) {
+    return -1;
+  }
+
   /* Apply the time zone offset if datetime obj is tz-aware */
-  if (offset != NULL) {
-    if (offset == Py_None) {
-      Py_DECREF(offset);
-      return 0;
-    }
-    /*
-     * The timedelta should have a function "total_seconds"
-     * which contains the value we want.
-     */
-    PyObject *tmp = PyObject_CallMethod(offset, "total_seconds", NULL);
+  if (offset == Py_None) {
     Py_DECREF(offset);
-    if (tmp == NULL) {
-      return -1;
-    }
-    PyObject *tmp_int = PyNumber_Long(tmp);
-    if (tmp_int == NULL) {
-      Py_DECREF(tmp);
-      return -1;
-    }
-    int seconds_offset = PyLong_AsLong(tmp_int);
-    if (seconds_offset == -1 && PyErr_Occurred()) {
-      Py_DECREF(tmp_int);
-      Py_DECREF(tmp);
-      return -1;
-    }
+    return 0;
+  }
+
+  /*
+   * The timedelta should have a function "total_seconds"
+   * which contains the value we want.
+   */
+  PyObject *tmp = PyObject_CallMethod(offset, "total_seconds", NULL);
+  Py_DECREF(offset);
+  if (tmp == NULL) {
+    return -1;
+  }
+
+  PyObject *tmp_int = PyNumber_Long(tmp);
+  if (tmp_int == NULL) {
+    Py_DECREF(tmp);
+    return -1;
+  }
+
+  int seconds_offset = PyLong_AsLong(tmp_int);
+  if (seconds_offset == -1 && PyErr_Occurred()) {
     Py_DECREF(tmp_int);
     Py_DECREF(tmp);
-
-    /*
-     * Subtract the offset to get UTC. Offsets are not always a whole number
-     * of minutes -- any zone in its local-mean-time era has seconds (e.g.
-     * Asia/Tokyo is +09:18:59 before 1888) -- so fold the sub-minute part
-     * into the seconds field and let the rest go through as minutes.
-     */
-    int minutes_to_add = -(seconds_offset / 60);
-    int sec = out->sec - seconds_offset % 60;
-    if (sec < 0) {
-      sec += 60;
-      minutes_to_add -= 1;
-    } else if (sec >= 60) {
-      sec -= 60;
-      minutes_to_add += 1;
-    }
-    out->sec = sec;
-    add_minutes_to_datetimestruct(out, minutes_to_add);
+    return -1;
   }
+  Py_DECREF(tmp_int);
+  Py_DECREF(tmp);
+
+  /*
+   * Subtract the offset to get UTC. Offsets are not always a whole number
+   * of minutes -- any zone in its local-mean-time era has seconds (e.g.
+   * Asia/Tokyo is +09:18:59 before 1888) -- so fold the sub-minute part
+   * into the seconds field and let the rest go through as minutes.
+   */
+  int minutes_to_add = -(seconds_offset / 60);
+  int sec = out->sec - seconds_offset % 60;
+  if (sec < 0) {
+    sec += 60;
+    minutes_to_add -= 1;
+  } else if (sec >= 60) {
+    sec -= 60;
+    minutes_to_add += 1;
+  }
+  out->sec = sec;
+  add_minutes_to_datetimestruct(out, minutes_to_add);
 
   return 0;
 }
@@ -195,6 +200,15 @@ static int convert_pydatetime_to_datetimestruct(PyObject *dtobj,
   out->us = PyLong_AsLong(tmp);
   Py_DECREF(tmp);
 
+  // pd.Timestamp carries sub-microsecond precision, GH#53473
+  if (PyObject_HasAttrString(obj, "nanosecond")) {
+    tmp = PyObject_GetAttrString(obj, "nanosecond");
+    if (tmp == NULL)
+      return -1;
+    out->ps = PyLong_AsLong(tmp) * 1000;
+    Py_DECREF(tmp);
+  }
+
   if (PyObject_HasAttrString(obj, "tzinfo")) {
     return apply_tzinfo_offset(obj, out);
   }
@@ -259,21 +273,13 @@ static npy_datetime PyDateTimeToEpoch(PyObject *dt, NPY_DATETIMEUNIT base) {
     if (!PyErr_Occurred()) {
       PyErr_SetString(PyExc_ValueError,
                       "Could not convert PyDateTime to numpy datetime");
-
-      return -1;
     }
-  }
-
-  int64_t npy_dt = npy_datetimestruct_to_datetime(NPY_FR_ns, &dts);
-  if (scaleNanosecToUnit(&npy_dt, base) == -1) {
-    PyErr_Format(PyExc_ValueError,
-                 "Call to scaleNanosecToUnit with value %" NPY_DATETIME_FMT
-                 " and base %d failed",
-                 npy_dt, base);
-
     return -1;
   }
-  return npy_dt;
+
+  // convert directly in base so pre-epoch values floor like the
+  // datetime64 path; scaling from ns would truncate toward zero
+  return npy_datetimestruct_to_datetime(base, &dts);
 }
 
 /* Initializes and exposes a customer datetime C-API from the pandas library

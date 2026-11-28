@@ -990,6 +990,36 @@ def test_clines_multiindex(clines, expected, env):
     assert expected in result
 
 
+@pytest.mark.parametrize(
+    "clines, exp",
+    [
+        ("all;data", ["\\cline{1-1}"] * 4),
+        ("skip-last;data", ["", "\\cline{1-1}"] * 2),
+        ("all;index", [""] * 4),
+        ("skip-last;index", [""] * 4),
+    ],
+)
+@pytest.mark.parametrize("env", ["table", "longtable"])
+def test_clines_hidden_index(clines, exp, env):
+    # GH#59877 clines follow the groups of a hidden index, spanning the data
+    midx = pd.MultiIndex.from_product([["A", "B"], ["X", "Y"]])
+    df = pd.DataFrame([[1], [2], [3], [4]], index=midx)
+    result = df.style.hide(axis="index").to_latex(clines=clines, environment=env)
+    expected = "".join(
+        f"{val} \\\\\n" + (f"{cline}\n" if cline else "")
+        for val, cline in zip(range(1, 5), exp, strict=True)
+    )
+    assert expected in result
+
+
+def test_clines_hidden_flat_index():
+    # GH#59877
+    df = pd.DataFrame({"b": [2, 3], "c": [3, 5]}, index=[1, 1])
+    result = df.style.hide(axis="index").to_latex(clines="all;data")
+    expected = "2 & 3 \\\\\n\\cline{1-2}\n3 & 5 \\\\\n\\cline{1-2}\n"
+    assert expected in result
+
+
 def test_col_format_len(styler):
     # gh 46037
     result = styler.to_latex(environment="longtable", column_format="lrr{10cm}")
@@ -1084,3 +1114,15 @@ def test_empty_clines(columns, expected: str, clines: str):
     df = pd.DataFrame(columns=columns)
     result = df.style.to_latex(clines=clines)
     assert result == expected
+
+
+@pytest.mark.parametrize("option", ["max_rows", "max_columns", "max_elements"])
+def test_render_trimming_options_ignored(df_ext, option):
+    # GH#68310
+    styler = df_ext.style.map(lambda v: "textbf:--rwrap;" if v == "de" else "")
+    styler.concat(df_ext.agg(["sum"]).style)
+    expected = styler.to_latex()
+    with pd.option_context(f"styler.render.{option}", 1):
+        result = styler.to_latex()
+    assert result == expected
+    assert "\\textbf{de}" in result

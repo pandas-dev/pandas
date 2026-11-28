@@ -175,14 +175,6 @@ class TestStringArray(base.ExtensionTests):
         expected = data_missing[[1]]
         tm.assert_extension_array_equal(result, expected)
 
-    def test_fillna_no_op_returns_copy(self, data):
-        data = data[~data.isna()]
-
-        valid = data[0]
-        result = data.fillna(valid)
-        assert result is not data
-        tm.assert_extension_array_equal(result, data)
-
     def _get_expected_exception(
         self, op_name: str, obj, other
     ) -> type[Exception] | tuple[type[Exception], ...] | None:
@@ -281,6 +273,12 @@ class TestStringArray(base.ExtensionTests):
             mark = pytest.mark.xfail(reason="Gives object")
             request.applymarker(mark)
         super().test_loc_setitem_with_expansion_retains_ea_dtype(data)
+
+    def test_plot_on_y_axis(self, plot_data):
+        # GH 64535
+        # Plotting str is supported by matplotlib, but not pandas at the moment
+        with pytest.raises(TypeError, match="no numeric data to plot"):
+            super().test_plot_on_y_axis(plot_data)
 
 
 class Test2DCompat(base.Dim2CompatTests):

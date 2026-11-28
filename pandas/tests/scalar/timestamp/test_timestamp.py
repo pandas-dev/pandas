@@ -9,7 +9,6 @@ from datetime import (
 import locale
 import re
 import time
-import unicodedata
 import zoneinfo
 
 from dateutil.tz import (
@@ -146,15 +145,6 @@ class TestTimestampProperties:
 
         result_day = data.day_name(time_locale)
         result_month = data.month_name(time_locale)
-
-        # Work around https://github.com/pandas-dev/pandas/issues/22342
-        # different normalizations
-        expected_day = unicodedata.normalize("NFD", expected_day)
-        expected_month = unicodedata.normalize("NFD", expected_month)
-
-        result_day = unicodedata.normalize("NFD", result_day)
-        result_month = unicodedata.normalize("NFD", result_month)
-
         assert result_day == expected_day
         assert result_month == expected_month
 

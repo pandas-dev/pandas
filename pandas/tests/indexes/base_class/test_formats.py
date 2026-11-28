@@ -150,5 +150,21 @@ class TestIndexRendering:
         # GH32146
         arr = pd.Index([True, False, np.nan], dtype=object)
         exp2 = repr(arr)
-        out2 = "Index([True, False, nan], dtype='object')"
+        out2 = "Index([True, False, NaN], dtype='object')"
         assert out2 == exp2
+
+    @pytest.mark.parametrize("dtype", ["float32", "float64", object])
+    def test_index_repr_float_nan(self, dtype):
+        # GH#64733
+        idx = pd.Index([1.5, np.nan], dtype=dtype)
+        dtype_str = "object" if dtype is object else dtype
+        assert repr(idx) == f"Index([1.5, NaN], dtype='{dtype_str}')"
+        assert idx._summary() == "Index: 2 entries, 1.5 to NaN"
+
+    @pytest.mark.parametrize("dtype", ["complex64", "complex128"])
+    def test_index_repr_complex_nan(self, dtype):
+        # GH#64733
+        arr = np.array([1 + 2j, complex(np.nan, -1), complex(1, np.nan)], dtype=dtype)
+        result = repr(pd.Index(arr))
+        expected = f"Index([(1+2j), (NaN-1j), (1+NaNj)], dtype='{dtype}')"
+        assert result == expected

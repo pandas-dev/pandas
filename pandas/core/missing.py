@@ -22,11 +22,16 @@ from pandas._libs import (
     algos,
     lib,
 )
+from pandas._libs.tslibs import (
+    OutOfBoundsDatetime,
+    OutOfBoundsTimedelta,
+)
 from pandas.compat._optional import import_optional_dependency
 
 from pandas.core.dtypes.cast import infer_dtype_from
 from pandas.core.dtypes.common import (
     is_array_like_deprecate_non_pandas,
+    is_arrow_temporal_dtype,
     is_bool_dtype,
     is_numeric_dtype,
     is_object_dtype,
@@ -50,7 +55,6 @@ if TYPE_CHECKING:
     from pandas._typing import (
         ArrayLike,
         AxisInt,
-        DtypeObj,
         F,
         ReindexMethod,
         npt,
@@ -396,7 +400,9 @@ def interpolate_2d_inplace(
         fill_value = na_value_for_dtype(data.dtype, compat=False)
 
     if method == "time":
-        if not needs_i8_conversion(index.dtype) and not _is_arrow_temporal(index.dtype):
+        if not needs_i8_conversion(index.dtype) and not is_arrow_temporal_dtype(
+            index.dtype
+        ):
             raise ValueError(
                 "time-weighted interpolation only works "
                 "on Series or DataFrames with a "
@@ -410,7 +416,9 @@ def interpolate_2d_inplace(
     # default limit is unlimited GH #16282
     limit = algos.validate_limit(nobs=None, limit=limit)
 
-    indices = _index_to_interp_indices(index, method)
+    # spline's bbox is in index units, so the index must not be shifted
+    shift = kwargs.get("bbox") is None
+    indices = _index_to_interp_indices(index, method, shift=shift)
 
     def func(yvalues: np.ndarray) -> None:
         # process 1-d slices in the axis direction
@@ -431,33 +439,6 @@ def interpolate_2d_inplace(
     np.apply_along_axis(func, axis, data)
 
 
-def _is_arrow_temporal(dtype: DtypeObj | None) -> bool:
-    """
-    Check whether the dtype is an ArrowDtype holding timestamps or durations.
-
-    These are not covered by ``needs_i8_conversion`` but need the same i8 view
-    to be usable as interpolation x-values.
-
-    ``dtype.kind`` is not specific enough here: ``date32``/``date64`` also
-    report kind "M" but are not backed by a DatetimeArray, so they are
-    excluded.
-
-    Parameters
-    ----------
-    dtype : np.dtype, ExtensionDtype, or None
-
-    Returns
-    -------
-    boolean
-        Whether or not the dtype is an ArrowDtype timestamp or duration.
-    """
-    if not isinstance(dtype, ArrowDtype):
-        return False
-    pa = import_optional_dependency("pyarrow")
-    pa_type = dtype.pyarrow_dtype
-    return pa.types.is_timestamp(pa_type) or pa.types.is_duration(pa_type)
-
-
 def _arrow_temporal_to_i8(arr: ArrayLike) -> np.ndarray:
     """
     View an ArrowDtype timestamp/duration array as int64.
@@ -468,7 +449,7 @@ def _arrow_temporal_to_i8(arr: ArrayLike) -> np.ndarray:
     Parameters
     ----------
     arr : ArrowExtensionArray
-        Array whose dtype satisfies ``_is_arrow_temporal``.
+        Array whose dtype satisfies ``is_arrow_temporal_dtype``.
 
     Returns
     -------
@@ -481,7 +462,9 @@ def _arrow_temporal_to_i8(arr: ArrayLike) -> np.ndarray:
     return arr._to_timedeltaarray().asi8  # type: ignore[union-attr]
 
 
-def _index_to_interp_indices(index: Index, method: str) -> np.ndarray:
+def _index_to_interp_indices(
+    index: Index, method: str, shift: bool = True
+) -> np.ndarray:
     """
     Convert Index to ndarray of indices to pass to NumPy/SciPy.
     """
@@ -489,7 +472,7 @@ def _index_to_interp_indices(index: Index, method: str) -> np.ndarray:
     if needs_i8_conversion(xarr.dtype):
         # GH#1646 for dt64tz
         xarr = xarr.view("i8")
-    elif _is_arrow_temporal(xarr.dtype):
+    elif is_arrow_temporal_dtype(xarr.dtype):
         xarr = _arrow_temporal_to_i8(xarr)
 
     if method == "linear":
@@ -501,6 +484,20 @@ def _index_to_interp_indices(index: Index, method: str) -> np.ndarray:
         if method in ("values", "index"):
             if inds.dtype == np.object_:
                 inds = lib.maybe_convert_objects(inds)
+
+        if shift and inds.dtype.kind in "iu" and len(inds):
+            # Integers beyond 2**53 (e.g. ns timestamps) lose precision as
+            #  float64, so shift them toward zero first, GH#34601. That makes
+            #  them exact only if max - min <= 2**53. Values that span zero are
+            #  left alone, as any shift moves some of them outward.
+            low, high = int(inds.min()), int(inds.max())
+            offset = 0
+            if low > 0 and high > 2**53:
+                offset = low
+            elif high < 0 and low < -(2**53):
+                offset = high
+            if offset:
+                inds = (inds - offset).astype(np.float64)
 
     return inds
 
@@ -583,7 +580,8 @@ def _interpolate_1d(
         mid_nans = np.setdiff1d(mid_nans, end_nans, assume_unique=True)
         preserve_nans = np.union1d(preserve_nans, mid_nans)
 
-    is_datetimelike = yvalues.dtype.kind in "mM"
+    orig_dtype = yvalues.dtype
+    is_datetimelike = orig_dtype.kind in "mM"
 
     if is_datetimelike:
         yvalues = yvalues.view("i8")
@@ -592,9 +590,23 @@ def _interpolate_1d(
         # np.interp requires sorted X values, #21037
 
         indexer = np.argsort(indices[valid])
-        yvalues[invalid] = np.interp(
-            indices[invalid], indices[valid][indexer], yvalues[valid][indexer]
-        )
+        xvalid = indices[valid][indexer]
+        yvalid = yvalues[valid][indexer]
+        new_x = indices[invalid]
+        new_y = np.interp(new_x, xvalid, yvalid)
+        if isinstance(fill_value, str) and fill_value == "extrapolate":
+            # np.interp repeats the edge values; extend the edge slopes instead
+            fill = np.ones(len(yvalues), dtype=bool)
+            fill[preserve_nans] = False
+            _extrapolate_linear(new_x, new_y, xvalid, yvalid, fill[invalid])
+            if is_datetimelike and not ((new_y > -(2**63)) & (new_y < 2**63)).all():
+                exc = (
+                    OutOfBoundsDatetime
+                    if orig_dtype.kind == "M"
+                    else OutOfBoundsTimedelta
+                )
+                raise exc(f"Extrapolated values are out of bounds for {orig_dtype}")
+        yvalues[invalid] = new_y
     else:
         yvalues[invalid] = _interpolate_scipy_wrapper(
             indices[valid],
@@ -615,6 +627,52 @@ def _interpolate_1d(
     else:
         yvalues[preserve_nans] = np.nan
     return
+
+
+def _extrapolate_linear(
+    new_x: np.ndarray,
+    new_y: np.ndarray,
+    xvalid: np.ndarray,
+    yvalid: np.ndarray,
+    fill: np.ndarray,
+) -> None:
+    """
+    Overwrite the entries of ``new_y`` that ``fill`` selects outside ``xvalid``'s
+    range with a linear extrapolation of the two outermost valid points on that
+    side.
+
+    ``xvalid`` must be sorted. With a single valid point there is no slope, and
+    ``new_y`` is left as is.
+    """
+    if len(xvalid) < 2:
+        return
+    left = (new_x < xvalid[0]) & fill
+    right = (new_x > xvalid[-1]) & fill
+    if xvalid.dtype.kind in "iu":
+        # every difference below is larger minus smaller, which is exact in uint64
+        # where int64 can overflow (e.g. ns timestamps over 292 years apart)
+        new_x = new_x.astype(np.uint64)
+        xvalid = xvalid.astype(np.uint64)
+    yvalid = yvalid.astype(np.result_type(yvalid.dtype, np.float64))
+    for outside, edge, inner in [(left, 0, 1), (right, -1, -2)]:
+        if not outside.any():
+            continue
+        # 1-element arrays, not scalars: numpy scalars warn on the uint64 wraparound
+        x_edge, x_inner = xvalid[[edge]], xvalid[[inner]]
+        if x_edge[0] == x_inner[0]:
+            # like method="slinear", which raises on duplicate x
+            raise ValueError(
+                "fill_value='extrapolate' requires the two outermost non-missing "
+                "values on each side to have distinct index values."
+            )
+        if edge == 0:
+            span, dist = x_inner - x_edge, x_edge - new_x[outside]
+        else:
+            span, dist = x_edge - x_inner, new_x[outside] - x_edge
+        # np.interp does not warn on inf values either
+        with np.errstate(invalid="ignore", over="ignore"):
+            slope = (yvalid[edge] - yvalid[inner]) / span.astype(np.float64)
+            new_y[outside] = yvalid[edge] + slope * dist.astype(np.float64)
 
 
 def _interpolate_scipy_wrapper(
@@ -1135,7 +1193,10 @@ def _interp_limit(
 
     def inner(invalid, limit: int):
         limit = min(limit, N - 1)
-        windowed = np.lib.stride_tricks.sliding_window_view(invalid, limit + 1).all(1)
+        # windowed[i] is invalid[i : i + limit + 1].all(); a cumsum keeps this
+        # O(N) instead of O(N * limit), see GH#34936
+        counts = np.concatenate([[0], invalid.cumsum()])
+        windowed = counts[limit + 1 :] - counts[: N - limit] == limit + 1
         idx = np.union1d(
             np.where(windowed)[0] + limit,
             np.where((~invalid[: limit + 1]).cumsum() == 0)[0],

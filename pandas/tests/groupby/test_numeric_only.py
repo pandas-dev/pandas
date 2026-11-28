@@ -3,7 +3,10 @@ import re
 import pytest
 
 from pandas._libs import lib
-from pandas.errors import Pandas4Warning
+from pandas.errors import (
+    DataError,
+    Pandas4Warning,
+)
 
 import pandas as pd
 import pandas._testing as tm
@@ -126,9 +129,6 @@ class TestNumericOnly:
         expected_columns = pd.Index(
             ["int", "float", "string", "category_int", "timedelta"]
         )
-        if method == "cumsum":
-            # cumsum loses string
-            expected_columns = pd.Index(["int", "float", "category_int", "timedelta"])
 
         self._check(df, method, expected_columns, expected_columns_numeric)
 
@@ -141,7 +141,7 @@ class TestNumericOnly:
 
     @pytest.mark.parametrize("method", ["cummin", "cummax"])
     def test_cummin_cummax(self, df, method):
-        # like min, max, but don't include strings
+        # like min, max
         expected_columns = pd.Index(
             ["int", "float", "category_int", "datetime", "datetimetz", "timedelta"]
         )
@@ -154,25 +154,20 @@ class TestNumericOnly:
     def _check(self, df, method, expected_columns, expected_columns_numeric):
         gb = df.groupby("group")
 
-        # object dtypes for transformations are not implemented in Cython and
-        # have no Python fallback
-        exception = (
-            (NotImplementedError, TypeError) if method.startswith("cum") else TypeError
-        )
-
         if method in ("min", "max", "cummin", "cummax", "cumsum", "cumprod"):
             # The methods default to numeric_only=False and raise TypeError
             msg = "|".join(
                 [
                     "Categorical is not ordered",
                     f"Cannot perform {method} with non-ordered Categorical",
+                    f"category type does not support {method} operations",
                     re.escape(f"agg function failed [how->{method},dtype->object]"),
-                    # cumsum/cummin/cummax/cumprod
-                    "function is not implemented for this dtype",
+                    # cumprod
+                    f"{method} is not supported for (str|object) dtype",
                     f"dtype 'str' does not support operation '{method}'",
                 ]
             )
-            with pytest.raises(exception, match=msg):
+            with pytest.raises(TypeError, match=msg):
                 getattr(gb, method)()
         elif method in ("sum", "mean", "median", "prod"):
             msg = "|".join(
@@ -183,7 +178,7 @@ class TestNumericOnly:
                     f"dtype 'str' does not support operation '{method}'",
                 ]
             )
-            with pytest.raises(exception, match=msg):
+            with pytest.raises(TypeError, match=msg):
                 getattr(gb, method)()
         else:
             result = getattr(gb, method)()
@@ -194,14 +189,14 @@ class TestNumericOnly:
                 [
                     "Categorical is not ordered",
                     "category type does not support",
-                    "function is not implemented for this dtype",
+                    f"{method} is not supported for (str|object) dtype",
                     f"Cannot perform {method} with non-ordered Categorical",
                     re.escape(f"agg function failed [how->{method},dtype->object]"),
                     re.escape(f"agg function failed [how->{method},dtype->string]"),
                     f"dtype 'str' does not support operation '{method}'",
                 ]
             )
-            with pytest.raises(exception, match=msg):
+            with pytest.raises(TypeError, match=msg):
                 getattr(gb, method)(numeric_only=False)
         else:
             result = getattr(gb, method)(numeric_only=False)
@@ -236,6 +231,7 @@ class TestNumericOnly:
         ("pct_change", False),
         ("prod", True),
         ("quantile", True),
+        ("rank", True),
         ("sem", True),
         ("skew", True),
         ("kurt", True),
@@ -283,17 +279,13 @@ def test_numeric_only(kernel, has_arg, numeric_only, keys):
         assert numeric_only is not True
         # kernels that are successful on any dtype were above; this will fail
 
-        # object dtypes for transformations are not implemented in Cython and
-        # have no Python fallback
-        exception = NotImplementedError if kernel.startswith("cum") else TypeError
-
         msg = "|".join(
             [
                 "not allowed for this dtype",
                 "cannot be performed against 'object' dtypes",
                 "must be a string or a real number",
                 "unsupported operand type",
-                "function is not implemented for this dtype",
+                f"{kernel} is not supported for object dtype",
                 re.escape(f"agg function failed [how->{kernel},dtype->object]"),
             ]
         )
@@ -303,7 +295,9 @@ def test_numeric_only(kernel, has_arg, numeric_only, keys):
             msg = "'<' not supported between instances of 'type' and 'type'"
         elif kernel == "idxmax":
             msg = "'>' not supported between instances of 'type' and 'type'"
-        with pytest.raises(exception, match=msg):
+        elif kernel == "rank":
+            msg = "'<' not supported between instances of 'type' and 'type'"
+        with pytest.raises(TypeError, match=msg):
             if kernel == "corrwith":
                 warn = Pandas4Warning
                 msg = "DataFrameGroupBy.corrwith is deprecated"
@@ -349,14 +343,14 @@ def test_deprecate_numeric_only_series(dtype, groupby_func, request):
     fails_on_numeric_object = (
         "corr",
         "cov",
-        "cummax",
-        "cummin",
-        "cumprod",
-        "cumsum",
         "quantile",
     )
     # ops that give an object result on object input
     obj_result = (
+        "cummax",
+        "cummin",
+        "cumprod",
+        "cumsum",
         "first",
         "last",
         "nth",
@@ -401,6 +395,7 @@ def test_deprecate_numeric_only_series(dtype, groupby_func, request):
         "min",
         "prod",
         "quantile",
+        "rank",
         "sem",
         "skew",
         "kurt",
@@ -420,7 +415,6 @@ def test_deprecate_numeric_only_series(dtype, groupby_func, request):
         msg = "|".join(
             [
                 "SeriesGroupBy.sem called with numeric_only=True and dtype object",
-                "cum(sum|prod|min|max) is not supported for object dtype",
                 r"Cannot use numeric_only=True with SeriesGroupBy\..* and non-numeric",
             ]
         )
@@ -435,3 +429,34 @@ def test_deprecate_numeric_only_series(dtype, groupby_func, request):
         result = method(*args, numeric_only=True)
         expected = method(*args, numeric_only=False)
         tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("as_index", [True, False])
+def test_ohlc_numeric_only(as_index):
+    # GH#56946
+    df = pd.DataFrame(
+        {
+            "key": [1, 1, 2, 2],
+            "str": list("abcd"),
+            "num": [1.0, 3.0, 2.0, 5.0],
+            "dt": pd.date_range("2020", periods=4),
+            "flag": [True, False, True, False],
+        }
+    )
+    gb = df.groupby("key", as_index=as_index)
+
+    with pytest.raises(DataError, match="No numeric types to aggregate"):
+        gb.ohlc()
+
+    result = gb.ohlc(numeric_only=True)
+    expected = gb[["num", "flag"]].ohlc()
+    tm.assert_frame_equal(result, expected)
+
+
+def test_ohlc_numeric_only_series_raises():
+    # GH#56946
+    ser = pd.Series(list("abcd"))
+    gb = ser.groupby([1, 1, 2, 2])
+    msg = "Cannot use numeric_only=True with SeriesGroupBy.ohlc and non-numeric dtypes"
+    with pytest.raises(TypeError, match=msg):
+        gb.ohlc(numeric_only=True)

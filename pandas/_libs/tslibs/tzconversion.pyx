@@ -28,6 +28,7 @@ from numpy cimport (
 
 cnp.import_array()
 
+from pandas._libs.tslibs.ccalendar cimport pydatetime_equivalent_year
 from pandas._libs.tslibs.dtypes cimport (
     periods_per_day,
     periods_per_second,
@@ -50,9 +51,11 @@ from pandas._libs.portable cimport (
 from pandas._libs.tslibs.timestamps cimport _Timestamp
 from pandas._libs.tslibs.timezones cimport (
     get_dst_info,
+    get_zoneinfo_twin,
     is_fixed_offset,
     is_tzlocal,
     is_utc,
+    treat_tz_as_zoneinfo,
 )
 
 
@@ -94,6 +97,15 @@ cdef class Localizer:
 
         elif is_tzlocal(tz):
             self.use_tzinfo_api = True
+
+        elif treat_tz_as_zoneinfo(tz) and get_zoneinfo_twin(tz) is None:
+            # GH#64379 no pure-python twin (e.g. ZoneInfo.from_file): put
+            #  last_trans below every value so all take the tzinfo-API arm.
+            #  Not use_tzinfo_api, which ignores ambiguous/nonexistent.
+            self.use_dst = True
+            self.use_zoneinfo = True
+            self.has_tz_rule = True
+            self.last_trans = NPY_NAT
 
         else:
             trans, deltas, typ, has_tz_rule = get_dst_info(tz)
@@ -159,7 +171,7 @@ cdef class Localizer:
         elif self.use_tzinfo_api or (
             self.use_zoneinfo
             and self.has_tz_rule
-            and utc_val > self.last_trans
+            and (self.tdata == NULL or utc_val > self.last_trans)
         ):
             delta = _tz_localize_using_tzinfo_api(
                 utc_val, self.tz, to_utc=False, creso=self._creso, fold=fold
@@ -462,10 +474,13 @@ timedelta-like}
                     # nonexistent times
                     new_local = val - remaining_mins - 1
 
+                # GH#64379 a no-twin zone has no transition table at all, so it
+                #  takes this arm unconditionally; last_trans alone would let
+                #  new_local == NPY_NAT fall through to a NULL bisect below.
                 if (
                     info.use_zoneinfo
                     and info.has_tz_rule
-                    and new_local > info.last_trans
+                    and (info.tdata == NULL or new_local > info.last_trans)
                 ):
                     if shift_forward or shift_delta > 0:
                         delta = _tz_localize_using_tzinfo_api(
@@ -649,10 +664,10 @@ cdef _get_utc_bounds(ndarray[int64_t] vals, Localizer info):
 
             # GH#65733 a candidate that wrapped int64 fails the round-trip below
             #  and leaves both bounds NaT, which the caller reads as "nonexistent
-            #  time" instead of raising OutOfBoundsDatetime.  The cached path's
-            #  NPY_NAT check is not needed here: this branch only runs for
-            #  val > last_trans, which is always far above the sentinel.
-            if checked_sub(val, delta0, &v_left):
+            #  time" instead of raising OutOfBoundsDatetime.  GH#64379 landing
+            #  exactly on the NaT sentinel is an underflow too, and a no-twin
+            #  zone takes this arm at every value, so it can reach it.
+            if checked_sub(val, delta0, &v_left) or v_left == NPY_NAT:
                 status_left = BS_UNDERFLOW if delta0 > 0 else BS_OVERFLOW
             else:
                 status_left = BS_OK
@@ -662,7 +677,7 @@ cdef _get_utc_bounds(ndarray[int64_t] vals, Localizer info):
                 if local0 == val:
                     result_a[i] = v_left
 
-            if checked_sub(val, delta1, &v_right):
+            if checked_sub(val, delta1, &v_right) or v_right == NPY_NAT:
                 status_right = BS_UNDERFLOW if delta1 > 0 else BS_OVERFLOW
             else:
                 status_right = BS_OK
@@ -737,8 +752,7 @@ cdef ndarray[int64_t] _get_dst_hours(
         ndarray[uint8_t, cast=True] mismatch
         ndarray[int64_t] delta, dst_hours
         ndarray[intp_t] switch_idxs, trans_idx, grp, a_idx, b_idx, one_diff
-        # TODO: Can uncomment when numpy >=2 is the minimum
-        # tuple trans_grp
+        list trans_grp
         intp_t switch_idx
         int64_t left, right
 
@@ -882,6 +896,9 @@ cdef int64_t _tz_localize_using_tzinfo_api(
         int64_t pps = periods_per_second(creso)
 
     pandas_datetime_to_datetimestruct(val, creso, &dts)
+    # GH#68009 datetime only holds years 1 through 9999; only the offset is
+    #  returned, and it is the same in a year with the same calendar
+    dts.year = pydatetime_equivalent_year(dts.year)
 
     # datetime_new is cython-optimized constructor
     if not to_utc:
@@ -892,19 +909,12 @@ cdef int64_t _tz_localize_using_tzinfo_api(
         if fold is not NULL:
             # NB: fold is only passed with to_utc=False
             fold[0] = dt.fold
+    elif fold_in == -1:
+        dt = datetime_new(dts.year, dts.month, dts.day, dts.hour,
+                          dts.min, dts.sec, dts.us, None)
     else:
-        try:
-            if fold_in == -1:
-                dt = datetime_new(dts.year, dts.month, dts.day, dts.hour,
-                                  dts.min, dts.sec, dts.us, None)
-            else:
-                dt = datetime_new(dts.year, dts.month, dts.day, dts.hour,
-                                  dts.min, dts.sec, dts.us, None, fold=fold_in)
-        except ValueError as err:
-            raise NotImplementedError(
-                "Localizing Timestamps which are outside the range of Python's "
-                f"standard library datetime is not supported ({err})."
-            ) from err
+        dt = datetime_new(dts.year, dts.month, dts.day, dts.hour,
+                          dts.min, dts.sec, dts.us, None, fold=fold_in)
 
     td = tz.utcoffset(dt)
     delta = int(td.total_seconds() * pps)
@@ -927,14 +937,8 @@ cdef datetime _astimezone(npy_datetimestruct dts, tzinfo tz):
     cdef:
         datetime result
 
-    try:
-        result = datetime_new(dts.year, dts.month, dts.day, dts.hour,
-                              dts.min, dts.sec, dts.us, tz)
-    except ValueError as err:
-        raise NotImplementedError(
-            "Localizing Timestamps which are outside the range of Python's "
-            f"standard library datetime is not supported ({err})."
-        ) from err
+    result = datetime_new(dts.year, dts.month, dts.day, dts.hour,
+                          dts.min, dts.sec, dts.us, tz)
 
     return tz.fromutc(result)
 

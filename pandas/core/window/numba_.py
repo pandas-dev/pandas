@@ -61,7 +61,7 @@ def generate_numba_apply_func(
         *args: Any,
     ) -> np.ndarray:
         result = np.empty(len(begin))
-        for i in numba.prange(len(result)):  # type: ignore[attr-defined]
+        for i in numba.prange(len(result)):
             start = begin[i]
             stop = end[i]
             window = values[start:stop]
@@ -82,7 +82,8 @@ def generate_numba_ewm_func(
     com: float,
     adjust: bool,
     ignore_na: bool,
-    deltas: tuple,
+    deltas: tuple[float, ...],
+    use_deltas: bool,
     normalize: bool,
 ):
     """
@@ -99,6 +100,8 @@ def generate_numba_ewm_func(
     adjust : bool
     ignore_na : bool
     deltas : tuple
+    use_deltas : bool
+        Whether ``times`` was provided; if not, ``deltas`` is all ones.
     normalize : bool
 
     Returns
@@ -122,7 +125,7 @@ def generate_numba_ewm_func(
         old_wt_factor = 1.0 - alpha
         new_wt = 1.0 if adjust else alpha
 
-        for i in numba.prange(len(begin)):  # type: ignore[attr-defined]
+        for i in numba.prange(len(begin)):
             start = begin[i]
             stop = end[i]
             window = values[start:stop]
@@ -143,8 +146,8 @@ def generate_numba_ewm_func(
                             # note that len(deltas) = len(vals) - 1 and deltas[i]
                             # is to be used in conjunction with vals[i+1]
                             old_wt *= old_wt_factor ** deltas[start + j - 1]
-                            if not adjust and com == 1:
-                                # update in case of irregular-interval time series
+                            if use_deltas and not adjust:
+                                # times: weight by elapsed interval, GH#54328
                                 new_wt = 1.0 - old_wt
                         else:
                             weighted = old_wt_factor * weighted
@@ -217,7 +220,7 @@ def generate_numba_table_func(
     ):
         result = np.empty((len(begin), values.shape[1]))
         min_periods_mask = np.empty(result.shape)
-        for i in numba.prange(len(result)):  # type: ignore[attr-defined]
+        for i in numba.prange(len(result)):
             start = begin[i]
             stop = end[i]
             window = values[start:stop]
@@ -249,7 +252,7 @@ def generate_manual_numpy_nan_agg_with_axis(nan_func):
     # on platforms without tbb/openmp (GH#40454).
     def nan_agg_with_axis(table):
         result = np.empty(table.shape[1])
-        for i in numba.prange(table.shape[1]):  # type: ignore[attr-defined]
+        for i in numba.prange(table.shape[1]):
             partition = table[:, i]
             result[i] = nan_func(partition)
         return result
@@ -264,7 +267,8 @@ def generate_numba_ewm_table_func(
     com: float,
     adjust: bool,
     ignore_na: bool,
-    deltas: tuple,
+    deltas: tuple[float, ...],
+    use_deltas: bool,
     normalize: bool,
 ):
     """
@@ -281,6 +285,8 @@ def generate_numba_ewm_table_func(
     adjust : bool
     ignore_na : bool
     deltas : tuple
+    use_deltas : bool
+        Whether ``times`` was provided; if not, ``deltas`` is all ones.
     normalize: bool
 
     Returns
@@ -312,15 +318,15 @@ def generate_numba_ewm_table_func(
             cur = values[i]
             is_observations = ~np.isnan(cur)
             nobs += is_observations.astype(np.int64)
-            for j in numba.prange(len(cur)):  # type: ignore[attr-defined]
+            for j in numba.prange(len(cur)):
                 if not np.isnan(weighted[j]):
                     if is_observations[j] or not ignore_na:
                         if normalize:
                             # note that len(deltas) = len(vals) - 1 and deltas[i]
                             # is to be used in conjunction with vals[i+1]
                             old_wt[j] *= old_wt_factor ** deltas[i - 1]
-                            if not adjust and com == 1:
-                                # update in case of irregular-interval time series
+                            if use_deltas and not adjust:
+                                # times: weight by elapsed interval, GH#54328
                                 new_wt = 1.0 - old_wt[j]
                         else:
                             weighted[j] = old_wt_factor * weighted[j]

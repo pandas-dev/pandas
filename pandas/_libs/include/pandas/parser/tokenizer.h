@@ -110,7 +110,7 @@ typedef struct parser_t {
   int64_t *word_ends; // stream offset of each word's trailing NUL
   uint64_t words_len;
   uint64_t words_cap;
-  uint64_t max_words_cap; // maximum word cap encountered
+  uint64_t max_words_needed; // most word slots any reservation needed
 
   int64_t word_start; // position start of current field
 
@@ -154,6 +154,9 @@ typedef struct parser_t {
   PyObject *skipfunc;
   int64_t skip_first_N_rows;
   int64_t skip_footer;
+  // Boolean: 1 until the first row not in skiprows. Rows skipped before then
+  // are physical lines, so quotes in them do not open a field (GH#34732).
+  int in_leading_skip;
   double (*double_converter)(const char *, char **, char, char, char, int,
                              int *, int *, const char *);
 

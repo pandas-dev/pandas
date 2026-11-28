@@ -8,7 +8,7 @@ import pandas._testing as tm
 
 
 class TestDataFrameCov:
-    def test_cov(self, float_frame, float_string_frame):
+    def test_cov(self, float_frame):
         # min_periods no NAs (corner case)
         expected = float_frame.cov()
         result = float_frame.cov(min_periods=len(float_frame))
@@ -33,13 +33,6 @@ class TestDataFrameCov:
         expected = frame["A"].cov(frame["C"])
         tm.assert_almost_equal(result["A"]["C"], expected)
 
-        # fails on non-numeric types
-        with pytest.raises(ValueError, match="could not convert string to float"):
-            float_string_frame.cov()
-        result = float_string_frame.cov(numeric_only=True)
-        expected = float_string_frame.loc[:, ["A", "B", "C", "D"]].cov()
-        tm.assert_frame_equal(result, expected)
-
         # Single column frame
         df = pd.DataFrame(np.linspace(0.0, 1.0, 10))
         result = df.cov()
@@ -54,6 +47,13 @@ class TestDataFrameCov:
             index=df.columns,
             columns=df.columns,
         )
+        tm.assert_frame_equal(result, expected)
+
+    def test_cov_non_numeric(self, float_string_frame):
+        with pytest.raises(ValueError, match="could not convert string to float"):
+            float_string_frame.cov()
+        result = float_string_frame.cov(numeric_only=True)
+        expected = float_string_frame.loc[:, ["A", "B", "C", "D"]].cov()
         tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("test_ddof", [None, 0, 1, 2, 3])
@@ -175,6 +175,28 @@ class TestDataFrameCorr:
         msg = "method must be either 'pearson', 'spearman', 'kendall', or a callable, "
         with pytest.raises(ValueError, match=msg):
             df.corr(method="____")
+
+    @pytest.mark.parametrize(
+        "box", [pd.Series, pd.DataFrame, np.array, list, pd.Index, pd.array]
+    )
+    def test_corr_other_object_raises(self, box):
+        # GH#11260
+        df = pd.DataFrame(np.random.default_rng(2).normal(size=(10, 2)))
+        other = box(np.random.default_rng(3).normal(size=10))
+        msg = "method must be a string or a callable.*use DataFrame.corrwith"
+        with pytest.raises(TypeError, match=msg):
+            df.corr(other)
+
+    def test_corr_callable_list_like_method(self):
+        # GH#11260 a callable that is also list-like is still a valid method
+        class CallableList(list):
+            def __call__(self, a, b):
+                return 0.5
+
+        df = pd.DataFrame(np.random.default_rng(2).normal(size=(10, 2)))
+        result = df.corr(CallableList())
+        expected = pd.DataFrame([[1.0, 0.5], [0.5, 1.0]])
+        tm.assert_frame_equal(result, expected)
 
     def test_corr_int(self):
         # dtypes other than float64 GH#1761
@@ -489,6 +511,18 @@ class TestDataFrameCorrWith:
         ser_bool = pd.Series([True, True, False, True])
         result = df_bool.corrwith(ser_bool, min_periods=3)
         expected = pd.Series([0.57735, 0.57735], index=["A", "B"])
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("dtype", ["Int64", "int64[pyarrow]"])
+    def test_corrwith_series_ea_frame_is_float64(self, dtype):
+        # GH#61812 apply retains the frame's extension dtype for a pointwise
+        #  result, but a correlation coefficient is float64; this would
+        #  otherwise be Float64 / double[pyarrow]
+        if "pyarrow" in dtype:
+            pytest.importorskip("pyarrow")
+        df = pd.DataFrame({"A": [1, 1, 1], "B": [1, 2, 3]}, dtype=dtype)
+        result = df.corrwith(pd.Series([1.0, 2.0, 3.0]))
+        expected = pd.Series([np.nan, 1.0], index=["A", "B"])
         tm.assert_series_equal(result, expected)
 
     def test_corr_within_bounds(self):

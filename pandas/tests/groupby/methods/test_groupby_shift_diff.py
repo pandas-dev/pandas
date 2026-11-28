@@ -162,6 +162,26 @@ def test_shift_periods_freq():
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize("periods", [1, [1, 2]])
+def test_shift_freq_excludes_grouping_column(periods):
+    # GH#46944
+    df = pd.DataFrame(
+        {"a": [1, 1, 2, 2], "b": [1.0, 2.0, 4.0, 8.0]},
+        index=pd.date_range("2020-01-01", periods=4),
+    )
+    result = df.groupby("a").shift(periods, freq="D")
+    expected = df[["b"]].shift(periods, freq="D")
+    tm.assert_frame_equal(result, expected)
+
+
+def test_shift_freq_no_group_keys_in_index(frame_or_series):
+    # GH#23918
+    obj = frame_or_series(range(4), index=pd.date_range("2018-01-01", periods=4))
+    result = obj.groupby([1, 1, 2, 2]).shift(freq="D")
+    expected = obj.shift(freq="D")
+    tm.assert_equal(result, expected)
+
+
 def test_shift_disallow_freq_and_fill_value():
     # GH 53832
     data = {"a": [1, 2, 3, 4, 5, 6], "b": [0, 0, 0, 1, 1, 1]}
@@ -260,4 +280,44 @@ def test_groupby_shift_multiple_periods_unsorted_index():
         },
         index=[idx[2], idx[0], idx[1], idx[3]],
     )
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "periods, expected_values",
+    [
+        (-1, [4.0, np.nan, 8.0, np.nan]),
+        (0, [1.0, np.nan, 4.0, 8.0]),
+        (1, [np.nan, np.nan, 1.0, 4.0]),
+    ],
+)
+def test_shift_na_key(periods, expected_values):
+    # GH#70996
+    df = pd.DataFrame({"key": [1, np.nan, 1, 1], "val": [1.0, 2.0, 4.0, 8.0]})
+    result = df.groupby("key").shift(periods=periods)
+    expected = pd.DataFrame({"val": expected_values})
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "periods, expected_values",
+    [
+        (-1, [-3.0, np.nan, -4.0, np.nan]),
+        (0, [0.0, np.nan, 0.0, 0.0]),
+        (1, [np.nan, np.nan, 3.0, 4.0]),
+    ],
+)
+def test_diff_na_key(periods, expected_values):
+    # GH#70996
+    df = pd.DataFrame({"key": [1, np.nan, 1, 1], "val": [1.0, 2.0, 4.0, 8.0]})
+    result = df.groupby("key").diff(periods=periods)
+    expected = pd.DataFrame({"val": expected_values})
+    tm.assert_frame_equal(result, expected)
+
+
+def test_shift_na_key_periods_zero_fill_value():
+    # GH#70996
+    df = pd.DataFrame({"key": [1, np.nan, 1], "val": [1.0, 2.0, 4.0]})
+    result = df.groupby("key").shift(periods=0, fill_value=-1.0)
+    expected = pd.DataFrame({"val": [1.0, -1.0, 4.0]})
     tm.assert_frame_equal(result, expected)

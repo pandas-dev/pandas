@@ -388,7 +388,9 @@ class TestConcatenate:
         df = pd.DataFrame(np.random.default_rng(2).standard_normal((10, 4)))
 
         pieces = [df[:5], None, None, df[5:]]
-        result = pd.concat(pieces)
+        msg = "Passing None in the objects to concat is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = pd.concat(pieces)
         tm.assert_frame_equal(result, df)
         with pytest.raises(ValueError, match="All objects passed were None"):
             pd.concat([None, None])
@@ -397,13 +399,18 @@ class TestConcatenate:
         # #1649
         df0 = pd.DataFrame([[10, 20, 30], [10, 20, 30], [10, 20, 30]])
 
-        result = pd.concat({"a": None, "b": df0, "c": df0[:2], "d": df0[:1], "e": df0})
+        msg = "Passing None in the objects to concat is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = pd.concat(
+                {"a": None, "b": df0, "c": df0[:2], "d": df0[:1], "e": df0}
+            )
         expected = pd.concat({"b": df0, "c": df0[:2], "d": df0[:1], "e": df0})
         tm.assert_frame_equal(result, expected)
 
-        result = pd.concat(
-            [None, df0, df0[:2], df0[:1], df0], keys=["a", "b", "c", "d", "e"]
-        )
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = pd.concat(
+                [None, df0, df0[:2], df0[:1], df0], keys=["a", "b", "c", "d", "e"]
+            )
         expected = pd.concat([df0, df0[:2], df0[:1], df0], keys=["b", "c", "d", "e"])
         tm.assert_frame_equal(result, expected)
 
@@ -414,7 +421,10 @@ class TestConcatenate:
         df2 = pd.DataFrame([3, 4])
         data = [df, None, df2, None] if include_none else [df, df2]
         keys_length = 4 if include_none else 2
-        result = pd.concat(data, keys=klass(keys_length))
+        msg = "Passing None in the objects to concat is deprecated"
+        warn = Pandas4Warning if include_none else None
+        with tm.assert_produces_warning(warn, match=msg):
+            result = pd.concat(data, keys=klass(keys_length))
         expected = pd.DataFrame(
             [1, 2, 3, 4],
             index=pd.MultiIndex(
@@ -613,6 +623,27 @@ def test_concat_dense_sparse():
     expected = pd.Series(data=[1, None, 1], index=[0, 1, 0]).astype(dtype)
     result = pd.concat([a, b], axis=0)
     tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("fill_value", [pd.NaT, pd.Timestamp("2000-01-03")])
+def test_concat_sparse_datetimelike_missing_column(fill_value):
+    # GH#26288 the filler for the missing column must not promote the subtype
+    dti = pd.date_range("2000", periods=2, unit="s")
+    arr = SparseArray(dti, fill_value=fill_value)
+    df1 = pd.DataFrame({"A": arr, "B": [1, 2]})
+    df2 = pd.DataFrame({"B": [3, 4]})
+
+    result = pd.concat([df1, df2])
+
+    values = dti.append(pd.DatetimeIndex([pd.NaT, pd.NaT], dtype=dti.dtype))
+    expected = pd.DataFrame(
+        {
+            "A": SparseArray(values, fill_value=fill_value),
+            "B": [1, 2, 3, 4],
+        },
+        index=[0, 1, 0, 1],
+    )
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize("keys", [["e", "f", "f"], ["f", "e", "f"]])
@@ -853,6 +884,19 @@ def test_concat_ignore_all_na_object_float(empty_dtype, df_dtype):
         # GH#40893 changed the expected here to retain dependence on empty
         expected = expected.astype(object)
         expected.iloc[0] = np.nan
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("other", [pd.NA, "x"])
+def test_concat_all_na_object_keeps_pd_na(other):
+    # GH#61303
+    df1 = pd.DataFrame({"val": [1], "na": pd.Series([pd.NA], dtype=object)})
+    df2 = pd.DataFrame({"val": [2], "na": pd.Series([other], dtype=object)})
+
+    result = pd.concat([df1, df2], ignore_index=True)
+    expected = pd.DataFrame(
+        {"val": [1, 2], "na": pd.Series([pd.NA, other], dtype=object)}
+    )
     tm.assert_frame_equal(result, expected)
 
 

@@ -117,6 +117,26 @@ class TestCategorical(base.ExtensionTests):
         # to break things by changing.
         super().test_getitem_scalar(data)
 
+    @pytest.mark.parametrize("dropna", [True, False])
+    @pytest.mark.parametrize("sort", [True, False])
+    def test_value_counts_sort(self, data_for_grouping, sort, dropna):
+        # Categorical orders by categories and includes unobserved ones, GH#12835
+        data = data_for_grouping.take([0, 2, 4, 5, 3, 4])
+        result = pd.Series(data).value_counts(sort=sort, dropna=dropna)
+
+        if sort:
+            values, counts = ["b", "a", "c"], [3, 1, 0]
+            if not dropna:
+                values, counts = ["b", None, "a", "c"], [3, 2, 1, 0]
+        else:
+            values, counts = ["a", "b", "c"], [1, 3, 0]
+            if not dropna:
+                values, counts = [*values, None], [*counts, 2]
+
+        index = pd.CategoricalIndex(values, categories=data.categories)
+        expected = pd.Series(counts, index=index, name="count")
+        tm.assert_series_equal(result, expected)
+
     def test_combine_add(self, data_repeated):
         # GH 20825
         # When adding categoricals in combine, result is a string
@@ -178,6 +198,12 @@ class TestCategorical(base.ExtensionTests):
     @pytest.mark.parametrize("as_index", [True, False])
     def test_groupby_extension_agg(self, as_index, data_for_grouping):
         super().test_groupby_extension_agg(as_index, data_for_grouping)
+
+    def test_plot_on_y_axis(self, plot_data):
+        # GH 64535
+        # Plotting categorical is supported by matplotlib, but not pandas at the moment
+        with pytest.raises(TypeError, match="no numeric data to plot"):
+            super().test_plot_on_y_axis(plot_data)
 
 
 class Test2DCompat(base.NDArrayBacked2DTests):

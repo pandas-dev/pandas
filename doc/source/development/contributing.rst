@@ -27,6 +27,9 @@ following guidelines:
 * You must fully review and modify the result of the automated tool.
 * You must ensure the contribution fully abides by all documented, contribution conventions in pandas.
 * You must not use AI to speak for you when interacting with the community.
+* You must run your pull request through :ref:`pandas-review <contributing.ai.self_review>` until it reports
+  ``LGTM`` or ``NITS ONLY``, or explain on the pull request why its remaining findings don't apply, before
+  expecting a review.
 
 A useful disclosure names the tool, the model and version it ran, and any reasoning-effort or thinking setting, so
 that reviewers know how much scrutiny to apply: ``claude opus 4.8 (xhigh)`` tells us something, ``claude`` does not.
@@ -49,6 +52,33 @@ are your own words.
 This policy applies to any contribution made to pandas, including submitted issues or pull requests. Maintainers
 reserve the right to discern whether automated tooling was used and reject contributions that do not follow all of
 the above guidelines. Maintainers may also ban users from contributing to pandas who violate these guidelines 2 or more times.
+
+.. _contributing.ai.self_review:
+
+Self-review with pandas-review
+------------------------------
+
+`pandas-review <https://github.com/pandas-dev/pandas/blob/main/.agents/skills/pandas-review/SKILL.md>`_
+is an agent skill that reviews your change the way a maintainer would and ends with a verdict. If you used an
+automated tool, run it before you open a pull request and again before you re-request review, and don't expect a
+review until it reports ``LGTM`` or ``NITS ONLY``, or you have explained on the pull request why its remaining
+findings don't apply. Pull requests at ``LGTM`` get reviewed sooner.
+
+* If your tool loads skills from ``.agents/skills/`` (or ``.claude/skills/``, which links to it), run it from your
+  pandas clone as a skill, e.g. ``/pandas-review`` to review the current branch or ``/pandas-review 12345`` for an
+  open pull request (a branch name also works).
+* Otherwise, ask the agent to follow ``.agents/skills/pandas-review/SKILL.md``, giving it the pull request number
+  or branch if it isn't the current branch.
+
+It needs an authenticated `GitHub CLI <https://cli.github.com/>`_ (``gh``), and works best in a built development
+environment with the branch checked out, so it can run the tests. Use the strongest model your tool offers at a high
+effort setting, in a fresh subagent or session rather than the one that wrote the change; weaker settings produce
+more noise.
+
+At ``NITS ONLY``, fix the nits you agree with and rerun once to aim for ``LGTM``. Stop after that: further reruns
+turn up new optional nits, not blockers.
+If you disagree with a finding, explain why on the pull request in your own words. Comments from maintainers take
+precedence over anything the tool says.
 
 .. _contributing.bug_reports:
 
@@ -119,8 +149,14 @@ An issue is available to claim if it is:
   reporter before work begins, and ``/take`` will be declined; and
 * **not** already assigned to someone else.
 
+To keep issues available for everyone, you can hold at most **2** open issues
+at a time. ``/take`` on a further issue will be declined until one of your
+current issues is closed or you release it with ``/untake``. pandas maintainers
+are exempt from this limit.
+
 If you change your mind, comment ``/untake`` to release the issue so others can
-pick it up.
+pick it up. ``/untake`` will be declined while you have an open pull request
+for the issue; close the pull request first.
 
 Opening a pull request
 ----------------------
@@ -129,10 +165,12 @@ Link your pull request to the issue it resolves using a closing keyword in the
 description, for example ``closes #1234``.
 
 Your pull request must be linked to an issue that is **assigned to you**. If you
-open one linked to an issue you haven't claimed, the bot adds the
-``Needs Issue Assignment`` label, closes the pull request, and comments with
-what to do next: comment ``/take`` on the issue to claim it, then reopen your
-pull request (you can reopen it yourself — nothing is lost).
+open one linked to an issue nobody has claimed, the bot adds the
+``Needs Issue Assignment`` label and comments with what to do next: comment
+``/take`` on the issue to claim it. The pull request stays open, but it is
+unlikely to be reviewed until the issue is assigned to you. Once you hold the
+assignment, the daily job removes the label. If you later lose the assignment,
+the daily job applies the label again and the same rules apply.
 
 Review and staleness
 --------------------
@@ -146,16 +184,17 @@ While your pull request is waiting on review it is labeled ``Awaiting Review``
 and will **not** be marked stale — you keep your assignment for as long as review
 takes.
 
-Once a maintainer requests changes, a **14-day** timer starts. Only *your*
+Once a maintainer requests changes, or while your pull request is labeled
+``Needs Issue Assignment``, a **14-day** timer starts. Only *your*
 activity resets it: pushing a commit, replying to a
 review comment, or commenting on the pull request **or its linked issue** (a
 comment from someone else does not).
 If there is no activity from you for 14 days, the pull request is marked
 ``Stale``; your next push or comment clears the label and resets the timer. If it
-stays stale for another **7 days**, it is automatically closed — you can reopen
-it yourself at any time to continue, and nothing is lost. When a stale pull
-request is closed, its linked issue is automatically unassigned and becomes
-available again.
+stays stale for another **7 days**, it is automatically closed. Nothing is lost:
+your branch is untouched, and you can request it to be reopened by a maintainer.
+When a stale pull request is closed, its linked issue is automatically unassigned
+and becomes available again.
 
 When you've addressed the feedback and want another look, **re-request a review**
 (the ↻ button next to the reviewer). That moves the pull request back to
@@ -348,7 +387,7 @@ Once you have finished your code changes, your code change will need to follow t
 
 If everything looks good, you are ready to make a pull request. A pull request is how
 code from your local repository becomes available to the GitHub community to review
-and merged into the project to appear in the next release. To submit a pull request:
+and merge into the project to appear in the next release. To submit a pull request:
 
 #. Navigate to your repository on GitHub
 #. Click on the ``Compare & pull request`` button

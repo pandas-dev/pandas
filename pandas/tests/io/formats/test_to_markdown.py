@@ -13,7 +13,7 @@ pytest.importorskip("tabulate")
 def test_keyword_deprecation():
     # GH 57280
     msg = (
-        "Starting with pandas version 4.0 all arguments of to_markdown "
+        "Starting with pandas version 4.0 all arguments of Series.to_markdown "
         "except for the argument 'buf' will be keyword-only."
     )
     s = pd.Series()
@@ -100,3 +100,14 @@ def test_showindex_disallowed_in_kwargs():
     df = pd.DataFrame([1, 2, 3])
     with pytest.raises(ValueError, match="Pass 'index' instead of 'showindex"):
         df.to_markdown(index=True, showindex=True)
+
+
+def test_large_ints_keep_precision():
+    # GH#49465 fixed in tabulate 0.10.0
+    df = pd.DataFrame({"a": [503498111827123021]})
+    result = df.to_markdown(floatfmt=".0f")
+    expected = (
+        "|    |                  a |\n|---:|-------------------:|\n"
+        "|  0 | 503498111827123021 |"
+    )
+    assert result == expected

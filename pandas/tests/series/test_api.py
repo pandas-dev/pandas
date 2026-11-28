@@ -53,6 +53,7 @@ class TestSeriesMisc:
             "remove_unused_categories",
             "as_ordered",
             "as_unordered",
+            "to_dense",
         ]
 
         s = pd.Series(list("aabbcde")).astype("category")

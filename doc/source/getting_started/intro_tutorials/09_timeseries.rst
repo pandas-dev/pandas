@@ -28,7 +28,7 @@ For this tutorial, air quality data about :math:`NO_2` and Particulate
 matter less than 2.5 micrometers is used, made available by
 `OpenAQ <https://openaq.org>`__ and downloaded using the
 `py-openaq <http://dhhagan.github.io/py-openaq/index.html>`__ package.
-The ``air_quality_no2_long.csv"`` data set provides :math:`NO_2` values
+The ``air_quality_no2_long.csv`` data set provides :math:`NO_2` values
 for the measurement stations *FR04014*, *BETR801* and *London
 Westminster* in respectively Paris, Antwerp and London.
 

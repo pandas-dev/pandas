@@ -3,6 +3,7 @@ import copy
 from datetime import datetime
 import operator
 import re
+from typing import Any
 
 import numpy as np
 import pytest
@@ -88,7 +89,7 @@ def test_col_simple(
     ],
 )
 def test_inplace_ops(
-    op: Callable, expected_values: list[object], expected_str: str
+    op: Callable[[Any, Any], Any], expected_values: list[object], expected_str: str
 ) -> None:
     # https://github.com/pandas-dev/pandas/pull/64267
     df = pd.DataFrame({"a": [1, 2]})

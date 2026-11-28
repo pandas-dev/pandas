@@ -337,6 +337,31 @@ class SharedTests:
             ):
                 arr.searchsorted([str(arr[1]), "baz"])
 
+    @pytest.mark.parametrize("pa_type", ["string", "large_string"])
+    def test_castable_arrow_strings(self, arr1d, pa_type):
+        # GH#62051
+        pa = pytest.importorskip("pyarrow")
+        values = arr1d[1:3]
+        strs = pd.array(
+            [str(x) for x in values], dtype=pd.ArrowDtype(getattr(pa, pa_type)())
+        )
+
+        result = arr1d.searchsorted(strs)
+        tm.assert_numpy_array_equal(result, np.array([1, 2], dtype=np.intp))
+
+        result = values == strs
+        tm.assert_numpy_array_equal(result, np.array([True, True]))
+
+        result = arr1d.copy()
+        result[:3] = pd.array([None, *strs], dtype=strs.dtype)
+        expected = arr1d.copy()
+        expected[0] = NaT
+        tm.assert_extension_array_equal(result, expected)
+
+        result = strs.astype(pd.CategoricalDtype(values))
+        expected = pd.Categorical(values, categories=values)
+        tm.assert_categorical_equal(result, expected)
+
     def test_getitem_near_implementation_bounds(self):
         # We only check tz-naive for DTA bc the bounds are slightly different
         #  for other tzs
@@ -1243,6 +1268,30 @@ def test_invalid_nat_setitem_array(arr, non_casting_nats):
 @pytest.mark.parametrize(
     "arr",
     [
+        pd.date_range("2000-01-01", periods=3)._data,
+        pd.timedelta_range("1 Day", periods=3)._data,
+        pd.period_range("2000-01-01", periods=3, freq="D")._data,
+    ],
+    ids=lambda x: type(x).__name__,
+)
+@pytest.mark.parametrize("hasna", [True, False])
+@pytest.mark.parametrize("copy", [True, False])
+def test_fillna_invalid_value_raises(arr, hasna, copy):
+    # GH#36466 the fill value is validated even when there is nothing to fill
+    arr = arr.copy()
+    if hasna:
+        arr[1] = NaT
+    msg = (
+        "value should be a '(Timestamp|Timedelta|Period)', 'NaT', or array of those. "
+        "Got 'str' instead."
+    )
+    with pytest.raises(TypeError, match=msg):
+        arr.fillna("foo", copy=copy)
+
+
+@pytest.mark.parametrize(
+    "arr",
+    [
         pd.date_range("2000", periods=4)._values,
         pd.timedelta_range("2000", periods=4)._values,
     ],
@@ -1410,3 +1459,76 @@ def test_isin_mismatched_reso(dtype_kind, self_unit, val_unit):
     # unit, which our parametrization avoids), so isin should be [False, False].
     expected = np.array([False, False])
     tm.assert_numpy_array_equal(result, expected)
+
+
+@pytest.mark.parametrize("kind", ["M", "m"])
+def test_construction_from_unit_multiplier_dtype_raises(kind):
+    # GH#25611 "10s" is not a resolution pandas can hold; reading it as "s"
+    #  silently divided every value by the multiplier
+    arr = np.array([1, 2], dtype=f"{kind}8[10s]")
+    name = "datetime64" if kind == "M" else "timedelta64"
+    msg = f"units containing a multiplier are not supported, got dtype {name}\\[10s\\]"
+
+    with pytest.raises(ValueError, match=msg):
+        pd.Series(arr)
+    with pytest.raises(ValueError, match=msg):
+        pd.Index(arr)
+    with pytest.raises(ValueError, match=msg):
+        pd.DataFrame({"a": arr})
+    with pytest.raises(ValueError, match=msg):
+        pd.array(arr)
+
+    if kind == "M":
+        with pytest.raises(ValueError, match=msg):
+            pd.to_datetime(arr)
+        with pytest.raises(ValueError, match=msg):
+            pd.DatetimeIndex(arr)
+    else:
+        with pytest.raises(ValueError, match=msg):
+            pd.to_timedelta(arr)
+        with pytest.raises(ValueError, match=msg):
+            pd.TimedeltaIndex(arr)
+
+
+@pytest.mark.parametrize("kind", ["M", "m"])
+def test_unit_multiplier_dtype_argument_raises(kind):
+    # GH#25611 asking for the resolution is rejected too, rather than being
+    #  silently downgraded to the base unit; matches e.g. "M8[Y]"
+    dtype = f"{kind}8[10s]"
+
+    msg = "is not supported. Supported resolutions are"
+    with pytest.raises(TypeError, match=msg):
+        pd.Series([1, 2], dtype=dtype)
+
+    if kind == "M":
+        err: type[Exception] = TypeError
+        msg = r"Cannot cast DatetimeArray to dtype datetime64\[10s\]"
+    else:
+        err = ValueError
+        msg = r"Cannot convert from timedelta64\[s\] to timedelta64\[10s\]"
+    with pytest.raises(err, match=msg):
+        pd.Series(np.array([1, 2], dtype=f"{kind}8[s]")).astype(dtype)
+
+    msg = "resolutions other than 's', 'ms', 'us', and 'ns' are no longer supported"
+    with pytest.raises(ValueError, match=msg):
+        pd.array([1, 2], dtype=dtype)
+
+
+@pytest.mark.parametrize("kind", ["M", "m"])
+def test_scalar_unit_multiplier_in_object_array_raises(kind):
+    # GH#25611 the per-element paths dropped the multiplier as well
+    scalar = np.datetime64(1, "10s") if kind == "M" else np.timedelta64(1, "10s")
+    box = pd.to_datetime if kind == "M" else pd.to_timedelta
+    msg = (
+        "np.datetime64 objects with units containing a multiplier"
+        if kind == "M"
+        else "np.timedelta64 objects with units containing a multiplier"
+    )
+
+    with pytest.raises(ValueError, match=msg):
+        pd.Series([scalar])
+    with pytest.raises(ValueError, match=msg):
+        box([scalar])
+
+    result = box([scalar], errors="coerce")
+    assert result.isna().all()

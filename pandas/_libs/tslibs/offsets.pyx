@@ -161,6 +161,10 @@ cdef bint is_tick_object(object obj):
     return isinstance(obj, Tick)
 
 
+cdef bint is_day_object(object obj):
+    return isinstance(obj, Day)
+
+
 cdef bint _is_normalized(datetime dt):
     if dt.hour != 0 or dt.minute != 0 or dt.second != 0 or dt.microsecond != 0:
         # Regardless of whether dt is datetime vs Timestamp
@@ -176,9 +180,11 @@ def apply_wraps(func):
 
     def wrapper(self, other):
         if not isinstance(other, _Timestamp):
-            # BaseOffset.__add__ has already converted, but rollback and
-            #  rollforward are public and take any datetime-like.
+            # rollback and rollforward are public and take any datetime-like;
+            #  NaT also arrives here from __add__ via np.datetime64("NaT")
             other = Timestamp(other)
+            if other is NaT:
+                return NaT
 
         tz = other.tzinfo
         nano = other.nanosecond
@@ -400,7 +406,8 @@ cdef class BaseOffset:
 
     Every offset in ``pandas.tseries.offsets`` is a subclass of ``BaseOffset``,
     so ``isinstance(obj, BaseOffset)`` is the way to check whether an object is
-    a pandas offset. ``BaseOffset`` is not meant to be instantiated directly.
+    a pandas offset. ``BaseOffset`` is not meant to be instantiated directly;
+    to write your own offset, subclass it as described in the Notes.
 
     Attributes
     ----------
@@ -414,6 +421,26 @@ cdef class BaseOffset:
     tseries.offsets.DateOffset : Offset backed by a ``dateutil.relativedelta``.
     tseries.frequencies.to_offset : Convert a string or timedelta to an offset.
 
+    Notes
+    -----
+    A subclass defines:
+
+    * ``_add_datetime(self, other)``, which receives a :class:`Timestamp` and
+      returns the :class:`Timestamp` ``self.n`` steps away. As in the built-in
+      offsets, for ``n < 0`` rolling back onto the offset counts as the first
+      step, and ``n == 0`` rolls forward. This implements ``+`` and ``-`` and
+      is used by :func:`date_range`.
+    * ``is_on_offset(self, dt)``, which ``rollback``, ``rollforward`` and
+      :func:`date_range` use to tell whether ``dt`` already falls on the offset.
+    * ``_prefix``, the name shown in the offset's ``freqstr``. It is not
+      registered as a frequency string, so pass the offset object itself as
+      ``freq``.
+
+    ``+`` and ``-`` honor ``normalize=True`` only if ``_add_datetime`` checks
+    ``self.normalize``. Adding a custom offset to a :class:`Series` or
+    :class:`DatetimeIndex` applies it one element at a time and emits a
+    :class:`~pandas.errors.PerformanceWarning`.
+
     Examples
     --------
     >>> pd.offsets.Hour(5).n
@@ -423,6 +450,33 @@ cdef class BaseOffset:
 
     >>> isinstance(pd.offsets.BDay(), pd.offsets.BaseOffset)
     True
+
+    An offset stepping through dekads, the periods starting on the 1st, 11th
+    and 21st of each month (it ignores ``normalize``):
+
+    >>> class Dekad(pd.offsets.BaseOffset):
+    ...     _prefix = "DEKAD"
+    ...     def _add_datetime(self, other):
+    ...         slot = min((other.day - 1) // 10, 2)
+    ...         n = self.n
+    ...         if n <= 0 and other.day != 1 + 10 * slot:
+    ...             n += 1
+    ...         months, slot = divmod(slot + n, 3)
+    ...         result = other.replace(day=1) + pd.DateOffset(months=months)
+    ...         return result.replace(day=1 + 10 * slot)
+    ...     def is_on_offset(self, dt):
+    ...         return dt.day in (1, 11, 21)
+
+    >>> ts = pd.Timestamp("2024-01-25")
+    >>> ts + Dekad()
+    Timestamp('2024-02-01 00:00:00')
+    >>> ts - Dekad()
+    Timestamp('2024-01-21 00:00:00')
+    >>> Dekad().rollback(ts)
+    Timestamp('2024-01-21 00:00:00')
+    >>> pd.date_range("2024-01-05", periods=4, freq=Dekad())
+    DatetimeIndex(['2024-01-11', '2024-01-21', '2024-02-01', '2024-02-11'],
+                  dtype='datetime64[us]', freq='DEKAD')
     """
     # ensure that reversed-ops with numpy scalars return NotImplemented
     __array_priority__ = 1000
@@ -1436,7 +1490,10 @@ cdef class Tick(SingleConstructorOffset):
         return self._as_pd_timedelta == other
 
     def __ne__(self, other):
-        return not (self == other)
+        if isinstance(other, str):
+            return not (self == other)
+        # __eq__ can return an array or NA, which `not` rejects
+        return self._as_pd_timedelta != other
 
     def __le__(self, other):
         return self._as_pd_timedelta.__le__(other)
@@ -2033,6 +2090,20 @@ cdef ndarray _add_timedelta_overflowsafe(ndarray dt64arr, _Timedelta delta):
     return i8result.view(dt64arr.dtype)
 
 
+# relativedelta keywords the vectorized _apply_array path supports
+_relativedelta_fast = frozenset({
+    "years",
+    "months",
+    "weeks",
+    "days",
+    "hours",
+    "minutes",
+    "seconds",
+    "microseconds",
+    "milliseconds",
+})
+
+
 cdef class RelativeDeltaOffset(BaseOffset):
     """
     DateOffset subclass backed by a dateutil relativedelta object.
@@ -2121,33 +2192,48 @@ cdef class RelativeDeltaOffset(BaseOffset):
         # Coerce to that resolution when lossless so the scalar result
         # matches the vectorized DatetimeIndex/Series path; apply_wraps
         # then narrows back to ``other``'s unit where that is also lossless.
-        try:
-            offset_unit = self._pd_timedelta.unit
-        except NotImplementedError:
+        # There is nothing to do when the offset has no Timedelta
+        # representation (unit None, e.g. ``weekday``), or when its unit is
+        # "s": Timestamp(other) is never coarser than "us", so apply_wraps
+        # would undo that coercion anyway.
+        offset_unit = self._pd_timedelta_unit
+        if offset_unit is None or offset_unit == "s":
             return result
         result2 = result.as_unit(offset_unit)
         if result == result2:
             result = result2
         return result
 
+    @property
+    def _pd_timedelta_unit(self) -> str | None:
+        """
+        The unit _pd_timedelta has, None if it would raise NotImplementedError.
+
+        Determined from the keyword names alone, so it is cheap even when
+        the _pd_timedelta cache is cold.
+        """
+        kwds = self.kwds
+        if self._use_relativedelta:
+            if not set(kwds).issubset(_relativedelta_fast):
+                return None
+        elif not hasattr(self, "_offset"):
+            return None
+
+        if getattr(self, "nanoseconds", 0) != 0:
+            return "ns"
+        elif "microseconds" in kwds:
+            return "us"
+        elif "milliseconds" in kwds:
+            return "ms"
+        return "s"
+
     @cache_readonly
     def _pd_timedelta(self) -> Timedelta:
         # components of _offset that can be cast to pd.Timedelta
 
         kwds = self.kwds
-        relativedelta_fast = {
-            "years",
-            "months",
-            "weeks",
-            "days",
-            "hours",
-            "minutes",
-            "seconds",
-            "microseconds",
-            "milliseconds",
-        }
         # relativedelta/_offset path only valid for base DateOffset
-        if self._use_relativedelta and set(kwds).issubset(relativedelta_fast):
+        if self._use_relativedelta and set(kwds).issubset(_relativedelta_fast):
             td_args = {
                 "days",
                 "hours",
@@ -2166,13 +2252,7 @@ cdef class RelativeDeltaOffset(BaseOffset):
                 td_kwds["days"] = days + 7 * kwds["weeks"]
 
             if td_kwds:
-                delta = Timedelta(**td_kwds)
-                if "microseconds" in kwds:
-                    delta = delta.as_unit("us")
-                elif "milliseconds" in kwds:
-                    delta = delta.as_unit("ms")
-                else:
-                    delta = delta.as_unit("s")
+                delta = Timedelta(**td_kwds).as_unit(self._pd_timedelta_unit)
             elif not kwds:
                 # GH#61870: bare DateOffset(n) with no keywords defaults to
                 # n days (matching the scalar path); without this branch it
@@ -2191,17 +2271,12 @@ cdef class RelativeDeltaOffset(BaseOffset):
                 delta = Timedelta((self._offset + rem_nano) * self._n)
             else:
                 delta = Timedelta(self._offset * self._n)
-                if "microseconds" in kwds:
-                    delta = delta.as_unit("us")
-                elif "milliseconds" in kwds:
-                    delta = delta.as_unit("ms")
-                else:
-                    delta = delta.as_unit("s")
+                delta = delta.as_unit(self._pd_timedelta_unit)
             return delta
 
         else:
             # relativedelta with other keywords
-            kwd = set(kwds) - relativedelta_fast
+            kwd = set(kwds) - _relativedelta_fast
             raise NotImplementedError(
                 "DateOffset with relativedelta "
                 f"keyword(s) {kwd} not able to be "
@@ -3066,6 +3141,13 @@ cdef class BusinessHour(BusinessMixin):
     >>> from datetime import time as dt_time
     >>> ts = pd.Timestamp(2022, 8, 5, 22)
     >>> ts + pd.offsets.BusinessHour(end=dt_time(19, 0))
+    Timestamp('2022-08-08 10:00:00')
+
+    Each hour is 60 minutes of business time; any part of an hour that does
+    not fit before closing continues from the next opening.
+
+    >>> ts = pd.Timestamp(2022, 8, 5, 15, 30)
+    >>> ts + pd.offsets.BusinessHour(start="09:30", end="16:00")
     Timestamp('2022-08-08 10:00:00')
 
     Passing the parameter ``normalize`` equal to True, you shift the start
@@ -3986,25 +4068,8 @@ cdef class BYearBegin(YearOffset):
     _prefix = "BYS"
     _day_opt = "business_start"
 
-# The pair of classes `_YearEnd` and `YearEnd` exist because of
-# https://github.com/cython/cython/issues/3873
 
-cdef class _YearEnd(YearOffset):
-    _default_month = 12
-    _prefix = "YE"
-    _day_opt = "end"
-
-    cdef readonly:
-        int _period_dtype_code
-
-    def __init__(self, n=1, normalize=False, month=None):
-        # Because YearEnd can be the freq for a Period, define its
-        #  _period_dtype_code at construction for performance
-        YearOffset.__init__(self, n, normalize, month)
-        self._period_dtype_code = PeriodDtypeCode.A + self._month % 12
-
-
-class YearEnd(_YearEnd):
+cdef class YearEnd(YearOffset):
     """
     DateOffset increments between calendar year end dates.
 
@@ -4052,8 +4117,18 @@ class YearEnd(_YearEnd):
     None
     """
 
-    def __new__(cls, n=1, normalize=False, month=None):
-        return _YearEnd.__new__(cls, n, normalize, month)
+    _default_month = 12
+    _prefix = "YE"
+    _day_opt = "end"
+
+    cdef readonly:
+        int _period_dtype_code
+
+    def __init__(self, n=1, normalize=False, month=None):
+        # Because YearEnd can be the freq for a Period, define its
+        #  _period_dtype_code at construction for performance
+        YearOffset.__init__(self, n, normalize, month)
+        self._period_dtype_code = PeriodDtypeCode.A + self._month % 12
 
 
 cdef class YearBegin(YearOffset):
@@ -7269,6 +7344,13 @@ cdef class CustomBusinessHour(BusinessHour):
     >>> ts + pd.offsets.CustomBusinessHour(end=dt_time(19, 0))
     Timestamp('2022-08-08 10:00:00')
 
+    Each hour is 60 minutes of business time; any part of an hour that does
+    not fit before closing continues from the next opening.
+
+    >>> ts = pd.Timestamp(2022, 8, 5, 15, 30)
+    >>> ts + pd.offsets.CustomBusinessHour(start="09:30", end="16:00")
+    Timestamp('2022-08-08 10:00:00')
+
     You can divide your business day hours into several parts.
 
     >>> import datetime as dt
@@ -7780,7 +7862,12 @@ deprec_to_valid_alias = {
 }
 
 
-def raise_invalid_freq(freq: str, extra_message: str | None = None) -> None:
+def raise_invalid_freq(freq: object, extra_message: str | None = None) -> None:
+    if not isinstance(freq, str):
+        raise TypeError(
+            "freq must be a str, datetime.timedelta or BaseOffset, "
+            f"got {type(freq).__name__}"
+        )
     msg = f"Invalid frequency: {freq}."
     if extra_message is not None:
         msg += f" {extra_message}"
@@ -7904,6 +7991,8 @@ cpdef to_offset(freq, bint is_period=False):
     ------
     ValueError
         If freq is an invalid frequency
+    TypeError
+        If freq is not a str, datetime.timedelta, BaseOffset or None
 
     See Also
     --------
@@ -8058,6 +8147,42 @@ cpdef to_offset(freq, bint is_period=False):
             raise ValueError(f"{freq} is not supported as period frequency")
 
     return result
+
+
+cpdef validate_floor_ceil_offset(BaseOffset offset):
+    """
+    Raise if floor/ceil cannot snap to the midnights that ``offset`` is on.
+
+    That is well-defined only for a single step of a date-anchored offset.
+    """
+    if isinstance(offset, (BusinessDay, _CustomBusinessMonth)):
+        if offset.offset:
+            raise ValueError(
+                f"floor and ceil do not support {offset} with a nonzero 'offset'"
+            )
+        supported = True
+    elif isinstance(offset, Week):
+        # without a weekday every day is on-offset
+        supported = offset.weekday is not None
+    else:
+        supported = isinstance(
+            offset,
+            (
+                YearOffset,
+                HalfYearOffset,
+                QuarterOffset,
+                MonthOffset,
+                SemiMonthOffset,
+                WeekOfMonthMixin,
+                FY5253Mixin,
+                Easter,
+            ),
+        )
+    if offset.n != 1 or not supported:
+        raise ValueError(
+            f"{offset} is a non-fixed frequency; floor and ceil support only "
+            "a single step of a date-anchored frequency, e.g. 'MS' or 'W-SUN'"
+        )
 
 
 def period_dtype_to_offset(PeriodDtypeBase dtype):

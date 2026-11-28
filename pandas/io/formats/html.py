@@ -16,6 +16,8 @@ from pandas._config.config import _global_config as config
 
 from pandas._libs import lib
 
+from pandas.core.dtypes.common import needs_i8_conversion
+
 from pandas import (
     MultiIndex,
     option_context,
@@ -24,6 +26,7 @@ from pandas import (
 from pandas.io.common import is_url
 from pandas.io.formats.format import (
     DataFrameFormatter,
+    format_name,
     get_level_lengths,
 )
 from pandas.io.formats.printing import pprint_thing
@@ -84,6 +87,12 @@ class HTMLFormatter:
             if is_multi_index and isinstance(column, tuple):
                 for column_index in column:
                     self.col_space[str(column_index)] = col_space_value
+        if self.col_space and not is_multi_index:
+            # write_th looks up col_space by the written (formatted) label
+            formatted = self._get_columns_formatted_values()
+            for label, fmt_label in zip(self.columns, formatted, strict=True):
+                if label in self.col_space:
+                    self.col_space.setdefault(fmt_label, self.col_space[label])
 
     def to_string(self) -> str:
         lines = self.render()
@@ -93,14 +102,15 @@ class HTMLFormatter:
 
     def render(self) -> list[str]:
         self._write_table()
+        self._write_footer()
+        return self.elements
 
+    def _write_footer(self) -> None:
         if self.should_show_dimensions:
             by = chr(215)  # ×  # noqa: RUF003
             self.write(
                 f"<p>{len(self.frame)} rows {by} {len(self.frame.columns)} columns</p>"
             )
-
-        return self.elements
 
     @property
     def should_show_dimensions(self) -> bool:
@@ -129,7 +139,11 @@ class HTMLFormatter:
         # not showing (row) index
         return 0
 
-    def _get_columns_formatted_values(self) -> Iterable:
+    def _get_columns_formatted_values(self) -> Iterable[Hashable]:
+        if needs_i8_conversion(self.columns.dtype):
+            # match the row labels, e.g. no all-midnight times (GH#10640); other
+            # dtypes stay raw so display.precision does not apply (GH#17280)
+            return self.columns._format_flat(include_name=False)
         return self.columns
 
     @property
@@ -209,7 +223,7 @@ class HTMLFormatter:
 
     def write_tr(
         self,
-        line: Iterable,
+        line: Iterable[Hashable],
         indent: int = 0,
         indent_delta: int = 0,
         header: bool = False,
@@ -278,7 +292,7 @@ class HTMLFormatter:
         row: list[Hashable]
         is_truncated_horizontally = self.fmt.is_truncated_horizontally
         if isinstance(self.columns, MultiIndex):
-            template = 'colspan="{span:d}" halign="left"'
+            template = 'colspan="{span:d}"'
 
             sentinel: lib.NoDefault | bool
             if self.fmt.sparsify:
@@ -355,7 +369,7 @@ class HTMLFormatter:
                     # parity with DataFrameFormatter class.
                     if self.fmt.show_index_names:
                         name = self.columns.names[lnum]
-                        row.append(pprint_thing(name or ""))
+                        row.append(format_name(name))
                     else:
                         row.append("")
 
@@ -385,7 +399,7 @@ class HTMLFormatter:
                 # TODO: Refactor to use _get_column_name_list from
                 # DataFrameFormatter class.
                 if self.fmt.show_index_names:
-                    row.append(self.columns.name or "")
+                    row.append(format_name(self.columns.name))
                 else:
                     row.append("")
             row.extend(self._get_columns_formatted_values())
@@ -399,7 +413,7 @@ class HTMLFormatter:
 
     def _write_row_header(self, indent: int) -> None:
         is_truncated_horizontally = self.fmt.is_truncated_horizontally
-        row = [x if x is not None else "" for x in self.frame.index.names] + [""] * (
+        row = [format_name(x) for x in self.frame.index.names] + [""] * (
             self.ncols + (1 if is_truncated_horizontally else 0)
         )
         self.write_tr(row, indent, self.indent_delta, header=True)
@@ -655,3 +669,25 @@ class NotebookFormatter(HTMLFormatter):
         super().render()
         self.write("</div>")
         return self.elements
+
+
+class SeriesNotebookFormatter(NotebookFormatter):
+    """
+    Internal class for Series._repr_html_().
+
+    Renders ``series.to_frame()`` without a column header, followed by the
+    footer of the Series text repr, so the result is visually distinct from
+    a one-column DataFrame.
+    """
+
+    def __init__(self, formatter: DataFrameFormatter, footer: str) -> None:
+        super().__init__(formatter)
+        self.footer = footer
+
+    def _write_footer(self) -> None:
+        if self.footer:
+            esc = {"&": r"&amp;", "<": r"&lt;", ">": r"&gt;"}
+            lines = [
+                pprint_thing(line, escape_chars=esc) for line in self.footer.split("\n")
+            ]
+            self.write(f"<p>{'<br>'.join(lines)}</p>")

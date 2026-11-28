@@ -5,6 +5,7 @@ from functools import wraps
 import re
 from typing import (
     TYPE_CHECKING,
+    Any,
     Literal,
     cast,
 )
@@ -254,7 +255,7 @@ class StringMethods(NoNewAttributesMixin):
         result = self._data.array._str_getitem(key)
         return self._wrap_result(result)
 
-    def __iter__(self) -> Iterator:
+    def __iter__(self) -> Iterator[Any]:
         raise TypeError(f"'{type(self).__name__}' object is not iterable")
 
     def _wrap_result(
@@ -635,7 +636,7 @@ class StringMethods(NoNewAttributesMixin):
 
         >>> idx = pd.Index(["a", "b", "c"])
         >>> idx.str.cat(pd.Series(["x", "y", "z"]))
-        Index([nan, nan, nan], dtype='object')
+        Index([NaN, NaN, NaN], dtype='object')
 
         Use ``.to_numpy()`` (or ``.values``) to concatenate positionally:
 
@@ -742,7 +743,7 @@ class StringMethods(NoNewAttributesMixin):
     @forbid_nonstring_types(["bytes"])
     def split(
         self,
-        pat: str | re.Pattern | None = None,
+        pat: str | re.Pattern[str] | None = None,
         *,
         n=-1,
         expand: bool = False,
@@ -1554,7 +1555,7 @@ class StringMethods(NoNewAttributesMixin):
     @forbid_nonstring_types(["bytes"])
     def match(
         self,
-        pat: str | re.Pattern,
+        pat: str | re.Pattern[str],
         case: bool | lib.NoDefault = lib.no_default,
         flags: int | lib.NoDefault = lib.no_default,
         na=lib.no_default,
@@ -1604,57 +1605,8 @@ class StringMethods(NoNewAttributesMixin):
         2   False
         dtype: bool
         """
-        # Note: `case` must be resolved before we compile `pat` below, since
-        #  compiling would make is_re(pat) True even for a user-passed string.
-        case_specified = case is not lib.no_default
-
-        if not case_specified:
-            if is_re(pat):
-                case = not bool(pat.flags & re.IGNORECASE)
-            elif flags is not lib.no_default:
-                case = not bool(flags & re.IGNORECASE)
-            else:
-                # Case-sensitive default
-                case = True
-        elif is_re(pat):
-            implicit_case = not bool(pat.flags & re.IGNORECASE)
-            if implicit_case != case:
-                # GH#62240
-                raise ValueError(
-                    "Cannot both specify 'case' and pass a compiled regexp "
-                    "object with conflicting case-sensitivity"
-                )
-
-        if flags is not lib.no_default:
-            if case_specified and case and not is_re(pat) and flags & re.IGNORECASE:
-                raise ValueError(
-                    "Cannot both specify case=True and pass 'flags' containing "
-                    "re.IGNORECASE"
-                )
-            if not case:
-                # Bake `case` into the flags so that it survives compilation.
-                flags |= re.IGNORECASE
-            if is_re(pat):
-                # Round-trip the requested flags through re.compile so the
-                #  comparison accounts for the fixups it applies: the implicit
-                #  re.U, and any inline "(?a)"/"(?i)" in the pattern itself.
-                if re.compile(pat.pattern, flags).flags != pat.flags:
-                    raise ValueError(
-                        "Cannot both specify 'flags' and pass a compiled regexp "
-                        "object with conflicting flags"
-                    )
-            elif flags & ~(re.IGNORECASE | re.UNICODE):
-                # Only pre-compile when `flags` carries something `case` cannot.
-                #  Leaving `pat` a str otherwise keeps `flags=0` equivalent to
-                #  omitting `flags`, so patterns using RE2 syntax that `re`
-                #  rejects still reach the pyarrow kernels. GH#63108
-                pat = re.compile(pat, flags=flags)
-        # Any `flags` are now carried by `case` or baked into `pat`, so set
-        #  flags=0 to ensure that when we call re.compile(pat, flags=flags)
-        #  downstream the constructor does not raise.
-        flags = 0
-
-        result = self._data.array._str_match(pat, case=case, flags=flags, na=na)
+        pat, case = _preprocess_regex_pattern(pat, case, flags)
+        result = self._data.array._str_match(pat, case=case, na=na)
         return self._wrap_result(result, fill_value=na, returns_string=False)
 
     @forbid_nonstring_types(["bytes"])
@@ -1709,8 +1661,8 @@ class StringMethods(NoNewAttributesMixin):
     @forbid_nonstring_types(["bytes"])
     def replace(
         self,
-        pat: str | re.Pattern | dict,
-        repl: str | Callable | None = None,
+        pat: str | re.Pattern[str] | dict[str, str],
+        repl: str | Callable[..., Any] | None = None,
         n: int = -1,
         case: bool | None = None,
         flags: int = 0,
@@ -1879,10 +1831,13 @@ class StringMethods(NoNewAttributesMixin):
             case = True
 
         res_output = self._data
-        if not isinstance(pat, dict):
-            pat = {pat: repl}
+        pat_dict: dict[Any, Any]
+        if isinstance(pat, dict):
+            pat_dict = pat
+        else:
+            pat_dict = {pat: repl}
 
-        for key, value in pat.items():
+        for key, value in pat_dict.items():
             result = res_output.array._str_replace(
                 key, value, n=n, case=case, flags=flags, regex=regex
             )
@@ -3504,7 +3459,7 @@ class StringMethods(NoNewAttributesMixin):
 
         if returns_df:
             name = None
-            columns = _get_group_names(regex)
+            columns = get_group_names(regex)
 
             if obj.array.size == 0:
                 result = DataFrame(columns=columns, dtype=result_dtype)
@@ -4847,7 +4802,7 @@ def cat_safe(list_of_columns: list[npt.NDArray[np.object_]], sep: str):
     return result
 
 
-def cat_core(list_of_columns: list, sep: str):
+def cat_core(list_of_columns: list[npt.NDArray[np.object_]], sep: str):
     """
     Auxiliary function for :meth:`str.cat`
 
@@ -4868,7 +4823,7 @@ def cat_core(list_of_columns: list, sep: str):
         # no need to interleave sep if it is empty
         arr_of_cols = np.asarray(list_of_columns, dtype=object)
         return np.sum(arr_of_cols, axis=0)
-    list_with_sep = [sep] * (2 * len(list_of_columns) - 1)
+    list_with_sep: list[Any] = [sep] * (2 * len(list_of_columns) - 1)
     list_with_sep[::2] = list_of_columns
     arr_with_sep = np.asarray(list_with_sep, dtype=object)
     return np.sum(arr_with_sep, axis=0)
@@ -4885,14 +4840,14 @@ def _result_dtype(arr):
     return object
 
 
-def _get_single_group_name(regex: re.Pattern) -> Hashable:
+def _get_single_group_name(regex: re.Pattern[str]) -> Hashable:
     if regex.groupindex:
         return next(iter(regex.groupindex))
     else:
         return None
 
 
-def _get_group_names(regex: re.Pattern) -> list[Hashable] | range:
+def get_group_names(regex: re.Pattern[str]) -> list[Hashable] | range:
     """
     Get named groups from compiled regex.
 
@@ -4926,7 +4881,7 @@ def str_extractall(arr, pat, flags: int = 0) -> DataFrame:
     if isinstance(arr, ABCIndex):
         arr = arr.to_series().reset_index(drop=True).astype(arr.dtype)
 
-    columns = _get_group_names(regex)
+    columns = get_group_names(regex)
     match_list = []
     index_list = []
     is_mi = arr.index.nlevels > 1
@@ -4953,3 +4908,71 @@ def str_extractall(arr, pat, flags: int = 0) -> DataFrame:
         match_list, index=index, columns=columns, dtype=dtype
     )
     return result
+
+
+def _preprocess_regex_pattern(
+    pat: str | re.Pattern[str],
+    case: bool | lib.NoDefault = lib.no_default,
+    flags: int | lib.NoDefault = lib.no_default,
+) -> tuple[str | re.Pattern[str], bool]:
+    """
+    Validate and preprocess the pat, case, flags parameter combination.
+
+    Any conflicts between compiled regex pattern, case or flags are detected
+    and resolved here (raised to the user).
+
+    The result is a pattern and resolved `case`:
+    - The returned `case` can be relied upon (i.e. gets extracted from compiled
+      regex pattern or flags)
+    - The flags, if needed (i.e. not IGNORECASE which is covered by `case` or
+      UNICODE which is redundant in Python 3), are merged into the pat as a
+      compiled regex pattern.
+
+    This means that downstream functions only have to handle a compiled regex
+    pattern, or a string pattern with `case`.
+    """
+    case_specified = case is not lib.no_default
+
+    if not case_specified:
+        if is_re(pat):
+            case = not bool(pat.flags & re.IGNORECASE)
+        elif flags is not lib.no_default:
+            case = not bool(flags & re.IGNORECASE)
+        else:
+            # Case-sensitive default
+            case = True
+    elif is_re(pat):
+        implicit_case = not bool(pat.flags & re.IGNORECASE)
+        if implicit_case != case:
+            # GH#62240
+            raise ValueError(
+                "Cannot both specify 'case' and pass a compiled regex pattern "
+                "with conflicting case-sensitivity"
+            )
+
+    if flags is not lib.no_default:
+        if case_specified and case and not is_re(pat) and flags & re.IGNORECASE:
+            raise ValueError(
+                "Cannot both specify 'case=True' and pass 'flags' containing "
+                "re.IGNORECASE"
+            )
+        if not case:
+            # Bake `case` into the flags so that it survives compilation.
+            flags |= re.IGNORECASE
+        if is_re(pat):
+            # Round-trip the requested flags through re.compile so the
+            #  comparison accounts for the fixups it applies: the implicit
+            #  re.U, and any inline "(?a)"/"(?i)" in the pattern itself.
+            if re.compile(pat.pattern, flags).flags != pat.flags:
+                raise ValueError(
+                    "Cannot both specify 'flags' and pass a compiled regex "
+                    "pattern with conflicting flags"
+                )
+        elif flags & ~(re.IGNORECASE | re.UNICODE):
+            # Only pre-compile when `flags` carries something `case` cannot.
+            #  Leaving `pat` a str otherwise keeps `flags=0` equivalent to
+            #  omitting `flags`, so patterns using RE2 syntax that `re`
+            #  rejects still reach the pyarrow kernels. GH#63108
+            pat = re.compile(pat, flags=flags)
+
+    return pat, cast("bool", case)

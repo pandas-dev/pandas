@@ -308,7 +308,7 @@ Passing a list of labels or tuples works similar to reindexing:
    multi-level key, a list is used to specify several keys. Or in other words,
    tuples go horizontally (traversing levels), lists go vertically (scanning levels).
 
-Importantly, a list of tuples indexes several complete ``MultiIndex`` keys,
+Importantly, a list of tuples indexes several ``MultiIndex`` keys,
 whereas a tuple of lists refer to several values within a level:
 
 .. ipython:: python
@@ -319,6 +319,13 @@ whereas a tuple of lists refer to several values within a level:
    )
    s.loc[[("A", "c"), ("B", "d")]]  # list of tuples
    s.loc[(["A", "B"], ["c", "d"])]  # tuple of lists
+
+A list of equal-length tuples shorter than the number of levels selects every
+row matching on the leading levels:
+
+.. ipython:: python
+
+   s.loc[[("B",), ("A",)]]
 
 
 .. _advanced.mi_slicers:
@@ -415,6 +422,15 @@ Using a boolean indexer you can provide selection related to the *values*.
 
    mask = dfmi[("a", "foo")] > 200
    dfmi.loc[idx[mask, :, ["C1", "C3"]], idx[:, "foo"]]
+
+Every label in a list must be present in the index, otherwise a ``KeyError`` is
+raised. To select only the labels that are present, pass a boolean mask built
+with :meth:`Index.isin` and its ``level`` argument instead of the list.
+
+.. ipython:: python
+
+   mask = dfmi.index.isin(["C1", "C3", "C5"], level=2)
+   dfmi.loc[idx[:, :, mask], idx[:, "foo"]]
 
 You can also specify the ``axis`` argument to ``.loc`` to interpret the passed
 slicers on a single axis.

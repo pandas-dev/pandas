@@ -2,7 +2,10 @@ from __future__ import annotations
 
 from datetime import time
 import math
-from typing import TYPE_CHECKING
+from typing import (
+    TYPE_CHECKING,
+    Any,
+)
 import warnings
 
 import numpy as np
@@ -30,7 +33,7 @@ class XlrdReader(BaseExcelReader["Book"]):
         self,
         filepath_or_buffer,
         storage_options: StorageOptions | None = None,
-        engine_kwargs: dict | None = None,
+        engine_kwargs: dict[str, Any] | None = None,
     ) -> None:
         """
         Reader using xlrd engine.
@@ -47,7 +50,7 @@ class XlrdReader(BaseExcelReader["Book"]):
             "gcs://") the key-value pairs are forwarded to ``fsspec.open``.
             Please see ``fsspec`` and ``urllib`` for more details, and for more
             examples on storage options refer `here <https://pandas.pydata.org/
-            pandas-docs/stable/user_guide/io.html?
+            docs/user_guide/io.html?
             highlight=storage_options#reading-writing-remote-files>`__.
         engine_kwargs : dict, optional
             Arbitrary keyword arguments passed to excel engine.

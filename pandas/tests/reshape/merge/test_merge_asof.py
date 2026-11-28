@@ -1923,6 +1923,21 @@ class TestAsOfMerge:
         with pytest.raises(MergeError, match="can only asof on a key for left"):
             pd.merge_asof(trades, quotes, by="ticker")
 
+    def test_valid_join_keys_one_sided_categorical(self):
+        # GH#58517 only the right key is categorical, so the categorical-specific
+        #  message does not apply and the generic one is used
+        left = pd.DataFrame({"time": [1, 2, 3], "k": ["a", "b", "c"], "lv": [1, 2, 3]})
+        right = pd.DataFrame(
+            {
+                "time": [1, 2, 3],
+                "k": pd.Categorical(["a", "b", "c"]),
+                "rv": [4, 5, 6],
+            }
+        )
+        msg = r"incompatible merge keys \[0\] .* must be the same type"
+        with pytest.raises(MergeError, match=msg):
+            pd.merge_asof(left, right, on="time", by="k")
+
     def test_with_duplicates(self, datapath, trades, quotes, asof):
         q = (
             pd.concat([quotes, quotes])
@@ -1981,7 +1996,7 @@ class TestAsOfMerge:
                 tolerance=1.0,
             )
 
-        msg = "tolerance must be positive"
+        msg = "tolerance must be non-negative"
 
         # invalid negative
         with pytest.raises(MergeError, match=msg):
@@ -2000,12 +2015,50 @@ class TestAsOfMerge:
 
     def test_tolerance_negative_one_nanosecond(self, trades, quotes):
         # GH#58517
-        msg = "tolerance must be positive"
+        msg = "tolerance must be non-negative"
 
         with pytest.raises(MergeError, match=msg):
             pd.merge_asof(
                 trades, quotes, on="time", by="ticker", tolerance=pd.Timedelta(-1)
             )
+
+    def test_tolerance_zero(self):
+        # GH#66289, tolerance=0 is valid and means exact-match only
+        left = pd.DataFrame({"a": [1, 5, 10], "left_val": ["a", "b", "c"]})
+        right = pd.DataFrame({"a": [1, 6, 10], "right_val": ["A", "B", "C"]})
+
+        result = pd.merge_asof(left, right, on="a", tolerance=0)
+        expected = pd.DataFrame(
+            {
+                "a": [1, 5, 10],
+                "left_val": ["a", "b", "c"],
+                "right_val": ["A", np.nan, "C"],
+            }
+        )
+        tm.assert_frame_equal(result, expected)
+
+        left = pd.DataFrame(
+            {
+                "time": pd.to_datetime(["2016-05-25 13:30:00", "2016-05-25 13:30:01"]),
+                "left_val": ["a", "b"],
+            }
+        )
+        right = pd.DataFrame(
+            {
+                "time": pd.to_datetime(["2016-05-25 13:30:00", "2016-05-25 13:30:02"]),
+                "right_val": ["A", "B"],
+            }
+        )
+
+        result = pd.merge_asof(left, right, on="time", tolerance=pd.Timedelta(0))
+        expected = pd.DataFrame(
+            {
+                "time": pd.to_datetime(["2016-05-25 13:30:00", "2016-05-25 13:30:01"]),
+                "left_val": ["a", "b"],
+                "right_val": ["A", np.nan],
+            }
+        )
+        tm.assert_frame_equal(result, expected)
 
     def test_non_sorted(self, trades, quotes):
         trades = trades.sort_values("time", ascending=False)
@@ -3375,6 +3428,9 @@ class TestAsOfMerge:
     "data",
     [["2019-06-01 00:09:12", "2019-06-01 00:10:29"], [1.0, "2019-06-01 00:10:29"]],
 )
+@pytest.mark.filterwarnings(
+    "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+)
 def test_merge_asof_non_numerical_dtype(kwargs, data, infer_string):
     # GH#29130
     with pd.option_context("future.infer_string", infer_string):
@@ -3640,3 +3696,24 @@ def test_merge_asof_multiby_with_categorical():
         }
     )
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("kwargs", [{"left_index": True}, {"left_on": "t"}])
+@pytest.mark.parametrize("by", [None, "k"])
+def test_merge_asof_empty_left_keeps_left_index(kwargs, by):
+    # GH#41171
+    left = pd.DataFrame(
+        {
+            "k": pd.Series([], dtype="str"),
+            "t": pd.Series([], dtype="M8[us, UTC]"),
+        },
+        index=pd.DatetimeIndex([], dtype="M8[us, UTC]", name="time"),
+    )
+    if "left_on" in kwargs:
+        left.index = pd.Index([], dtype="int64", name="lkey")
+    right = pd.DataFrame(
+        {"k": ["a", "a"], "v": [1.5, 2.5]},
+        index=pd.date_range("2020-01-01", periods=2, tz="UTC", unit="us"),
+    )
+    result = pd.merge_asof(left, right, right_index=True, by=by, **kwargs)
+    tm.assert_index_equal(result.index, left.index)

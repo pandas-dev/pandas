@@ -140,6 +140,15 @@ class TestSeriesPlots:
         assert xmin <= lines[0].get_data(orig=False)[0][0]
         assert xmax >= lines[0].get_data(orig=False)[0][-1]
 
+    def test_sharex_xlim_keeps_sibling_data(self):
+        # GH#14074
+        _, (ax1, ax2) = mpl.pyplot.subplots(1, 2, sharex=True)
+        pd.Series([1, 2, 3]).plot(ax=ax1)
+        pd.Series([0.5, 0.1]).plot(ax=ax2)
+        xmin, xmax = ax1.get_xlim()
+        assert xmin <= 0
+        assert xmax >= 2
+
     def test_ts_area_lim(self, ts):
         _, ax = mpl.pyplot.subplots()
         ax = ts.plot.area(stacked=False, ax=ax)
@@ -253,6 +262,17 @@ class TestSeriesPlots:
         ax = _check_plot_works(d.plot.area, stacked=False)
         tm.assert_numpy_array_equal(ax.lines[0].get_ydata(), expected)
 
+    @pytest.mark.parametrize("stacked", [True, False])
+    def test_area_timedelta(self, stacked):
+        # GH#52246
+        s = pd.Series(pd.timedelta_range("0h", periods=4, freq="h"))
+        s.iloc[2] = pd.NaT
+        ax = _check_plot_works(s.plot.area, stacked=stacked)
+        expected = s.fillna(pd.Timedelta(0)).astype(np.int64).to_numpy()
+        tm.assert_numpy_array_equal(
+            ax.lines[0].get_ydata(), expected, check_dtype=False
+        )
+
     def test_line_use_index_false(self):
         s = pd.Series([1, 2, 3], index=["a", "b", "c"])
         s.index.name = "The Index"
@@ -285,7 +305,7 @@ class TestSeriesPlots:
         # GH#64317 on some linux builds this is flaky with a tiny difference.
         #  Rather than xfail this test, we allow a small
         #  tolerance, as it isn't really user-visible.
-        tm.assert_almost_equal(result, expected, atol=1e-15)
+        tm.assert_almost_equal(result, expected, rtol=1e-12, atol=0)
 
     @pytest.mark.parametrize(
         "axis, kind, res_meth",
@@ -313,13 +333,22 @@ class TestSeriesPlots:
         # GH#64317 on some linux builds this is flaky with the first entry being
         #  off by -1.69e-21. Rather than xfail this test, we allow a small
         #  tolerance, as it isn't really user-visible.
-        tm.assert_almost_equal(result, expected, atol=1e-15)
+        tm.assert_almost_equal(result, expected, rtol=1e-12, atol=0)
 
     def test_bar_ignore_index(self):
         df = pd.Series([1, 2, 3, 4], index=["a", "b", "c", "d"])
         _, ax = mpl.pyplot.subplots()
         ax = df.plot.bar(use_index=False, ax=ax)
         _check_text_labels(ax.get_xticklabels(), ["0", "1", "2", "3"])
+
+    def test_bar_timedelta_with_nat(self):
+        # GH#39320
+        ser = pd.Series(pd.to_timedelta([1, None, 3], unit="s"))
+        _, ax = mpl.pyplot.subplots()
+        ax = ser.plot.bar(ax=ax)
+        result = [patch.get_height() for patch in ax.patches]
+        expected = ser.fillna(pd.Timedelta(0)).astype(np.int64).tolist()
+        assert result == expected
 
     def test_bar_user_colors(self):
         s = pd.Series([1, 2, 3, 4])
@@ -332,6 +361,21 @@ class TestSeriesPlots:
             (1.0, 0.0, 0.0, 1.0),
         ]
         assert result == expected
+
+    @pytest.mark.parametrize(
+        "color",
+        [
+            ("red", "blue", "green"),
+            ("r", "b", "g", "k"),
+            ((1, 0, 0), (0, 1, 0), (0, 0, 1)),
+        ],
+    )
+    def test_bar_user_colors_tuple_of_colors(self, color):
+        # GH#18449 a 3- or 4-tuple of colors is not a single RGB(A) color
+        ser = pd.Series(range(len(color)))
+        ax = ser.plot.bar(color=color)
+        result = [patch.get_facecolor() for patch in ax.patches]
+        assert result == [mpl.colors.to_rgba(col) for col in color]
 
     def test_rotation_default(self):
         df = pd.DataFrame(np.random.default_rng(2).standard_normal((5, 5)))
@@ -407,6 +451,32 @@ class TestSeriesPlots:
 
         color_expected = ["r", "g", "b", "r", "g"]
         _check_colors(ax.patches, facecolors=color_expected)
+
+    @pytest.mark.parametrize(
+        "color, expected",
+        [
+            (["r", "g", "b"], ["r", "g", "b", "r", "g"]),
+            ("r", ["r"] * 5),
+            ((1.0, 0.0, 0.0), [(1.0, 0.0, 0.0)] * 5),
+        ],
+    )
+    def test_pie_series_color(self, color, expected):
+        # GH#11228
+        series = pd.Series([1, 2, 3, 4, 5], index=["a", "b", "c", "d", "e"])
+        ax = _check_plot_works(series.plot.pie, color=color)
+        _check_colors(ax.patches, facecolors=expected)
+
+    def test_pie_series_color_and_colors_raises(self):
+        # GH#11228
+        series = pd.Series([1, 2, 3])
+        with pytest.raises(TypeError, match="Only specify one of"):
+            series.plot.pie(color=["r"], colors=["g"])
+
+    def test_pie_series_color_dict_raises(self):
+        # GH#11228
+        series = pd.Series([1, 2, 3], index=["red", "green", "blue"])
+        with pytest.raises(TypeError, match="do not support a dict"):
+            series.plot.pie(color={"red": "k", "green": "k", "blue": "k"})
 
     def test_pie_series_labels_and_colors(self):
         series = pd.Series(
@@ -626,12 +696,36 @@ class TestSeriesPlots:
         mpl.pyplot.close()
 
     @pytest.mark.parametrize("kind", pd.plotting.PlotAccessor._common_kinds)
-    def test_invalid_plot_data(self, kind):
-        s = pd.Series(list("abcd"))
+    @pytest.mark.parametrize(
+        "data",
+        [
+            list("abcd"),
+            # GH#10254 categoricals are non-numeric, even with numeric categories
+            pd.Categorical([1, 2, 4, 2, 4]),
+            pd.Categorical(list("abcbc")),
+        ],
+    )
+    def test_invalid_plot_data(self, kind, data):
+        s = pd.Series(data)
         _, ax = mpl.pyplot.subplots()
         msg = "no numeric data to plot"
         with pytest.raises(TypeError, match=msg):
             s.plot(kind=kind, ax=ax)
+
+    @pytest.mark.parametrize("dtype", ["category", object])
+    @pytest.mark.parametrize("values", [[1, 2, 4, 2, 4], list("abcbc")])
+    def test_plot_categorical_index(self, dtype, values):
+        # GH#10254 plotted positionally and labeled like an object Index
+        s = pd.Series(range(5), index=pd.Index(values, dtype=dtype))
+        _, ax = mpl.pyplot.subplots()
+        ax = s.plot(ax=ax)
+        tm.assert_numpy_array_equal(ax.get_lines()[0].get_xdata(), np.arange(5))
+        labeled = [
+            (loc, label.get_text())
+            for loc, label in zip(ax.get_xticks(), ax.get_xticklabels(), strict=True)
+            if label.get_text()
+        ]
+        assert labeled == [(i, str(val)) for i, val in enumerate(values)]
 
     @pytest.mark.parametrize("kind", pd.plotting.PlotAccessor._common_kinds)
     def test_valid_object_plot(self, kind):
@@ -1001,14 +1095,18 @@ class TestSeriesPlots:
         ax = plt.subplot()
         s.plot(kind="bar", ax=ax)
         bar_xticks = [
-            label for label in ax.get_xticklabels() if label.get_text() in years
+            (label.get_position()[0], label.get_text())
+            for label in ax.get_xticklabels()
+            if label.get_text() in years
         ]
         s.plot(kind="line", ax=ax, color="r")
         line_xticks = [
-            label for label in ax.get_xticklabels() if label.get_text() in years
+            (label.get_position()[0], label.get_text())
+            for label in ax.get_xticklabels()
+            if label.get_text() in years
         ]
         assert len(bar_xticks) == len(index)
         assert bar_xticks == line_xticks
         x_limits = ax.get_xlim()
-        assert x_limits[0] <= bar_xticks[0].get_position()[0]
-        assert x_limits[1] >= bar_xticks[-1].get_position()[0]
+        assert x_limits[0] <= bar_xticks[0][0]
+        assert x_limits[1] >= bar_xticks[-1][0]

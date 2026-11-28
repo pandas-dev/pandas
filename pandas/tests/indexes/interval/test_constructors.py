@@ -548,3 +548,43 @@ def test_left_gt_right_message_truncated():
     )
     with pytest.raises(ValueError, match=msg):
         pd.IntervalIndex.from_breaks(breaks)
+
+
+@pytest.mark.parametrize("method", ["constructor", "astype"])
+@pytest.mark.parametrize(
+    "values, subtype",
+    [
+        (pd.RangeIndex(0), "int64"),
+        (pd.Index([], dtype="Int64"), "int64"),
+        (pd.Index([], dtype="Float64"), "float64"),
+        (pd.Index([pd.NA, pd.NA], dtype="Int64"), "float64"),
+    ],
+)
+def test_constructor_non_interval_empty_or_na(values, subtype, method):
+    # GH#68343
+    if method == "constructor":
+        result = pd.IntervalIndex(values)
+    else:
+        result = values.astype("interval")
+    expected = pd.IntervalIndex(
+        [np.nan] * len(values), dtype=f"interval[{subtype}, right]"
+    )
+    tm.assert_index_equal(result, expected)
+
+
+@pytest.mark.parametrize("method", ["constructor", "astype"])
+@pytest.mark.parametrize(
+    "values",
+    [
+        pd.RangeIndex(2, 4),
+        pd.Index([2, 3], dtype="Int64"),
+        pd.Index(["a"], dtype="string"),
+    ],
+)
+def test_constructor_non_interval_raises(values, method):
+    # GH#68343
+    with pytest.raises(TypeError, match="is not an interval"):
+        if method == "constructor":
+            pd.IntervalIndex(values)
+        else:
+            values.astype("interval")

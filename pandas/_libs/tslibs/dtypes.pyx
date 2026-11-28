@@ -522,6 +522,16 @@ cdef NPY_DATETIMEUNIT get_supported_reso(NPY_DATETIMEUNIT reso) noexcept nogil:
     return reso
 
 
+cpdef str get_default_reso(str reso_abbrev):
+    # Return micro or nano.
+    cdef NPY_DATETIMEUNIT reso = abbrev_to_npy_unit(reso_abbrev)
+    if reso < NPY_DATETIMEUNIT.NPY_FR_us:
+        reso = NPY_DATETIMEUNIT.NPY_FR_us
+    elif reso > NPY_DATETIMEUNIT.NPY_FR_ns:
+        reso = NPY_DATETIMEUNIT.NPY_FR_ns
+    return npy_unit_to_abbrev(reso)
+
+
 cdef bint is_supported_unit(NPY_DATETIMEUNIT reso):
     return (
         reso == NPY_DATETIMEUNIT.NPY_FR_ns

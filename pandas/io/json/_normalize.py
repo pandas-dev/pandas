@@ -50,7 +50,7 @@ def convert_to_line_delimits(s: str) -> str:
 
 @overload
 def nested_to_record(
-    ds: dict,
+    ds: dict[Any, Any],
     prefix: str = ...,
     sep: str = ...,
     level: int = ...,
@@ -60,7 +60,7 @@ def nested_to_record(
 
 @overload
 def nested_to_record(
-    ds: list[dict],
+    ds: list[dict[Any, Any]],
     prefix: str = ...,
     sep: str = ...,
     level: int = ...,
@@ -69,7 +69,7 @@ def nested_to_record(
 
 
 def nested_to_record(
-    ds: dict | list[dict],
+    ds: dict[Any, Any] | list[dict[Any, Any]],
     prefix: str = "",
     sep: str = ".",
     level: int = 0,
@@ -216,9 +216,9 @@ def _normalize_json_ordered(data: dict[str, Any], separator: str) -> dict[str, A
 
 
 def _simple_json_normalize(
-    ds: dict | list[dict],
+    ds: dict[Any, Any] | list[dict[Any, Any]],
     sep: str = ".",
-) -> dict | list[dict] | Any:
+) -> dict[str, Any] | list[dict[str, Any]] | Any:
     """
     An optimized basic json_normalize
 
@@ -299,10 +299,27 @@ def _validate_meta(meta: str | list[str | list[str]] | None) -> None:
             )
 
 
+def _meta_level(meta_path: list[str], record_path: list[str]) -> int:
+    """
+    Level of the ``record_path`` walk whose objects hold ``meta_path[level:]``.
+
+    This is where ``meta_path`` leaves ``record_path``, capped at the last level of
+    the shorter path. An empty ``meta_path`` gets -1, so it is never read and the
+    lookup in ``seen_meta`` raises ``KeyError``.
+    """
+    level = -1
+    for meta_field, record_field in zip(meta_path, record_path, strict=False):
+        level += 1
+        # meta must be str (see _validate_meta), so match other keys by their str form
+        if meta_field != str(record_field):
+            break
+    return level
+
+
 @set_module("pandas")
 def json_normalize(
-    data: dict | list[dict] | Series,
-    record_path: str | list | None = None,
+    data: dict[Any, Any] | list[dict[Any, Any]] | Series,
+    record_path: str | list[str] | None = None,
     meta: str | list[str | list[str]] | None = None,
     meta_prefix: str | None = None,
     record_prefix: str | None = None,
@@ -325,7 +342,9 @@ def json_normalize(
         Path in each object to list of records. If not passed, data will be
         assumed to be an array of records.
     meta : list of paths (str or list of str), default None
-        Fields to use as metadata for each record in resulting table.
+        Fields to use as metadata for each record in resulting table. Each path
+        starts at the top level of ``data`` and may leave ``record_path`` at any
+        level.
     meta_prefix : str, default None
         If not None, prefix meta fields with this string.
     record_prefix : str, default None
@@ -489,8 +508,8 @@ def json_normalize(
     _validate_meta(meta)
 
     def _pull_field(
-        js: dict[str, Any], spec: list | str, extract_record: bool = False
-    ) -> Scalar | Iterable:
+        js: dict[str, Any], spec: list[str] | str, extract_record: bool = False
+    ) -> Scalar | Iterable[Any]:
         """Internal function to pull field"""
         result = js
         try:
@@ -517,7 +536,7 @@ def json_normalize(
 
         return result
 
-    def _pull_records(js: dict[str, Any], spec: list | str) -> list:
+    def _pull_records(js: dict[str, Any], spec: list[str] | str) -> list[Any]:
         """
         Internal function to pull field for records, and similar to
         _pull_field, but require to return list. And will raise error
@@ -602,20 +621,23 @@ def json_normalize(
     _meta = [m if isinstance(m, list) else [m] for m in meta]
 
     # Disastrously inefficient for now
-    records: list = []
+    records: list[Any] = []
     lengths = []
 
     meta_vals = defaultdict(list)
     meta_keys = [sep.join(val) for val in _meta]
+    meta_levels = [_meta_level(val, record_path) for val in _meta]
 
     def _recursive_extract(data, path, seen_meta, level: int = 0) -> None:
         if isinstance(data, dict):
             data = [data]
         if len(path) > 1:
             for obj in data:
-                for val, key in zip(_meta, meta_keys, strict=True):
-                    if level + 1 == len(val):
-                        seen_meta[key] = _pull_field(obj, val[-1])
+                for val, key, meta_level in zip(
+                    _meta, meta_keys, meta_levels, strict=True
+                ):
+                    if level == meta_level:
+                        seen_meta[key] = _pull_field(obj, val[level:])
 
                 _recursive_extract(obj[path[0]], path[1:], seen_meta, level=level + 1)
         else:
@@ -630,11 +652,13 @@ def json_normalize(
 
                 # For repeating the metadata later
                 lengths.append(len(recs))
-                for val, key in zip(_meta, meta_keys, strict=True):
-                    if level + 1 > len(val):
-                        meta_val = seen_meta[key]
-                    else:
+                for val, key, meta_level in zip(
+                    _meta, meta_keys, meta_levels, strict=True
+                ):
+                    if level == meta_level:
                         meta_val = _pull_field(obj, val[level:])
+                    else:
+                        meta_val = seen_meta[key]
                     meta_vals[key].append(meta_val)
                 records.extend(recs)
 

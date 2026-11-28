@@ -197,7 +197,8 @@ class DataFrameDescriber(NDFrameDescriberAbstract):
             data = self.obj.select_dtypes(include=default_include)
             if len(data.columns) == 0:
                 data = self.obj
-        elif self.include == "all":
+        elif isinstance(self.include, str) and self.include == "all":
+            # isinstance guard so an array-like spec is not compared elementwise
             if self.exclude is not None:
                 msg = "exclude must be None when include is 'all'"
                 raise ValueError(msg)
@@ -267,6 +268,11 @@ def describe_numeric_1d(series: Series, percentiles: Sequence[float]) -> Series:
                 dtype = ArrowDtype(pa.float64())
         else:
             dtype = Float64Dtype()
+            try:
+                return Series(d, index=stat_index, name=series.name, dtype=dtype)
+            except (TypeError, ValueError):
+                # GH#61707 e.g. pint quantities, whose units block a float cast
+                dtype = None
     elif series.dtype.kind in "iufb":
         # i.e. numeric but exclude complex dtype
         dtype = np.dtype("float")
@@ -335,7 +341,7 @@ def describe_timestamp_1d(data: Series, percentiles: Sequence[float]) -> Series:
 
 def select_describe_func(
     data: Series,
-) -> Callable:
+) -> Callable[..., Series]:
     """Select proper function for describing series based on data type.
 
     Parameters

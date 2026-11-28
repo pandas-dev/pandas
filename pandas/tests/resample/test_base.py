@@ -544,3 +544,19 @@ def test_first_last_skipna(any_real_nullable_dtype, skipna, how):
     expected = getattr(gb, how)(skipna=skipna)
     expected.index.freq = "ME"
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("how", ["sum", "prod", "min", "max", "first", "last"])
+@pytest.mark.parametrize("periods", [0, 3])
+def test_negative_min_count_deprecated(how, periods):
+    # GH#50022; periods=0 covers the empty-index path, which skips groupby
+    ser = pd.Series(
+        [2.0, np.nan, 3.0][:periods],
+        index=date_range("2020-01-01", periods=periods, freq="D"),
+    )
+    rs = ser.resample("2D")
+    expected = getattr(rs, how)(min_count=0)
+    msg = "Passing a negative value for 'min_count' is deprecated"
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = getattr(rs, how)(min_count=-1)
+    tm.assert_series_equal(result, expected)

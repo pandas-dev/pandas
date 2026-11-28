@@ -42,7 +42,11 @@ class TestJoin:
         )
         s = df.iloc[:5, 0]
 
-        expected = df.columns.astype("O").join(s.index, how=join_type)
+        if join_type == "left":
+            # GH#63371 a left join keeps the left dtype
+            expected = df.columns
+        else:
+            expected = df.columns.astype("O").join(s.index, how=join_type)
         result = df.columns.join(s.index, how=join_type)
         tm.assert_index_equal(expected, result)
 
@@ -163,3 +167,17 @@ def test_join_date_objects_with_datetimeindex():
     with tm.assert_produces_warning(Pandas4Warning, match=msg):
         result = dti.join(date_idx, how="inner")
     tm.assert_index_equal(result, dti)
+
+
+def test_join_mixed_date_tzaware_timestamp():
+    # GH#68577 the target is not convertible to datetime64, so it is joined as
+    #  object instead of raising "Mixed timezones detected"
+    ts = pd.Timestamp("2016-01-01", tz="UTC")
+    dti = pd.DatetimeIndex([ts])
+    target = pd.Index([date(2016, 1, 1), ts], dtype=object)
+
+    result, lindexer, _ = dti.join(target, how="right", return_indexers=True)
+
+    tm.assert_index_equal(result, target)
+    # -1 because a date never matches a tz-aware Timestamp
+    tm.assert_numpy_array_equal(lindexer, np.array([-1, 0], dtype=np.intp))

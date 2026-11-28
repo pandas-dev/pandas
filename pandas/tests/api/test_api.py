@@ -4,8 +4,12 @@ import importlib
 import inspect
 import pathlib
 import pkgutil
+import subprocess
+import sys
 
 import pytest
+
+from pandas.errors import Pandas4Warning
 
 import pandas as pd
 import pandas._testing as tm
@@ -53,7 +57,7 @@ class TestPDApi(Base):
         "io",
         "tseries",
     ]
-    private_lib = ["compat", "core", "pandas", "util"]
+    private_lib = ["compat", "core", "util"]
 
     # misc
     misc = ["IndexSlice", "NaT", "NA"]
@@ -263,25 +267,25 @@ class TestApi(Base):
     ]
     allowed_typing = [
         "DataFrameGroupBy",
-        "DatetimeIndexResamplerGroupby",
+        "DatetimeIndexResamplerGroupBy",
         "Expanding",
-        "ExpandingGroupby",
+        "ExpandingGroupBy",
         "ExponentialMovingWindow",
-        "ExponentialMovingWindowGroupby",
+        "ExponentialMovingWindowGroupBy",
         "Expression",
         "FrozenList",
         "JsonReader",
         "NaTType",
         "NAType",
         "NoDefault",
-        "PeriodIndexResamplerGroupby",
+        "PeriodIndexResamplerGroupBy",
         "Resampler",
         "Rolling",
-        "RollingGroupby",
+        "RollingGroupBy",
         "SeriesGroupBy",
         "StataReader",
         "SASReader",
-        "TimedeltaIndexResamplerGroupby",
+        "TimedeltaIndexResamplerGroupBy",
         "TimeGrouper",
         "Window",
         "aliases",
@@ -341,6 +345,7 @@ class TestApi(Base):
         "VariableOffsetWindowIndexer",
     ]
     allowed_api_extensions = [
+        "Accessor",
         "no_default",
         "ExtensionDtype",
         "register_extension_dtype",
@@ -448,6 +453,36 @@ class TestApi(Base):
 
     def test_api_typing_aliases(self):
         self.check(api_aliases, self.allowed_api_aliases)
+
+    @pytest.mark.parametrize(
+        "old, new",
+        [
+            ("DatetimeIndexResamplerGroupby", "DatetimeIndexResamplerGroupBy"),
+            ("ExpandingGroupby", "ExpandingGroupBy"),
+            ("ExponentialMovingWindowGroupby", "ExponentialMovingWindowGroupBy"),
+            ("PeriodIndexResamplerGroupby", "PeriodIndexResamplerGroupBy"),
+            ("RollingGroupby", "RollingGroupBy"),
+            ("TimedeltaIndexResamplerGroupby", "TimedeltaIndexResamplerGroupBy"),
+        ],
+    )
+    def test_api_typing_deprecated_groupby_spelling(self, old, new):
+        # GH#49578
+        msg = f"pandas.api.typing.{old} is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            result = getattr(api_typing, old)
+        assert result is getattr(api_typing, new)
+
+    def test_api_typing_deprecated_groupby_spelling_import(self):
+        # GH#49578 the "from ... import" spelling goes through the same shim
+        msg = "pandas.api.typing.RollingGroupby is deprecated"
+        with tm.assert_produces_warning(Pandas4Warning, match=msg):
+            from pandas.api.typing import RollingGroupby
+
+        assert RollingGroupby is api_typing.RollingGroupBy
+
+    def test_api_typing_unknown_attribute(self):
+        with pytest.raises(AttributeError, match="has no attribute 'DoesNotExist'"):
+            api_typing.DoesNotExist
 
 
 class TestErrors(Base):
@@ -574,3 +609,70 @@ def test_attributes_module(module_name):
         except Exception:
             failures.append((module_name, name, type(obj), obj.__module__))
     assert len(failures) == 0, "\n".join(str(e) for e in failures)
+
+
+@pytest.mark.skipif(
+    sys.version_info < (3, 15), reason="PEP 810 lazy imports require Python 3.15+"
+)
+def test_lazy_imports():
+    # `import pandas` should not eagerly import the deferred I/O backends
+    code = (
+        "import pandas, sys; "
+        "assert 'pandas.io.excel' not in sys.modules; "
+        "assert 'pandas.testing' not in sys.modules"
+    )
+    subprocess.check_call([sys.executable, "-X", "lazy_imports=normal", "-c", code])
+
+
+@pytest.mark.skipif(
+    sys.version_info < (3, 15), reason="PEP 810 lazy imports require Python 3.15+"
+)
+def test_lazy_imports_read_csv():
+    # pd.read_csv must only load pandas.io.parsers, not sibling backends
+    code = (
+        "import pandas as pd, sys\n"
+        "from io import StringIO\n"
+        "pd.read_csv(StringIO('a,b\\n1,2'))\n"
+        "assert 'pandas.io.parsers' in sys.modules\n"
+        "import pandas.io.api\n"
+        "siblings = set(pandas.io.api.__lazy_modules__) - {'pandas.io.parsers'}\n"
+        "loaded = [m for m in siblings if m in sys.modules]\n"
+        "assert not loaded, f'unexpectedly loaded: {loaded}'\n"
+    )
+    result = subprocess.run(
+        [sys.executable, "-X", "lazy_imports=normal", "-c", code],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+
+
+@pytest.mark.skipif(
+    sys.version_info < (3, 15), reason="PEP 810 lazy imports require Python 3.15+"
+)
+def test_lazy_imports_io_namespace():
+    code = (
+        "import pandas as pd, sys\n"
+        # the whole derived set (backends + common) is advertised but none of it
+        # is imported by a plain `import pandas`
+        "names = pd.io._lazy_submodules()\n"
+        "assert names <= set(dir(pd.io))\n"
+        "assert not any(f'pandas.io.{n}' in sys.modules for n in names)\n"
+        "assert len(set(dir(pd.io))) == len(dir(pd.io))\n"
+        # common is deferred by core.frame / io.formats.format, not by io.api
+        "assert pd.io.common.get_handle is not None\n"
+        # accessing one reifies just that submodule, leaving the rest lazy
+        "_ = pd.io.stata\n"
+        "assert 'pandas.io.stata' in sys.modules\n"
+        "assert 'pandas.io.json' not in sys.modules\n"
+    )
+    result = subprocess.run(
+        [sys.executable, "-X", "lazy_imports=normal", "-c", code],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr

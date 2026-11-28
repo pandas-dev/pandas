@@ -12,7 +12,10 @@ import itertools
 import pprint
 import struct
 import sys
-from typing import TypeVar
+from typing import (
+    Any,
+    TypeVar,
+)
 
 import numpy as np
 
@@ -142,9 +145,9 @@ class Scope:
 
     __slots__ = ["level", "resolvers", "scope", "target", "temps"]
     level: int
-    scope: DeepChainMap
-    resolvers: DeepChainMap
-    temps: dict
+    scope: DeepChainMap[str, Any]
+    resolvers: DeepChainMap[str, Any]
+    temps: dict[str, Any]
 
     def __init__(
         self, level: int, global_dict=None, local_dict=None, resolvers=(), target=None
@@ -183,7 +186,9 @@ class Scope:
         # assumes that resolvers are going from outermost scope to inner
         if isinstance(local_dict, Scope):
             resolvers += tuple(local_dict.resolvers.maps)
-        self.resolvers = DeepChainMap(*resolvers)
+        # leading empty map so that swapkey does not write into the caller's
+        # resolvers, see GH#59062
+        self.resolvers = DeepChainMap({}, *resolvers)
         self.temps = {}
 
     def __repr__(self) -> str:
@@ -258,6 +263,9 @@ class Scope:
             Value to be replaced along with the possible renaming
         """
         if self.has_resolvers:
+            if old_key in self.resolvers:
+                self.resolvers.maps[0][new_key] = new_value
+                return
             maps = self.resolvers.maps + self.scope.maps
         else:
             maps = self.scope.maps
@@ -336,7 +344,7 @@ class Scope:
         return len(self.temps)
 
     @property
-    def full_scope(self) -> DeepChainMap:
+    def full_scope(self) -> DeepChainMap[str, Any]:
         """
         Return the full scope for use with passing to engines transparently
         as a mapping.

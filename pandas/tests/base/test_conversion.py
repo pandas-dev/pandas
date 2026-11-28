@@ -123,6 +123,120 @@ class TestToIterable:
         assert result in rdtype
 
     @pytest.mark.parametrize(
+        "dtype, value, python_type, numpy_type",
+        [
+            ("Int64", 1, int, np.int64),
+            ("UInt8", 1, int, np.uint8),
+            ("Float64", 1.5, float, np.float64),
+            ("Float32", 1.5, float, np.float32),
+            ("boolean", True, bool, np.bool_),
+            ("Sparse[int64]", 1, int, np.int64),
+            ("Sparse[float64]", 1.5, float, np.float64),
+            ("Sparse[bool]", True, bool, np.bool_),
+        ],
+    )
+    @pytest.mark.parametrize(
+        "method",
+        [
+            lambda x: list(x),
+            lambda x: [x.item()],
+            lambda x: [value for _, value in x.items()],
+            lambda x: [row[0] for row in x.to_frame().itertuples(index=False)],
+        ],
+        ids=["iter", "item", "items", "itertuples"],
+    )
+    def test_iterable_ea(
+        self, method, dtype, value, python_type, numpy_type, using_python_scalars
+    ):
+        # GH#64266
+        ser = pd.Series([value], dtype=dtype)
+        result = method(ser)[0]
+        assert result == value
+        expected_type = python_type if using_python_scalars else numpy_type
+        assert type(result) is expected_type
+
+    @pytest.mark.parametrize(
+        "dtype, value, python_type, numpy_type",
+        [
+            ("Int64", 1, int, np.int64),
+            ("Float64", 1.5, float, np.float64),
+            ("boolean", True, bool, np.bool_),
+            ("Sparse[int64]", 1, int, np.int64),
+        ],
+    )
+    @pytest.mark.parametrize(
+        "method",
+        [
+            lambda x: list(x),
+            lambda x: [x.item()],
+            lambda x: list(x.to_series(index=x).to_dict()),
+            lambda x: [key for key, _ in pd.DataFrame(columns=x).items()],
+            pytest.param(
+                lambda x: [key for key, _ in pd.DataFrame(index=x).iterrows()],
+                marks=pytest.mark.filterwarnings(
+                    "ignore:DataFrame.iterrows:pandas.errors.Pandas4Warning"
+                ),
+            ),
+            lambda x: [key for key, _ in pd.Series(0, index=x).groupby(level=0)],
+        ],
+        ids=["iter", "item", "to_dict", "frame_items", "iterrows", "groupby"],
+    )
+    def test_iterable_ea_index(
+        self, method, dtype, value, python_type, numpy_type, using_python_scalars
+    ):
+        # GH#64266
+        idx = pd.Index([value], dtype=dtype)
+        result = method(idx)[0]
+        assert result == value
+        expected_type = python_type if using_python_scalars else numpy_type
+        assert type(result) is expected_type
+
+    @pytest.mark.parametrize(
+        "dtype, data, python_type",
+        [
+            ("Sparse[int64]", [0, 1], int),
+            ("Sparse[float64]", [0.0, 1.5], float),
+            ("Sparse[bool]", [False, True], bool),
+            ("longdouble", [1.5, 2.5], float),
+            ("clongdouble", [1.5 + 1j, 2.5], complex),
+        ],
+    )
+    @pytest.mark.parametrize(
+        "method", [list, lambda x: x.tolist()], ids=["iter", "tolist"]
+    )
+    def test_iterable_python_scalars(
+        self, index_or_series, method, dtype, data, python_type, using_python_scalars
+    ):
+        # GH#64266
+        obj = index_or_series(data, dtype=dtype)
+        result = method(obj)
+        assert result == data
+        if using_python_scalars:
+            assert [type(x) for x in result] == [python_type] * len(data)
+
+    @pytest.mark.parametrize(
+        "values",
+        [
+            pd.to_datetime(["2020-01-01", None]),
+            pd.to_timedelta(["1D", None]),
+        ],
+    )
+    @pytest.mark.parametrize(
+        "method", [list, lambda x: x.tolist()], ids=["iter", "tolist"]
+    )
+    def test_iterable_sparse_datetimelike_nat(
+        self, index_or_series, method, values, using_python_scalars
+    ):
+        # GH#64266
+        obj = index_or_series(pd.arrays.SparseArray(values))
+        result = method(obj)
+        assert result[0] == values[0]
+        if using_python_scalars:
+            assert result[1] is pd.NaT
+        else:
+            assert isinstance(result[1], (np.datetime64, np.timedelta64))
+
+    @pytest.mark.parametrize(
         "method",
         [
             lambda x: x.tolist(),
@@ -298,6 +412,8 @@ def test_array_multiindex_raises():
             False,
         ),
         (pd.array([0, pd.NA], dtype="Int64"), np.array([0, np.nan]), False),
+        # GH#32989 no NAs -> numpy integer dtype, not object
+        (pd.array([0, 1], dtype="Int64"), np.array([0, 1], dtype=np.int64), True),
         (
             IntervalArray.from_breaks([0, 1, 2]),
             np.array([pd.Interval(0, 1), pd.Interval(1, 2)], dtype=object),

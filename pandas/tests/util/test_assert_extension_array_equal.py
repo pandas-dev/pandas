@@ -24,8 +24,8 @@ def test_assert_extension_array_equal_not_exact(kwargs):
 ExtensionArray are different
 
 ExtensionArray values are different \\(50\\.0 %\\)
-\\[left\\]:  \\[-0\\.173876.*, 0\\.341415.*\\]
-\\[right\\]: \\[-0\\.173876.*, 0\\.341415.*\\]"""
+\\[left\\]:  \\[-0\\.17387645482.*, 0\\.341414801642.*\\]
+\\[right\\]: \\[-0\\.17387645482.*, 0\\.341414801642.*\\]"""
 
         with pytest.raises(AssertionError, match=msg):
             tm.assert_extension_array_equal(arr1, arr2, **kwargs)
@@ -152,3 +152,18 @@ def test_assert_extension_array_equal_zero_dim_duck_array(check_exact):
     msg = "ExtensionArray are different"
     with pytest.raises(AssertionError, match=msg):
         tm.assert_extension_array_equal(left, right, check_exact=check_exact)
+
+
+def test_assert_extension_array_equal_large_mixed_integer_float():
+    # GH#66699 tolerances must be honored at full integer precision
+    left = pd.array([2**60 + 1], dtype="Int64")
+    right = pd.array([float(2**60)], dtype="Float64")
+
+    for first, second in [(left, right), (right, left)]:
+        with pytest.raises(AssertionError, match="ExtensionArray are different"):
+            tm.assert_extension_array_equal(
+                first, second, check_dtype=False, check_exact=False, rtol=0, atol=0.5
+            )
+        tm.assert_extension_array_equal(
+            first, second, check_dtype=False, check_exact=False, rtol=0, atol=1
+        )

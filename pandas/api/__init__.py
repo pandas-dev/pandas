@@ -5,6 +5,7 @@ from pandas.api import (
     extensions,
     indexers,
     interchange,
+    internals,
     types,
     typing,
 )
@@ -14,6 +15,7 @@ __all__ = [
     "extensions",
     "indexers",
     "interchange",
+    "internals",
     "types",
     "typing",
 ]

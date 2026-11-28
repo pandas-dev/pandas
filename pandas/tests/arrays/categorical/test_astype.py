@@ -159,3 +159,52 @@ class TestAstype:
         result = arr.astype("category")
         expected = pd.array([0, 1, 2], dtype="Int64").astype("category")
         tm.assert_extension_array_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "categories",
+    [
+        pd.Index([1, 2]),
+        pd.Index([True, False]),
+        pd.Index([1, 2], dtype="Int64"),
+        pd.date_range("2012", periods=2, tz="US/Eastern"),
+        pd.period_range("2012", periods=2, freq="D"),
+        pd.interval_range(0, 2),
+    ],
+)
+def test_to_dense_keeps_categories_dtype(categories):
+    # GH#26410
+    cat = pd.Categorical.from_codes([0, 1, 0], categories=categories)
+    result = cat.to_dense()
+    expected = categories._values.take([0, 1, 0])
+    tm.assert_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "categories, expected",
+    [
+        (pd.Index([1, 2]), np.array([1.0, np.nan])),
+        (pd.Index([True, False]), np.array([True, np.nan], dtype=object)),
+        (pd.Index([1, 2], dtype="Int64"), pd.array([1, None], dtype="Int64")),
+        (
+            pd.interval_range(0, 2),
+            pd.arrays.IntervalArray([pd.Interval(0.0, 1.0), np.nan]),
+        ),
+    ],
+)
+def test_to_dense_with_missing(categories, expected):
+    # GH#26410 upcast only when the categories' dtype cannot hold NA
+    cat = pd.Categorical.from_codes([0, -1], categories=categories)
+    result = cat.to_dense()
+    tm.assert_equal(result, expected)
+
+
+def test_to_dense_with_missing_arrow():
+    # GH#26410
+    pytest.importorskip("pyarrow")
+    cat = pd.Categorical.from_codes(
+        [0, -1], categories=pd.Index([1, 2], dtype="int64[pyarrow]")
+    )
+    result = cat.to_dense()
+    expected = pd.array([1, None], dtype="int64[pyarrow]")
+    tm.assert_extension_array_equal(result, expected)

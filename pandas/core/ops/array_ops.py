@@ -57,9 +57,13 @@ from pandas.core.construction import (
     ensure_wrapped_if_datetimelike,
     sanitize_array,
 )
+from pandas.core.nanops import warn_complex_unordered
 from pandas.core.ops import missing
 from pandas.core.ops.dispatch import should_extension_dispatch
-from pandas.core.ops.invalid import invalid_comparison
+from pandas.core.ops.invalid import (
+    disallow_datetimelike_logical_op,
+    invalid_comparison,
+)
 
 if TYPE_CHECKING:
     from pandas._typing import (
@@ -291,6 +295,54 @@ def arithmetic_op(left: ArrayLike, right: Any, op):
     return res_values
 
 
+def unary_op(values: ArrayLike, op):
+    """
+    Evaluate a unary operation `-`, `+`, or `abs`.
+
+    If the operator raises on object-dtype values, it is retried on the
+    non-missing entries and missing entries become NaN, as in arithmetic_op.
+
+    Parameters
+    ----------
+    values : np.ndarray or ExtensionArray
+    op : {operator.neg, operator.pos, operator.abs, np.abs}
+
+    Returns
+    -------
+    ndarray or ExtensionArray
+    """
+    try:
+        return op(values)
+    except TypeError:
+        if not (isinstance(values, np.ndarray) and values.dtype == object):
+            raise
+        # GH#42862
+        mask = notna(values)
+        result = np.full(values.shape, np.nan, dtype=object)
+        result[mask] = op(values[mask])
+        return result
+
+
+def maybe_warn_complex_ordering(lvalues, rvalues, op) -> None:
+    """
+    Warn on an ordering comparison of numpy data where either side is complex.
+
+    An ExtensionArray on the left is not checked here; NumpyExtensionArray,
+    SparseArray, and masked arrays warn from their own comparison methods.
+    An object operand already raises TypeError on complex.
+    """
+    if op not in {operator.lt, operator.le, operator.gt, operator.ge}:
+        return
+    if not isinstance(lvalues, np.ndarray) or lvalues.dtype.kind not in "biufc":
+        return
+    rkind = rvalues.dtype.kind if isinstance(rvalues, np.ndarray) else None
+    if rkind != "O" and (
+        lvalues.dtype.kind == "c" or rkind == "c" or lib.is_complex(rvalues)
+    ):
+        # GH#43770 complex has no natural ordering
+        warn_complex_unordered()
+
+
 def comparison_op(left: ArrayLike, right: Any, op) -> ArrayLike:
     """
     Evaluate a comparison operation `=`, `!=`, `>=`, `>`, `<=`, or `<`.
@@ -332,6 +384,8 @@ def comparison_op(left: ArrayLike, right: Any, op) -> ArrayLike:
             raise ValueError(
                 "Lengths must match to compare", lvalues.shape, rvalues.shape
             )
+
+    maybe_warn_complex_ordering(lvalues, rvalues, op)
 
     if should_extension_dispatch(lvalues, rvalues) or (
         (isinstance(rvalues, (Timedelta, BaseOffset, Timestamp)) or right is NaT)
@@ -447,6 +501,8 @@ def logical_op(left: ArrayLike, right: Any, op) -> ArrayLike:
     lvalues = ensure_wrapped_if_datetimelike(left)
     rvalues = right
 
+    disallow_datetimelike_logical_op(lvalues, rvalues, op)
+
     if should_extension_dispatch(lvalues, rvalues):
         # Call the method on lvalues
         res_values = op(lvalues, rvalues)
@@ -467,6 +523,21 @@ def logical_op(left: ArrayLike, right: Any, op) -> ArrayLike:
         #   integer dtypes.  Otherwise these are boolean ops
         if not (left.dtype.kind in "iu" and is_other_int_dtype):
             res_values = fill_bool(res_values)
+
+        if lvalues.dtype == object and (lmask := isna(lvalues)).any():
+            # GH#51267 NA on the left counts as False, as fill_bool does on the
+            #  right. Patch the result rather than filling lvalues, which would
+            #  expose e.g. `False & 1.5` to op and raise.
+            if isinstance(rvalues, np.ndarray):
+                # pair elements as na_logical_op did: one-to-one or by broadcasting
+                other = rvalues
+                if other.size != lvalues.size:
+                    shape = np.broadcast_shapes(lvalues.shape, other.shape)
+                    other = np.broadcast_to(other, shape)
+                other = other.reshape(lvalues.shape)[lmask]
+                res_values[lmask] = op(False, other.astype(bool))
+            elif not isna(rvalues):
+                res_values[lmask] = op(False, bool(rvalues))
 
     return res_values
 

@@ -908,3 +908,32 @@ def test_int64_min_with_na_explicit_nullable_dtype(all_parsers):
     )
     expected = pd.DataFrame({"A": [-9223372036854775808, None, 1]}, dtype="Int64")
     tm.assert_frame_equal(result, expected)
+
+
+@skip_pyarrow  # object-dtype NA reads back as None, not NaN
+@pytest.mark.parametrize(
+    "na_values, data, expected_values",
+    [
+        # share the first byte and length with a default NA spelling but not
+        # the second byte: "-nan" vs "-1.5", "1.#IND" vs "1.2345"
+        (None, "-1.5\n-nan\n1.2345\n1.#IND\n", [-1.5, np.nan, 1.2345, np.nan]),
+        # share the first two bytes and the length with an NA spelling
+        (["-1.#IND"], "-1.2345\n-1.#IND\n", [-1.2345, np.nan]),
+        # single-byte NA spelling
+        (["x"], "x\nxx\n1\n", [np.nan, "xx", "1"]),
+        # spellings at and beyond the 63-byte length bucket
+        (
+            ["a" * 63, "b" * 70],
+            "\n".join(["a" * 63, "a" * 64, "b" * 70, "b" * 63, "c" * 70]) + "\n",
+            [np.nan, "a" * 64, np.nan, "b" * 63, "c" * 70],
+        ),
+    ],
+)
+def test_na_values_prefilter_edge_cases(all_parsers, na_values, data, expected_values):
+    # the C engine screens tokens against na_values by first byte and length,
+    # then compares the packed first 8 bytes; each case shares part of that
+    # signature with a spelling without being one
+    parser = all_parsers
+    result = parser.read_csv(StringIO("col\n" + data), na_values=na_values)
+    expected = pd.DataFrame({"col": expected_values})
+    tm.assert_frame_equal(result, expected)

@@ -11,7 +11,6 @@ from numpy in the following ways:
        pandas convention is to return [-inf, nan, inf] for all dtype
        combinations.
 
-
     2) np.array([-1, 0, 1], dtype=dtype1) % np.array([0, 0, 0], dtype=dtype2)
        gives precisely the same results as the // operation.
 
@@ -166,7 +165,7 @@ def dispatch_fill_zeros(op, left, right, result):
         #  we want.
         result = mask_zero_div_zero(left, right, result)
     elif op is roperator.rfloordiv:
-        # Note: no need to do this for rtruediv; numpy behaves the wayS
+        # Note: no need to do this for rtruediv; numpy behaves the way
         #  we want.
         result = mask_zero_div_zero(right, left, result)
     elif op is operator.mod:

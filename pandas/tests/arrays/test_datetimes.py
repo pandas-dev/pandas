@@ -7,10 +7,12 @@ from __future__ import annotations
 from datetime import timedelta
 import operator
 
+from dateutil.tz import tzlocal
 import numpy as np
 import pytest
 
 from pandas._libs.tslibs import tz_compare
+from pandas.compat import is_platform_windows
 from pandas.compat.numpy import (
     is_numpy_dev,
     np_version_gt2_5,
@@ -62,6 +64,11 @@ class TestNonNano:
         return dta
 
     def test_non_nano(self, unit, dtype):
+        if isinstance(getattr(dtype, "tz", None), tzlocal) and is_platform_windows():
+            pytest.skip(
+                "GH#37659 OSError raised within tzlocal bc Windows "
+                "chokes in times before 1970-01-01"
+            )
         arr = np.arange(5, dtype=np.int64).view(f"M8[{unit}]")
         dta = DatetimeArray._simple_new(arr, dtype=dtype)
 
@@ -203,6 +210,19 @@ class TestNonNano:
         dta, dti = dta_dti
 
         assert repr(dta) == repr(dti._data).replace("[ns", f"[{unit}")
+
+    def test_repr_tz_outside_pydatetime_range(self):
+        # GH#68009 the sum was right, but its repr raised NotImplementedError
+        dta = pd.array([0, 86400], dtype="M8[s, Europe/Brussels]")
+
+        result = dta + np.timedelta64(10**13, "s")
+
+        expected = (
+            "<DatetimeArray>\n"
+            "['318857-05-20 19:46:40+02:00', '318857-05-21 19:46:40+02:00']\n"
+            "Length: 2, dtype: datetime64[s, Europe/Brussels]"
+        )
+        assert repr(result) == expected
 
     # TODO: tests with td64
     def test_compare_mismatched_resolutions(self, comparison_op):

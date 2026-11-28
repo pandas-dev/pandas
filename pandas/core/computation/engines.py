@@ -13,6 +13,7 @@ from pandas.core.computation.align import (
     align_terms,
     reconstruct_object,
 )
+from pandas.core.computation.expressions import normalize_numexpr_result
 from pandas.core.computation.ops import (
     MATHOPS,
     REDUCTIONS,
@@ -120,7 +121,7 @@ class NumExprEngine(AbstractEngine):
         env = self.expr.env
         scope = env.full_scope
         _check_ne_builtin_clash(self.expr)
-        return ne.evaluate(s, local_dict=scope)
+        return normalize_numexpr_result(ne.evaluate(s, local_dict=scope))
 
 
 class PythonEngine(AbstractEngine):

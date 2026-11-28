@@ -5,22 +5,34 @@ these tests out of this module as soon as the Python parser can accept
 further arguments when parsing.
 """
 
+import bz2
+import codecs
 from decimal import Decimal
+import gzip
 from io import (
     BytesIO,
     StringIO,
     TextIOWrapper,
 )
+import lzma
 import mmap
+import re
 import tarfile
+import tracemalloc
+from typing import Any
 
 import numpy as np
 import pytest
 
-from pandas._libs import parsers as libparsers
+from pandas._libs import (
+    lib,
+    parsers as libparsers,
+)
+from pandas._libs.hashtable import get_hashtable_trace_domain
 from pandas.compat import WASM
 from pandas.errors import (
     DtypeWarning,
+    EmptyDataError,
     Pandas4Warning,
     ParserError,
     ParserWarning,
@@ -29,6 +41,8 @@ import pandas.util._test_decorators as td
 
 import pandas as pd
 import pandas._testing as tm
+
+from pandas.io.parsers.c_parser_wrapper import CParserWrapper
 
 
 @pytest.mark.parametrize(
@@ -264,6 +278,23 @@ def test_custom_lineterminator(c_parser_only):
 
     result = parser.read_csv(StringIO(data), lineterminator="~")
     expected = parser.read_csv(StringIO(data.replace("~", "\n")))
+
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("key", ["sep", "delimiter"])
+@pytest.mark.parametrize(
+    "sep, term", [("\n", "~"), ("\r", "~"), ("\n", "\r"), ("\r", "\n")]
+)
+def test_line_break_as_separator_with_custom_lineterminator(
+    key, sep, term, c_parser_only
+):
+    # GH#51801 a custom lineterminator frees up "\n"/"\r" as a separator
+    parser = c_parser_only
+    data = f"a{sep}b{sep}c{term}1{sep}2{sep}3{term}4{sep}5{sep}6"
+
+    result = parser.read_csv(StringIO(data), lineterminator=term, **{key: sep})
+    expected = parser.read_csv(StringIO(data.replace(sep, ",").replace(term, "\n")))
 
     tm.assert_frame_equal(result, expected)
 
@@ -585,6 +616,57 @@ def test_chunk_whitespace_on_boundary(c_parser_only):
     tm.assert_frame_equal(result, expected)
 
 
+@pytest.mark.parametrize(
+    "line, expected",
+    [(" b", [" b"]), ("  b", ["  b"]), ("\tb", ["\tb"]), ("  ", [])],
+)
+def test_leading_whitespace_split_at_chunk_boundary(c_parser_only, line, expected):
+    # GH#34085: the line's first blank is the last byte of the first chunk
+    parser = c_parser_only
+    first = "a" * (1024 * 256 - 2)
+    data = first + "\n" + line + "\nc\n"
+    result = parser.read_csv(StringIO(data), header=None)
+
+    tm.assert_frame_equal(result, pd.DataFrame([first, *expected, "c"]))
+
+
+@pytest.mark.parametrize(
+    "data, kwargs, expected",
+    [
+        ("x,y\n a ,b\n", {"quotechar": " "}, [["x", "y"], ["a", "b"]]),
+        ("x,y\n\t\t,b\n", {"escapechar": "\t"}, [["x", "y"], ["\t", "b"]]),
+        ("x,y\n \t\t,b\n", {"escapechar": "\t"}, [["x", "y"], [" \t", "b"]]),
+        # not skipped as blank, matching engine="python"
+        ("x\n \t\nc\n", {"escapechar": "\t"}, [["x"], [" \nc"]]),
+        (
+            "x,y\n  \ta,b\t,c\n",
+            {"quotechar": "\t", "skipinitialspace": True},
+            [["x", "y"], ["a,b", "c"]],
+        ),
+    ],
+)
+def test_line_starting_with_blank_quotechar_or_escapechar(
+    c_parser_only, data, kwargs, expected
+):
+    # GH#34085: a blank quotechar or escapechar keeps its meaning at line start
+    parser = c_parser_only
+    result = parser.read_csv(StringIO(data), header=None, dtype=str, **kwargs)
+
+    tm.assert_frame_equal(result, pd.DataFrame(expected, dtype="str"))
+
+
+@pytest.mark.parametrize(
+    "data, kwargs",
+    [("x\n  \r\nc\n", {}), ("x\n  \rc\n", {}), ("x\n  #z\nc\n", {"comment": "#"})],
+)
+def test_skipped_line_leading_blanks_not_kept(c_parser_only, data, kwargs):
+    # GH#34085: blanks held while probing a skipped line must not reach the next
+    parser = c_parser_only
+    result = parser.read_csv(StringIO(data), **kwargs)
+
+    tm.assert_frame_equal(result, pd.DataFrame({"x": ["c"]}))
+
+
 @pytest.mark.skipif(WASM, reason="limited file system access on WASM")
 def test_file_handles_mmap(c_parser_only, csv1):
     # gh-14418
@@ -768,6 +850,9 @@ def test_invalid_utf8_raises(c_parser_only):
         parser.read_csv(data)
 
 
+@pytest.mark.filterwarnings(
+    "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+)
 def test_string_storage_python_consistent(c_parser_only):
     # GH#65283: the pyarrow string fast path must not produce an
     # ArrowStringArray when mode.string_storage="python"
@@ -786,8 +871,7 @@ def test_string_storage_python_consistent(c_parser_only):
 @pytest.mark.parametrize("lineterm", ["\n", "\r\n"])
 def test_block_lane_blank_and_whitespace_lines(c_parser_only, lineterm):
     # The SIMD block fast lane defers lines led by blanks (or entirely
-    # blank) to the state machine; a no-progress lane exit must preserve
-    # the post-WHITESPACE_LINE state instead of ping-ponging (GH#66274).
+    # blank) to the state machine (GH#66274).
     parser = c_parser_only
     rows = []
     for i in range(200):
@@ -975,6 +1059,9 @@ def test_low_memory_string_chunks_combined(c_parser_only, monkeypatch, tail):
 
 
 @pytest.mark.parametrize("kwargs", [{}, {"dtype_backend": "pyarrow"}])
+@pytest.mark.filterwarnings(
+    "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+)
 def test_pyarrow_string_fast_path_mutable(kwargs):
     # GH#66619: the fast path builds its result without going through the
     # ExtensionArray constructor, so it must set every attribute the
@@ -997,6 +1084,9 @@ def test_pyarrow_string_fast_path_mutable(kwargs):
 
 
 @pytest.mark.parametrize("kwargs", [{}, {"dtype_backend": "pyarrow"}])
+@pytest.mark.filterwarnings(
+    "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+)
 def test_pyarrow_string_fast_path_attrs_match_constructor(kwargs):
     # GH#66619: the fast path sets the instance attributes itself instead of
     # calling __init__, so it has to track whatever set the constructor
@@ -1013,6 +1103,9 @@ def test_pyarrow_string_fast_path_attrs_match_constructor(kwargs):
     assert vars(arr).keys() == vars(expected).keys()
 
 
+@pytest.mark.filterwarnings(
+    "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+)
 def test_pyarrow_string_iterator_dtype_stable_across_chunks():
     # GH#66619: a reader resolves its pyarrow target once, when it converts its
     # first string column, so every chunk of one read gets the same dtype even
@@ -1031,6 +1124,9 @@ def test_pyarrow_string_iterator_dtype_stable_across_chunks():
 
 
 @pytest.mark.parametrize("kwargs", [{}, {"dtype_backend": "pyarrow"}])
+@pytest.mark.filterwarnings(
+    "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+)
 def test_pyarrow_string_fast_path_token_width_tiers(kwargs):
     # GH#66756: the fast path copies a short token at a compile-time-constant
     # 16 or 32 bytes and lets the copy overshoot into buffer slack, so a token
@@ -1060,6 +1156,9 @@ def test_pyarrow_string_fast_path_token_width_tiers(kwargs):
 
 
 @pytest.mark.parametrize("kwargs", [{}, {"dtype_backend": "pyarrow"}])
+@pytest.mark.filterwarnings(
+    "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+)
 def test_pyarrow_string_fast_path_column_outgrows_size_estimate(kwargs):
     # GH#66756: the fast path sizes its data buffer from the column's leading
     # tokens and grows it mid-pass when that estimate falls short, re-copying
@@ -1080,6 +1179,147 @@ def test_pyarrow_string_fast_path_column_outgrows_size_estimate(kwargs):
     )
     assert result["a"].dtype == expected_dtype
     assert result["a"].tolist() == values
+
+
+@pytest.mark.filterwarnings(
+    "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+)
+@pytest.mark.parametrize("kwargs", [{}, {"dtype_backend": "pyarrow"}])
+@pytest.mark.parametrize("low_memory", [True, False])
+def test_pyarrow_string_fast_path_batched_columns(kwargs, low_memory):
+    # GH#68379: string columns are converted together in one sweep, so this
+    # mixes what each still handles on its own within it: per-column na_values,
+    # an NA-free column (validity buffer dropped, unlike its neighbours'),
+    # non-ASCII bytes, a numeric column between them, a short row and usecols.
+    pa = pytest.importorskip("pyarrow")
+    data = (
+        "a,b,c,d,e\n"
+        "foo,1,café,x,skip\n"
+        "bar,2,naïve,y,skip\n"
+        "present,3,\n"
+        "baz,4,zzz,,skip\n"
+    )
+    with pd.option_context(
+        "future.infer_string", True, "mode.string_storage", "pyarrow"
+    ):
+        result = pd.read_csv(
+            StringIO(data),
+            engine="c",
+            low_memory=low_memory,
+            usecols=["a", "b", "c", "d"],
+            na_values={"c": ["zzz"], "d": ["y"]},
+            **kwargs,
+        )
+        if kwargs:
+            str_dtype = pd.ArrowDtype(pa.string())
+            int_dtype = "int64[pyarrow]"
+        else:
+            str_dtype = pd.StringDtype("pyarrow", na_value=np.nan)
+            int_dtype = "int64"
+        # inside the context so the columns Index dtype matches the result's
+        expected = pd.DataFrame(
+            {
+                "a": ["foo", "bar", "present", "baz"],
+                "b": [1, 2, 3, 4],
+                "c": ["café", "naïve", None, None],
+                "d": ["x", None, None, None],
+            }
+        ).astype({"a": str_dtype, "b": int_dtype, "c": str_dtype, "d": str_dtype})
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.filterwarnings(
+    "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+)
+@pytest.mark.parametrize("kwargs", [{}, {"dtype_backend": "pyarrow"}])
+@pytest.mark.parametrize("chunksize", [None, 10])
+def test_pyarrow_string_fast_path_batches_columns_together(chunksize, kwargs):
+    # GH#68379: the batched sweep and the per-column path produce identical
+    # output, so nothing else here notices if the queue in _convert_column_data
+    # stops being wired up and every column silently goes back to its own pass.
+    # The chunked read also pins that the queue is re-armed for every chunk.
+    pytest.importorskip("pyarrow")
+    data = "a,b,c,d\n" + "".join(f"p{num},q{num},{num},r{num}\n" for num in range(50))
+    with pd.option_context(
+        "future.infer_string", True, "mode.string_storage", "pyarrow"
+    ):
+        reader = pd.read_csv(
+            StringIO(data), engine="c", iterator=True, chunksize=chunksize, **kwargs
+        )
+        with reader:
+            for _ in reader if chunksize else [reader.read()]:
+                pass
+            # the three string columns, converted in one sweep; "c" is numeric
+            assert reader._engine._reader._largest_str_batch == 3
+
+
+@pytest.mark.filterwarnings(
+    "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+)
+@pytest.mark.parametrize("kwargs", [{}, {"dtype_backend": "pyarrow"}])
+def test_pyarrow_string_fast_path_batch_spans_row_blocks(kwargs):
+    # GH#68379: the sweep fills every queued column a block of rows at a time,
+    # carrying each column's buffer pointer, capacity and running byte count
+    # across blocks.  Here "b" outgrows its size estimate mid-sweep while two
+    # other columns are interleaved with it, so a pointer left stale by the
+    # grow, or a count reloaded from the wrong column, corrupts a neighbour
+    # rather than itself.
+    pa = pytest.importorskip("pyarrow")
+    lead = [f"n{num}" for num in range(500)]
+    # first rows far narrower than the rest, so the estimate falls short
+    grows = ["s"] * 20 + [f"{num:x}" * 400 for num in range(20, 500)]
+    trail = [f"t{num}" for num in range(500)]
+    rows = zip(lead, grows, trail, strict=True)
+    data = "a,b,c\n" + "".join(f"{one},{two},{three}\n" for one, two, three in rows)
+    with pd.option_context(
+        "future.infer_string", True, "mode.string_storage", "pyarrow"
+    ):
+        result = pd.read_csv(StringIO(data), engine="c", low_memory=False, **kwargs)
+    expected_dtype = (
+        pd.ArrowDtype(pa.string())
+        if kwargs
+        else pd.StringDtype("pyarrow", na_value=np.nan)
+    )
+    assert list(result.dtypes) == [expected_dtype] * 3
+    assert result["a"].tolist() == lead
+    assert result["b"].tolist() == grows
+    assert result["c"].tolist() == trail
+
+
+@pytest.mark.filterwarnings(
+    "ignore:The 'future.infer_string' option:pandas.errors.Pandas4Warning"
+)
+@pytest.mark.parametrize("kwargs", [{}, {"dtype_backend": "pyarrow"}])
+def test_pyarrow_string_fast_path_batch_mixed_na_filter(kwargs):
+    # GH#68379: "b" reaches the string path from the uint64-overflow fallback,
+    # which passes na_filter=0, so it is queued alongside "a" and "c" with no
+    # validity buffer where theirs have one -- the case where a column's state
+    # leaking across the sweep would dereference NULL rather than corrupt data.
+    pa = pytest.importorskip("pyarrow")
+    data = "a,b,c\nfoo,-1,zzz\nNA,18446744073709551615,qq\nbar,NA,\n"
+    with pd.option_context(
+        "future.infer_string", True, "mode.string_storage", "pyarrow"
+    ):
+        reader = pd.read_csv(StringIO(data), engine="c", iterator=True, **kwargs)
+        with reader:
+            result = reader.read()
+            # all three, so the na_filter=0 column really is in the batch
+            assert reader._engine._reader._largest_str_batch == 3
+        str_dtype = (
+            pd.ArrowDtype(pa.string())
+            if kwargs
+            else pd.StringDtype("pyarrow", na_value=np.nan)
+        )
+        # inside the context so the columns Index dtype matches the result's
+        expected = pd.DataFrame(
+            {
+                "a": ["foo", None, "bar"],
+                # na_filter is off here, so this column's own "NA" stays literal
+                "b": ["-1", "18446744073709551615", "NA"],
+                "c": ["zzz", "qq", None],
+            }
+        ).astype(str_dtype)
+    tm.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize("kwargs", [{}, {"dtype_backend": "pyarrow"}])
@@ -1495,9 +1735,48 @@ def test_exhausted_reader_keeps_raising_stop_iteration(c_parser_only):
             next(reader)
 
 
+@pytest.mark.parametrize("dtype", [None, "category"])
+def test_decode_failure_frees_string_table(c_parser_only, dtype):
+    # GH#67931
+    # the string columns are interned through a khash table that was freed only
+    # on the success path, so a decode failure part-way through a column leaked
+    # the whole table -- ~100 KiB per failed parse here, so ~5 MiB over the loop
+    parser = c_parser_only
+    rows = "\n".join(f"s{i}" for i in range(2000)).encode()
+    data = b"a\n" + rows + b"\n\xff\n"
+
+    def read():
+        with pytest.raises(UnicodeDecodeError):
+            parser.read_csv(BytesIO(data), dtype=dtype, encoding_errors="strict")
+
+    # measure only the khash domain, so unrelated allocations cannot mask or
+    # fake the leak
+    khash_only = (tracemalloc.DomainFilter(True, get_hashtable_trace_domain()),)
+
+    tracemalloc.start()
+    try:
+        # warm up, so first-call caching lands outside the measured window
+        read()
+        before = tracemalloc.take_snapshot().filter_traces(khash_only)
+        for _ in range(50):
+            read()
+        after = tracemalloc.take_snapshot().filter_traces(khash_only)
+    finally:
+        tracemalloc.stop()
+
+    assert sum(stat.size_diff for stat in after.compare_to(before, "filename")) == 0
+
+
 # small enough that DEFAULT_BUFFER_HEURISTIC // table_width leaves one line per
 # buffer, so the rows below land in separate low_memory chunks
 _MIXED_DTYPE_HEURISTIC = 2**3
+
+
+class _UnseekableStringIO(StringIO):
+    # a mixed column from a source that cannot be re-read keeps the warning,
+    # see GH#68706
+    def seekable(self) -> bool:
+        return False
 
 
 def _mixed_dtype_data(n_leading_names: int = 3) -> str:
@@ -1529,7 +1808,7 @@ def test_mixed_dtype_warning_with_usecols(c_parser_only, monkeypatch, usecols):
                 DtypeWarning,
                 r"Columns \(1: b\) have mixed types\. "
                 "Specify dtype option on import or set low_memory=False.",
-                StringIO(data),
+                _UnseekableStringIO(data),
                 usecols=usecols,
             )
         else:
@@ -1553,7 +1832,7 @@ def test_mixed_dtype_warning_with_index_col(c_parser_only, monkeypatch):
                 DtypeWarning,
                 r"Columns \(1: b\) have mixed types\. "
                 "Specify dtype option on import or set low_memory=False.",
-                StringIO(data),
+                _UnseekableStringIO(data),
                 index_col=0,
             )
         else:
@@ -1578,7 +1857,7 @@ def test_mixed_dtype_warning_with_implicit_index(c_parser_only, monkeypatch):
                 DtypeWarning,
                 r"Columns \(1: a\) have mixed types\. "
                 "Specify dtype option on import or set low_memory=False.",
-                StringIO(data),
+                _UnseekableStringIO(data),
             )
         else:
             result = parser.read_csv(StringIO(data))
@@ -1602,7 +1881,7 @@ def test_mixed_dtype_warning_reports_source_positions(c_parser_only, monkeypatch
                 DtypeWarning,
                 r"Columns \(1: b, 3: d\) have mixed types\. "
                 "Specify dtype option on import or set low_memory=False.",
-                StringIO(data),
+                _UnseekableStringIO(data),
             )
         else:
             result = parser.read_csv(StringIO(data))
@@ -1626,10 +1905,461 @@ def test_mixed_dtype_warning_with_mixed_implicit_index(c_parser_only, monkeypatc
                 DtypeWarning,
                 r"Columns \(0\) have mixed types\. "
                 "Specify dtype option on import or set low_memory=False.",
-                StringIO(data),
+                _UnseekableStringIO(data),
             )
         else:
             result = parser.read_csv(StringIO(data))
 
     assert result.columns.tolist() == ["a", "b", "c"]
     assert result.index.name is None
+
+
+@pytest.mark.parametrize(
+    "n_leading_names, kwargs",
+    [
+        (3, {}),
+        (3, {"usecols": ["b"]}),
+        (3, {"usecols": [1, 2]}),
+        (3, {"index_col": 0}),
+        (2, {}),
+    ],
+)
+def test_low_memory_mixed_chunks_match_whole_read(monkeypatch, n_leading_names, kwargs):
+    # GH#68706: a column whose chunks infer int64 and str is re-read, giving
+    # what low_memory=False gives rather than an object column mixing 7 and "7"
+    data = _mixed_dtype_data(n_leading_names)
+    with monkeypatch.context() as m:
+        m.setattr(libparsers, "DEFAULT_BUFFER_HEURISTIC", _MIXED_DTYPE_HEURISTIC)
+        with tm.assert_produces_warning(None):
+            result = pd.read_csv(StringIO(data), low_memory=True, **kwargs)
+        expected = pd.read_csv(StringIO(data), low_memory=False, **kwargs)
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("dtype_backend", [lib.no_default, "numpy_nullable", "pyarrow"])
+def test_low_memory_int64_uint64_chunks(monkeypatch, dtype_backend):
+    # GH#68706: chunks inferring int64 and uint64 concatenated to float64,
+    # rounding values beyond 2**53 (and raising under pyarrow)
+    if dtype_backend == "pyarrow":
+        pytest.importorskip("pyarrow")
+    rows = [f"{i},{i},{i}" for i in range(_MIXED_DTYPE_HEURISTIC - 1)]
+    big = [f"7,{2**64 - 1},7", f"8,{2**64 - 2},8"]
+    data = "a,b,c\n" + "\n".join([*rows, *big, *rows]) + "\n"
+    with monkeypatch.context() as m:
+        m.setattr(libparsers, "DEFAULT_BUFFER_HEURISTIC", _MIXED_DTYPE_HEURISTIC)
+        result = pd.read_csv(StringIO(data), dtype_backend=dtype_backend)
+        expected = pd.read_csv(
+            StringIO(data), dtype_backend=dtype_backend, low_memory=False
+        )
+    tm.assert_frame_equal(result, expected)
+    assert result["b"].iloc[len(rows)] == 2**64 - 1
+
+
+@pytest.mark.filterwarnings("ignore:Columns:pandas.errors.DtypeWarning")
+def test_low_memory_all_na_chunk_not_reread(monkeypatch):
+    # GH#68706: an all-NA chunk next to text chunks already concatenates to what
+    # one pass gives, so re-reading the file for it would only cost memory
+    data = "a,b\n" + "".join(f"{i},{'x' if i >= 12 else ''}\n" for i in range(24))
+    rereads = []
+    original = CParserWrapper._reread_diverged
+
+    def spy(self, chunks, nrows):
+        result = original(self, chunks, nrows)
+        rereads.append(sorted(result))
+        return result
+
+    with monkeypatch.context() as m:
+        m.setattr(libparsers, "DEFAULT_BUFFER_HEURISTIC", _MIXED_DTYPE_HEURISTIC)
+        m.setattr(CParserWrapper, "_reread_diverged", spy)
+        result = pd.read_csv(StringIO(data))
+        expected = pd.read_csv(StringIO(data), low_memory=False)
+    assert rereads == [[]]
+    tm.assert_frame_equal(result, expected)
+
+
+def test_low_memory_datetime_unit_chunks(monkeypatch):
+    # GH#68706: a microsecond chunk beyond the nanosecond bounds, then a
+    # nanosecond chunk, raised OutOfBoundsDatetime on concatenation
+    rows = ["3000-01-01 00:00:00.000001"] * _MIXED_DTYPE_HEURISTIC
+    data = "a,b\n" + "".join(f"{val},1\n" for val in rows)
+    data += "2000-01-01 00:00:00.000000001,1\n"
+    kwargs = {"parse_dates": ["a"], "date_format": "ISO8601"}
+    with monkeypatch.context() as m:
+        m.setattr(libparsers, "DEFAULT_BUFFER_HEURISTIC", _MIXED_DTYPE_HEURISTIC)
+        result = pd.read_csv(StringIO(data), **kwargs)
+        expected = pd.read_csv(StringIO(data), low_memory=False, **kwargs)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_low_memory_reread_starts_at_handle_position(monkeypatch):
+    # GH#68706: the re-read replays the source from where this read began,
+    # not from the start of a handle the caller had already advanced
+    data = _mixed_dtype_data()
+    buf = StringIO("preamble\n" + data)
+    buf.readline()
+    with monkeypatch.context() as m:
+        m.setattr(libparsers, "DEFAULT_BUFFER_HEURISTIC", _MIXED_DTYPE_HEURISTIC)
+        result = pd.read_csv(buf)
+        expected = pd.read_csv(StringIO(data), low_memory=False)
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("make_buffer", [StringIO, lambda data: BytesIO(data.encode())])
+def test_low_memory_reread_sep_none(monkeypatch, make_buffer):
+    # GH#68706: sep=None reads through a handle that replays the sniffed lines;
+    # the re-read has to replay the source underneath it
+    data = _mixed_dtype_data()
+    with monkeypatch.context() as m:
+        m.setattr(libparsers, "DEFAULT_BUFFER_HEURISTIC", _MIXED_DTYPE_HEURISTIC)
+        with tm.assert_produces_warning(None):
+            result = pd.read_csv(make_buffer(data), sep=None)
+        expected = pd.read_csv(StringIO(data), low_memory=False)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_low_memory_callable_skiprows_not_reread(monkeypatch):
+    # GH#68706: a callable skiprows may skip different rows on a second pass,
+    # e.g. random sampling, so the re-read would misalign the column
+    calls = []
+
+    def skip_odd_calls(row):
+        calls.append(row)
+        return row > 0 and len(calls) % 2 == 0
+
+    data = _mixed_dtype_data()
+    with monkeypatch.context() as m:
+        m.setattr(libparsers, "DEFAULT_BUFFER_HEURISTIC", _MIXED_DTYPE_HEURISTIC)
+        with tm.assert_produces_warning(DtypeWarning, match="mixed types"):
+            result = pd.read_csv(StringIO(data), skiprows=skip_odd_calls)
+    rows = result[result["b"].astype(str).str.isdigit()]
+    assert (rows["a"].astype(str) == rows["b"].astype(str)).all()
+
+
+def test_low_memory_reread_source_grew(monkeypatch):
+    # GH#68706: a source that changed between the two passes keeps the first
+    # pass's columns rather than raising on the length mismatch
+    class GrowingStringIO(StringIO):
+        grown = False
+
+        def seek(self, *args):
+            if not self.grown:
+                self.grown = True
+                pos = self.tell()
+                super().seek(0, 2)
+                self.write("99,99,99\n")
+                super().seek(pos)
+            return super().seek(*args)
+
+    data = _mixed_dtype_data()
+    with monkeypatch.context() as m:
+        m.setattr(libparsers, "DEFAULT_BUFFER_HEURISTIC", _MIXED_DTYPE_HEURISTIC)
+        with tm.assert_produces_warning(DtypeWarning, match="mixed types"):
+            result = pd.read_csv(GrowingStringIO(data))
+    assert len(result) == len(data.splitlines()) - 1
+
+
+def test_low_memory_later_chunk_not_reread(monkeypatch):
+    # GH#68706: only the first chunk of an iterating read starts where the
+    # source does, so a later chunk replaying it would take the wrong rows
+    col_b = ["x" if i == 23 else str(i) for i in range(40)]
+    data = "a,b\n" + "\n".join(f"{i},{b}" for i, b in enumerate(col_b)) + "\n"
+    with monkeypatch.context() as m:
+        m.setattr(libparsers, "DEFAULT_BUFFER_HEURISTIC", _MIXED_DTYPE_HEURISTIC)
+        with pd.read_csv(StringIO(data), chunksize=20) as reader:
+            next(reader)
+            with tm.assert_produces_warning(DtypeWarning, match="mixed types"):
+                result = next(reader)
+    assert result["b"].astype(str).tolist() == col_b[20:]
+
+
+@pytest.mark.parametrize(
+    "header, bad_after",
+    # with a multi-row header, the reader tokenizes rows while it is constructed
+    [(0, "8,y,8\n"), ([0, 1], "2,2,2\n")],
+)
+def test_low_memory_reread_warns_once(monkeypatch, header, bad_after):
+    # GH#68706: the re-read replays rows the first pass already warned about
+    data = _mixed_dtype_data().replace(bad_after, bad_after + "9,9,9,9\n", 1)
+    with monkeypatch.context() as m:
+        m.setattr(libparsers, "DEFAULT_BUFFER_HEURISTIC", _MIXED_DTYPE_HEURISTIC)
+        with tm.assert_produces_warning(ParserWarning, match="Skipping line") as w:
+            result = pd.read_csv(StringIO(data), header=header, on_bad_lines="warn")
+    assert len(w) == 1
+    expected = pd.read_csv(
+        StringIO(data), header=header, low_memory=False, on_bad_lines="skip"
+    )
+    tm.assert_frame_equal(result, expected)
+
+
+def test_low_memory_reread_iterating_read_resumes(monkeypatch):
+    # GH#68706: re-reading the first chunk of an iterating read must leave the
+    # handle where the reader left it.  The non-ASCII text, over the reader's
+    # read size, makes the bytes wrapper around StringIO hold decoded bytes
+    # that its position does not count.
+    nrows = 20_000
+    col_b = ["x" if i in (3, 4) else str(i) for i in range(nrows)]
+    text = "\u00e9" * 7
+    rows = [f"{i},{col_b[i]},{text}" for i in range(nrows)]
+    data = "a,b,c\n" + "\n".join(rows) + "\n"
+    with monkeypatch.context() as m:
+        m.setattr(libparsers, "DEFAULT_BUFFER_HEURISTIC", _MIXED_DTYPE_HEURISTIC)
+        with pd.read_csv(StringIO(data), chunksize=10) as reader:
+            result = pd.concat(reader)
+        with pd.read_csv(StringIO(data), chunksize=10, low_memory=False) as reader:
+            expected = pd.concat(reader)
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("compression", ["gzip", "bz2", "xz"])
+@pytest.mark.parametrize("encoding", [None, "latin-1"])
+def test_low_memory_reread_compressed_path(
+    monkeypatch, temp_file, compression, encoding
+):
+    # GH#68706: a decompressor that opened the file itself can rewind it
+    data = _mixed_dtype_data()
+    pd.read_csv(StringIO(data), dtype=str).to_csv(
+        temp_file, index=False, compression=compression
+    )
+    with monkeypatch.context() as m:
+        m.setattr(libparsers, "DEFAULT_BUFFER_HEURISTIC", _MIXED_DTYPE_HEURISTIC)
+        with tm.assert_produces_warning(None):
+            result = pd.read_csv(temp_file, compression=compression, encoding=encoding)
+        expected = pd.read_csv(StringIO(data), low_memory=False)
+    tm.assert_frame_equal(result, expected)
+
+
+def test_low_memory_codecs_reader_not_reread(monkeypatch):
+    # GH#68706: seeking a codecs reader drops the text it has decoded ahead, so
+    # a re-read would lose rows from the next chunk of an iterating read
+    nrows = 20_000
+    col_b = ["x" if i in (3, 4) else str(i) for i in range(nrows)]
+    text = "é" * 7
+    data = "a,b,c\n" + "".join(f"{i},{col_b[i]},{text}\n" for i in range(nrows))
+    handle = codecs.getreader("utf-8")(BytesIO(data.encode()))
+    with monkeypatch.context() as m:
+        m.setattr(libparsers, "DEFAULT_BUFFER_HEURISTIC", _MIXED_DTYPE_HEURISTIC)
+        with tm.assert_produces_warning(DtypeWarning, match="mixed types"):
+            with pd.read_csv(handle, chunksize=10) as reader:
+                result = pd.concat(reader)
+    assert result["a"].tolist() == list(range(nrows))
+    assert result["b"].astype(str).tolist() == col_b
+
+
+class _ReadOnlyStream:
+    # a duck-typed source with no seek, tell or seekable
+    def __init__(self, data: bytes) -> None:
+        self._buf = BytesIO(data)
+
+    def read(self, size: int = -1) -> bytes:
+        return self._buf.read(size)
+
+
+def _after_preamble(payload: bytes) -> BytesIO:
+    buf = BytesIO(b"preamble\n" + payload)
+    buf.readline()
+    return buf
+
+
+def _streaming_tar_member(data: bytes) -> Any:
+    buf = BytesIO()
+    with tarfile.open(fileobj=buf, mode="w:gz") as archive:
+        info = tarfile.TarInfo("data.csv")
+        info.size = len(data)
+        archive.addfile(info, BytesIO(data))
+    buf.seek(0)
+    archive = tarfile.open(fileobj=buf, mode="r|gz")
+    member = archive.next()
+    assert member is not None
+    return archive.extractfile(member)
+
+
+@pytest.mark.parametrize(
+    "make_source, compression, encoding",
+    [
+        # rewinding would decompress the preamble
+        (lambda data: _after_preamble(gzip.compress(data)), "gzip", None),
+        (lambda data: _after_preamble(bz2.compress(data)), "bz2", None),
+        (lambda data: _after_preamble(lzma.compress(data)), "xz", None),
+        # a non-UTF-8 encoding wraps the decompressor in a TextIOWrapper
+        (lambda data: _after_preamble(gzip.compress(data)), "gzip", "latin-1"),
+        (lambda data: _after_preamble(bz2.compress(data)), "bz2", "latin-1"),
+        (lambda data: _after_preamble(lzma.compress(data)), "xz", "latin-1"),
+        (lambda data: _ReadOnlyStream(gzip.compress(data)), "gzip", None),
+        (lambda data: _ReadOnlyStream(gzip.compress(data)), "gzip", "latin-1"),
+        (lambda data: _ReadOnlyStream(bz2.compress(data)), "bz2", None),
+        (_streaming_tar_member, None, None),
+    ],
+)
+@pytest.mark.parametrize("chunksize", [None, 30])
+def test_low_memory_compressed_stream_not_reread(
+    monkeypatch, make_source, compression, chunksize, encoding
+):
+    # GH#68706: a decompressor over a caller's stream cannot rewind to where its
+    # data starts, so its diverged columns are concatenated as before
+    nrows = 41
+    values = ["1"] * nrows
+    values[20] = str(2**63 + 5)
+    data = ("a\n" + "\n".join(values) + "\n").encode()
+    source = make_source(data)
+    with monkeypatch.context() as m:
+        m.setattr(libparsers, "DEFAULT_BUFFER_HEURISTIC", _MIXED_DTYPE_HEURISTIC)
+        if chunksize is None:
+            result = pd.read_csv(source, compression=compression, encoding=encoding)
+        else:
+            with pd.read_csv(
+                source, compression=compression, encoding=encoding, chunksize=chunksize
+            ) as reader:
+                result = pd.concat(reader)
+    assert len(result) == nrows
+    assert result["a"].iloc[-1] == 1
+
+
+@pytest.mark.parametrize(
+    "data, kwargs, dtype, offender",
+    [
+        (
+            "a;b\na;1,20\nb;22,3\nc;1.234,56\n",
+            {"decimal": ","},
+            "float64",
+            "1.234,56",
+        ),
+        (
+            "a;b\na;1,000\nb;x\n",
+            {"thousands": ","},
+            "int64",
+            "x",
+        ),
+        (
+            # GH#41117
+            "a;b\na;1.234\nb;1,234.00\nc;:\n",
+            {"thousands": ","},
+            "float64",
+            ":",
+        ),
+        (
+            # overflowing-but-valid token before the offender
+            "a;b\na;18446744073709551615\nb;x\n",
+            {},
+            "int64",
+            "x",
+        ),
+    ],
+)
+def test_unparseable_dtype_names_offending_value(
+    c_parser_only, data, kwargs, dtype, offender
+):
+    # GH#59299 name the value the parser rejected, not an earlier valid one
+    parser = c_parser_only
+
+    with pytest.raises(ValueError, match=re.escape(repr(offender))):
+        parser.read_csv(StringIO(data), sep=";", dtype={"b": dtype}, **kwargs)
+
+
+_SNIFF_EXPECTED = pd.DataFrame(
+    {"A": [1, 3], "B": [2, 4]}, index=pd.Index(["foo", "bar"], name="index")
+)
+
+
+@pytest.mark.parametrize("as_bytes", [True, False])
+@pytest.mark.parametrize(
+    "data,kwargs",
+    [
+        ("index|A|B\nfoo|1|2\nbar|3|4\n", {}),
+        ("index|A|B\r\nfoo|1|2\r\nbar|3|4\r\n", {}),
+        ("\nindex|A|B\nfoo|1|2\nbar|3|4\n", {}),
+        ("#a,b\nindex|A|B#c,d\n#e\nfoo|1|2\nbar|3|4\n", {"comment": "#"}),
+        ("a,b\nc,d\nindex|A|B\nfoo|1|2\nbar|3|4\n", {"skiprows": 2}),
+        ("a,b\nindex|A|B\nfoo|1|2\nbar|3|4\n", {"skiprows": lambda x: x == 0}),
+    ],
+)
+def test_sniff_delimiter(c_parser_only, data, kwargs, as_bytes):
+    # GH#9645 sniff from the first row not skipped, blank or commented
+    parser = c_parser_only
+    buf = BytesIO(data.encode()) if as_bytes else StringIO(data)
+    result = parser.read_csv(buf, sep=None, index_col=0, **kwargs)
+    tm.assert_frame_equal(result, _SNIFF_EXPECTED)
+
+
+@pytest.mark.parametrize("chunk_size", [1, 2, 4])
+def test_sniff_delimiter_small_reads(c_parser_only, monkeypatch, chunk_size):
+    # GH#9645 lines, including "\r\n", split across the reads made while sniffing
+    monkeypatch.setattr("pandas.io.parsers.readers._SNIFF_CHUNK_SIZE", chunk_size)
+    parser = c_parser_only
+    data = "a,b\r\nc,d\r\nindex|A|B\r\nfoo|1|2\r\nbar|3|4\r\n"
+    result = parser.read_csv(BytesIO(data.encode()), sep=None, index_col=0, skiprows=2)
+    tm.assert_frame_equal(result, _SNIFF_EXPECTED)
+
+
+def test_sniff_delimiter_mid_stream(c_parser_only):
+    # GH#9645 parsing starts where the handle was, not at the start
+    parser = c_parser_only
+    buf = BytesIO(b"junk\nindex|A|B\nfoo|1|2\nbar|3|4\n")
+    buf.readline()
+    result = parser.read_csv(buf, sep=None, index_col=0)
+    tm.assert_frame_equal(result, _SNIFF_EXPECTED)
+
+
+def test_sniff_delimiter_chunksize(c_parser_only):
+    # GH#9645
+    parser = c_parser_only
+    data = "index|A|B\nfoo|1|2\nbar|3|4\n"
+    with parser.read_csv(StringIO(data), sep=None, index_col=0, chunksize=1) as reader:
+        result = pd.concat(reader)
+    tm.assert_frame_equal(result, _SNIFF_EXPECTED)
+
+
+@pytest.mark.parametrize("key", ["sep", "delimiter"])
+def test_sniff_delimiter_default_engine(key):
+    # GH#9645 the default engine sniffs rather than falling back to python
+    with tm.assert_produces_warning(None):
+        result = pd.read_csv(StringIO("a;b\n1;2\n"), **{key: None})
+    expected = pd.DataFrame({"a": [1], "b": [2]})
+    tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("data", ["", "a,b\n", "#a,b\n"])
+def test_sniff_delimiter_no_rows(c_parser_only, data):
+    # GH#9645
+    parser = c_parser_only
+    with pytest.raises(EmptyDataError, match="No columns to parse from file"):
+        parser.read_csv(StringIO(data), sep=None, skiprows=1, comment="#")
+
+
+def test_sniff_delimiter_multibyte(c_parser_only):
+    # GH#9645 the c engine only supports single-byte separators
+    parser = c_parser_only
+    data = '"a"\u00a7"b"\n"1"\u00a7"2"\n'
+    msg = "sep=None detected the separator '\u00a7'"
+    with pytest.raises(ValueError, match=msg):
+        parser.read_csv(StringIO(data), sep=None)
+
+
+def test_sniff_delimiter_lone_surrogate(c_parser_only):
+    # GH#9645
+    parser = c_parser_only
+    data = b'"a"\x80"b"\n"1"\x80"2"\n'
+    msg = r"sep=None detected the separator '\\udc80'"
+    with pytest.raises(ValueError, match=msg):
+        parser.read_csv(
+            BytesIO(data),
+            sep=None,
+            encoding="ascii",
+            encoding_errors="surrogateescape",
+        )
+
+
+@pytest.mark.parametrize(
+    "data, kwargs, last",
+    [
+        ("x,y\r1,2\r\r,b\r", {}, "b"),
+        ("x,y\r1,2\r\r, b\r", {}, " b"),
+        ("x,y\r1,2\r# note\r,b\r", {"comment": "#"}, "b"),
+        ("x,y\r1,2\r9,9\r,b\r", {"skiprows": [2]}, "b"),
+    ],
+)
+def test_bare_cr_then_leading_delimiter(c_parser_only, data, kwargs, last):
+    # GH#71409 a line starting with the delimiter after a skipped line ending
+    # in a bare CR lost its empty first field
+    result = c_parser_only.read_csv(StringIO(data), **kwargs)
+    expected = pd.DataFrame({"x": [1.0, np.nan], "y": ["2", last]})
+    tm.assert_frame_equal(result, expected)

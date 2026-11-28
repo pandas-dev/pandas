@@ -3,7 +3,10 @@ The tests in this package are to ensure the proper resultant dtypes of
 set operations.
 """
 
-from datetime import datetime
+from datetime import (
+    date,
+    datetime,
+)
 import operator
 
 import numpy as np
@@ -12,6 +15,7 @@ import pytest
 from pandas._config import using_string_dtype
 
 from pandas._libs import lib
+from pandas.errors import Pandas4Warning
 import pandas.util._test_decorators as td
 
 from pandas.core.dtypes.cast import find_common_type
@@ -206,11 +210,6 @@ class TestSetOps:
             result = first.intersection(case)
             assert equal_contents(result, second)
 
-        if isinstance(index, pd.MultiIndex):
-            msg = "other must be a MultiIndex or a list of tuples"
-            with pytest.raises(TypeError, match=msg):
-                first.intersection([1, 2, 3])
-
     def test_union_base(self, index_sortable):
         index = index_sortable.unique()
         first = index[3:]
@@ -231,11 +230,6 @@ class TestSetOps:
             result = first.union(case)
             assert equal_contents(result, everything)
 
-        if isinstance(index, pd.MultiIndex):
-            msg = "other must be a MultiIndex or a list of tuples"
-            with pytest.raises(TypeError, match=msg):
-                first.union([1, 2, 3])
-
     def test_difference_base(self, sort, index):
         first = index[2:]
         second = index[:4]
@@ -255,11 +249,6 @@ class TestSetOps:
         for case in cases:
             result = first.difference(case, sort)
             assert equal_contents(result, answer)
-
-        if isinstance(index, pd.MultiIndex):
-            msg = "other must be a MultiIndex or a list of tuples"
-            with pytest.raises(TypeError, match=msg):
-                first.difference([1, 2, 3], sort)
 
     def test_symmetric_difference(self, index_sortable, using_infer_string, request):
         index = index_sortable
@@ -289,11 +278,6 @@ class TestSetOps:
         for case in cases:
             result = first.symmetric_difference(case)
             assert equal_contents(result, answer)
-
-        if isinstance(index, pd.MultiIndex):
-            msg = "other must be a MultiIndex or a list of tuples"
-            with pytest.raises(TypeError, match=msg):
-                first.symmetric_difference([1, 2, 3])
 
     @pytest.mark.parametrize(
         "fname, sname, expected_name",
@@ -589,6 +573,15 @@ def test_union_nan_in_both(dup):
     b = pd.Index([np.nan, dup, 1, 2])
     result = a.union(b, sort=False)
     expected = pd.Index([np.nan, dup, 1.0, 2.0, 2.0])
+    tm.assert_index_equal(result, expected)
+
+
+def test_union_object_nan_sorted_last():
+    # GH#70216
+    left = pd.Index([3, np.nan], dtype=object)
+    right = pd.Index([1, 2], dtype=object)
+    result = left.union(right)
+    expected = pd.Index([1, 2, 3, np.nan], dtype=object)
     tm.assert_index_equal(result, expected)
 
 
@@ -1041,3 +1034,162 @@ def test_union_disjoint_monotonic_sorted():
     result_false = idx1.union(idx2, sort=False)
     expected_false = pd.Index([5, 6, 7, 1, 2, 3])
     tm.assert_index_equal(result_false, expected_false)
+
+
+@td.skip_if_no("pyarrow")
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        "int64[pyarrow]",
+        "uint32[pyarrow]",
+        "int32[pyarrow]",
+        "float64[pyarrow]",
+        "float32[pyarrow]",
+        "timestamp[ns][pyarrow]",
+        "duration[ns][pyarrow]",
+    ],
+)
+def test_intersection_arrow_duplicates(dtype):
+    # GH#66498
+    left = pd.Index([1, 1, 2, 2, 3, 3, 4], dtype=dtype)
+    right = pd.Index([2, 2, 3, 4, 4, 5], dtype=dtype)
+
+    result = left.intersection(right)
+    expected = pd.Index([2, 3, 4], dtype=dtype)
+    tm.assert_index_equal(result, expected)
+
+
+@td.skip_if_no("pyarrow")
+@pytest.mark.parametrize(
+    "dtype, right",
+    [
+        ("uint64[pyarrow]", [1, 2]),
+        ("bool[pyarrow]", [1]),
+        ("timestamp[us, tz=Asia/Tokyo][pyarrow]", [1, 2]),
+        ("duration[s][pyarrow]", [1, 2]),
+    ],
+)
+def test_setops_arrow_monotonic(dtype, right):
+    # GH#72267
+    left = pd.Index([0, 1], dtype="int64[pyarrow]").astype(dtype)
+    union = pd.Index(sorted({0, 1, *right}), dtype="int64[pyarrow]").astype(dtype)
+    right = pd.Index(right, dtype="int64[pyarrow]").astype(dtype)
+
+    tm.assert_index_equal(left.union(right), union)
+    tm.assert_index_equal(left.intersection(right), right[:1])
+    tm.assert_index_equal(left.join(right, how="outer"), union)
+
+
+@td.skip_if_no("pyarrow")
+def test_intersection_arrow_chunked():
+    # GH#66498
+    left = pd.Index([1, 2, 2], dtype="int64[pyarrow]").append(
+        pd.Index([2, 3], dtype="int64[pyarrow]")
+    )
+    assert left._values._pa_array.num_chunks == 2
+
+    result = left.intersection(pd.Index([2, 3], dtype="int64[pyarrow]"))
+
+    expected = pd.Index([2, 3], dtype="int64[pyarrow]")
+    tm.assert_index_equal(result, expected)
+
+
+@td.skip_if_no("pyarrow")
+def test_intersection_arrow_lossy_join_target():
+    # GH#66498 the join target truncates time64[ns] to microseconds, so the
+    # merge output would be [2000, 3000]
+    left = pd.Index([1001, 1001, 2002, 3003], dtype="time64[ns][pyarrow]")
+    right = pd.Index([2002, 3003, 4004], dtype="time64[ns][pyarrow]")
+
+    result = left.intersection(right)
+
+    expected = pd.Index([2002, 3003], dtype="time64[ns][pyarrow]")
+    tm.assert_index_equal(result, expected)
+
+
+def test_intersection_arrow_dictionary_no_run_end_kernel():
+    # GH#66498 dictionary has no run-end kernel
+    pa = pytest.importorskip("pyarrow")
+
+    dtype = pd.ArrowDtype(pa.dictionary(pa.int32(), pa.string()))
+    left = pd.Index(["a", "a", "b", "c"], dtype=dtype)
+    right = pd.Index(["b", "c", "d"], dtype=dtype)
+
+    result = left.intersection(right)
+
+    assert result.tolist() == ["b", "c"]
+    assert result.dtype == left.dtype
+
+
+@td.skip_if_no("pyarrow")
+@pytest.mark.parametrize("dtype", ["float64[pyarrow]", "float32[pyarrow]"])
+@pytest.mark.parametrize(
+    "left_values",
+    [
+        [-0.0, 0.0, 1.0],
+        [0.0, -0.0, 0.0],
+        [-0.0, 0.0, -0.0, 0.0],
+        [0.0, -0.0, 0.0, -0.0, 1.0],
+    ],
+)
+def test_intersection_arrow_signed_zero(dtype, left_values):
+    # GH#66498 -0.0 and 0.0 are sorted but need not be adjacent
+    left = pd.Index(left_values, dtype=dtype)
+    assert left.is_monotonic_increasing
+    right = pd.Index([0.0, -0.0, 1.0], dtype=dtype)
+
+    result = left.intersection(right)
+
+    assert set(result.tolist()) == set(left_values)
+    # no repeats, with -0.0 and 0.0 distinct
+    signs = np.signbit(np.asarray(result.astype("float64"))).tolist()
+    pairs = list(zip(result.tolist(), signs, strict=True))
+    assert len(set(pairs)) == len(pairs)
+
+
+@pytest.mark.parametrize(
+    "index",
+    [
+        pd.period_range("2022-01", periods=5, freq="M"),
+        pd.date_range("2022-01-01", periods=5),
+        pd.timedelta_range("1 day", periods=5),
+    ],
+    ids=lambda x: str(x.dtype),
+)
+def test_difference_datetimelike_vs_parsable_strings(index, sort):
+    # GH#58971 a string that parses to one of our values is still a distinct
+    #  element, as it already is for union/intersection/isin
+    other = pd.Index([str(value) for value in index[1:3]])
+
+    result = index.difference(other, sort=sort)
+    tm.assert_index_equal(result, index)
+
+    result = other.difference(index, sort=sort)
+    tm.assert_index_equal(result, other)
+
+
+def test_difference_interval_vs_contained_scalars(sort):
+    # GH#58971 a scalar inside an interval is not an element of the IntervalIndex
+    index = pd.IntervalIndex.from_breaks([0, 1, 2, 3])
+    other = pd.Index([0.5, 2.0, 3.0], dtype=object)
+
+    result = index.difference(other, sort=sort)
+    tm.assert_index_equal(result, index)
+
+    result = other.difference(index, sort=sort)
+    tm.assert_index_equal(result, other)
+
+
+def test_difference_date_objects_vs_datetimeindex_deprecated():
+    # GH#62158 date objects still match Timestamps until the deprecation is enforced
+    dti = pd.date_range("2022-01-01", periods=3)
+    dates = pd.Index([date(2022, 1, 1), date(2022, 1, 2)], dtype=object)
+    msg = "datetime.date"
+
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = dates.difference(dti)
+    tm.assert_index_equal(result, dates[:0])
+
+    with tm.assert_produces_warning(Pandas4Warning, match=msg):
+        result = dti.difference(dates)
+    tm.assert_index_equal(result, dti[2:])

@@ -168,9 +168,12 @@ def to_clipboard(
         excel = True
 
     if excel:
-        try:
-            if sep is None:
-                sep = "\t"
+        if sep is None:
+            sep = "\t"
+
+        # Validate sep here rather than catching to_csv's TypeError, which would
+        # also blame sep for unrelated failures such as a bad keyword (GH#44120)
+        if isinstance(sep, str) and len(sep) == 1:
             buf = StringIO()
 
             # clipboard_set (pyperclip) expects unicode
@@ -179,11 +182,11 @@ def to_clipboard(
 
             clipboard_set(text)
             return
-        except TypeError:
-            warnings.warn(
-                "to_clipboard in excel mode requires a single character separator.",
-                stacklevel=find_stack_level(),
-            )
+
+        warnings.warn(
+            "to_clipboard in excel mode requires a single character separator.",
+            stacklevel=find_stack_level(),
+        )
     elif sep is not None:
         warnings.warn(
             "to_clipboard with excel=False ignores the sep argument.",

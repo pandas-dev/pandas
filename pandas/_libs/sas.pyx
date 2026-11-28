@@ -322,6 +322,7 @@ cdef:
 
     int c_page_type_offset = const.page_type_offset
     int c_page_type_mask2 = const.page_type_mask2
+    int c_page_deleted_rows_flag = const.page_deleted_rows_flag
     int c_block_count_offset = const.block_count_offset
     int c_subheader_count_offset = const.subheader_count_offset
     int c_truncated_subheader_id = const.truncated_subheader_id
@@ -507,7 +508,7 @@ def collect_page_subheaders(parser):
             count += 1
         else:
             processor = processors[subheader_index]
-            processor(<int>subheader_offset, <int>subheader_length)
+            processor(parser, <int>subheader_offset, <int>subheader_length)
             # _process_columntext_subheader can turn compression on partway
             # through a page, so re-read it rather than hoisting once.
             compressed = bool(parser.compression)
@@ -558,6 +559,12 @@ cdef class Parser:
         # would take a count no page can hold, never reach it, and hand out the
         # rest of the page as rows.
         int mix_page_row_count
+        # Offset into the current page of the bitmap marking its deleted rows,
+        # or -1 if the page has none.
+        Py_ssize_t deleted_map_offset
+        int deleted_pointer_offset
+        int64_t row_count
+        int64_t deleted_row_count
         int current_page_block_count
         int n_data_subheaders
         int current_page_subheaders_count
@@ -618,6 +625,8 @@ cdef class Parser:
         self.mix_page_row_count = min(parser.row_count, parser._mix_page_row_count)
         self.bit_offset = self.parser._page_bit_offset
         self.subheader_pointer_length = self.parser._subheader_pointer_length
+        self.deleted_pointer_offset = self.parser._page_deleted_pointer_offset
+        self.row_count = parser.row_count
         self.is_little_endian = parser.byte_order == "<"
         self.need_byteswap = parser.need_byteswap
         self.column_types = np.empty(self.column_count, dtype="int64")
@@ -651,6 +660,7 @@ cdef class Parser:
         self.current_row_in_chunk_index = parser._current_row_in_chunk_index
         self.current_row_in_file_index = parser._current_row_in_file_index
         self.current_row_on_page_index = parser._current_row_on_page_index
+        self.deleted_row_count = parser._deleted_row_count
 
     def __dealloc__(self):
         cdef Py_ssize_t js
@@ -696,6 +706,7 @@ cdef class Parser:
         self.parser._current_row_on_page_index = self.current_row_on_page_index
         self.parser._current_row_in_chunk_index = self.current_row_in_chunk_index
         self.parser._current_row_in_file_index = self.current_row_in_file_index
+        self.parser._deleted_row_count = self.deleted_row_count
 
     cdef uint16_t read_uint16(self, int offset):
         cdef uint16_t val = 0
@@ -705,21 +716,73 @@ cdef class Parser:
             val = ((val >> 8) | (val << 8)) & 0xFFFF
         return val
 
+    cdef uint32_t read_uint32(self, int offset):
+        cdef uint32_t val = 0
+        assert offset + 4 <= self.cached_page_len, "Out of bounds read"
+        memcpy(&val, &self.cached_page[offset], sizeof(uint32_t))
+        if self.need_byteswap:
+            val = bswap32(val)
+        return val
+
     cdef void _parse_page_header(self):
+        cdef:
+            uint16_t raw_page_type
+            Py_ssize_t rows_start
+
         # Read page header fields directly from the cached page buffer in C.
         self.cached_page = <uint8_t *>self.parser._cached_page
         self.cached_page_len = len(self.parser._cached_page)
         self.current_row_on_page_index = 0
-        self.current_page_type = (
-            self.read_uint16(c_page_type_offset + self.bit_offset)
-            & c_page_type_mask2
-        )
+        raw_page_type = self.read_uint16(c_page_type_offset + self.bit_offset)
+        self.current_page_type = raw_page_type & c_page_type_mask2
         self.current_page_block_count = self.read_uint16(
             c_block_count_offset + self.bit_offset
         )
         self.current_page_subheaders_count = self.read_uint16(
             c_subheader_count_offset + self.bit_offset
         )
+
+        self.deleted_map_offset = -1
+        if raw_page_type & c_page_deleted_rows_flag and (
+            self.current_page_type == page_data_type
+            or self.current_page_type == page_mix_type
+        ):
+            # The bitmap follows the page's rows, at a distance stored in the
+            # page header; one bit per row, most significant bit first.
+            rows_start = (
+                self.bit_offset
+                + subheader_pointers_offset
+                + self.current_page_subheaders_count * self.subheader_pointer_length
+            )
+            # same alignment as the mix page rows read in readline
+            rows_start += rows_start % 8
+            self.deleted_map_offset = (
+                rows_start
+                + (self.current_page_block_count - self.current_page_subheaders_count)
+                * self.row_length
+                + self.read_uint32(self.deleted_pointer_offset)
+            )
+
+    cdef bint row_is_deleted(self) except? True:
+        cdef Py_ssize_t pos
+        if self.deleted_map_offset < 0:
+            return False
+        pos = self.deleted_map_offset + self.current_row_on_page_index // 8
+        assert 0 <= pos < self.cached_page_len, "Out of bounds read"
+        return (self.cached_page[pos] >> (7 - self.current_row_on_page_index % 8)) & 1
+
+    cdef bint skip_deleted_row(self, int page_row_count) except? True:
+        # Like the end of process_byte_array_with_data, but the row takes no
+        # slot in the chunk.
+        self.current_row_on_page_index += 1
+        self.current_row_in_file_index += 1
+        self.deleted_row_count += 1
+        if self.current_row_in_file_index >= self.row_count:
+            # row_count includes deleted rows, so nothing past it is data
+            return True
+        if self.current_row_on_page_index == page_row_count:
+            return self.read_next_page()
+        return False
 
     cdef bint read_next_page(self) except? True:
         cdef bint done
@@ -794,6 +857,10 @@ cdef class Parser:
                 self.process_byte_array_with_data(offset, length)
                 return False
             elif self.current_page_type == page_mix_type:
+                if self.row_is_deleted():
+                    if self.skip_deleted_row(self.mix_page_row_count):
+                        return True
+                    continue
                 align_correction = (
                     bit_offset
                     + subheader_pointers_offset
@@ -811,6 +878,10 @@ cdef class Parser:
                         return True
                 return False
             elif self.current_page_type == page_data_type:
+                if self.row_is_deleted():
+                    if self.skip_deleted_row(self.current_page_block_count):
+                        return True
+                    continue
                 self.process_byte_array_with_data(
                     bit_offset
                     + subheader_pointers_offset

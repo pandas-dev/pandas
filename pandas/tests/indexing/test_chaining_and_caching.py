@@ -39,8 +39,8 @@ class TestCaching:
         # loop through df to update out
         six = pd.Timestamp("5/7/2014")
         eix = pd.Timestamp("5/9/2014")
-        for ix, row in df.iterrows():
-            out.loc[six:eix, row["C"]] = out.loc[six:eix, row["C"]] + row["D"]
+        for row in df.itertuples():
+            out.loc[six:eix, row.C] = out.loc[six:eix, row.C] + row.D
 
         tm.assert_frame_equal(out, expected)
         tm.assert_series_equal(out["A"], expected["A"])
@@ -51,10 +51,10 @@ class TestCaching:
             {"A": [0, 0, 0]}, index=pd.date_range("5/7/2014", "5/9/2014")
         )
         out_original = out.copy()
-        for ix, row in df.iterrows():
-            v = out[row["C"]][six:eix] + row["D"]
+        for row in df.itertuples():
+            v = out[row.C][six:eix] + row.D
             with tm.raises_chained_assignment_error():
-                out[row["C"]][six:eix] = v
+                out[row.C][six:eix] = v
 
         tm.assert_frame_equal(out, out_original)
         tm.assert_series_equal(out["A"], out_original["A"])
@@ -62,8 +62,8 @@ class TestCaching:
         out = pd.DataFrame(
             {"A": [0, 0, 0]}, index=pd.date_range("5/7/2014", "5/9/2014")
         )
-        for ix, row in df.iterrows():
-            out.loc[six:eix, row["C"]] += row["D"]
+        for row in df.itertuples():
+            out.loc[six:eix, row.C] += row.D
 
         tm.assert_frame_equal(out, expected)
         tm.assert_series_equal(out["A"], expected["A"])
@@ -111,18 +111,15 @@ class TestChaining:
 
     @pytest.mark.arm_slow
     def test_detect_chained_assignment(self):
-        with pd.option_context("chained_assignment", "raise"):
-            # work with the chain
-            df = pd.DataFrame(
-                np.arange(4).reshape(2, 2), columns=list("AB"), dtype="int64"
-            )
-            df_original = df.copy()
+        # work with the chain
+        df = pd.DataFrame(np.arange(4).reshape(2, 2), columns=list("AB"), dtype="int64")
+        df_original = df.copy()
 
-            with tm.raises_chained_assignment_error():
-                df["A"][0] = -5
-            with tm.raises_chained_assignment_error():
-                df["A"][1] = -6
-            tm.assert_frame_equal(df, df_original)
+        with tm.raises_chained_assignment_error():
+            df["A"][0] = -5
+        with tm.raises_chained_assignment_error():
+            df["A"][1] = -6
+        tm.assert_frame_equal(df, df_original)
 
     @pytest.mark.arm_slow
     def test_detect_chained_assignment_raises(self):
@@ -335,22 +332,21 @@ class TestChaining:
 
     def test_iloc_setitem_chained_assignment(self):
         # GH#3970
-        with pd.option_context("chained_assignment", None):
-            df = pd.DataFrame({"aa": range(5), "bb": [2.2] * 5})
-            df["cc"] = 0.0
+        df = pd.DataFrame({"aa": range(5), "bb": [2.2] * 5})
+        df["cc"] = 0.0
 
-            ck = [True] * len(df)
+        ck = [True] * len(df)
 
-            with tm.raises_chained_assignment_error():
-                df["bb"].iloc[0] = 0.13
+        with tm.raises_chained_assignment_error():
+            df["bb"].iloc[0] = 0.13
 
-            # GH#3970 this lookup used to break the chained setting to 0.15
-            df.iloc[ck]
+        # GH#3970 this lookup used to break the chained setting to 0.15
+        df.iloc[ck]
 
-            with tm.raises_chained_assignment_error():
-                df["bb"].iloc[0] = 0.15
+        with tm.raises_chained_assignment_error():
+            df["bb"].iloc[0] = 0.15
 
-            assert df["bb"].iloc[0] == 2.2
+        assert df["bb"].iloc[0] == 2.2
 
     def test_getitem_loc_assignment_slice_state(self):
         # GH 13569

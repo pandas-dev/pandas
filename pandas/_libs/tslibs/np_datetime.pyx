@@ -88,12 +88,34 @@ cdef NPY_DATETIMEUNIT get_unit_from_dtype(cnp.dtype dtype):
     return meta.base
 
 
+cdef int get_unit_count_from_dtype(cnp.dtype dtype):
+    # NB: caller is responsible for ensuring this is *some* datetime64 or
+    #  timedelta64 dtype, otherwise we can segfault
+    cdef:
+        cnp.PyArray_Descr* descr = <cnp.PyArray_Descr*>dtype
+        PyArray_DatetimeMetaData meta
+    meta = get_datetime_metadata_from_dtype(descr)
+    return meta.num
+
+
+cdef raise_if_unit_multiplier(cnp.dtype dtype):
+    """
+    Reject e.g. "m8[10s]": the multiplier is not part of a pandas resolution,
+    so reading the dtype as "m8[s]" would silently scale every value. GH#25611
+    """
+    if get_unit_count_from_dtype(dtype) != 1:
+        raise ValueError(
+            f"units containing a multiplier are not supported, got dtype {dtype}"
+        )
+
+
 def py_get_unit_from_dtype(dtype):
     # for testing get_unit_from_dtype; adds 896 bytes to the .so file.
     return get_unit_from_dtype(dtype)
 
 
 def get_supported_dtype(dtype: cnp.dtype) -> cnp.dtype:
+    raise_if_unit_multiplier(dtype)
     reso = get_unit_from_dtype(dtype)
     new_reso = get_supported_reso(reso)
     new_unit = npy_unit_to_abbrev(new_reso)
@@ -112,7 +134,7 @@ def is_supported_dtype(dtype: cnp.dtype) -> bool:
         raise ValueError("is_unitless dtype must be datetime64 or timedelta64")
     cdef:
         NPY_DATETIMEUNIT unit = get_unit_from_dtype(dtype)
-    return is_supported_unit(unit)
+    return is_supported_unit(unit) and get_unit_count_from_dtype(dtype) == 1
 
 
 def is_unitless(dtype: cnp.dtype) -> bool:
@@ -427,6 +449,15 @@ cpdef ndarray astype_overflowsafe(
             "astype_overflowsafe values.dtype and dtype must be either "
             "both-datetime64 or both-timedelta64."
         )
+
+    if not cnp.PyDataType_ISNOTSWAPPED(dtype):
+        # GH#68565 the conversions below view their natively-written results as
+        #  `dtype`, so a non-native target would read back byteswapped; pandas
+        #  stores datetimelike data natively in any case
+        dtype = (<object>dtype).newbyteorder("=")
+
+    raise_if_unit_multiplier(values.dtype)
+    raise_if_unit_multiplier(dtype)
 
     cdef:
         NPY_DATETIMEUNIT from_unit = get_unit_from_dtype(values.dtype)
@@ -847,6 +878,19 @@ cdef int64_t _convert_reso_with_dtstruct(
 cdef Py_ssize_t _ADD_VECTORIZED_MIN_SIZE = 1000
 
 
+cdef int _check_broadcasts_to_left(
+    ndarray left, ndarray right, Py_ssize_t size
+) except -1:
+    # size is that of left and right broadcast together; the result has left's
+    #  shape, so anything else would truncate or reshape it, GH#23853
+    if right.ndim > left.ndim or size != left.size:
+        raise ValueError(
+            f"shape mismatch: cannot broadcast {(<object>right).shape} "
+            f"to {(<object>left).shape}"
+        )
+    return 0
+
+
 @cython.overflowcheck(True)
 cpdef cnp.ndarray add_overflowsafe(
     cnp.ndarray left, cnp.ndarray right, bint sentinel_ok=False
@@ -854,7 +898,7 @@ cpdef cnp.ndarray add_overflowsafe(
     """
     Overflow-safe addition for datetime64/timedelta64 dtypes.
 
-    `right` may either be zero-dim or of the same shape as `left`.
+    `right` must broadcast to the shape of `left`.
 
     A sum landing exactly on NPY_DATETIME_NAT is rejected, since as a datetime64
     or timedelta64 value it would be indistinguishable from a missing one. Pass
@@ -869,12 +913,15 @@ cpdef cnp.ndarray add_overflowsafe(
         Py_ssize_t _, N = left.size
         int64_t lval, rval, res_value
         int64_t lmin, lmax, rmin, rmax
+        cnp.broadcast operands
 
     # Fast path: bound the result from the operands' min/max, and when every
     #  sum provably stays inside (NPY_DATETIME_NAT, INT64_MAX] hand the whole
     #  thing to numpy.  NPY_DATETIME_NAT is INT64_MIN, so a minimum above it
     #  also rules out NaT operands.
     if N >= _ADD_VECTORIZED_MIN_SIZE and right.size > 0:
+        operands = cnp.PyArray_MultiIterNew2(left, right)
+        _check_broadcasts_to_left(left, right, cnp.PyArray_MultiIter_SIZE(operands))
         lmin = left.min()
         rmin = right.min()
         if lmin > NPY_DATETIME_NAT and rmin > NPY_DATETIME_NAT:
@@ -892,6 +939,8 @@ cpdef cnp.ndarray add_overflowsafe(
             left.ndim, left.shape, cnp.NPY_INT64, 0
         )
         cnp.broadcast mi = cnp.PyArray_MultiIterNew3(iresult, left, right)
+
+    _check_broadcasts_to_left(left, right, cnp.PyArray_MultiIter_SIZE(mi))
 
     # Note: doing this try/except outside the loop improves performance over
     #  doing it inside the loop.

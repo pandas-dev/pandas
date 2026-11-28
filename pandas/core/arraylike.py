@@ -18,11 +18,19 @@ import numpy as np
 from pandas._libs import lib
 from pandas._libs.ops_dispatch import maybe_dispatch_ufunc_to_dunder_op
 
-from pandas.core.dtypes.generic import ABCNDFrame
+from pandas.core.dtypes.cast import maybe_unbox_numpy_scalar
+from pandas.core.dtypes.common import is_bool_dtype
+from pandas.core.dtypes.generic import (
+    ABCExtensionArray,
+    ABCIndex,
+    ABCNDFrame,
+)
+from pandas.core.dtypes.missing import isna
 
 from pandas.core import roperator
 from pandas.core.construction import extract_array
 from pandas.core.ops.common import unpack_zerodim_and_defer
+from pandas.core.ops.invalid import disallow_datetimelike_logical_ufunc
 
 REDUCTION_ALIASES = {
     "maximum": "max",
@@ -291,6 +299,17 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
 
     cls = type(self)
 
+    if kwargs.get("where") is self and not any(x is self for x in inputs):
+        # numpy tries a subclass first; defer so a pandas input checks the labels
+        if any(isinstance(x, NDFrame) for x in inputs):
+            return NotImplemented
+
+    result = dispatch_where_only_ufunc(self, ufunc, method, *inputs, **kwargs)
+    if result is not NotImplemented:
+        return result
+
+    disallow_datetimelike_logical_ufunc(ufunc, inputs)
+
     kwargs = _standardize_out_kwarg(**kwargs)
 
     # for binary ops, use our custom dunder methods
@@ -336,18 +355,31 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
             raise NotImplementedError(
                 f"Cannot apply ufunc {ufunc} to mixed DataFrame and Series inputs."
             )
-        axes = self.axes
-        for obj in alignable[1:]:
-            # this relies on the fact that we aren't handling mixed
-            # series / frame ufuncs.
-            for i, (ax1, ax2) in enumerate(zip(axes, obj.axes, strict=True)):
-                axes[i] = ax1.union(ax2)
+        if len(alignable) == 2:
+            # use align rather than union+reindex to support duplicate
+            #  labels, matching the dunder ops, see GH#54416
+            left, right = alignable[0].align(alignable[1], join="outer")
+            aligned = iter([left, right])
+            inputs = tuple(
+                next(aligned) if issubclass(t, NDFrame) else x
+                for x, t in zip(inputs, types, strict=True)
+            )
+            axes = left.axes
+        else:
+            axes = self.axes
+            for obj in alignable[1:]:
+                # this relies on the fact that we aren't handling mixed
+                # series / frame ufuncs.
+                for i, (ax1, ax2) in enumerate(zip(axes, obj.axes, strict=True)):
+                    axes[i] = ax1.union(ax2)
+            inputs = tuple(
+                x.reindex(**dict(zip(self._AXIS_ORDERS, axes, strict=True)))
+                if issubclass(t, NDFrame)
+                else x
+                for x, t in zip(inputs, types, strict=True)
+            )
 
         reconstruct_axes = dict(zip(self._AXIS_ORDERS, axes, strict=True))
-        inputs = tuple(
-            x.reindex(**reconstruct_axes) if issubclass(t, NDFrame) else x
-            for x, t in zip(inputs, types, strict=True)
-        )
     else:
         reconstruct_axes = dict(zip(self._AXIS_ORDERS, self.axes, strict=True))
 
@@ -366,7 +398,12 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
         return _reconstruct(result)
 
     def _reconstruct(result):
-        if lib.is_scalar(result):
+        if lib.is_scalar(result) or not hasattr(result, "ndim"):
+            # e.g. a reduction not in REDUCTION_ALIASES, or a gufunc with
+            #  signature "(n)->()" reducing object-dtype data to an arbitrary
+            #  Python object
+            if self.ndim == 1:
+                return maybe_unbox_numpy_scalar(result, object_with_dtype=self)
             return result
 
         if result.ndim != self.ndim:
@@ -388,6 +425,9 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
         if len(alignable) == 1:
             result = result.__finalize__(self)
         return result
+
+    if isinstance(kwargs.get("where"), ABCNDFrame):
+        kwargs["where"] = _unbox_where(kwargs["where"], reconstruct_axes)
 
     if "out" in kwargs:
         # e.g. test_multiindex_get_loc
@@ -430,14 +470,17 @@ def array_ufunc(self, ufunc: np.ufunc, method: str, *inputs: Any, **kwargs: Any)
     else:
         # otherwise specific ufunc methods (eg np.<ufunc>.accumulate(..))
         # Those can have an axis keyword and thus can't be called block-by-block
-        result = default_array_ufunc(inputs[0], ufunc, method, *inputs, **kwargs)  # pyright: ignore[reportGeneralTypeIssues]
+        values = np.asarray(self)
+        result = getattr(ufunc, method)(values, **kwargs)
+        if lib.is_scalar(result):
+            return maybe_unbox_numpy_scalar(result, object_with_dtype=values)
         # e.g. np.negative (only one reached), with "where" and "out" in kwargs
 
     result = reconstruct(result)
     return result
 
 
-def _standardize_out_kwarg(**kwargs) -> dict:
+def _standardize_out_kwarg(**kwargs) -> dict[str, Any]:
     """
     If kwargs contain "out1" and "out2", replace that with a tuple "out"
 
@@ -452,6 +495,49 @@ def _standardize_out_kwarg(**kwargs) -> dict:
     return kwargs
 
 
+def _unbox_where(where, axes: dict[str, Any]) -> np.ndarray:
+    """
+    Convert a Series or DataFrame passed as a ufunc's `where` to an ndarray.
+
+    It must be labeled identically to the (aligned) inputs; we raise rather
+    than guess between label-based and positional matching.
+    """
+    same_axes = where.ndim == len(axes) and all(
+        ax.equals(other) for ax, other in zip(where.axes, axes.values(), strict=True)
+    )
+    if not same_axes:
+        raise ValueError(
+            "The ufunc 'where' argument must have the same axes as the aligned inputs"
+        )
+    return _where_to_ndarray(where)
+
+
+def _where_to_ndarray(where) -> np.ndarray:
+    # checked for every dtype: np.putmask (the `out=` path) and a Categorical's
+    #  to_numpy(dtype=bool) would both treat a missing value as True
+    if isna(where).any(axis=None):
+        raise ValueError("The ufunc 'where' argument cannot contain missing values")
+    dtypes = where.dtypes if where.ndim == 2 else [where.dtype]
+    if not all(is_bool_dtype(dtype) for dtype in dtypes):
+        # left for numpy to validate; np.putmask, used with `out=`, is laxer
+        return np.asarray(where)
+    return where.to_numpy(dtype=bool)
+
+
+def dispatch_where_only_ufunc(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
+    """
+    Handle a ufunc that reached `self` only through its `where` argument.
+
+    numpy defers to a `where` that defines __array_ufunc__, so passing `self`
+    on unchanged would recurse (GH#60611). As a mask, `self` has no say in the
+    result type.
+    """
+    if kwargs.get("where") is not self or any(x is self for x in inputs):
+        return NotImplemented
+    kwargs["where"] = _where_to_ndarray(self)
+    return getattr(ufunc, method)(*inputs, **kwargs)
+
+
 def dispatch_ufunc_with_out(self, ufunc: np.ufunc, method: str, *inputs, **kwargs):
     """
     If we have an `out` keyword, then call the ufunc without `out` and then
@@ -461,6 +547,8 @@ def dispatch_ufunc_with_out(self, ufunc: np.ufunc, method: str, *inputs, **kwarg
     # Note: we assume _standardize_out_kwarg has already been called.
     out = kwargs.pop("out")
     where = kwargs.pop("where", None)
+    if isinstance(where, (ABCNDFrame, ABCIndex, ABCExtensionArray)):
+        where = _where_to_ndarray(where)
 
     result = getattr(ufunc, method)(*inputs, **kwargs)
 
@@ -468,14 +556,19 @@ def dispatch_ufunc_with_out(self, ufunc: np.ufunc, method: str, *inputs, **kwarg
         return NotImplemented
 
     if isinstance(result, tuple):
-        # i.e. np.divmod, np.modf, np.frexp
+        # i.e. np.divmod, np.modf, np.frexp, np.minmax
         if not isinstance(out, tuple) or len(out) != len(result):
             raise NotImplementedError
 
         for arr, res in zip(out, result, strict=True):
-            _assign_where(arr, res, where)
+            if arr is not None:
+                _assign_where(arr, res, where)
 
-        return out
+        # numpy allocates the outputs whose out entry is None,
+        #  e.g. np.minmax(df, axis=0, out=(None, arr))
+        return tuple(
+            res if arr is None else arr for arr, res in zip(out, result, strict=True)
+        )
 
     if isinstance(out, tuple):
         if len(out) == 1:
@@ -522,6 +615,14 @@ def dispatch_reduction_ufunc(self, ufunc: np.ufunc, method: str, *inputs, **kwar
 
     if len(inputs) != 1 or inputs[0] is not self:
         return NotImplemented
+
+    if ufunc.__name__ == "minimummaximum":
+        # NumPy's fused minimum/maximum reduction behind np.minmax
+        if not hasattr(self, "min") or not hasattr(self, "max"):
+            return NotImplemented
+        return tuple(
+            getattr(self, name)(skipna=False, **kwargs) for name in ["min", "max"]
+        )
 
     if ufunc.__name__ not in REDUCTION_ALIASES:
         return NotImplemented

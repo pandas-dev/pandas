@@ -101,7 +101,18 @@ def test_agg_mapping_func_deprecated():
 
     s.agg(foo1, 0, 3, c=4)
     s.agg([foo1, foo2], 0, 3, c=4)
-    s.agg({"a": foo1, "b": foo2}, 0, 3, c=4)
+    # GH#23889
+    result = s.agg({"a": foo1, "b": foo2}, 0, 3, c=4)
+    expected = pd.concat({"a": s + 7, "b": s + 7})
+    tm.assert_series_equal(result, expected)
+
+
+def test_agg_dict_forwards_kwargs():
+    # GH#23889
+    ser = pd.Series([np.nan, np.nan])
+    result = ser.agg({"a": "sum"}, min_count=1)
+    expected = pd.Series([np.nan], index=["a"])
+    tm.assert_series_equal(result, expected)
 
 
 def test_series_apply_map_box_timestamps(by_row):
@@ -246,7 +257,7 @@ def test_apply_empty_integer_series_with_datetime_index(by_row):
     tm.assert_series_equal(result, s)
 
 
-def test_apply_dataframe_iloc():
+def test_apply_dataframe_iloc(using_python_scalars):
     uintDF = pd.DataFrame(np.uint64([1, 2, 3, 4, 5]), columns=["Numbers"])
     indexDF = pd.DataFrame([2, 3, 2, 1, 2], columns=["Indices"])
 
@@ -255,7 +266,10 @@ def test_apply_dataframe_iloc():
         return val
 
     result = indexDF["Indices"].apply(retrieve, args=(uintDF,))
-    expected = pd.Series([3, 4, 3, 2, 3], name="Indices", dtype="uint64")
+    # iloc in retrieve returns Python scalars with future.python_scalars,
+    # which infer as int64
+    expected_dtype = "int64" if using_python_scalars else "uint64"
+    expected = pd.Series([3, 4, 3, 2, 3], name="Indices", dtype=expected_dtype)
     tm.assert_series_equal(result, expected)
 
 
@@ -390,6 +404,15 @@ def test_agg_evaluate_lambdas(string_series):
 
     result = string_series.agg(type)
     assert result is pd.Series
+
+
+@pytest.mark.parametrize("func", [[], {}])
+def test_agg_empty_func(func):
+    # GH#39609
+    ser = pd.Series([1, 2], name="a")
+    result = ser.agg(func)
+    expected = pd.Series(index=pd.Index([]), name="a", dtype=object)
+    tm.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize("op_name", ["agg", "apply"])

@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 import pyarrow
 
 from pandas.core.dtypes.dtypes import (
+    DatetimeTZDtype,
     IntervalDtype,
     PeriodDtype,
 )
@@ -85,7 +86,8 @@ class ArrowIntervalType(pyarrow.ExtensionType):
     @classmethod
     def __arrow_ext_deserialize__(cls, storage_type, serialized) -> ArrowIntervalType:
         metadata = json.loads(serialized.decode())
-        subtype = pyarrow.type_for_alias(metadata["subtype"])
+        # type_for_alias can't parse parametrized types, e.g. tz-aware timestamps
+        subtype = storage_type.field("left").type
         closed = metadata["closed"]
         return ArrowIntervalType(subtype, closed)
 
@@ -106,7 +108,13 @@ class ArrowIntervalType(pyarrow.ExtensionType):
         return hash((str(self), str(self.subtype), self.closed))
 
     def to_pandas_dtype(self) -> IntervalDtype:
-        return IntervalDtype(self.subtype.to_pandas_dtype(), self.closed)
+        subtype = self.subtype
+        if pyarrow.types.is_timestamp(subtype) and subtype.tz is not None:
+            # pyarrow may return a pytz zone, which != pandas' zoneinfo zone
+            pandas_subtype: object = DatetimeTZDtype(unit=subtype.unit, tz=subtype.tz)
+        else:
+            pandas_subtype = subtype.to_pandas_dtype()
+        return IntervalDtype(pandas_subtype, self.closed)
 
 
 # register the type with a dummy instance

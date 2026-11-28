@@ -217,6 +217,19 @@ def test_to_integer_array_str():
         IntegerArray._from_sequence(["1.5", "2.0"], dtype="Int64")
 
 
+def test_to_integer_array_mixed_int_str():
+    # GH#34460
+    result = pd.Series([1, "2", None]).astype("Int64")
+    expected = pd.Series([1, 2, None], dtype="Int64")
+    tm.assert_series_equal(result, expected)
+
+    # lossy elements must still raise, whether str or not
+    with pytest.raises(ValueError, match=r"invalid literal for int\(\) with base 10"):
+        IntegerArray._from_sequence(np.array([1, "1.5"], dtype=object), dtype="Int64")
+    with pytest.raises(TypeError, match="cannot safely cast non-equivalent"):
+        IntegerArray._from_sequence(np.array([1.5, "2"], dtype=object), dtype="Int64")
+
+
 @pytest.mark.parametrize(
     "bool_values, int_values, target_dtype, expected_dtype",
     [
@@ -270,4 +283,19 @@ def test_integer_array_from_boolean():
     # GH31104
     expected = pd.array(np.array([True, False]), dtype="Int64")
     result = pd.array(np.array([True, False], dtype=object), dtype="Int64")
+    tm.assert_extension_array_equal(result, expected)
+
+
+def test_to_integer_array_from_masked_out_of_range(constructor):
+    # GH#55232 casting an existing masked array must not wrap around
+    arr = pd.array([-1, 257], dtype="Int64")
+    with pytest.raises(TypeError, match="cannot safely cast non-equivalent"):
+        constructor(arr, dtype="UInt8")
+
+    # values behind the mask are meaningless and must not trigger the check
+    masked = pd.arrays.IntegerArray(
+        np.array([-1, 5], dtype="int64"), np.array([True, False])
+    )
+    result = constructor(masked, dtype="UInt8")
+    expected = pd.array([None, 5], dtype="UInt8")
     tm.assert_extension_array_equal(result, expected)
