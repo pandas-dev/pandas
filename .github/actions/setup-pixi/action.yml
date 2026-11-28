@@ -9,7 +9,7 @@ inputs:
     default: 'true'
   pixi-version:
     description: Pixi version to install.
-    default: v0.82.1
+    default: v0.85.0
 runs:
   using: composite
   steps:

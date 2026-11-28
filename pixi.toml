@@ -1,9 +1,9 @@
 [workspace]
 channels = ["conda-forge"]
 # pixi's default macOS is too old for psycopg2's Python 3.15 builds (libpq >=18.6 needs macOS >=13.3)
-platforms = ["linux-64", "linux-aarch64", { platform = "osx-64", macos = "13.3" }, { platform = "osx-arm64", macos = "13.3" }, "win-64"]
+platforms = ["linux-64", "linux-aarch64", { subdir = "osx-64", macos = "13.3" }, { subdir = "osx-arm64", macos = "13.3" }, "win-64"]
 name = "pandas"
-requires-pixi = ">=0.82.1"
+requires-pixi = ">=0.85.0"
 
 [dependencies]
 # Build dependencies
