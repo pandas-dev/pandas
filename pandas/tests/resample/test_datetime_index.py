@@ -628,7 +628,7 @@ def test_resample_reresample(unit):
     s = pd.Series(np.random.default_rng(2).random(len(dti)), dti)
     bs = s.resample("B", closed="right", label="right").mean()
     result = bs.resample("8h").mean()
-    assert len(result) == 25
+    assert len(result) == 22
     assert isinstance(result.index.freq, offsets.BaseOffset)
     assert result.index.freq == offsets.Hour(8)
 
@@ -2179,16 +2179,14 @@ def test_resample_c_b_closed_right(freq: str, unit):
             datetime(2020, 1, 30),
             datetime(2020, 1, 31),
             datetime(2020, 2, 3),
-            datetime(2020, 2, 4),
         ],
         freq=freq,
     ).as_unit(unit)
     expected = pd.DataFrame(
         {
             "ts": [
-                datetime(2020, 1, 31),
-                datetime(2020, 2, 3),
-                datetime(2020, 2, 4),
+                datetime(2020, 1, 31, 23, 59),
+                datetime(2020, 2, 3, 23, 59),
                 datetime(2020, 2, 4, 3, 59),
             ]
         },
@@ -2197,25 +2195,61 @@ def test_resample_c_b_closed_right(freq: str, unit):
     tm.assert_frame_equal(result, expected)
 
 
-def test_resample_b_55282(unit):
+@pytest.mark.parametrize("closed", ["left", "right"])
+def test_resample_b_55282(unit, closed):
     # https://github.com/pandas-dev/pandas/issues/55282
     dti = date_range("2023-09-26", periods=6, freq="12h", unit=unit)
     ser = pd.Series([1, 2, 3, 4, 5, 6], index=dti)
-    result = ser.resample("B", closed="right", label="right").mean()
+    result = ser.resample("B", closed=closed, label=closed).mean()
 
     exp_dti = DatetimeIndex(
         [
             datetime(2023, 9, 26),
             datetime(2023, 9, 27),
             datetime(2023, 9, 28),
-            datetime(2023, 9, 29),
         ],
         freq="B",
     ).as_unit(unit)
     expected = pd.Series(
-        [1.0, 2.5, 4.5, 6.0],
+        [1.5, 3.5, 5.5],
         index=exp_dti,
     )
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize("hour", [0, 16, 24])
+def test_resample_custom_business_day(unit, hour):
+    # GH#65740
+    freq = offsets.CustomBusinessDay(holidays=["2022-11-24"])
+    index = date_range("2022-11-22", periods=5, freq=freq, unit=unit)
+    offset = pd.Timedelta(hours=hour).as_unit(unit)
+    if hour == 24:
+        offset -= pd.Timedelta(1, unit=unit)
+    expected = pd.DataFrame({"x": [1, 2, 3, 4, 5]}, index=index)
+    df = expected.set_axis((index + offset).as_unit(unit))
+    result = df.resample(freq, closed="right", label="right").last()
+    tm.assert_frame_equal(result, expected)
+
+
+def test_resample_business_day_dst_end(unit):
+    # Both UTC values on October 31 occur at 23:30 in Cairo.
+    tz = "Africa/Cairo"
+    index = DatetimeIndex(
+        ["2024-10-31 20:30", "2024-10-31 21:30", "2024-11-01 10:00"], tz="UTC"
+    )
+    ser = pd.Series([1, 2, 4], index=index.tz_convert(tz).as_unit(unit))
+    result = ser.resample("B", closed="right", label="right").sum()
+    expected_index = date_range("2024-10-31", periods=2, freq="B", tz=tz, unit=unit)
+    expected = pd.Series([3, 4], index=expected_index)
+    tm.assert_series_equal(result, expected)
+
+
+def test_resample_business_day_near_timestamp_max():
+    index = DatetimeIndex(["2262-04-09 08:00", "2262-04-10 08:00"]).as_unit("ns")
+    ser = pd.Series([1, 2], index=index)
+    result = ser.resample("B", closed="right", label="right").sum()
+    expected_index = date_range("2262-04-09", periods=2, freq="B", unit="ns")
+    expected = pd.Series([1, 2], index=expected_index)
     tm.assert_series_equal(result, expected)
 
 

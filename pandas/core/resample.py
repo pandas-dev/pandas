@@ -2759,20 +2759,24 @@ class TimeGrouper(Grouper):
         # Some hacks for > daily data, see #1471, #1458, #1483
 
         rule = _rule_code(self.freq)
-        if rule in ("BME", "ME", "W") or rule.split("-")[0] in (
+        business_day = self.closed == "right" and rule in ("B", "C")
+        end_of_period = rule in ("BME", "ME") or rule.split("-")[0] in (
             "BQE",
             "BYE",
             "QE",
             "YE",
             "W",
-        ):
-            # If the right end-point is on the last day of the month, roll forwards
-            # until the last moment of that day. Note that we only do this for offsets
-            # which correspond to the end of a super-daily period - "month start", for
-            # example, is excluded.
+        )
+        if business_day or end_of_period:
+            # Roll the right end-point forward to the end of the last day in the bin.
+            last_value = ax_values.max()
             if self.closed == "right":
                 # GH 21459, GH 9119: Adjust the bins relative to the wall time
                 edges_dti = binner.tz_localize(None)
+                last_edge_covers_data = business_day and binner.asi8[-1] > last_value
+                if last_edge_covers_data:
+                    # The last edge already covers all data and rolling can overflow.
+                    edges_dti = edges_dti[:-1]
                 # GH#62601: a label on a nonexistent midnight was shifted forward
                 # (e.g. to 01:00); the bin still ends at the end of that day
                 edges_dti = edges_dti.normalize()
@@ -2781,12 +2785,19 @@ class TimeGrouper(Grouper):
                     + Timedelta(days=1).as_unit(edges_dti.unit)
                     - Timedelta(1, unit=edges_dti.unit).as_unit(edges_dti.unit)
                 )
-                bin_edges = edges_dti.tz_localize(binner.tz).asi8
+                bin_edges = edges_dti.tz_localize(
+                    binner.tz,
+                    ambiguous=False if business_day else "raise",
+                    nonexistent="shift_backward" if business_day else "raise",
+                ).asi8
+                if last_edge_covers_data:
+                    bin_edges = np.append(bin_edges, binner.asi8[-1])
             else:
                 bin_edges = binner.asi8
 
-            # intraday values on last day
-            if bin_edges[-2] > ax_values.max():
+            if bin_edges[-2] > last_value or (
+                business_day and bin_edges[-2] == last_value
+            ):
                 bin_edges = bin_edges[:-1]
                 binner = binner[:-1]
         else:
