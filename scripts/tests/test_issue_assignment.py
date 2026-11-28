@@ -11,6 +11,7 @@ import pytest
 
 from scripts.issue_assignment import (
     core,
+    gate,
     label_awaiting_review,
     messages,
     unassign_inactive,
@@ -506,6 +507,7 @@ class FakeClient:
         self.unassigned: list[tuple[int, tuple[str, ...]]] = []
         self.closed: list[int] = []
         self.exact_comment_reads: list[int] = []
+        self.exempt_lookups: list[str] = []
 
     def iter_open_pull_requests_review_state(self) -> Iterator[core.OpenPRState]:
         return iter(self._prs)
@@ -540,6 +542,7 @@ class FakeClient:
         return self._exact_pr_authors.get(number, [])
 
     def is_exempt_collaborator(self, username: str) -> bool:
+        self.exempt_lookups.append(username)
         return username in self._exempt
 
     def add_labels(self, number: int, labels: list[str]) -> None:
@@ -611,6 +614,12 @@ class TestReconcileAll:
         label_awaiting_review.reconcile_all(client)
         assert client.added == [(1, (AWAITING,))]
         assert client.removed == []
+
+    def test_triage_author_not_labeled(self) -> None:
+        # GITHUB_TOKEN reports a private org member as CONTRIBUTOR.
+        client = FakeClient([pr(1, author_association="CONTRIBUTOR")], exempt={"alice"})
+        label_awaiting_review.reconcile_all(client)
+        assert client.added == []
 
     def test_removes_when_unwanted_and_present(self) -> None:
         client = FakeClient([pr(2, draft=True, labels=[AWAITING])])
@@ -1214,6 +1223,126 @@ class TestRunPrStaleSweep:
         unassign_inactive.run_pr_stale_sweep(client)
         assert client.added == []
         assert client.removed == []
+
+    def test_triage_author_never_stale(self) -> None:
+        # GITHUB_TOKEN reports a private org member as CONTRIBUTOR.
+        client = FakeClient(
+            [
+                pr(
+                    24,
+                    author_association="CONTRIBUTOR",
+                    reviews=changes(30),
+                    last_commit_at=ago(99),
+                )
+            ],
+            exempt={"alice"},
+        )
+        unassign_inactive.run_pr_stale_sweep(client)
+        assert client.added == []
+        assert client.comments == []
+        assert client.closed == []
+        assert client.exempt_lookups == ["alice"]
+
+    def test_triage_author_stale_label_cleared(self) -> None:
+        client = FakeClient(
+            [
+                pr(
+                    25,
+                    author_association="CONTRIBUTOR",
+                    reviews=changes(30),
+                    last_commit_at=ago(99),
+                    labels=[STALE],
+                    stale_marked_at=ago(8),
+                )
+            ],
+            exempt={"alice"},
+        )
+        unassign_inactive.run_pr_stale_sweep(client)
+        assert client.removed == [(25, STALE)]
+        assert client.closed == []
+
+    def test_triage_author_not_gated(self) -> None:
+        client = FakeClient(
+            [
+                pr(
+                    26,
+                    author_association="CONTRIBUTOR",
+                    linked_issues=[{"number": 260, "assignees": []}],
+                    last_commit_at=ago(40),
+                )
+            ],
+            exempt={"alice"},
+        )
+        unassign_inactive.run_pr_stale_sweep(client)
+        assert client.added == []
+        assert client.comments == []
+        assert client.exempt_lookups == ["alice"]
+
+    def test_no_access_lookup_when_no_action_due(self) -> None:
+        # Awaiting review and not gated: the sweep would do nothing, so it
+        # must not spend an API request on the author's access.
+        client = FakeClient([pr(27, last_commit_at=ago(99))])
+        unassign_inactive.run_pr_stale_sweep(client)
+        assert client.added == []
+        assert client.exempt_lookups == []
+
+
+class TestRunGate:
+    @staticmethod
+    def event_pr(association: str) -> dict:
+        return {
+            "number": 40,
+            "author_association": association,
+            "user": {"login": "alice", "type": "User"},
+            "labels": [],
+        }
+
+    def test_flags_unassigned_author(self) -> None:
+        client = FakeClient([], linked={40: [{"number": 400, "assignees": []}]})
+        gate.run_gate(client, self.event_pr("CONTRIBUTOR"))
+        assert client.added == [(40, (GATE,))]
+
+    @pytest.mark.parametrize("assignees", [[], ["bob"]])
+    def test_triage_author_not_flagged(self, assignees: list[str]) -> None:
+        # GITHUB_TOKEN reports a private org member as CONTRIBUTOR.
+        client = FakeClient(
+            [],
+            linked={40: [{"number": 400, "assignees": assignees}]},
+            exempt={"alice"},
+        )
+        gate.run_gate(client, self.event_pr("CONTRIBUTOR"))
+        assert client.added == []
+        assert client.comments == []
+        assert client.closed == []
+
+
+class TestRunPrClosed:
+    @staticmethod
+    def event(association: str) -> dict:
+        return {
+            "pull_request": {
+                "number": 30,
+                "merged": False,
+                "author_association": association,
+                "user": {"login": "alice", "type": "User"},
+                "labels": [{"name": STALE}],
+            }
+        }
+
+    def test_frees_linked_issues(self) -> None:
+        client = FakeClient([], linked={30: [{"number": 300, "assignees": ["alice"]}]})
+        unassign_inactive.run_pr_closed(client, self.event("CONTRIBUTOR"))
+        assert client.unassigned == [(300, ("alice",))]
+
+    def test_triage_author_keeps_linked_issues(self) -> None:
+        client = FakeClient(
+            [],
+            linked={30: [{"number": 300, "assignees": ["alice"]}]},
+            exempt={"alice"},
+        )
+        unassign_inactive.run_pr_closed(client, self.event("CONTRIBUTOR"))
+        assert client.unassigned == []
+        assert client.comments == []
 
 
 class TestRunSweep:
