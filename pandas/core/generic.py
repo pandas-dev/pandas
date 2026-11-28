@@ -103,6 +103,7 @@ from pandas.core.dtypes.inference import (
     is_nested_list_like,
 )
 from pandas.core.dtypes.missing import (
+    is_valid_na_for_dtype,
     isna,
     notna,
 )
@@ -7464,13 +7465,26 @@ class NDFrame(PandasObject, indexing.IndexingMixin):
                         "All columns must have the same dtype, but got dtypes: "
                         f"{list(unique_dtypes)}"
                     )
-                # Use the first column, which we have already validated has the
-                # same dtypes as the other columns.
-                if not can_hold_element(result.iloc[:, 0], value):
-                    frame_dtype = unique_dtypes.item()
-                    raise ValueError(
-                        f"{value} not a suitable type to fill into {frame_dtype}"
-                    )
+                if len(unique_dtypes) == 1 and len(value):
+                    # Use the first column, which we have already validated has the
+                    # same dtypes as the other columns.
+                    arr = result.iloc[:, 0]._values
+                    if isinstance(value, ABCSeries) and value.dtype != object:
+                        can_hold = can_hold_element(arr, value._values)
+                    else:
+                        values = (
+                            value if isinstance(value, ABCSeries) else value.values()
+                        )
+                        can_hold = all(
+                            can_hold_element(arr, v)
+                            or is_valid_na_for_dtype(v, arr.dtype)
+                            for v in values
+                        )
+                    if not can_hold:
+                        frame_dtype = unique_dtypes.item()
+                        raise ValueError(
+                            f"{value} not a suitable type to fill into {frame_dtype}"
+                        )
                 result = result.T.fillna(value=value).T
                 if inplace:
                     self._update_inplace(result)
