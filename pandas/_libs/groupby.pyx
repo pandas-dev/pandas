@@ -38,7 +38,9 @@ from pandas._libs.algos cimport (
     calc_var,
     get_rank_nan_fill_val,
     kth_smallest_c,
+    kurt_min_nobs,
     moments_add_value,
+    skew_min_nobs,
 )
 
 from pandas._libs.algos import (
@@ -1075,6 +1077,7 @@ def group_skew(
     const uint8_t[:, :] mask=None,
     uint8_t[:, ::1] result_mask=None,
     bint skipna=True,
+    bint bias=False,
 ) -> None:
     cdef:
         Py_ssize_t i, j, N, K, lab, ngroups = len(counts)
@@ -1128,8 +1131,8 @@ def group_skew(
 
         for i in range(ngroups):
             for j in range(K):
-                out[i, j] = calc_skew(nobs[i, j], M2[i, j], M3[i, j])
-                if result_mask is not None and nobs[i, j] < 3:
+                out[i, j] = calc_skew(nobs[i, j], M2[i, j], M3[i, j], bias)
+                if result_mask is not None and nobs[i, j] < skew_min_nobs(bias):
                     result_mask[i, j] = 1
 
 
@@ -1145,6 +1148,7 @@ def group_kurt(
     const uint8_t[:, :] mask=None,
     uint8_t[:, ::1] result_mask=None,
     bint skipna=True,
+    bint bias=False,
 ) -> None:
     cdef:
         Py_ssize_t i, j, N, K, lab, ngroups = len(counts)
@@ -1200,8 +1204,8 @@ def group_kurt(
 
         for i in range(ngroups):
             for j in range(K):
-                out[i, j] = calc_kurt(nobs[i, j], M2[i, j], M4[i, j])
-                if result_mask is not None and nobs[i, j] < 4:
+                out[i, j] = calc_kurt(nobs[i, j], M2[i, j], M4[i, j], bias)
+                if result_mask is not None and nobs[i, j] < kurt_min_nobs(bias):
                     result_mask[i, j] = 1
 
 

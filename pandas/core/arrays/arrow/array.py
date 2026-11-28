@@ -3052,7 +3052,12 @@ class ArrowExtensionArray(
             #  for constant input, so use the same path as the masked arrays
             values = data_to_reduce.cast(pa.float64(), safe=False).to_numpy()
             op = getattr(nanops, f"nan{name}")
-            result = op(values, skipna=skipna, mask=self.isna())
+            result = op(
+                values,
+                skipna=skipna,
+                mask=self.isna(),
+                bias=kwargs.pop("bias", False),
+            )
             return pa.scalar(result, type=pa.float64(), from_pandas=True)
 
         elif name in ["any", "all"] and (
@@ -3218,7 +3223,7 @@ class ArrowExtensionArray(
             The axis to reduce over; for a 1-D array this must be 0 or None.
         **kwargs
             Additional keyword arguments passed to the reduction function.
-            Currently, `ddof` is the only supported kwarg.
+            Currently, `ddof` and `bias` are the only supported kwargs.
 
         Returns
         -------
@@ -3323,20 +3328,22 @@ class ArrowExtensionArray(
         *,
         skipna: bool = True,
         axis: AxisInt | None = 0,
+        bias: bool = False,
         **kwargs,
     ):
         nv.validate_stat_ddof_func((), kwargs, fname="skew")
-        return self._reduce("skew", skipna=skipna, axis=axis, **kwargs)
+        return self._reduce("skew", skipna=skipna, axis=axis, bias=bias, **kwargs)
 
     def kurt(
         self,
         *,
         skipna: bool = True,
         axis: AxisInt | None = 0,
+        bias: bool = False,
         **kwargs,
     ):
         nv.validate_stat_ddof_func((), kwargs, fname="kurt")
-        return self._reduce("kurt", skipna=skipna, axis=axis, **kwargs)
+        return self._reduce("kurt", skipna=skipna, axis=axis, bias=bias, **kwargs)
 
     def median(
         self,

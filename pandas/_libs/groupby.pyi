@@ -101,6 +101,7 @@ def group_skew(
     mask: np.ndarray | None = ...,
     result_mask: np.ndarray | None = ...,
     skipna: bool = ...,
+    bias: bool = ...,
 ) -> None: ...
 def group_kurt(
     out: np.ndarray,  # float64_t[:, ::1]
@@ -110,6 +111,7 @@ def group_kurt(
     mask: np.ndarray | None = ...,
     result_mask: np.ndarray | None = ...,
     skipna: bool = ...,
+    bias: bool = ...,
 ) -> None: ...
 def group_mean(
     out: np.ndarray,  # floating[:, ::1]

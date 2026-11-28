@@ -46,6 +46,7 @@ Other enhancements
 - :meth:`Series.astype` and :func:`array` with ``dtype="boolean"`` now convert values the same way as ``astype(bool)`` instead of raising for values other than booleans, 0 and 1 (e.g. ``"False"`` becomes ``True``), with missing values becoming ``NA`` (:issue:`37614`, :issue:`40566`)
 - :meth:`DatetimeIndex.floor`, :meth:`DatetimeIndex.ceil`, :meth:`Series.dt.floor`, :meth:`Series.dt.ceil`, :meth:`Timestamp.floor`, and :meth:`Timestamp.ceil` now accept a single step of a date-anchored frequency such as ``"MS"``, ``"QE"``, ``"W-SUN"``, or ``"B"`` (:issue:`15303`)
 - :meth:`Series.groupby` now accepts ``as_index=False``, returning aggregation results as a :class:`DataFrame` with the group labels as columns (:issue:`36507`)
+- :meth:`Series.skew`, :meth:`Series.kurt`, :meth:`DataFrame.skew`, :meth:`DataFrame.kurt`, :meth:`.Rolling.skew`, :meth:`.Rolling.kurt`, :meth:`.Expanding.skew`, :meth:`.Expanding.kurt`, :meth:`.SeriesGroupBy.skew`, :meth:`.SeriesGroupBy.kurt`, :meth:`.DataFrameGroupBy.skew`, and :meth:`.DataFrameGroupBy.kurt` now accept a ``bias`` parameter to skip the default correction for statistical bias and return the raw (uncorrected) value, matching the behavior of ``scipy.stats.skew`` and ``scipy.stats.kurtosis`` (:issue:`54556`)
 - Added :class:`api.extensions.Accessor` to the public API, for adding or overriding an accessor on a single class such as a :class:`DataFrame` subclass (:issue:`40103`)
 - Added :meth:`Categorical.to_dense` and :meth:`Series.cat.to_dense` to get the values with the dtype of the categories, including extension dtypes (:issue:`26410`)
 - Added :meth:`DatetimeIndex.set_freq` and :meth:`TimedeltaIndex.set_freq`, which return a new index with the given ``freq`` instead of modifying it in place (:issue:`61094`)
@@ -143,6 +144,7 @@ Other API changes
 - :meth:`DataFrame.copy` and :meth:`Series.copy` with ``deep=True`` (the default), and :meth:`.ArrowExtensionArray.copy`, now copy pyarrow-backed data instead of sharing its memory, so a copy no longer keeps the original's memory alive (:issue:`61930`)
 - :meth:`DataFrame.query` now raises a ``ValueError`` when the expression does not evaluate to a boolean array, instead of silently using the result as row labels; use :attr:`DataFrame.loc` for label selection (:issue:`8560`)
 - :meth:`DataFrame.to_html` no longer emits the invalid HTML attribute ``halign="left"`` on :class:`MultiIndex` column headers; browsers ignored it, so rendering is unchanged (:issue:`39951`)
+- :meth:`ExtensionArray._reduce` now receives a ``bias`` keyword for the ``skew`` and ``kurt`` reductions (:issue:`54556`)
 - Arithmetic with ``bool[pyarrow]`` data now matches the NumPy ``bool`` and nullable ``boolean`` dtypes instead of raising ``TypeError``: ``+``/``*`` between booleans act as logical or/and, ``/``, ``//`` and ``**`` raise ``NotImplementedError``, and booleans combined with integer or float data act as numbers (:issue:`63064`)
 - ``range`` values are now displayed as ``range(0, 3)`` rather than as the tuple ``(0, 1, 2)``, matching :class:`.Styler` (:issue:`44799`)
 

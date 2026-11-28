@@ -11,7 +11,9 @@ from pandas._libs.algos cimport (
     calc_kurt,
     calc_skew,
     calc_var,
+    kurt_min_nobs,
     moments_add_value,
+    skew_min_nobs,
 )
 
 import numpy as np
@@ -573,7 +575,7 @@ cdef void remove_skew(float64_t val, int64_t *nobs,
 
 
 def roll_skew(const float64_t[:] values, ndarray[int64_t] start,
-              ndarray[int64_t] end, int64_t minp) -> np.ndarray:
+              ndarray[int64_t] end, int64_t minp, bint bias) -> np.ndarray:
     cdef:
         Py_ssize_t i, j
         float64_t val
@@ -584,7 +586,7 @@ def roll_skew(const float64_t[:] values, ndarray[int64_t] start,
         bint is_monotonic_increasing_bounds
         bint requires_recompute, numerically_unstable = False
 
-    minp = max(minp, 3)
+    minp = max(minp, skew_min_nobs(bias))
     is_monotonic_increasing_bounds = is_monotonic_increasing_start_end_bounds(
         start, end
     )
@@ -631,7 +633,7 @@ def roll_skew(const float64_t[:] values, ndarray[int64_t] start,
 
                 numerically_unstable = False
 
-            output[i] = NaN if nobs < minp else calc_skew(nobs, m2, m3)
+            output[i] = NaN if nobs < minp else calc_skew(nobs, m2, m3, bias)
 
             if not is_monotonic_increasing_bounds:
                 nobs = 0
@@ -717,7 +719,7 @@ cdef void remove_kurt(float64_t val, int64_t *nobs,
 
 
 def roll_kurt(const float64_t[:] values, ndarray[int64_t] start,
-              ndarray[int64_t] end, int64_t minp) -> np.ndarray:
+              ndarray[int64_t] end, int64_t minp, bint bias) -> np.ndarray:
     cdef:
         Py_ssize_t i, j
         float64_t mean, origin, m2, m3, m4, peak_dev
@@ -727,7 +729,7 @@ def roll_kurt(const float64_t[:] values, ndarray[int64_t] start,
         bint is_monotonic_increasing_bounds
         bint requires_recompute, numerically_unstable = False
 
-    minp = max(minp, 4)
+    minp = max(minp, kurt_min_nobs(bias))
     is_monotonic_increasing_bounds = is_monotonic_increasing_start_end_bounds(
         start, end
     )
@@ -771,7 +773,7 @@ def roll_kurt(const float64_t[:] values, ndarray[int64_t] start,
 
                 numerically_unstable = False
 
-            output[i] = NaN if nobs < minp else calc_kurt(nobs, m2, m4)
+            output[i] = NaN if nobs < minp else calc_kurt(nobs, m2, m4, bias)
 
             if not is_monotonic_increasing_bounds:
                 nobs = 0
