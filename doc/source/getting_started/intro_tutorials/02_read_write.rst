@@ -109,6 +109,45 @@ strings (``object``).
     <ul class="task-bullet">
         <li>
 
+I want to read values without losing leading zeros.
+
+Some values look like numbers but should be treated as text: phone numbers,
+postal codes, product identifiers, etc. Arithmetic on these kinds of values
+isn't meaningful, and leading zeros should be retained as part of each value.
+Specify the column's type when reading the data, before numeric inference can
+remove those zeros. For this small example, ``StringIO`` lets us read CSV text
+as if it were a file:
+
+.. ipython:: python
+
+    from io import StringIO
+
+    csv_data = StringIO(
+        "product,product_id\n"
+        "Notebook,02108\n"
+        "Pencil,10001\n"
+    )
+    products = pd.read_csv(csv_data)
+    products
+    csv_data.seek(0)  # reset
+    products = pd.read_csv(csv_data, dtype={"product_id": "string"})
+    products
+
+The ``dtype`` argument reads ``product_id`` as a string column, preserving
+``02108``. Once leading zeros have been lost (through numeric conversion),
+converting the result to strings cannot recover them, so make sure to do this
+at read time.
+
+.. raw:: html
+
+        </li>
+    </ul>
+
+.. raw:: html
+
+    <ul class="task-bullet">
+        <li>
+
 My colleague requested the Titanic data as a spreadsheet.
 
 .. note::
