@@ -131,6 +131,7 @@ from signature_overrides import apply_signature_overrides
 
 extensions = [
     "contributors",  # custom pandas extension
+    "pandas_website",  # custom pandas extension
     "rst_list_indentation",  # custom pandas extension
     "IPython.sphinxext.ipython_directive",
     "IPython.sphinxext.ipython_console_highlighting",
@@ -149,6 +150,7 @@ extensions = [
     "sphinx.ext.mathjax",
     "sphinx.ext.todo",
     "nbsphinx",
+    "myst_parser",
 ]
 
 exclude_patterns = [
@@ -179,11 +181,15 @@ if pattern:
     pattern = pattern.replace(os.sep, "/")
 single_doc = pattern is not None and pattern not in ("-api", "whatsnew")
 include_api = pattern is None or pattern == "whatsnew"
+# The website pages fetch data from GitHub and blog feeds, so they are only built
+# when building the whole documentation (with or without the API reference). The
+# other patterns exclude them below.
+pandas_website_context = pattern in (None, "-api")
 if pattern:
     for dirname, dirs, fnames in os.walk(source_path):
         reldir = os.path.relpath(dirname, source_path)
         for fname in fnames:
-            if os.path.splitext(fname)[-1] in (".rst", ".ipynb"):
+            if os.path.splitext(fname)[-1] in (".rst", ".ipynb", ".md"):
                 rel_fname = os.path.relpath(os.path.join(dirname, fname), source_path)
                 rel_fname = rel_fname.replace(os.sep, "/")
 
@@ -206,10 +212,16 @@ with open(os.path.join(source_path, "index.rst"), "w", encoding="utf-8") as f:
     f.write(
         t.render(
             include_api=include_api,
+            include_website=pandas_website_context,
             single_doc=(pattern if single_doc else None),
         )
     )
 autosummary_generate = True if include_api else ["index"]
+
+# MyST (Markdown), used for the website pages
+# Links in the website pages are to the generated HTML files
+myst_all_links_external = True
+myst_heading_anchors = 3
 autodoc_typehints = "none"
 maximum_signature_line_length = 88
 
@@ -441,7 +453,7 @@ toggleprompt_offset_right = 35
 templates_path = ["../_templates"]
 
 # The suffix of source filenames.
-source_suffix = [".rst"]
+source_suffix = {".rst": "restructuredtext", ".md": "markdown"}
 
 # The encoding of source files.
 source_encoding = "utf-8"
@@ -538,7 +550,12 @@ html_theme_options = {
     },
     "logo": {"image_dark": "https://pandas.pydata.org/static/img/pandas_white.svg"},
     "navbar_align": "left",
+    "header_links_before_dropdown": 7,
     "navbar_end": ["version-switcher", "theme-switcher", "navbar-icon-links"],
+    "secondary_sidebar_items": {
+        "**": ["page-toc", "edit-this-page", "sourcelink"],
+        "index": ["pandas-home-sidebar"],
+    },
     "switcher": {
         "json_url": "https://pandas.pydata.org/versions.json",
         "version_match": switcher_version,
@@ -573,7 +590,7 @@ html_theme_options = {
 
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
-html_logo = "../../web/pandas/static/img/pandas.svg"
+html_logo = "static/img/pandas.svg"
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
@@ -588,7 +605,7 @@ html_css_files = [
 # The name of an image file (within the static path) to use as favicon of the
 # docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32
 # pixels large.
-html_favicon = "../../web/pandas/static/img/favicon.ico"
+html_favicon = "static/img/favicon.ico"
 
 # If not '', a 'Last updated on:' timestamp is inserted at every page bottom,
 # using the given strftime format.
@@ -631,6 +648,202 @@ header = f"""\
 html_context = {
     "header": header,
     "full_version": full_version,
+}
+
+# Data for the website pages, added to their context by the pandas_website extension
+pandas_website_data = {
+    "main": {
+        "production_url": "https://pandas.pydata.org/",
+        "github_repo_url": "pandas-dev/pandas",
+    },
+    "blog": {
+        "num_posts": 50,
+        "posts_path": "community/blog",
+        "author": "pandas team",
+        "feed_name": "pandas blog",
+        "feed": [
+            "https://wesmckinney.com/feeds/pandas.atom.xml",
+            "https://tomaugspurger.github.io/feed",
+            "https://jorisvandenbossche.github.io/feeds/pandas.atom.xml",
+            "https://datapythonista.me/blog/feeds/pandas.atom.xml",
+            "https://numfocus.org/tag/pandas/feed/",
+            "https://phofl.github.io/feeds/pandas.atom.xml",
+        ],
+    },
+    "maintainers": {
+        "active": [
+            "jorisvandenbossche",
+            "TomAugspurger",
+            "jreback",
+            "WillAyd",
+            "mroeschke",
+            "jbrockmendel",
+            "datapythonista",
+            "simonjayhawkins",
+            "topper-123",
+            "alimcmaster1",
+            "Dr-Irv",
+            "rhshadrach",
+            "phofl",
+            "attack68",
+            "fangchenli",
+        ],
+        "inactive": [
+            "lodagro",
+            "jseabold",
+            "jtratner",
+            "shoyer",
+            "chris-b1",
+            "sinhrks",
+            "cpcloud",
+            "toobaz",
+            "jschendel",
+            "charlesdong1991",
+            "dsaxton",
+            "wesm",
+            "gfyoung",
+            "mzeitlin11",
+            "twoertwein",
+            "MarcoGorelli",
+            "bashtage",
+            "noatamir",
+            "lithomas1",
+            "lukemanley",
+        ],
+        "pandasstubs": ["Dr-Irv", "loicdiridollou", "cmp0xff"],
+    },
+    "workgroups": {
+        "coc": {
+            "name": "Code of Conduct",
+            "contact": "coc@pandas.pydata.org",
+            "responsibilities": (
+                "Make sure pandas is the welcoming and inclusive community we want it "
+                "to be. Keeping the CoC updated, and addressing violation reports."
+            ),
+            "members": [
+                "Tom Augspurger",
+                "Bijay Regmi",
+                "Wuraola Oyewusi",
+                "Мария Чакчурина",
+            ],
+        },
+        "finance": {
+            "name": "Finance",
+            "contact": "finance@pandas.pydata.org",
+            "responsibilities": (
+                "Manage the funding. Coordinate the request of grants. Approve the "
+                "project expenses."
+            ),
+            "members": [
+                "Matthew Roeschke",
+                "Jeff Reback",
+                "Joris Van den Bossche",
+                "Patrick Hoefler",
+            ],
+        },
+        "infrastructure": {
+            "name": "Infrastructure",
+            "contact": "infrastructure@pandas.pydata.org",
+            "responsibilities": (
+                "Keep the pandas infrastructure up and working. In particular the "
+                "servers for the website, benchmarks, CI and others needed."
+            ),
+            "members": ["William Ayd", "Thomas Li"],
+        },
+        "communications": {
+            "name": "Communications",
+            "contact": "communications@pandas.pydata.org",
+            "responsibilities": (
+                "Share relevant information with the broader community, mainly via our "
+                "social networks, as well as being the main point of contact between "
+                "NumFOCUS and the core team."
+            ),
+            "members": ["datapythonista"],
+        },
+    },
+    "sponsors": {
+        "active": [
+            {
+                "name": "NumFOCUS",
+                "url": "https://numfocus.org/",
+                "logo": "static/img/partners/numfocus.svg",
+                "kind": "numfocus",
+            },
+            {
+                "name": "Nvidia",
+                "url": "https://www.nvidia.com",
+                "logo": "static/img/partners/nvidia.svg",
+                "kind": "partner",
+                "description": "Matthew Roeschke",
+            },
+            {
+                "name": "Tidelift",
+                "url": "https://tidelift.com",
+                "logo": "static/img/partners/tidelift.svg",
+                "kind": "regular",
+                "description": (
+                    "<i>pandas</i> is part of the "
+                    '<a href="https://tidelift.com/subscription/pkg/pypi-pandas'
+                    '?utm_source=pypi-pandas&utm_medium=referral&utm_campaign=readme">'
+                    "Tidelift subscription</a>. You can support pandas by becoming a "
+                    "Tidelift subscriber."
+                ),
+            },
+            {
+                "name": "Bodo",
+                "url": "https://www.bodo.ai/",
+                "logo": "static/img/partners/bodo.svg",
+                "kind": "regular",
+                "description": (
+                    "Bodo's parallel computing platform uses pandas API, and Bodo "
+                    "financially supports pandas development to help improve pandas, "
+                    "in particular the pandas API"
+                ),
+            },
+        ],
+        # not included in active so they don't appear in the home page
+        "inkind": [
+            {
+                "name": "Indeed",
+                "url": "https://opensource.indeedeng.io/",
+                "description": "<i>pandas</i> logo design",
+            }
+        ],
+        "past": [
+            {
+                "name": "Paris-Saclay Center for Data Science",
+                "url": "https://www.datascience-paris-saclay.fr/",
+                "kind": "partner",
+            },
+            {"name": "Anaconda", "url": "https://www.anaconda.com/", "kind": "partner"},
+            {"name": "RStudio", "url": "https://www.rstudio.com/", "kind": "partner"},
+            {"name": "Ursa Labs", "url": "https://ursalabs.org/", "kind": "partner"},
+            {"name": "Gousto", "url": "https://www.gousto.co.uk/", "kind": "partner"},
+            {
+                "name": "d-fine GmbH",
+                "url": "https://www.d-fine.com/en/",
+                "kind": "partner",
+            },
+            {
+                "name": "Two Sigma",
+                "url": "https://www.twosigma.com/",
+                "kind": "partner",
+            },
+            {
+                "name": "Voltron Data",
+                "url": "https://voltrondata.com/",
+                "kind": "partner",
+            },
+            {"name": "Intel", "url": "https://www.intel.com/", "kind": "partner"},
+            {
+                "name": "Chan Zuckerberg Initiative",
+                "url": "https://chanzuckerberg.com/",
+                "kind": "regular",
+            },
+            {"name": "Coiled", "url": "https://www.coiled.io", "kind": "partner"},
+        ],
+    },
+    "roadmap": {"pdeps_path": "pdeps"},
 }
 
 # If false, no module index is generated.
@@ -1030,7 +1243,9 @@ suppress_warnings = [
     # We "overwrite" autosummary with our PandasAutosummary, but
     # still want the regular autosummary setup to run. So we just
     # suppress this warning.
-    "app.add_directive"
+    "app.add_directive",
+    # Some website pages skip heading levels, for example to make text smaller
+    "myst.header",
 ]
 if pattern:
     # When building a single document we don't want to warn because references
@@ -1047,7 +1262,8 @@ def rstjinja(app, docname, source) -> None:
     if app.builder.format != "html":
         return
     src = source[0]
-    rendered = app.builder.templates.render_string(src, app.config.html_context)
+    context = dict(app.config.html_context, base_url="../" * docname.count("/"))
+    rendered = app.builder.templates.render_string(src, context)
     source[0] = rendered
 
 

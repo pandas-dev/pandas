@@ -206,6 +206,15 @@ the documentation are also built by GitHub Actions. These docs are then hosted `
 <https://pandas.pydata.org/docs/dev/>`__, see also
 the :any:`Continuous Integration <contributing.ci>` section.
 
+.. _contributing.website:
+
+Website pages
+~~~~~~~~~~~~~
+
+The pages of the pandas website (about us, community, blog, PDEPs...) are the
+Markdown files in ``doc/source/``. Page data such as maintainers and sponsors
+is configured in ``pandas_website_data`` in ``doc/source/conf.py``.
+
 Previewing changes
 ------------------
 
