@@ -767,3 +767,21 @@ def test_memory_map_multichar_sep(python_parser_only, tmp_path):
         {"key": ["key1", "key2", "key3"], "value": ["value1", "value2", "value3"]}
     )
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "data, expected",
+    [
+        ("a,b\n\n1,2\n", pd.DataFrame({"a": [np.nan, 1.0], "b": [np.nan, 2.0]})),
+        (
+            "a,b,c\n\n1,2,3\n",
+            pd.DataFrame({"a": [np.nan, 1.0], "b": [np.nan, 2.0], "c": [np.nan, 3.0]}),
+        ),
+    ],
+)
+def test_blank_line_after_header_kept(python_parser_only, data, expected):
+    # GH#72413 a single blank record right after the header was taken for the
+    # row of index names that Case 0 looks for and dropped from the buffer
+    parser = python_parser_only
+    result = parser.read_csv(StringIO(data), skip_blank_lines=False)
+    tm.assert_frame_equal(result, expected)
