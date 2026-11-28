@@ -13,6 +13,8 @@ from datetime import (
 )
 import json
 import subprocess
+import sys
+import time
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -77,7 +79,7 @@ query($owner: String!, $name: String!, $number: Int!) {
 _OPEN_PRS_QUERY = """
 query($owner: String!, $name: String!, $cursor: String) {
   repository(owner: $owner, name: $name) {
-    pullRequests(states: OPEN, first: 50, after: $cursor) {
+    pullRequests(states: OPEN, first: 25, after: $cursor) {
       pageInfo { hasNextPage endCursor }
       nodes {
         number
@@ -125,6 +127,10 @@ _BOT_LOGIN = "github-actions"
 # associations.
 _EXEMPT_ROLES = {"admin", "maintain", "write", "triage"}
 
+# Seconds to wait before each retry of a failed GraphQL read. GitHub cancels
+# GraphQL queries that run longer than about 10 seconds and returns a 502.
+_GRAPHQL_RETRY_DELAYS = (10, 30)
+
 
 def parse_dt(value: str | None) -> datetime | None:
     if not value:
@@ -138,9 +144,15 @@ class GitHubClient:
         self.owner, self.name = repo.split("/")
 
     def _gh(self, args: list[str]) -> str:
-        return subprocess.run(
-            ["gh", *args], check=True, capture_output=True, text=True
-        ).stdout
+        try:
+            return subprocess.run(
+                ["gh", *args], check=True, capture_output=True, text=True
+            ).stdout
+        except subprocess.CalledProcessError as err:
+            # The message of CalledProcessError omits stderr, which holds the
+            # error that GitHub returned.
+            err.add_note(f"gh stderr: {err.stderr}")
+            raise
 
     def _graphql(self, query: str, **variables: str | int | None) -> dict[str, Any]:
         args = [
@@ -162,7 +174,21 @@ class GitHubClient:
                 args += ["-F", f"{key}={value}"]
             else:
                 args += ["-f", f"{key}={value}"]
-        return json.loads(self._gh(args))["data"]["repository"]
+        # Every GraphQL query in this module is a read, so retrying is safe.
+        for delay in _GRAPHQL_RETRY_DELAYS:
+            try:
+                out = self._gh(args)
+            except subprocess.CalledProcessError as err:
+                print(
+                    f"GraphQL query failed, retrying in {delay}s: {err.stderr}",
+                    file=sys.stderr,
+                )
+                time.sleep(delay)
+            else:
+                break
+        else:
+            out = self._gh(args)
+        return json.loads(out)["data"]["repository"]
 
     # --- reads ---------------------------------------------------------------
 

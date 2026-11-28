@@ -5,6 +5,7 @@ from datetime import (
     datetime,
     timedelta,
 )
+import subprocess
 from typing import TYPE_CHECKING
 
 import pytest
@@ -15,6 +16,7 @@ from scripts.issue_assignment import (
     messages,
     unassign_inactive,
 )
+from scripts.issue_assignment.client import GitHubClient
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
@@ -1332,3 +1334,42 @@ class TestRunSweep:
         )
         unassign_inactive.run_sweep(client)
         assert client.unassigned == []
+
+
+class TestGitHubClientErrors:
+    @pytest.fixture
+    def gh_results(self, monkeypatch: pytest.MonkeyPatch) -> list[object]:
+        """Queue of results for ``gh`` calls: a stdout string or an exit code."""
+        results: list[object] = []
+
+        def fake_run(cmd: list[str], **kwargs: object) -> subprocess.CompletedProcess:
+            result = results.pop(0)
+            if isinstance(result, int):
+                raise subprocess.CalledProcessError(
+                    result, cmd, output="", stderr="gh: HTTP 502"
+                )
+            return subprocess.CompletedProcess(cmd, 0, stdout=result, stderr="")
+
+        monkeypatch.setattr("scripts.issue_assignment.client.subprocess.run", fake_run)
+        monkeypatch.setattr(
+            "scripts.issue_assignment.client.time.sleep", lambda seconds: None
+        )
+        return results
+
+    def test_gh_failure_notes_stderr(self, gh_results: list[object]) -> None:
+        gh_results.append(1)
+        with pytest.raises(subprocess.CalledProcessError) as excinfo:
+            GitHubClient("o/r")._gh(["api", "x"])
+        assert excinfo.value.__notes__ == ["gh stderr: gh: HTTP 502"]
+
+    def test_graphql_retries_then_succeeds(self, gh_results: list[object]) -> None:
+        gh_results.extend([1, 1, '{"data": {"repository": {"a": 1}}}'])
+        result = GitHubClient("o/r")._graphql("query")
+        assert result == {"a": 1}
+        assert gh_results == []
+
+    def test_graphql_raises_after_retries(self, gh_results: list[object]) -> None:
+        gh_results.extend([1, 1, 1, '{"data": {"repository": {"a": 1}}}'])
+        with pytest.raises(subprocess.CalledProcessError):
+            GitHubClient("o/r")._graphql("query")
+        assert gh_results == ['{"data": {"repository": {"a": 1}}}']
