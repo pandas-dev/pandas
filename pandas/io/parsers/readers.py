@@ -7,10 +7,7 @@ GH#48849 provides a convenient way of deprecating keyword arguments
 from __future__ import annotations
 
 import codecs
-from collections import (
-    abc,
-    deque,
-)
+from collections import abc
 from concurrent.futures import ThreadPoolExecutor
 import contextlib
 import csv
@@ -85,6 +82,7 @@ from pandas.core.internals.managers import BlockManager
 
 from pandas.io.common import (
     IOHandles,
+    ReplayHandle,
     get_handle,
     infer_compression,
     is_potential_multi_index,
@@ -511,8 +509,7 @@ def _can_parallelize_csv(filepath_or_buffer, kwds: Mapping[str, Any]) -> bool:
     * ``parse_dates`` is unset - datetime format inference is per-chunk and may
       disagree with the serial whole-column inference.
     * ``low_memory`` is truthy - a falsy ``low_memory`` guarantees whole-file
-      type inference, which per-chunk parallel reading cannot honour
-      (``low_memory=True`` already documents per-chunk inference divergence).
+      type inference, which per-chunk parallel reading cannot honour.
     * ``storage_options`` is ``None`` - it raises for local paths in the serial
       path, and that error must not be masked.
     * ``on_bad_lines`` is not ``"warn"`` - chunk workers would report
@@ -1800,15 +1797,17 @@ def read_csv(
 
     low_memory : bool, default True
         Internally process the file in chunks, resulting in lower memory use
-        while parsing, but possibly mixed type inference. Because each chunk
-        is type-inferred independently, the same literal can be parsed as an
-        ``int`` in one chunk and a ``str`` in another; after concatenation the
-        column has ``object`` dtype and contains both representations, so
-        comparisons such as ``df["col"] == 12345`` or
-        ``df["col"] == "12345"`` will match only a subset of the rows holding
-        that value. A :class:`~pandas.errors.DtypeWarning` is emitted when
-        this occurs. To ensure no mixed types either set ``False``, or specify
-        the type with the ``dtype`` parameter.
+        while parsing. Each chunk is type-inferred independently, and a column
+        whose chunks disagree is re-read in one pass, so the result matches
+        ``low_memory=False``; that re-read needs at least as much memory as
+        ``low_memory=False`` and reads the source again, which for a remote
+        file means a second download. Where the column cannot be re-read (e.g. from a
+        pipe, or in a later chunk of an iterating read), its chunks are
+        concatenated instead, which can silently round integers beyond the
+        ``int64`` range to ``float64``, or give an ``object`` column holding
+        both ``12345`` and ``"12345"`` with a
+        :class:`~pandas.errors.DtypeWarning`. Specifying the type with
+        the ``dtype`` parameter avoids both the re-read and the warning.
         Note that the entire file is read into a single :class:`~pandas.DataFrame`
         regardless, use the ``chunksize`` or ``iterator``
         parameter to return the data in
@@ -2411,15 +2410,17 @@ def read_table(
 
     low_memory : bool, default True
         Internally process the file in chunks, resulting in lower memory use
-        while parsing, but possibly mixed type inference. Because each chunk
-        is type-inferred independently, the same literal can be parsed as an
-        ``int`` in one chunk and a ``str`` in another; after concatenation the
-        column has ``object`` dtype and contains both representations, so
-        comparisons such as ``df["col"] == 12345`` or
-        ``df["col"] == "12345"`` will match only a subset of the rows holding
-        that value. A :class:`~pandas.errors.DtypeWarning` is emitted when
-        this occurs. To ensure no mixed types either set ``False``, or specify
-        the type with the ``dtype`` parameter.
+        while parsing. Each chunk is type-inferred independently, and a column
+        whose chunks disagree is re-read in one pass, so the result matches
+        ``low_memory=False``; that re-read needs at least as much memory as
+        ``low_memory=False`` and reads the source again, which for a remote
+        file means a second download. Where the column cannot be re-read (e.g. from a
+        pipe, or in a later chunk of an iterating read), its chunks are
+        concatenated instead, which can silently round integers beyond the
+        ``int64`` range to ``float64``, or give an ``object`` column holding
+        both ``12345`` and ``"12345"`` with a
+        :class:`~pandas.errors.DtypeWarning`. Specifying the type with
+        the ``dtype`` parameter avoids both the re-read and the warning.
         Note that the entire file is read into a single :class:`~pandas.DataFrame`
         regardless, use the ``chunksize`` or ``iterator`` parameter
         to return the data in
@@ -3162,7 +3163,7 @@ class TextFileReader(abc.Iterator[DataFrame]):
                 self.handles.close()
             raise
 
-    def _sniff_delimiter(self, f: IO[Any]) -> _ReplayHandle:
+    def _sniff_delimiter(self, f: IO[Any]) -> ReplayHandle:
         """
         Set the delimiter for ``sep=None`` by sniffing the first row that is not
         in ``skiprows``, blank or a full-line comment.
@@ -3172,6 +3173,11 @@ class TextFileReader(abc.Iterator[DataFrame]):
         skiprows = self.options["skiprows"]
         skipfunc = skiprows if callable(skiprows) else skiprows.__contains__
         comment = self.options["comment"]
+        start: int | None
+        try:
+            start = f.tell()
+        except (AttributeError, OSError, ValueError):
+            start = None
         chunks: list[bytes | str] = []
         delimiter = None
         for pos, raw in enumerate(
@@ -3198,7 +3204,7 @@ class TextFileReader(abc.Iterator[DataFrame]):
                 "specify engine='python'."
             )
         self.options["delimiter"] = delimiter
-        return _ReplayHandle(chunks, f)
+        return ReplayHandle(chunks, f, start)
 
     def _failover_to_python(self) -> None:
         raise AbstractMethodError(self)
@@ -3720,19 +3726,3 @@ def _iter_physical_lines(
             start = match.end()
         partial.append(chunk[start:])
         skip_lf = not lineterminator and chunk[-1:] in (b"\r", "\r")
-
-
-class _ReplayHandle:
-    """
-    Serve ``chunks`` and then the rest of ``handle`` through ``read``, the only
-    method the c engine calls on its source; it accepts reads of any length.
-    """
-
-    def __init__(self, chunks: list[bytes | str], handle: IO[Any]) -> None:
-        self._chunks = deque(chunks)
-        self._handle = handle
-
-    def read(self, size: int) -> bytes | str:
-        if self._chunks:
-            return self._chunks.popleft()
-        return self._handle.read(size)

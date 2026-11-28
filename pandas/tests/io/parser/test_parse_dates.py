@@ -1306,8 +1306,14 @@ def test_parse_dates_low_memory_iso8601_reso_bump_across_chunks():
     date_strings.append("2020-01-02 00:00:00.123456789")
     data = _multichunk_csv(date_strings)
 
+    class UnseekableStringIO(StringIO):
+        # a seekable source re-reads the column rather than concatenating its
+        # chunks, see GH#68706
+        def seekable(self) -> bool:
+            return False
+
     kwargs = {"parse_dates": ["a"], "date_format": "ISO8601"}
-    result = read_csv(StringIO(data), low_memory=True, **kwargs)["a"]
+    result = read_csv(UnseekableStringIO(data), low_memory=True, **kwargs)["a"]
     expected = read_csv(StringIO(data), low_memory=False, **kwargs)["a"]
     tm.assert_series_equal(result, expected)
     assert result.dtype == "M8[ns]"

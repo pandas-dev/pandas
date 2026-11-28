@@ -5524,10 +5524,21 @@ class Index(IndexOpsMixin, PandasObject):
         Cast the ndarray returned from one of the libjoin.foo_indexer functions
         back to type(self._data).
         """
-        if isinstance(self.values, BaseMaskedArray):
-            return type(self.values)(result, np.zeros(result.shape, dtype=np.bool_))
-        elif isinstance(self.values, (ArrowExtensionArray, StringArray)):
-            return type(self.values)._from_sequence(result, dtype=self.dtype)
+        vals = self._values
+        if isinstance(vals, BaseMaskedArray):
+            return type(vals)(result, np.zeros(result.shape, dtype=np.bool_))
+        elif (
+            isinstance(vals, ArrowExtensionArray)
+            and isinstance(self.dtype, ArrowDtype)
+            and result.dtype != object
+        ):
+            # e.g. numeric, bool, timestamp or duration. This is only used if our
+            # array is monotonic, so there are no missing values to mask.
+            import pyarrow as pa
+
+            return type(vals)(pa.array(result, type=vals._pa_array.type))
+        elif isinstance(vals, (ArrowExtensionArray, StringArray)):
+            return type(vals)._from_sequence(result, dtype=self.dtype)
         return result
 
     def memory_usage(self, deep: bool = False) -> int:
