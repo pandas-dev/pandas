@@ -2169,21 +2169,34 @@ class ArrowExtensionArray(
 
         try:
             value_set = self._box_pa(values)
+            if pa.types.is_boolean(self._pa_array.type) and not pa.types.is_boolean(
+                value_set.type
+            ):
+                # pc.is_in casts value_set to the array's type; on a boolean
+                # array that coerces 2, 1.5 and "true" to True (GH#72356).
+                # Compare as objects instead, which follows Python equality
+                # (1 matches True, 2 does not) and lets missing values match
+                # only nulls.
+                return self._isin_as_object(values)
             result = pc.is_in(self._pa_array, value_set=value_set)
         except (pa.ArrowInvalid, pa.ArrowTypeError, OverflowError):
-            # pyarrow cannot box e.g. [1, 2**63], ["a", 1] or [2**53 + 1, 1.5];
-            # compare the non-null entries as a numpy array instead
-            values = np.asarray(values, dtype=object)
-            mask = self.isna()
-            values_mask = isna(values)
-            res = np.empty(len(self), dtype=bool)
-            # match pc.is_in: missing values in values (NaN included) match only nulls
-            res[~mask] = algos.isin(self[~mask].to_numpy(), values[~values_mask])
-            res[mask] = values_mask.any()
-            return res
+            return self._isin_as_object(values)
         # pyarrow 2.0.0 returned nulls, so we explicitly specify dtype to convert nulls
         # to False
         return np.array(result, dtype=np.bool_)
+
+    def _isin_as_object(self, values: ArrayLike) -> npt.NDArray[np.bool_]:
+        # pyarrow cannot box or compare e.g. [1, 2**63], ["a", 1] or
+        # [2**53 + 1, 1.5] against this array's type; compare the non-null
+        # entries as a numpy array instead
+        values = np.asarray(values, dtype=object)
+        mask = self.isna()
+        values_mask = isna(values)
+        res = np.empty(len(self), dtype=bool)
+        # match pc.is_in: missing values in values (NaN included) match only nulls
+        res[~mask] = algos.isin(self[~mask].to_numpy(), values[~values_mask])
+        res[mask] = values_mask.any()
+        return res
 
     def _hash_pandas_object(
         self, *, encoding: str, hash_key: str, categorize: bool

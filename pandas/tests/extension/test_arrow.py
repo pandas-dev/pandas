@@ -1024,3 +1024,28 @@ class TestArrowArray(base.ExtensionTests):
                 super().test_plot_on_y_axis(plot_data)
         else:
             super().test_plot_on_y_axis(plot_data)
+
+
+def test_isin_boolean_no_silent_coercion():
+    # GH#72356 pc.is_in casts value_set to the array's dtype, so on a boolean
+    # array values like 2, 1.5 or "true" were coerced to True and matched.
+    arr = pd.array([True, False, None], dtype="bool[pyarrow]")
+    expected = np.array([False, False, False])
+    tm.assert_numpy_array_equal(arr.isin([2]), expected)
+    tm.assert_numpy_array_equal(arr.isin([1.5]), expected)
+    tm.assert_numpy_array_equal(arr.isin(["true"]), expected)
+
+
+def test_isin_boolean_python_equality():
+    # 1 == True and 0 == False under Python equality, so those still match
+    arr = pd.array([True, False, None], dtype="bool[pyarrow]")
+    tm.assert_numpy_array_equal(arr.isin([True]), np.array([True, False, False]))
+    tm.assert_numpy_array_equal(arr.isin([1]), np.array([True, False, False]))
+    tm.assert_numpy_array_equal(arr.isin([0]), np.array([False, True, False]))
+
+
+def test_isin_boolean_missing_value_matches_nulls():
+    # as for the other ArrowDtype dtypes, a missing value in `values` matches
+    # nulls only
+    arr = pd.array([True, False, None], dtype="bool[pyarrow]")
+    tm.assert_numpy_array_equal(arr.isin([np.nan]), np.array([False, False, True]))
